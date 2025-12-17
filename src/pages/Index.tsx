@@ -5,6 +5,7 @@ import ClinicGoalsCard from "@/components/ClinicGoalsCard";
 import RecentAchievements from "@/components/RecentAchievements";
 import TimeCounters from "@/components/TimeCounters";
 import EvolutionChart from "@/components/EvolutionChart";
+import ChampionsDisplay from "@/components/ChampionsDisplay";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { Button } from "@/components/ui/button";
 import copaLogo from "@/assets/copa-unique-logo.png";
@@ -121,6 +122,11 @@ const Index = () => {
             </p>
           </div>
         )}
+
+        {/* Champions Display */}
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: "350ms" }}>
+          <ChampionsDisplay />
+        </div>
 
         {/* Clinic Goals & Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
