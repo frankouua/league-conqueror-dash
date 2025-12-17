@@ -7,6 +7,7 @@ import TimeCounters from "@/components/TimeCounters";
 import EvolutionChart from "@/components/EvolutionChart";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { Button } from "@/components/ui/button";
+import copaLogo from "@/assets/copa-unique-logo.png";
 
 // Calculate days remaining
 const now = new Date();
@@ -47,15 +48,23 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <div className="text-center mb-12 animate-slide-up">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gradient-gold mb-4">
+          <img 
+            src={copaLogo} 
+            alt="Copa Unique League 2026" 
+            className="h-32 md:h-40 mx-auto mb-6 trophy-glow"
+          />
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gradient-gold mb-2">
             Ranking Ao Vivo
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Acompanhe a competição em tempo real e veja qual equipe está dominando a Copa Unique League 2026
+          <p className="text-primary font-semibold text-lg mb-2">
+            A Disputa pela Excelência CPI
+          </p>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Acompanhe a competição em tempo real. Cada atendimento importa. Cada sonho realizado vale ouro.
           </p>
           
-          {/* Celebration Test Button - Hidden in production */}
-          <div className="mt-4 flex justify-center gap-2">
+          {/* Celebration Test Button */}
+          <div className="mt-6 flex justify-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -147,8 +156,11 @@ const Index = () => {
 
         {/* Footer */}
         <footer className="mt-16 pb-8 text-center">
+          <p className="text-primary font-medium mb-1">
+            Copa Unique League 2026
+          </p>
           <p className="text-muted-foreground text-sm">
-            © 2026 Unique CPI • Copa Unique League
+            A Disputa pela Excelência CPI • © Unique
           </p>
         </footer>
       </main>
