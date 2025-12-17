@@ -91,7 +91,7 @@ const ReferralLeads = () => {
 
   const [leads, setLeads] = useState<ReferralLead[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -302,7 +302,41 @@ const ReferralLeads = () => {
     return acc;
   }, {} as Record<ReferralLeadStatus, ReferralLead[]>);
 
-  if (authLoading || isLoading) {
+  if (authLoading || (user && !profile)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (user && profile && !profile.team_id && role !== "admin") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-10">
+          <section className="max-w-2xl mx-auto">
+            <Card className="bg-gradient-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">Acesso às indicações</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Seu usuário ainda não está vinculado a um time. Para usar o Pipeline de Indicações, um administrador
+                  precisa atribuir seu time.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Se você for admin, crie/atribua um time e faça login novamente.
+                </p>
+              </CardContent>
+            </Card>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
