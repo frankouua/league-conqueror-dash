@@ -20,7 +20,8 @@ import {
   Clock,
   Sparkles
 } from "lucide-react";
-import copaLogo from "@/assets/copa-unique-logo.png";
+import copaLogo from "@/assets/logo-copa-unique-league.png";
+import mascoteLogo from "@/assets/mascote-leao-dourado.png";
 import cardsSystem from "@/assets/cards-system.png";
 
 const Rules = () => {
