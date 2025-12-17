@@ -1,86 +1,11 @@
+import { Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import TeamRankingCard from "@/components/TeamRankingCard";
 import ClinicGoalsCard from "@/components/ClinicGoalsCard";
 import RecentAchievements from "@/components/RecentAchievements";
 import TimeCounters from "@/components/TimeCounters";
 import EvolutionChart from "@/components/EvolutionChart";
-
-// Mock data for demonstration
-const mockTeam1 = {
-  name: "Equipe Ouro",
-  totalPoints: 1850,
-  revenuePoints: 1450,
-  qualityPoints: 350,
-  modifierPoints: 50,
-};
-
-const mockTeam2 = {
-  name: "Equipe Diamante",
-  totalPoints: 1720,
-  revenuePoints: 1380,
-  qualityPoints: 380,
-  modifierPoints: -40,
-};
-
-const mockAchievements = [
-  {
-    id: "1",
-    type: "goal" as const,
-    teamName: "Clínica Unique",
-    description: "Meta 2 atingida! +50 pontos para todas as equipes 🎉",
-    timestamp: "Há 2 horas",
-    points: 50,
-  },
-  {
-    id: "2",
-    type: "card_blue" as const,
-    teamName: "Equipe Ouro",
-    description: "Recebeu Cartão Azul por inovação no atendimento",
-    timestamp: "Há 5 horas",
-    points: 20,
-  },
-  {
-    id: "3",
-    type: "referral" as const,
-    teamName: "Equipe Diamante",
-    description: "Registrou 8 novas indicações coletadas",
-    timestamp: "Há 1 dia",
-    points: 40,
-  },
-  {
-    id: "4",
-    type: "testimonial" as const,
-    teamName: "Equipe Ouro",
-    description: "Conseguiu 3 depoimentos Google 5★",
-    timestamp: "Há 1 dia",
-    points: 30,
-  },
-  {
-    id: "5",
-    type: "ambassador" as const,
-    teamName: "Equipe Diamante",
-    description: "Nova paciente embaixadora reconhecida",
-    timestamp: "Há 2 dias",
-    points: 50,
-  },
-  {
-    id: "6",
-    type: "card_yellow" as const,
-    teamName: "Equipe Diamante",
-    description: "Recebeu Cartão Amarelo - Atenção ao prazo",
-    timestamp: "Há 3 dias",
-    points: -15,
-  },
-];
-
-const mockChartData = [
-  { month: "Jan", team1: 280, team2: 250 },
-  { month: "Fev", team1: 580, team2: 520 },
-  { month: "Mar", team1: 920, team2: 880 },
-  { month: "Abr", team1: 1280, team2: 1150 },
-  { month: "Mai", team1: 1580, team2: 1480 },
-  { month: "Jun", team1: 1850, team2: 1720 },
-];
+import { useTeamScores } from "@/hooks/useTeamScores";
 
 // Calculate days remaining
 const now = new Date();
@@ -95,13 +20,24 @@ const daysRemainingSemester = Math.ceil((endOfSemester.getTime() - now.getTime()
 const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
 const Index = () => {
-  const isTeam1Leading = mockTeam1.totalPoints > mockTeam2.totalPoints;
-  const pointsDifference = Math.abs(mockTeam1.totalPoints - mockTeam2.totalPoints);
+  const { teams, achievements, chartData, totalClinicRevenue, isLoading } = useTeamScores();
 
-  // Combined revenue for clinic goals
-  const team1Revenue = mockTeam1.revenuePoints * 10000;
-  const team2Revenue = mockTeam2.revenuePoints * 10000;
-  const totalClinicRevenue = team1Revenue + team2Revenue;
+  // Get top 2 teams
+  const team1 = teams[0];
+  const team2 = teams[1];
+
+  const pointsDifference = team1 && team2 ? Math.abs(team1.totalPoints - team2.totalPoints) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando ranking...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -128,32 +64,40 @@ const Index = () => {
         </div>
 
         {/* Team Rankings */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="animate-scale-in" style={{ animationDelay: "200ms" }}>
-            <TeamRankingCard
-              position={isTeam1Leading ? 1 : 2}
-              teamName={mockTeam1.name}
-              totalPoints={mockTeam1.totalPoints}
-              revenuePoints={mockTeam1.revenuePoints}
-              qualityPoints={mockTeam1.qualityPoints}
-              modifierPoints={mockTeam1.modifierPoints}
-              pointsDifference={isTeam1Leading ? pointsDifference : -pointsDifference}
-              isLeading={isTeam1Leading}
-            />
+        {teams.length >= 2 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="animate-scale-in" style={{ animationDelay: "200ms" }}>
+              <TeamRankingCard
+                position={1}
+                teamName={team1.name}
+                totalPoints={team1.totalPoints}
+                revenuePoints={team1.revenuePoints}
+                qualityPoints={team1.qualityPoints}
+                modifierPoints={team1.modifierPoints}
+                pointsDifference={pointsDifference}
+                isLeading={true}
+              />
+            </div>
+            <div className="animate-scale-in" style={{ animationDelay: "300ms" }}>
+              <TeamRankingCard
+                position={2}
+                teamName={team2.name}
+                totalPoints={team2.totalPoints}
+                revenuePoints={team2.revenuePoints}
+                qualityPoints={team2.qualityPoints}
+                modifierPoints={team2.modifierPoints}
+                pointsDifference={-pointsDifference}
+                isLeading={false}
+              />
+            </div>
           </div>
-          <div className="animate-scale-in" style={{ animationDelay: "300ms" }}>
-            <TeamRankingCard
-              position={isTeam1Leading ? 2 : 1}
-              teamName={mockTeam2.name}
-              totalPoints={mockTeam2.totalPoints}
-              revenuePoints={mockTeam2.revenuePoints}
-              qualityPoints={mockTeam2.qualityPoints}
-              modifierPoints={mockTeam2.modifierPoints}
-              pointsDifference={isTeam1Leading ? -pointsDifference : pointsDifference}
-              isLeading={!isTeam1Leading}
-            />
+        ) : (
+          <div className="text-center py-12 mb-8 bg-gradient-card rounded-2xl border border-border">
+            <p className="text-muted-foreground">
+              Nenhuma equipe cadastrada ainda. Entre em contato com o administrador.
+            </p>
           </div>
-        </div>
+        )}
 
         {/* Clinic Goals & Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -167,16 +111,24 @@ const Index = () => {
           </div>
           <div className="animate-slide-up" style={{ animationDelay: "500ms" }}>
             <EvolutionChart
-              data={mockChartData}
-              team1Name={mockTeam1.name}
-              team2Name={mockTeam2.name}
+              data={chartData}
+              team1Name={team1?.name || "Equipe 1"}
+              team2Name={team2?.name || "Equipe 2"}
             />
           </div>
         </div>
 
         {/* Recent Achievements */}
         <div className="animate-slide-up" style={{ animationDelay: "600ms" }}>
-          <RecentAchievements achievements={mockAchievements} />
+          {achievements.length > 0 ? (
+            <RecentAchievements achievements={achievements} />
+          ) : (
+            <div className="bg-gradient-card rounded-2xl p-6 border border-border text-center">
+              <p className="text-muted-foreground">
+                Nenhuma conquista registrada ainda. Comece registrando indicadores!
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
