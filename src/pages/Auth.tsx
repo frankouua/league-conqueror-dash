@@ -41,6 +41,8 @@ interface Team {
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const [teams, setTeams] = useState<Team[]>([]);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -76,6 +78,48 @@ const Auth = () => {
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast({
+        title: "Erro",
+        description: "Digite seu email para recuperar a senha",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Email enviado!",
+          description: "Verifique sua caixa de entrada para redefinir sua senha",
+        });
+        setIsForgotPassword(false);
+        setResetEmail("");
+      }
+    } catch (err) {
+      toast({
+        title: "Erro",
+        description: "Algo deu errado. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,30 +243,85 @@ const Auth = () => {
 
         {/* Form Card */}
         <div className="bg-gradient-card rounded-2xl border border-border p-8 shadow-card animate-scale-in">
-          <div className="flex gap-2 mb-8">
-            <Button
-              variant={isLogin ? "default" : "outline"}
-              className={`flex-1 ${
-                isLogin
-                  ? "bg-gradient-gold text-primary-foreground hover:opacity-90"
-                  : "border-border text-muted-foreground hover:text-foreground"
-              }`}
-              onClick={() => setIsLogin(true)}
-            >
-              Entrar
-            </Button>
-            <Button
-              variant={!isLogin ? "default" : "outline"}
-              className={`flex-1 ${
-                !isLogin
-                  ? "bg-gradient-gold text-primary-foreground hover:opacity-90"
-                  : "border-border text-muted-foreground hover:text-foreground"
-              }`}
-              onClick={() => setIsLogin(false)}
-            >
-              Cadastrar
-            </Button>
-          </div>
+          {isForgotPassword ? (
+            /* Forgot Password Form */
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-foreground mb-2">Recuperar Senha</h2>
+                <p className="text-muted-foreground text-sm">
+                  Digite seu email para receber o link de recuperação
+                </p>
+              </div>
+              <form onSubmit={handleForgotPassword} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="resetEmail" className="text-foreground">
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="resetEmail"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="pl-11 bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary"
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-gold-shine text-primary-foreground font-bold hover:opacity-90 shadow-gold transition-all duration-300"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      Enviando...
+                    </span>
+                  ) : (
+                    "Enviar Link de Recuperação"
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setResetEmail("");
+                  }}
+                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Voltar ao login
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* Login/Signup Form */
+            <>
+              <div className="flex gap-2 mb-8">
+                <Button
+                  variant={isLogin ? "default" : "outline"}
+                  className={`flex-1 ${
+                    isLogin
+                      ? "bg-gradient-gold text-primary-foreground hover:opacity-90"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setIsLogin(true)}
+                >
+                  Entrar
+                </Button>
+                <Button
+                  variant={!isLogin ? "default" : "outline"}
+                  className={`flex-1 ${
+                    !isLogin
+                      ? "bg-gradient-gold text-primary-foreground hover:opacity-90"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setIsLogin(false)}
+                >
+                  Cadastrar
+                </Button>
+              </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
@@ -284,6 +383,15 @@ const Auth = () => {
               </div>
               {errors.password && (
                 <p className="text-destructive text-sm">{errors.password}</p>
+              )}
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-sm text-primary hover:text-primary/80 transition-colors"
+                >
+                  Esqueceu a senha?
+                </button>
               )}
             </div>
 
@@ -364,6 +472,8 @@ const Auth = () => {
               )}
             </Button>
           </form>
+            </>
+          )}
         </div>
 
         {/* Footer */}
