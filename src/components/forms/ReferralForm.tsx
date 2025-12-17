@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Users, Loader2 } from "lucide-react";
+import { CalendarIcon, Users as UsersIcon, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { IndividualTeamFields, getEffectiveInsertData } from "./IndividualTeamFields";
 
 const referralSchema = z.object({
   collected: z.string().min(1, "Informe o número de indicações"),
@@ -33,14 +34,17 @@ const referralSchema = z.object({
   toSurgery: z.string().optional(),
   patientName: z.string().optional(),
   date: z.date({ required_error: "Selecione uma data" }),
+  countsForIndividual: z.boolean().default(true),
+  attributedToUserId: z.string().optional(),
 });
 
 type ReferralFormData = z.infer<typeof referralSchema>;
 
 const ReferralForm = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { user, profile } = useAuth();
+  const { user, profile, role } = useAuth();
   const { toast } = useToast();
+  const isAdmin = role === "admin";
 
   const form = useForm<ReferralFormData>({
     resolver: zodResolver(referralSchema),
@@ -49,6 +53,8 @@ const ReferralForm = () => {
       toConsultation: "",
       toSurgery: "",
       patientName: "",
+      countsForIndividual: true,
+      attributedToUserId: "",
     },
   });
 
@@ -79,19 +85,28 @@ const ReferralForm = () => {
         return;
       }
 
+      const insertData = getEffectiveInsertData(
+        user.id,
+        data.attributedToUserId,
+        data.countsForIndividual,
+        isAdmin
+      );
+
       const { error } = await supabase.from("referral_records").insert({
         team_id: profile.team_id,
-        user_id: user.id,
+        user_id: insertData.effectiveUserId,
         collected,
         to_consultation: toConsultation,
         to_surgery: toSurgery,
         patient_name: data.patientName || null,
         date: format(data.date, "yyyy-MM-dd"),
+        counts_for_individual: insertData.counts_for_individual,
+        attributed_to_user_id: insertData.attributed_to_user_id,
+        registered_by_admin: insertData.registered_by_admin,
       });
 
       if (error) throw error;
 
-      // Calculate points
       const points = collected * 5 + toConsultation * 15 + toSurgery * 30;
 
       toast({
@@ -115,7 +130,7 @@ const ReferralForm = () => {
     <div className="bg-gradient-card rounded-2xl p-6 border border-border">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-3 rounded-xl bg-info/10">
-          <Users className="w-6 h-6 text-info" />
+          <UsersIcon className="w-6 h-6 text-info" />
         </div>
         <div>
           <h3 className="text-xl font-bold text-foreground">Indicações</h3>
@@ -254,6 +269,8 @@ const ReferralForm = () => {
               </FormItem>
             )}
           />
+
+          <IndividualTeamFields form={form} />
 
           <Button
             type="submit"

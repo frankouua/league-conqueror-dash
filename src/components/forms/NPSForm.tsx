@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { IndividualTeamFields, getEffectiveInsertData } from "./IndividualTeamFields";
 
 const npsSchema = z.object({
   score: z.enum(["9", "10"], {
@@ -42,20 +43,25 @@ const npsSchema = z.object({
   citedMember: z.boolean().default(false),
   memberName: z.string().optional(),
   date: z.date({ required_error: "Selecione uma data" }),
+  countsForIndividual: z.boolean().default(true),
+  attributedToUserId: z.string().optional(),
 });
 
 type NPSFormData = z.infer<typeof npsSchema>;
 
 const NPSForm = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { user, profile } = useAuth();
+  const { user, profile, role } = useAuth();
   const { toast } = useToast();
+  const isAdmin = role === "admin";
 
   const form = useForm<NPSFormData>({
     resolver: zodResolver(npsSchema),
     defaultValues: {
       citedMember: false,
       memberName: "",
+      countsForIndividual: true,
+      attributedToUserId: "",
     },
   });
 
@@ -76,18 +82,27 @@ const NPSForm = () => {
     try {
       const score = parseInt(data.score);
 
+      const insertData = getEffectiveInsertData(
+        user.id,
+        data.attributedToUserId,
+        data.countsForIndividual,
+        isAdmin
+      );
+
       const { error } = await supabase.from("nps_records").insert({
         team_id: profile.team_id,
-        user_id: user.id,
+        user_id: insertData.effectiveUserId,
         score,
         cited_member: data.citedMember,
         member_name: data.citedMember ? data.memberName || null : null,
         date: format(data.date, "yyyy-MM-dd"),
+        counts_for_individual: insertData.counts_for_individual,
+        attributed_to_user_id: insertData.attributed_to_user_id,
+        registered_by_admin: insertData.registered_by_admin,
       });
 
       if (error) throw error;
 
-      // Calculate points
       let points = score === 9 ? 3 : 5;
       if (data.citedMember) points += 10;
 
@@ -240,6 +255,8 @@ const NPSForm = () => {
               </FormItem>
             )}
           />
+
+          <IndividualTeamFields form={form} />
 
           <Button
             type="submit"

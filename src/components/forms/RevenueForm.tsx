@@ -26,25 +26,31 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { IndividualTeamFields, getEffectiveInsertData } from "./IndividualTeamFields";
 
 const revenueSchema = z.object({
   amount: z.string().min(1, "Informe o valor do faturamento"),
   date: z.date({ required_error: "Selecione uma data" }),
   notes: z.string().optional(),
+  countsForIndividual: z.boolean().default(true),
+  attributedToUserId: z.string().optional(),
 });
 
 type RevenueFormData = z.infer<typeof revenueSchema>;
 
 const RevenueForm = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { user, profile } = useAuth();
+  const { user, profile, role } = useAuth();
   const { toast } = useToast();
+  const isAdmin = role === "admin";
 
   const form = useForm<RevenueFormData>({
     resolver: zodResolver(revenueSchema),
     defaultValues: {
       amount: "",
       notes: "",
+      countsForIndividual: true,
+      attributedToUserId: "",
     },
   });
 
@@ -77,12 +83,22 @@ const RevenueForm = () => {
         return;
       }
 
+      const insertData = getEffectiveInsertData(
+        user.id,
+        data.attributedToUserId,
+        data.countsForIndividual,
+        isAdmin
+      );
+
       const { error } = await supabase.from("revenue_records").insert({
         team_id: profile.team_id,
-        user_id: user.id,
+        user_id: insertData.effectiveUserId,
         amount,
         date: format(data.date, "yyyy-MM-dd"),
         notes: data.notes || null,
+        counts_for_individual: insertData.counts_for_individual,
+        attributed_to_user_id: insertData.attributed_to_user_id,
+        registered_by_admin: insertData.registered_by_admin,
       });
 
       if (error) throw error;
@@ -197,6 +213,8 @@ const RevenueForm = () => {
               </FormItem>
             )}
           />
+
+          <IndividualTeamFields form={form} />
 
           <Button
             type="submit"
