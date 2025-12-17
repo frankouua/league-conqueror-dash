@@ -55,7 +55,7 @@ const Header = () => {
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/register", label: "Registrar", icon: Plus },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
-    { path: "/reports", label: "Relatórios", icon: FileText },
+    { path: "/data-reports", label: "Relatórios", icon: FileText },
     { path: "/performance", label: "Desempenho", icon: Target },
     { path: "/guides", label: "Guias", icon: BookOpen },
   ];
