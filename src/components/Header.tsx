@@ -55,14 +55,9 @@ const Header = () => {
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/register", label: "Registrar", icon: Plus },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
-    { path: "/history", label: "Histórico", icon: History },
-    { path: "/analytics", label: "Análises", icon: BarChart3 },
-    { path: "/rules", label: "Regras", icon: BookOpen },
-    { path: "/patient-journey", label: "Jornada", icon: Route },
-    { path: "/individual", label: "Individual", icon: Users },
-    { path: "/goals", label: "Metas", icon: Target },
     { path: "/reports", label: "Relatórios", icon: FileText },
-    { path: "/contestation", label: "Contestar", icon: AlertCircle },
+    { path: "/performance", label: "Desempenho", icon: Target },
+    { path: "/guides", label: "Guias", icon: BookOpen },
   ];
 
   const NavItem = ({ path, label, icon: Icon, onClick }: { path: string; label: string; icon: any; onClick?: () => void }) => (
