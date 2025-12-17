@@ -305,34 +305,33 @@ const Guides = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2 p-2 bg-blue-500/10 rounded-lg border-l-4 border-blue-500">
-                    <div className="w-6 h-8 bg-blue-500 rounded" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-600">Azul</p>
-                    </div>
-                    <Badge className="bg-blue-500">+20</Badge>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Cartão Azul */}
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-900/80 to-blue-800/60 rounded-xl border-l-4 border-blue-500 shadow-lg">
+                    <div className="w-5 h-7 bg-blue-500 rounded-sm shadow-md" />
+                    <span className="flex-1 font-semibold text-blue-400">Azul</span>
+                    <Badge className="bg-blue-500/90 text-white font-bold px-2.5">+30</Badge>
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800/50 rounded-lg border-l-4 border-gray-400">
-                    <div className="w-6 h-8 bg-white border border-gray-300 rounded" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Branco</p>
-                    </div>
-                    <Badge variant="secondary">+10</Badge>
+                  
+                  {/* Cartão Branco */}
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-gray-100 to-white rounded-xl border-l-4 border-gray-300 shadow-lg">
+                    <div className="w-5 h-7 bg-white border-2 border-gray-300 rounded-sm shadow-md" />
+                    <span className="flex-1 font-semibold text-gray-800">Branco</span>
+                    <Badge className="bg-gray-800 text-white font-bold px-2.5">+20</Badge>
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-yellow-500/10 rounded-lg border-l-4 border-yellow-500">
-                    <div className="w-6 h-8 bg-yellow-400 rounded" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-yellow-600">Amarelo</p>
-                    </div>
-                    <Badge className="bg-yellow-500">-15</Badge>
+                  
+                  {/* Cartão Amarelo */}
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-amber-900/80 to-amber-800/60 rounded-xl border-l-4 border-amber-500 shadow-lg">
+                    <div className="w-5 h-7 bg-amber-400 rounded-sm shadow-md" />
+                    <span className="flex-1 font-semibold text-amber-400">Amarelo</span>
+                    <Badge className="bg-amber-500/90 text-black font-bold px-2.5">-10</Badge>
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-red-500/10 rounded-lg border-l-4 border-red-500">
-                    <div className="w-6 h-8 bg-red-500 rounded" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-red-600">Vermelho</p>
-                    </div>
-                    <Badge variant="destructive">-40</Badge>
+                  
+                  {/* Cartão Vermelho */}
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-900/80 to-red-800/60 rounded-xl border-l-4 border-red-500 shadow-lg">
+                    <div className="w-5 h-7 bg-red-500 rounded-sm shadow-md" />
+                    <span className="flex-1 font-semibold text-red-400">Vermelho</span>
+                    <Badge className="bg-red-500/90 text-white font-bold px-2.5">-30</Badge>
                   </div>
                 </div>
               </CardContent>

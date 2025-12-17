@@ -240,45 +240,45 @@ const Rules = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {/* Blue Card */}
-                <div className="flex items-center gap-4 p-4 bg-blue-500/10 rounded-lg border-l-4 border-blue-500">
-                  <div className="w-12 h-16 bg-blue-500 rounded shadow-lg" />
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-900/80 to-blue-800/60 rounded-xl border-l-4 border-blue-500 shadow-lg">
+                  <div className="w-10 h-14 bg-blue-500 rounded-md shadow-md flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="font-semibold text-blue-600">Cartão Azul</p>
-                    <p className="text-sm text-muted-foreground">Excelência no atendimento</p>
+                    <p className="font-bold text-lg text-blue-400">Cartão Azul</p>
+                    <p className="text-sm text-blue-300/80">Excelência no atendimento</p>
                   </div>
-                  <Badge className="bg-blue-500 text-lg">+20 pts</Badge>
+                  <Badge className="bg-blue-500/90 text-white font-bold text-base px-3 py-1">+30 pts</Badge>
                 </div>
 
                 {/* White Card */}
-                <div className="flex items-center gap-4 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg border-l-4 border-gray-400">
-                  <div className="w-12 h-16 bg-white border-2 border-gray-300 rounded shadow-lg" />
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-100 to-white rounded-xl border-l-4 border-gray-300 shadow-lg">
+                  <div className="w-10 h-14 bg-white border-2 border-gray-300 rounded-md shadow-md flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-600 dark:text-gray-300">Cartão Branco</p>
-                    <p className="text-sm text-muted-foreground">Bom desempenho geral</p>
+                    <p className="font-bold text-lg text-gray-800">Cartão Branco</p>
+                    <p className="text-sm text-gray-600">Bom desempenho geral</p>
                   </div>
-                  <Badge variant="secondary" className="text-lg">+10 pts</Badge>
+                  <Badge className="bg-gray-800 text-white font-bold text-base px-3 py-1">+20 pts</Badge>
                 </div>
 
                 {/* Yellow Card */}
-                <div className="flex items-center gap-4 p-4 bg-yellow-500/10 rounded-lg border-l-4 border-yellow-500">
-                  <div className="w-12 h-16 bg-yellow-400 rounded shadow-lg" />
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-amber-900/80 to-amber-800/60 rounded-xl border-l-4 border-amber-500 shadow-lg">
+                  <div className="w-10 h-14 bg-amber-400 rounded-md shadow-md flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="font-semibold text-yellow-600">Cartão Amarelo</p>
-                    <p className="text-sm text-muted-foreground">Advertência</p>
+                    <p className="font-bold text-lg text-amber-400">Cartão Amarelo</p>
+                    <p className="text-sm text-amber-300/80">Advertência</p>
                   </div>
-                  <Badge className="bg-yellow-500 text-lg">-15 pts</Badge>
+                  <Badge className="bg-amber-500/90 text-black font-bold text-base px-3 py-1">-10 pts</Badge>
                 </div>
 
                 {/* Red Card */}
-                <div className="flex items-center gap-4 p-4 bg-red-500/10 rounded-lg border-l-4 border-red-500">
-                  <div className="w-12 h-16 bg-red-500 rounded shadow-lg" />
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-red-900/80 to-red-800/60 rounded-xl border-l-4 border-red-500 shadow-lg">
+                  <div className="w-10 h-14 bg-red-500 rounded-md shadow-md flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="font-semibold text-red-600">Cartão Vermelho</p>
-                    <p className="text-sm text-muted-foreground">Infração grave</p>
+                    <p className="font-bold text-lg text-red-400">Cartão Vermelho</p>
+                    <p className="text-sm text-red-300/80">Infração grave</p>
                   </div>
-                  <Badge variant="destructive" className="text-lg">-40 pts</Badge>
+                  <Badge className="bg-red-500/90 text-white font-bold text-base px-3 py-1">-30 pts</Badge>
                 </div>
               </div>
 
