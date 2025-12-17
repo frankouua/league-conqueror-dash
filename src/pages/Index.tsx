@@ -7,6 +7,7 @@ import TimeCounters from "@/components/TimeCounters";
 import EvolutionChart from "@/components/EvolutionChart";
 import ChampionsDisplay from "@/components/ChampionsDisplay";
 import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
+import TeamComparisonCard from "@/components/TeamComparisonCard";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { Button } from "@/components/ui/button";
 import copaLogo from "@/assets/copa-unique-logo.png";
@@ -124,19 +125,26 @@ const Index = () => {
           </div>
         )}
 
+        {/* Team Comparison */}
+        {teams.length >= 2 && (
+          <div className="mb-8 animate-slide-up" style={{ animationDelay: "350ms" }}>
+            <TeamComparisonCard team1={team1} team2={team2} />
+          </div>
+        )}
+
         {/* Champions & Streak Records */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="animate-slide-up" style={{ animationDelay: "350ms" }}>
+          <div className="animate-slide-up" style={{ animationDelay: "400ms" }}>
             <ChampionsDisplay />
           </div>
-          <div className="animate-slide-up" style={{ animationDelay: "400ms" }}>
+          <div className="animate-slide-up" style={{ animationDelay: "450ms" }}>
             <StreakRecordsDisplay />
           </div>
         </div>
 
         {/* Clinic Goals & Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="animate-slide-up" style={{ animationDelay: "450ms" }}>
+          <div className="animate-slide-up" style={{ animationDelay: "500ms" }}>
             <ClinicGoalsCard
               currentRevenue={totalClinicRevenue}
               goal1={2500000}
@@ -144,7 +152,7 @@ const Index = () => {
               goal3={3000000}
             />
           </div>
-          <div className="animate-slide-up" style={{ animationDelay: "500ms" }}>
+          <div className="animate-slide-up" style={{ animationDelay: "550ms" }}>
             <EvolutionChart
               data={chartData}
               team1Name={team1?.name || "Equipe 1"}
@@ -154,7 +162,7 @@ const Index = () => {
         </div>
 
         {/* Recent Achievements */}
-        <div className="animate-slide-up" style={{ animationDelay: "550ms" }}>
+        <div className="animate-slide-up" style={{ animationDelay: "600ms" }}>
           {achievements.length > 0 ? (
             <RecentAchievements achievements={achievements} />
           ) : (
