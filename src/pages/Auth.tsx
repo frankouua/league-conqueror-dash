@@ -50,9 +50,9 @@ const DEPARTMENTS = [
 ];
 
 const POSITIONS = [
-  { value: "comercial_1_captacao", label: "Comercial 1 - Captação" },
+  { value: "comercial_1_captacao", label: "Comercial 1 - Social Selling" },
   { value: "comercial_2_closer", label: "Comercial 2 - Closer" },
-  { value: "comercial_3_experiencia", label: "Comercial 3 - Experiência" },
+  { value: "comercial_3_experiencia", label: "Comercial 3 - Customer Success" },
   { value: "comercial_4_farmer", label: "Comercial 4 - Farmer" },
   { value: "sdr", label: "SDR" },
   { value: "coordenador", label: "Coordenador(a)" },

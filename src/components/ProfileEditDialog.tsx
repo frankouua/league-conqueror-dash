@@ -25,9 +25,9 @@ const DEPARTMENT_LABELS: Record<string, string> = {
 };
 
 const POSITION_LABELS: Record<string, string> = {
-  comercial_1_captacao: "Comercial 1 - Captação",
+  comercial_1_captacao: "Comercial 1 - Social Selling",
   comercial_2_closer: "Comercial 2 - Closer",
-  comercial_3_experiencia: "Comercial 3 - Experiência",
+  comercial_3_experiencia: "Comercial 3 - Customer Success",
   comercial_4_farmer: "Comercial 4 - Farmer",
   sdr: "SDR",
   coordenador: "Coordenador",
