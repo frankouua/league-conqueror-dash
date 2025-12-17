@@ -1,4 +1,6 @@
-import { Loader2, PartyPopper } from "lucide-react";
+import { Loader2, PartyPopper, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import Header from "@/components/Header";
 import TeamRankingCard from "@/components/TeamRankingCard";
 import ClinicGoalsCard from "@/components/ClinicGoalsCard";
@@ -25,7 +27,7 @@ const daysRemainingSemester = Math.ceil((endOfSemester.getTime() - now.getTime()
 const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
 const Index = () => {
-  const { teams, achievements, chartData, totalClinicRevenue, isLoading, triggerCelebration } = useTeamScores();
+  const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores();
 
   // Get top 2 teams
   const team1 = teams[0];
@@ -66,6 +68,19 @@ const Index = () => {
             Acompanhe a competição em tempo real. Cada atendimento importa. Cada sonho realizado vale ouro.
           </p>
           
+          {/* Last Updated */}
+          {lastUpdated && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
+              <Clock className="w-4 h-4 text-primary" />
+              <span className="text-sm text-muted-foreground">
+                Última atualização:{" "}
+                <span className="text-foreground font-medium">
+                  {format(lastUpdated, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </span>
+              </span>
+            </div>
+          )}
+
           {/* Celebration Test Button */}
           <div className="mt-6 flex justify-center gap-2">
             <Button
