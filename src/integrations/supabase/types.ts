@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      cards: {
+        Row: {
+          applied_by: string
+          created_at: string
+          date: string
+          id: string
+          points: number
+          reason: string
+          team_id: string
+          type: Database["public"]["Enums"]["card_type"]
+        }
+        Insert: {
+          applied_by: string
+          created_at?: string
+          date?: string
+          id?: string
+          points: number
+          reason: string
+          team_id: string
+          type: Database["public"]["Enums"]["card_type"]
+        }
+        Update: {
+          applied_by?: string
+          created_at?: string
+          date?: string
+          id?: string
+          points?: number
+          reason?: string
+          team_id?: string
+          type?: Database["public"]["Enums"]["card_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cards_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nps_records: {
         Row: {
           cited_member: boolean
@@ -318,6 +359,7 @@ export type Database = {
     }
     Enums: {
       app_role: "member" | "admin"
+      card_type: "blue" | "white" | "yellow" | "red"
       testimonial_type: "google" | "video" | "gold"
     }
     CompositeTypes: {
@@ -447,6 +489,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["member", "admin"],
+      card_type: ["blue", "white", "yellow", "red"],
       testimonial_type: ["google", "video", "gold"],
     },
   },

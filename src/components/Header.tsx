@@ -1,4 +1,4 @@
-import { Trophy, LogIn, LogOut, User, Plus, Home } from "lucide-react";
+import { Trophy, LogIn, LogOut, User, Plus, Home, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -73,6 +73,22 @@ const Header = () => {
                       Registrar
                     </Button>
                   </Link>
+                  {role === "admin" && (
+                    <Link to="/admin">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`gap-2 ${
+                          location.pathname === "/admin"
+                            ? "text-primary"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Shield className="w-4 h-4" />
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
                 </nav>
 
                 {/* Mobile Register Button */}
@@ -129,6 +145,15 @@ const Header = () => {
                       <Plus className="w-4 h-4 mr-2" />
                       Registrar Dados
                     </DropdownMenuItem>
+                    {role === "admin" && (
+                      <DropdownMenuItem
+                        onClick={() => navigate("/admin")}
+                        className="text-foreground cursor-pointer"
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Painel Admin
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator className="bg-border" />
                   </div>
                   
