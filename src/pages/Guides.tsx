@@ -12,7 +12,7 @@ import {
   Trophy, Target, Star, DollarSign, MessageSquare, Users, Video, Instagram,
   Award, TrendingUp, Gift, Calendar, AlertTriangle, CheckCircle2, Clock, Sparkles,
   UserPlus, CalendarCheck, Stethoscope, Scissors, HeartPulse, ArrowRight,
-  ChevronDown, ChevronUp, RotateCcw, Cloud, BookOpen, Route
+  ChevronDown, ChevronUp, RotateCcw, Cloud, BookOpen, Route, Phone, HandshakeIcon, Heart, Lightbulb, Megaphone
 } from "lucide-react";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
 import cardsSystem from "@/assets/cards-system.png";
@@ -116,6 +116,109 @@ const journeyStages = [
   }
 ];
 
+// Commercial Process Guide - Static educational content
+const commercialPhases = [
+  {
+    id: 1,
+    title: "Atração",
+    responsible: "Social Selling (Comercial 1)",
+    mission: "Gerar desejo, educar o mercado e capturar a atenção de potenciais pacientes.",
+    activities: [
+      "Criar conteúdo de valor (posts, stories)",
+      "Engajar com a audiência (comentários, DMs)",
+      "Prospectar ativamente novos perfis"
+    ],
+    opportunities: [
+      { icon: "📚", text: "Oferecer materiais ricos (e-books, guias) para capturar contatos" }
+    ],
+    handoffCriteria: "Lead demonstra interesse claro e fornece contato para o SDR.",
+    icon: Megaphone,
+    gradient: "from-amber-500/20 to-yellow-500/10",
+    borderColor: "border-amber-500/30"
+  },
+  {
+    id: 2,
+    title: "Qualificação",
+    responsible: "SDR (Comercial 1.5)",
+    mission: "Transformar o interesse em uma consulta de valor agendada.",
+    activities: [
+      "Contato em até 5 minutos",
+      "Qualificação profunda (dores, sonhos, orçamento)",
+      "Agendamento e confirmação da consulta"
+    ],
+    opportunities: [
+      { icon: "💡", text: "Vender a 'Consulta Premium' (diagnóstico completo)" },
+      { icon: "🎯", text: "Mapear desejos para upsell do Closer" },
+      { icon: "✨", text: "Gerar curiosidade sobre protocolos pré-operatórios" }
+    ],
+    handoffCriteria: "Consulta agendada e confirmada, com dossiê completo do paciente preenchido no CRM.",
+    icon: Phone,
+    gradient: "from-blue-500/20 to-cyan-500/10",
+    borderColor: "border-blue-500/30"
+  },
+  {
+    id: 3,
+    title: "Conversão",
+    responsible: "Closer (Comercial 2)",
+    mission: "Conduzir a consulta e converter o sonho do paciente em um plano de ação.",
+    activities: [
+      "Estudar o dossiê do paciente",
+      "Conduzir a consulta consultiva (SPIN Selling)",
+      "Apresentar o plano de tratamento e negociar",
+      "Fechar o contrato"
+    ],
+    opportunities: [
+      { icon: "💰", text: "Upsell: Procedimentos combinados" },
+      { icon: "🛍️", text: "Cross-sell: Protocolos pré e pós-operatórios" },
+      { icon: "💄", text: "Produtos de skincare para manutenção" }
+    ],
+    handoffCriteria: "Contrato assinado e pagamento da entrada efetuado.",
+    icon: HandshakeIcon,
+    gradient: "from-green-500/20 to-emerald-500/10",
+    borderColor: "border-green-500/30"
+  },
+  {
+    id: 4,
+    title: "Experiência",
+    responsible: "Customer Success (Comercial 3)",
+    mission: "Orquestrar uma experiência pós-venda memorável (até 90 dias).",
+    activities: [
+      "Onboarding do paciente",
+      "Acompanhamento intensivo pós-operatório",
+      "Coleta de depoimentos e NPS"
+    ],
+    opportunities: [
+      { icon: "❤️", text: "Cuidado: Sessões extras de drenagem, tratamentos para cicatriz" },
+      { icon: "🧴", text: "Manutenção: Produtos de skincare" },
+      { icon: "⭐", text: "'Efeito Uau': Protocolos estéticos complementares (bioestimuladores)" }
+    ],
+    handoffCriteria: "Paciente completa 90 dias de pós-operatório com alta satisfação.",
+    icon: Heart,
+    gradient: "from-pink-500/20 to-rose-500/10",
+    borderColor: "border-pink-500/30"
+  },
+  {
+    id: 5,
+    title: "Relacionamento",
+    responsible: "Farmer (Comercial 4)",
+    mission: "Transformar pacientes satisfeitos em fãs leais e fonte de receita recorrente (após 90 dias).",
+    activities: [
+      "Gestão e segmentação da base de pacientes",
+      "Contatos de relacionamento de longo prazo",
+      "Campanhas de reativação"
+    ],
+    opportunities: [
+      { icon: "🔄", text: "Recorrência: Pacotes de manutenção anual" },
+      { icon: "🎁", text: "Reativação: Ofertas de novos procedimentos" },
+      { icon: "👥", text: "Indicação: Campanhas para o círculo de confiança" }
+    ],
+    handoffCriteria: "Aumento do LTV, taxa de recompra e indicações.",
+    icon: Users,
+    gradient: "from-purple-500/20 to-violet-500/10",
+    borderColor: "border-purple-500/30"
+  }
+];
+
 const Guides = () => {
   const [expandedStages, setExpandedStages] = useState<Record<number, boolean>>({});
   const { checklist, isLoading, toggleAction, resetStageChecklist, getStageProgress, getTotalProgress } = useJourneyChecklist();
@@ -137,10 +240,14 @@ const Guides = () => {
         </div>
 
         <Tabs defaultValue="rules" className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3">
             <TabsTrigger value="rules" className="gap-2">
               <BookOpen className="w-4 h-4" />
               Regras
+            </TabsTrigger>
+            <TabsTrigger value="commercial" className="gap-2">
+              <Target className="w-4 h-4" />
+              Guia Comercial
             </TabsTrigger>
             <TabsTrigger value="journey" className="gap-2">
               <Route className="w-4 h-4" />
@@ -362,6 +469,169 @@ const Guides = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* GUIA COMERCIAL */}
+          <TabsContent value="commercial" className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-primary mb-1">Processo Comercial Unique CPI</h2>
+              <p className="text-sm text-muted-foreground">Guia de referência para cada fase da jornada do paciente</p>
+            </div>
+
+            {/* Desktop: Horizontal scroll */}
+            <div className="hidden xl:grid xl:grid-cols-5 gap-4">
+              {commercialPhases.map((phase) => (
+                <div key={phase.id} className={`bg-gradient-to-br ${phase.gradient} border ${phase.borderColor} rounded-xl p-4 flex flex-col h-full`}>
+                  {/* Header */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                      <phase.icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">Fase {phase.id}</span>
+                      <h3 className="text-base font-bold text-foreground">{phase.title}</h3>
+                    </div>
+                  </div>
+
+                  {/* Responsible */}
+                  <div className="mb-3 p-2 rounded-lg bg-background/50 border border-border/30">
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wide">Responsável</span>
+                    <p className="text-xs font-medium text-foreground mt-0.5">{phase.responsible}</p>
+                  </div>
+
+                  {/* Mission */}
+                  <div className="mb-3">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase">Missão</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{phase.mission}</p>
+                  </div>
+
+                  {/* Activities */}
+                  <div className="mb-3 flex-grow">
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <CheckCircle2 className="h-3 w-3 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase">Atividades</span>
+                    </div>
+                    <ul className="space-y-1">
+                      {phase.activities.map((activity, idx) => (
+                        <li key={idx} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span>{activity}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Opportunities */}
+                  <div className="mb-3">
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <Lightbulb className="h-3 w-3 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase">Oportunidades</span>
+                    </div>
+                    <div className="space-y-1">
+                      {phase.opportunities.map((opp, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5 text-xs">
+                          <span>{opp.icon}</span>
+                          <span className="text-muted-foreground">{opp.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Handoff Criteria */}
+                  <div className="mt-auto pt-2 border-t border-border/30">
+                    <div className="flex items-center gap-1 mb-1">
+                      <ArrowRight className="h-3 w-3 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase">Passar o Bastão</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">{phase.handoffCriteria}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile/Tablet: Stacked cards */}
+            <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {commercialPhases.map((phase) => (
+                <div key={phase.id} className={`bg-gradient-to-br ${phase.gradient} border ${phase.borderColor} rounded-xl p-5 flex flex-col`}>
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2.5 rounded-lg bg-primary/20 text-primary">
+                      <phase.icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">Fase {phase.id}</span>
+                      <h3 className="text-lg font-bold text-foreground">{phase.title}</h3>
+                    </div>
+                  </div>
+
+                  {/* Responsible */}
+                  <div className="mb-4 p-2.5 rounded-lg bg-background/50 border border-border/30">
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wide">Responsável</span>
+                    <p className="text-sm font-medium text-foreground mt-0.5">{phase.responsible}</p>
+                  </div>
+
+                  {/* Mission */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">Missão</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{phase.mission}</p>
+                  </div>
+
+                  {/* Activities */}
+                  <div className="mb-4 flex-grow">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">Atividades</span>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {phase.activities.map((activity, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <span className="text-primary mt-1">•</span>
+                          <span>{activity}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Opportunities */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Lightbulb className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">Oportunidades</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {phase.opportunities.map((opp, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-sm">
+                          <span>{opp.icon}</span>
+                          <span className="text-muted-foreground">{opp.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Handoff Criteria */}
+                  <div className="mt-auto pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <ArrowRight className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">Passar o Bastão</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">{phase.handoffCriteria}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer Note */}
+            <div className="text-center pt-4">
+              <p className="text-xs text-muted-foreground">
+                📖 Extraído do Mega Playbook Comercial Unique CPI 2026
+              </p>
+            </div>
           </TabsContent>
 
           {/* JORNADA */}
