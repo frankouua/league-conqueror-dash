@@ -10,11 +10,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import copaLogo from "@/assets/copa-unique-logo.png";
+import NotificationsDropdown from "@/components/NotificationsDropdown";
+import { useGoalNotifications } from "@/hooks/useGoalNotifications";
 
 const Header = () => {
   const { user, profile, role, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Enable goal notifications checking
+  useGoalNotifications();
 
   const handleSignOut = async () => {
     await signOut();
@@ -166,6 +171,8 @@ const Header = () => {
                     <Plus className="w-4 h-4" />
                   </Button>
                 </Link>
+                {/* Notifications */}
+                <NotificationsDropdown />
               </>
             )}
 
