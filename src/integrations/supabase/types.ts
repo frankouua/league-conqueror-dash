@@ -373,6 +373,113 @@ export type Database = {
           },
         ]
       }
+      referral_lead_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          id: string
+          lead_id: string
+          new_status: Database["public"]["Enums"]["referral_lead_status"]
+          note: string | null
+          old_status: Database["public"]["Enums"]["referral_lead_status"] | null
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          new_status: Database["public"]["Enums"]["referral_lead_status"]
+          note?: string | null
+          old_status?:
+            | Database["public"]["Enums"]["referral_lead_status"]
+            | null
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          new_status?: Database["public"]["Enums"]["referral_lead_status"]
+          note?: string | null
+          old_status?:
+            | Database["public"]["Enums"]["referral_lead_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_lead_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "referral_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_leads: {
+        Row: {
+          assigned_to: string | null
+          consultation_date: string | null
+          created_at: string
+          id: string
+          last_contact_at: string | null
+          notes: string | null
+          referred_email: string | null
+          referred_name: string
+          referred_phone: string | null
+          referrer_name: string
+          referrer_phone: string | null
+          registered_by: string
+          status: Database["public"]["Enums"]["referral_lead_status"]
+          surgery_date: string | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          consultation_date?: string | null
+          created_at?: string
+          id?: string
+          last_contact_at?: string | null
+          notes?: string | null
+          referred_email?: string | null
+          referred_name: string
+          referred_phone?: string | null
+          referrer_name: string
+          referrer_phone?: string | null
+          registered_by: string
+          status?: Database["public"]["Enums"]["referral_lead_status"]
+          surgery_date?: string | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          consultation_date?: string | null
+          created_at?: string
+          id?: string
+          last_contact_at?: string | null
+          notes?: string | null
+          referred_email?: string | null
+          referred_name?: string
+          referred_phone?: string | null
+          referrer_name?: string
+          referrer_phone?: string | null
+          registered_by?: string
+          status?: Database["public"]["Enums"]["referral_lead_status"]
+          surgery_date?: string | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_leads_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_records: {
         Row: {
           attributed_to_user_id: string | null
@@ -674,6 +781,13 @@ export type Database = {
       app_role: "member" | "admin"
       card_type: "blue" | "white" | "yellow" | "red"
       contestation_status: "pending" | "approved" | "rejected"
+      referral_lead_status:
+        | "nova"
+        | "em_contato"
+        | "sem_interesse"
+        | "agendou"
+        | "consultou"
+        | "operou"
       testimonial_type: "google" | "video" | "gold"
     }
     CompositeTypes: {
@@ -805,6 +919,14 @@ export const Constants = {
       app_role: ["member", "admin"],
       card_type: ["blue", "white", "yellow", "red"],
       contestation_status: ["pending", "approved", "rejected"],
+      referral_lead_status: [
+        "nova",
+        "em_contato",
+        "sem_interesse",
+        "agendou",
+        "consultou",
+        "operou",
+      ],
       testimonial_type: ["google", "video", "gold"],
     },
   },

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Users as UsersIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Users as UsersIcon, Loader2, ExternalLink } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -128,16 +129,24 @@ const ReferralForm = () => {
 
   return (
     <div className="bg-gradient-card rounded-2xl p-6 border border-border">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 rounded-xl bg-info/10">
-          <UsersIcon className="w-6 h-6 text-info" />
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-xl bg-info/10">
+            <UsersIcon className="w-6 h-6 text-info" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-foreground">Indicações</h3>
+            <p className="text-muted-foreground text-sm">
+              Coletada: 5pts | Consulta: +15pts | Cirurgia: +30pts
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-xl font-bold text-foreground">Indicações</h3>
-          <p className="text-muted-foreground text-sm">
-            Coletada: 5pts | Consulta: +15pts | Cirurgia: +30pts
-          </p>
-        </div>
+        <Link to="/referral-leads">
+          <Button variant="outline" size="sm" className="gap-1 text-primary border-primary/30 hover:bg-primary/10">
+            <ExternalLink className="w-4 h-4" />
+            <span className="hidden sm:inline">Pipeline</span>
+          </Button>
+        </Link>
       </div>
 
       <Form {...form}>

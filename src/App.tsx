@@ -18,6 +18,7 @@ import Goals from "./pages/Goals";
 import Reports from "./pages/Reports";
 import Contestation from "./pages/Contestation";
 import PatientJourney from "./pages/PatientJourney";
+import ReferralLeads from "./pages/ReferralLeads";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/contestation" element={<ProtectedRoute><Contestation /></ProtectedRoute>} />
             <Route path="/patient-journey" element={<ProtectedRoute><PatientJourney /></ProtectedRoute>} />
+            <Route path="/referral-leads" element={<ProtectedRoute><ReferralLeads /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
