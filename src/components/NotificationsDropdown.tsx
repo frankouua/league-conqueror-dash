@@ -37,10 +37,16 @@ const NotificationsDropdown = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
+      // Build the OR condition - only include team_id if it's a valid UUID
+      const orConditions = [`user_id.eq.${user.id}`];
+      if (profile?.team_id) {
+        orConditions.push(`team_id.eq.${profile.team_id}`);
+      }
+      
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
-        .or(`user_id.eq.${user.id},team_id.eq.${profile?.team_id}`)
+        .or(orConditions.join(","))
         .order("created_at", { ascending: false })
         .limit(20);
       
