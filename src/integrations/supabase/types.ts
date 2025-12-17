@@ -55,6 +55,62 @@ export type Database = {
           },
         ]
       }
+      contestations: {
+        Row: {
+          admin_response: string | null
+          category: string
+          created_at: string
+          deadline: string
+          description: string
+          id: string
+          related_record_id: string | null
+          responded_at: string | null
+          responded_by: string | null
+          status: Database["public"]["Enums"]["contestation_status"]
+          team_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          category: string
+          created_at?: string
+          deadline?: string
+          description: string
+          id?: string
+          related_record_id?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: Database["public"]["Enums"]["contestation_status"]
+          team_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          category?: string
+          created_at?: string
+          deadline?: string
+          description?: string
+          id?: string
+          related_record_id?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: Database["public"]["Enums"]["contestation_status"]
+          team_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contestations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       individual_goals: {
         Row: {
           created_at: string
@@ -542,6 +598,7 @@ export type Database = {
     Enums: {
       app_role: "member" | "admin"
       card_type: "blue" | "white" | "yellow" | "red"
+      contestation_status: "pending" | "approved" | "rejected"
       testimonial_type: "google" | "video" | "gold"
     }
     CompositeTypes: {
@@ -672,6 +729,7 @@ export const Constants = {
     Enums: {
       app_role: ["member", "admin"],
       card_type: ["blue", "white", "yellow", "red"],
+      contestation_status: ["pending", "approved", "rejected"],
       testimonial_type: ["google", "video", "gold"],
     },
   },
