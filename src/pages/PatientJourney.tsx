@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   UserPlus, 
   CalendarCheck, 
@@ -14,10 +15,11 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  RotateCcw
+  RotateCcw,
+  Cloud
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
+import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
 
 const journeyStages = [
   {
@@ -117,39 +119,16 @@ const journeyStages = [
   }
 ];
 
-type ChecklistState = Record<number, Record<number, boolean>>;
-
 const PatientJourney = () => {
-  const { user } = useAuth();
   const [expandedStages, setExpandedStages] = useState<Record<number, boolean>>({});
-  const [checklist, setChecklist] = useState<ChecklistState>({});
-
-  // Load checklist from localStorage
-  useEffect(() => {
-    if (user?.id) {
-      const saved = localStorage.getItem(`patient-journey-checklist-${user.id}`);
-      if (saved) {
-        setChecklist(JSON.parse(saved));
-      }
-    }
-  }, [user?.id]);
-
-  // Save checklist to localStorage
-  const saveChecklist = (newChecklist: ChecklistState) => {
-    if (user?.id) {
-      localStorage.setItem(`patient-journey-checklist-${user.id}`, JSON.stringify(newChecklist));
-    }
-    setChecklist(newChecklist);
-  };
-
-  const toggleAction = (stageId: number, actionIndex: number) => {
-    const newChecklist = { ...checklist };
-    if (!newChecklist[stageId]) {
-      newChecklist[stageId] = {};
-    }
-    newChecklist[stageId][actionIndex] = !newChecklist[stageId]?.[actionIndex];
-    saveChecklist(newChecklist);
-  };
+  const { 
+    checklist, 
+    isLoading, 
+    toggleAction, 
+    resetStageChecklist, 
+    getStageProgress, 
+    getTotalProgress 
+  } = useJourneyChecklist();
 
   const toggleStage = (stageId: number) => {
     setExpandedStages(prev => ({
@@ -158,31 +137,7 @@ const PatientJourney = () => {
     }));
   };
 
-  const getStageProgress = (stageId: number, actionsCount: number) => {
-    if (!checklist[stageId]) return 0;
-    const completed = Object.values(checklist[stageId]).filter(Boolean).length;
-    return Math.round((completed / actionsCount) * 100);
-  };
-
-  const resetStageChecklist = (stageId: number) => {
-    const newChecklist = { ...checklist };
-    delete newChecklist[stageId];
-    saveChecklist(newChecklist);
-  };
-
-  const getTotalProgress = () => {
-    let totalActions = 0;
-    let completedActions = 0;
-    
-    journeyStages.forEach(stage => {
-      totalActions += stage.actions.length;
-      if (checklist[stage.id]) {
-        completedActions += Object.values(checklist[stage.id]).filter(Boolean).length;
-      }
-    });
-    
-    return totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0;
-  };
+  const totalProgress = getTotalProgress(journeyStages);
 
   return (
     <div className="min-h-screen bg-background">
@@ -201,10 +156,23 @@ const PatientJourney = () => {
           {/* Overall Progress */}
           <div className="max-w-md mx-auto bg-card border border-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">Progresso Geral</span>
-              <span className="text-sm font-bold text-primary">{getTotalProgress()}%</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">Progresso Geral</span>
+                <span title="Sincronizado na nuvem">
+                  <Cloud className="h-3 w-3 text-muted-foreground" />
+                </span>
+              </div>
+              {isLoading ? (
+                <Skeleton className="h-5 w-10" />
+              ) : (
+                <span className="text-sm font-bold text-primary">{totalProgress}%</span>
+              )}
             </div>
-            <Progress value={getTotalProgress()} className="h-3" />
+            {isLoading ? (
+              <Skeleton className="h-3 w-full" />
+            ) : (
+              <Progress value={totalProgress} className="h-3" />
+            )}
           </div>
         </div>
 
@@ -279,9 +247,13 @@ const PatientJourney = () => {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">Checklist</p>
-                          <p className={`text-lg font-bold ${isComplete ? 'text-green-500' : stage.accentColor}`}>
-                            {progress}%
-                          </p>
+                          {isLoading ? (
+                            <Skeleton className="h-6 w-12" />
+                          ) : (
+                            <p className={`text-lg font-bold ${isComplete ? 'text-green-500' : stage.accentColor}`}>
+                              {progress}%
+                            </p>
+                          )}
                         </div>
                         <Button
                           variant="outline"
@@ -319,7 +291,11 @@ const PatientJourney = () => {
                   
                   {/* Progress Bar */}
                   <div className="mt-4">
-                    <Progress value={progress} className="h-2" />
+                    {isLoading ? (
+                      <Skeleton className="h-2 w-full" />
+                    ) : (
+                      <Progress value={progress} className="h-2" />
+                    )}
                   </div>
                 </CardHeader>
                 
@@ -360,6 +336,7 @@ const PatientJourney = () => {
                               checked={isChecked}
                               onCheckedChange={() => toggleAction(stage.id, actionIndex)}
                               className="mt-0.5"
+                              disabled={isLoading}
                             />
                             <span className={`text-sm ${isChecked ? 'text-green-600 line-through' : 'text-foreground'}`}>
                               {action}
