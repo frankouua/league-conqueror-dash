@@ -23,10 +23,14 @@ const STATUS_LABELS: Record<ReferralLeadStatus, string> = {
   agendou: "Agendou",
   consultou: "Consultou",
   operou: "Operou",
+  pos_venda: "Pós-Venda",
+  relacionamento: "Relacionamento",
+  ganho: "Ganho",
+  perdido: "Perdido",
 };
 
-// Pipeline stages for conversion (excluding "sem_interesse" as it's a dead-end)
-const PIPELINE_STAGES: ReferralLeadStatus[] = ["nova", "em_contato", "agendou", "consultou", "operou"];
+// Pipeline stages for conversion (excluding dead-end statuses)
+const PIPELINE_STAGES: ReferralLeadStatus[] = ["nova", "em_contato", "agendou", "consultou", "operou", "ganho"];
 
 export const ReferralConversionReport = ({ leads }: Props) => {
   const stats = useMemo(() => {
@@ -39,14 +43,17 @@ export const ReferralConversionReport = ({ leads }: Props) => {
     }, {} as Record<ReferralLeadStatus, number>);
 
     // For conversion rates, we consider leads that "passed through" each stage
-    // A lead at "operou" has passed through all stages
     const passedThrough: Record<ReferralLeadStatus, number> = {
-      nova: total, // All leads start as new
+      nova: total,
       em_contato: 0,
       sem_interesse: countByStatus["sem_interesse"] || 0,
       agendou: 0,
       consultou: 0,
       operou: 0,
+      pos_venda: 0,
+      relacionamento: 0,
+      ganho: 0,
+      perdido: countByStatus["perdido"] || 0,
     };
 
     // Leads that reached or passed each stage

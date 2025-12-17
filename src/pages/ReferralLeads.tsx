@@ -80,9 +80,13 @@ const STATUS_CONFIG: Record<ReferralLeadStatus, { label: string; color: string; 
   agendou: { label: "Agendou", color: "bg-purple-500/20 text-purple-400 border-purple-500/30", icon: <Calendar className="w-3 h-3" /> },
   consultou: { label: "Consultou", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30", icon: <Stethoscope className="w-3 h-3" /> },
   operou: { label: "Operou", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: <CheckCircle2 className="w-3 h-3" /> },
+  pos_venda: { label: "Pós-Venda", color: "bg-pink-500/20 text-pink-400 border-pink-500/30", icon: <Users className="w-3 h-3" /> },
+  relacionamento: { label: "Relacionamento", color: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30", icon: <Users className="w-3 h-3" /> },
+  ganho: { label: "Ganho", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", icon: <CheckCircle2 className="w-3 h-3" /> },
+  perdido: { label: "Perdido", color: "bg-gray-500/20 text-gray-400 border-gray-500/30", icon: <XCircle className="w-3 h-3" /> },
 };
 
-const STATUS_ORDER: ReferralLeadStatus[] = ["nova", "em_contato", "sem_interesse", "agendou", "consultou", "operou"];
+const STATUS_ORDER: ReferralLeadStatus[] = ["nova", "em_contato", "sem_interesse", "agendou", "consultou", "operou", "pos_venda", "relacionamento", "ganho", "perdido"];
 
 const ReferralLeads = () => {
   const { user, profile, role, isLoading: authLoading } = useAuth();

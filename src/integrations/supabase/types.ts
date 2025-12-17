@@ -191,6 +191,47 @@ export type Database = {
         }
         Relationships: []
       }
+      kanban_checklist_progress: {
+        Row: {
+          action_index: number
+          completed: boolean | null
+          completed_by: string
+          created_at: string | null
+          id: string
+          lead_id: string
+          stage_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_index: number
+          completed?: boolean | null
+          completed_by: string
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          stage_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_index?: number
+          completed?: boolean | null
+          completed_by?: string
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          stage_key?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_checklist_progress_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "referral_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -428,7 +469,9 @@ export type Database = {
           created_at: string
           id: string
           last_contact_at: string | null
+          loss_reason: string | null
           notes: string | null
+          photo_url: string | null
           referred_email: string | null
           referred_name: string
           referred_phone: string | null
@@ -438,6 +481,7 @@ export type Database = {
           status: Database["public"]["Enums"]["referral_lead_status"]
           surgery_date: string | null
           team_id: string
+          temperature: Database["public"]["Enums"]["lead_temperature"] | null
           updated_at: string
         }
         Insert: {
@@ -446,7 +490,9 @@ export type Database = {
           created_at?: string
           id?: string
           last_contact_at?: string | null
+          loss_reason?: string | null
           notes?: string | null
+          photo_url?: string | null
           referred_email?: string | null
           referred_name: string
           referred_phone?: string | null
@@ -456,6 +502,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["referral_lead_status"]
           surgery_date?: string | null
           team_id: string
+          temperature?: Database["public"]["Enums"]["lead_temperature"] | null
           updated_at?: string
         }
         Update: {
@@ -464,7 +511,9 @@ export type Database = {
           created_at?: string
           id?: string
           last_contact_at?: string | null
+          loss_reason?: string | null
           notes?: string | null
+          photo_url?: string | null
           referred_email?: string | null
           referred_name?: string
           referred_phone?: string | null
@@ -474,6 +523,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["referral_lead_status"]
           surgery_date?: string | null
           team_id?: string
+          temperature?: Database["public"]["Enums"]["lead_temperature"] | null
           updated_at?: string
         }
         Relationships: [
@@ -794,6 +844,7 @@ export type Database = {
         | "marketing"
         | "administrativo"
         | "clinico"
+      lead_temperature: "hot" | "warm" | "cold"
       position_type:
         | "comercial_1_captacao"
         | "comercial_2_closer"
@@ -811,6 +862,10 @@ export type Database = {
         | "agendou"
         | "consultou"
         | "operou"
+        | "pos_venda"
+        | "relacionamento"
+        | "ganho"
+        | "perdido"
       testimonial_type: "google" | "video" | "gold"
     }
     CompositeTypes: {
@@ -949,6 +1004,7 @@ export const Constants = {
         "administrativo",
         "clinico",
       ],
+      lead_temperature: ["hot", "warm", "cold"],
       position_type: [
         "comercial_1_captacao",
         "comercial_2_closer",
@@ -967,6 +1023,10 @@ export const Constants = {
         "agendou",
         "consultou",
         "operou",
+        "pos_venda",
+        "relacionamento",
+        "ganho",
+        "perdido",
       ],
       testimonial_type: ["google", "video", "gold"],
     },
