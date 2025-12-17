@@ -1,1 +1,7 @@
 project_id = "mbnjjwatnqjjqxogmaju"
+
+[functions.admin-reset-password]
+verify_jwt = true
+
+[functions.check-stale-leads]
+verify_jwt = false
