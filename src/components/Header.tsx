@@ -75,6 +75,7 @@ const Header = () => {
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/register", label: "Registrar", icon: Plus },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
+    { path: "/patient-kanban", label: "Jornada", icon: Route },
     { path: "/data-reports", label: "Relatórios", icon: FileText },
     { path: "/performance", label: "Desempenho", icon: Target },
     { path: "/guides", label: "Guias", icon: BookOpen },

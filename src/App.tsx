@@ -14,6 +14,7 @@ import DataReports from "./pages/DataReports";
 import Performance from "./pages/Performance";
 import Guides from "./pages/Guides";
 import ReferralLeads from "./pages/ReferralLeads";
+import PatientKanban from "./pages/PatientKanban";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
             <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
             <Route path="/referral-leads" element={<ProtectedRoute><ReferralLeads /></ProtectedRoute>} />
+            <Route path="/patient-kanban" element={<ProtectedRoute><PatientKanban /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
