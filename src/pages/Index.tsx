@@ -11,6 +11,7 @@ import ChampionsDisplay from "@/components/ChampionsDisplay";
 import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
 import TeamComparisonCard from "@/components/TeamComparisonCard";
 import { useTeamScores } from "@/hooks/useTeamScores";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
 
@@ -27,6 +28,7 @@ const daysRemainingSemester = Math.ceil((endOfSemester.getTime() - now.getTime()
 const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
 const Index = () => {
+  const { role } = useAuth();
   const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores();
 
   // Get top 2 teams
@@ -81,18 +83,20 @@ const Index = () => {
             </div>
           )}
 
-          {/* Celebration Test Button */}
-          <div className="mt-6 flex justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => triggerCelebration("goal")}
-              className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
-            >
-              <PartyPopper className="w-4 h-4" />
-              Testar Celebração
-            </Button>
-          </div>
+          {/* Celebration Test Button - Admin Only */}
+          {role === "admin" && (
+            <div className="mt-6 flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => triggerCelebration("goal")}
+                className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <PartyPopper className="w-4 h-4" />
+                Testar Celebração
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Time Counters */}
