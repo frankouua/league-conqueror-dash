@@ -55,6 +55,56 @@ export type Database = {
           },
         ]
       }
+      individual_goals: {
+        Row: {
+          created_at: string
+          id: string
+          month: number
+          nps_goal: number | null
+          referrals_goal: number | null
+          revenue_goal: number | null
+          team_id: string
+          testimonials_goal: number | null
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: number
+          nps_goal?: number | null
+          referrals_goal?: number | null
+          revenue_goal?: number | null
+          team_id: string
+          testimonials_goal?: number | null
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: number
+          nps_goal?: number | null
+          referrals_goal?: number | null
+          revenue_goal?: number | null
+          team_id?: string
+          testimonials_goal?: number | null
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "individual_goals_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nps_records: {
         Row: {
           cited_member: boolean
