@@ -10,14 +10,9 @@ import Auth from "./pages/Auth";
 import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
-import History from "./pages/History";
-import Analytics from "./pages/Analytics";
-import Rules from "./pages/Rules";
-import Individual from "./pages/Individual";
-import Goals from "./pages/Goals";
-import Reports from "./pages/Reports";
-import Contestation from "./pages/Contestation";
-import PatientJourney from "./pages/PatientJourney";
+import DataReports from "./pages/DataReports";
+import Performance from "./pages/Performance";
+import Guides from "./pages/Guides";
 import ReferralLeads from "./pages/ReferralLeads";
 import NotFound from "./pages/NotFound";
 
@@ -35,14 +30,9 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-            <Route path="/rules" element={<ProtectedRoute><Rules /></ProtectedRoute>} />
-            <Route path="/individual" element={<ProtectedRoute><Individual /></ProtectedRoute>} />
-            <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            <Route path="/contestation" element={<ProtectedRoute><Contestation /></ProtectedRoute>} />
-            <Route path="/patient-journey" element={<ProtectedRoute><PatientJourney /></ProtectedRoute>} />
+            <Route path="/data-reports" element={<ProtectedRoute><DataReports /></ProtectedRoute>} />
+            <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
+            <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
             <Route path="/referral-leads" element={<ProtectedRoute><ReferralLeads /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
