@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import { TrendingUp } from "lucide-react";
 
-interface ChartData {
+export interface ChartData {
   month: string;
   team1: number;
   team2: number;
