@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Minus, DollarSign } from "lucide-react";
 
 interface TeamRankingCardProps {
   position: 1 | 2;
@@ -7,6 +7,7 @@ interface TeamRankingCardProps {
   revenuePoints: number;
   qualityPoints: number;
   modifierPoints: number;
+  totalRevenue: number;
   pointsDifference?: number;
   isLeading: boolean;
 }
@@ -18,6 +19,7 @@ const TeamRankingCard = ({
   revenuePoints,
   qualityPoints,
   modifierPoints,
+  totalRevenue,
   pointsDifference = 0,
   isLeading,
 }: TeamRankingCardProps) => {
@@ -97,10 +99,21 @@ const TeamRankingCard = ({
         <p className="text-muted-foreground text-sm">pontos</p>
       </div>
 
+      {/* Revenue in R$ */}
+      <div className="mb-4 p-3 rounded-lg bg-success/10 border border-success/20">
+        <div className="flex items-center gap-2 mb-1">
+          <DollarSign className="w-4 h-4 text-success" />
+          <span className="text-success text-sm font-medium">Faturamento Acumulado</span>
+        </div>
+        <p className="text-2xl font-bold text-success">
+          R$ {totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+      </div>
+
       {/* Points Breakdown */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <span className="text-muted-foreground text-sm">Faturamento</span>
+          <span className="text-muted-foreground text-sm">Faturamento (pts)</span>
           <span className="text-foreground font-semibold">
             {revenuePoints.toLocaleString("pt-BR")} pts
           </span>
