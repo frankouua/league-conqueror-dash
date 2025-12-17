@@ -1,4 +1,8 @@
-import { LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, BookOpen, Users, Target, FileText } from "lucide-react";
+import { 
+  LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
+  BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
+  ChevronDown
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -8,17 +12,34 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import copaLogo from "@/assets/copa-unique-logo.png";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
 import { useGoalNotifications } from "@/hooks/useGoalNotifications";
+import { useUserTeamStats } from "@/hooks/useUserTeamStats";
+import { useState } from "react";
+
+const MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
 
 const Header = () => {
   const { user, profile, role, signOut } = useAuth();
+  const { stats } = useUserTeamStats();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  // Enable goal notifications checking
   useGoalNotifications();
 
   const handleSignOut = async () => {
@@ -26,271 +47,303 @@ const Header = () => {
     navigate("/");
   };
 
+  const currentMonth = MONTH_NAMES[new Date().getMonth()];
+
+  const navLinks = [
+    { path: "/", label: "Dashboard", icon: Home },
+    { path: "/register", label: "Registrar", icon: Plus },
+    { path: "/history", label: "Histórico", icon: History },
+    { path: "/analytics", label: "Análises", icon: BarChart3 },
+    { path: "/rules", label: "Regras", icon: BookOpen },
+    { path: "/individual", label: "Individual", icon: Users },
+    { path: "/goals", label: "Metas", icon: Target },
+    { path: "/reports", label: "Relatórios", icon: FileText },
+  ];
+
+  const NavItem = ({ path, label, icon: Icon, onClick }: { path: string; label: string; icon: any; onClick?: () => void }) => (
+    <Link to={path} onClick={onClick}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`w-full justify-start gap-2 ${
+          location.pathname === path
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        }`}
+      >
+        <Icon className="w-4 h-4" />
+        {label}
+      </Button>
+    </Link>
+  );
+
   return (
     <header className="sticky top-0 z-50 glass border-b border-border">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity shrink-0">
             <img 
               src={copaLogo} 
               alt="Copa Unique League 2026" 
-              className="h-12 w-auto object-contain"
+              className="h-10 md:h-12 w-auto object-contain"
             />
           </Link>
 
-          {/* Navigation & Actions */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {user && (
-              <>
-                {/* Navigation Links */}
-                <nav className="hidden md:flex items-center gap-1">
-                  <Link to="/">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`gap-2 ${
-                        location.pathname === "/"
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Home className="w-4 h-4" />
-                      Dashboard
-                    </Button>
-                  </Link>
-                  <Link to="/register">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`gap-2 ${
-                        location.pathname === "/register"
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Plus className="w-4 h-4" />
-                      Registrar
-                    </Button>
-                  </Link>
-                  <Link to="/history">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`gap-2 ${
-                        location.pathname === "/history"
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <History className="w-4 h-4" />
-                      Histórico
-                    </Button>
-                  </Link>
-                  <Link to="/analytics">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`gap-2 ${
-                        location.pathname === "/analytics"
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <BarChart3 className="w-4 h-4" />
-                      Análises
-                    </Button>
-                  </Link>
-                  <Link to="/rules">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`gap-2 ${
-                        location.pathname === "/rules"
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      Regras
-                    </Button>
-                  </Link>
-                  <Link to="/individual">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`gap-2 ${
-                        location.pathname === "/individual"
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Users className="w-4 h-4" />
-                      Individual
-                    </Button>
-                  </Link>
-                  <Link to="/goals">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`gap-2 ${
-                        location.pathname === "/goals"
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Target className="w-4 h-4" />
-                      Metas
-                    </Button>
-                  </Link>
-                  <Link to="/reports">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`gap-2 ${
-                        location.pathname === "/reports"
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <FileText className="w-4 h-4" />
-                      Relatórios
-                    </Button>
-                  </Link>
-                  {role === "admin" && (
-                    <Link to="/admin">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`gap-2 ${
-                          location.pathname === "/admin"
-                            ? "text-primary"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <Shield className="w-4 h-4" />
-                        Admin
-                      </Button>
-                    </Link>
-                  )}
-                </nav>
-
-                {/* Mobile Register Button */}
-                <Link to="/register" className="md:hidden">
+          {/* Desktop Navigation */}
+          {user && (
+            <nav className="hidden lg:flex items-center gap-1">
+              {navLinks.map((link) => (
+                <Link key={link.path} to={link.path}>
                   <Button
-                    size="icon"
-                    variant="outline"
-                    className="border-primary/30 text-primary hover:bg-primary/10"
+                    variant="ghost"
+                    size="sm"
+                    className={`gap-2 ${
+                      location.pathname === link.path
+                        ? "text-primary bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <Plus className="w-4 h-4" />
+                    <link.icon className="w-4 h-4" />
+                    <span className="hidden xl:inline">{link.label}</span>
                   </Button>
                 </Link>
+              ))}
+              {role === "admin" && (
+                <Link to="/admin">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`gap-2 ${
+                      location.pathname === "/admin"
+                        ? "text-primary bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="hidden xl:inline">Admin</span>
+                  </Button>
+                </Link>
+              )}
+            </nav>
+          )}
+
+          {/* Right Side Actions */}
+          <div className="flex items-center gap-2">
+            {user && (
+              <>
+                {/* Team Stats Badge (Desktop) */}
+                {stats && (
+                  <div className="hidden md:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-1.5">
+                      <Trophy className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-primary">
+                        {stats.position}º
+                      </span>
+                    </div>
+                    <div className="h-4 w-px bg-primary/30" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground leading-tight">
+                        {currentMonth}
+                      </span>
+                      <span className="text-sm font-bold text-foreground leading-tight">
+                        {stats.currentMonthPoints.toLocaleString("pt-BR")} pts
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Notifications */}
                 <NotificationsDropdown />
+
+                {/* Mobile Menu */}
+                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                  <SheetTrigger asChild className="lg:hidden">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground">
+                      <Menu className="w-5 h-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-80 bg-card border-border p-0">
+                    <SheetHeader className="p-4 border-b border-border">
+                      <SheetTitle className="text-left text-foreground">Menu</SheetTitle>
+                    </SheetHeader>
+                    
+                    {/* Profile Card */}
+                    <div className="p-4 border-b border-border bg-muted/30">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                          <User className="w-6 h-6 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-foreground truncate">
+                            {profile?.full_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {user.email}
+                          </p>
+                          <Badge variant="outline" className="mt-1 text-xs border-primary/50 text-primary">
+                            {role === "admin" ? "Coordenador" : "Membro"}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Team Stats */}
+                      {stats && (
+                        <div className="mt-4 p-3 rounded-lg bg-card border border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Star className="w-4 h-4 text-primary fill-primary" />
+                            <span className="font-semibold text-foreground">{stats.teamName}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="flex items-center gap-2">
+                              <Trophy className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Posição</p>
+                                <p className="font-bold text-primary">{stats.position}º lugar</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">{currentMonth}</p>
+                                <p className="font-bold text-foreground">
+                                  {stats.currentMonthPoints.toLocaleString("pt-BR")} pts
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-border">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Total Geral</span>
+                              <span className="font-bold text-primary">
+                                {stats.totalPoints.toLocaleString("pt-BR")} pts
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Navigation */}
+                    <div className="p-4 space-y-1">
+                      {navLinks.map((link) => (
+                        <NavItem 
+                          key={link.path} 
+                          {...link} 
+                          onClick={() => setMobileMenuOpen(false)} 
+                        />
+                      ))}
+                      {role === "admin" && (
+                        <NavItem 
+                          path="/admin" 
+                          label="Painel Admin" 
+                          icon={Shield} 
+                          onClick={() => setMobileMenuOpen(false)} 
+                        />
+                      )}
+                    </div>
+
+                    {/* Logout */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card">
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          handleSignOut();
+                        }}
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sair da Conta
+                      </Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
               </>
             )}
 
+            {/* User Menu (Desktop) */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary"
+                    className="hidden md:flex gap-2 border-primary/30 text-foreground hover:bg-primary/10 hover:border-primary"
                   >
-                    <User className="w-4 h-4" />
-                    <span className="hidden sm:inline max-w-[150px] truncate">
-                      {profile?.full_name || user.email}
-                    </span>
+                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex flex-col items-start max-w-[120px]">
+                      <span className="text-sm font-medium truncate w-full text-left">
+                        {profile?.full_name?.split(' ')[0] || 'Usuário'}
+                      </span>
+                      {stats && (
+                        <span className="text-[10px] text-muted-foreground truncate w-full text-left">
+                          {stats.teamName}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-card border-border">
-                  <div className="px-3 py-2">
-                    <p className="text-sm font-medium text-foreground">
-                      {profile?.full_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                    <p className="text-xs text-primary mt-1 capitalize">
-                      {role === "admin" ? "Coordenador" : "Membro"}
-                    </p>
+                <DropdownMenuContent align="end" className="w-72 bg-card border-border">
+                  {/* Profile Section */}
+                  <div className="p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                        <User className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground truncate">
+                          {profile?.full_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        <Badge variant="outline" className="mt-1 text-xs border-primary/50 text-primary">
+                          {role === "admin" ? "Coordenador" : "Membro da Equipe"}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Team Stats */}
+                  {stats && (
+                    <>
+                      <DropdownMenuSeparator className="bg-border" />
+                      <div className="p-3">
+                        <DropdownMenuLabel className="p-0 mb-2 flex items-center gap-2">
+                          <Star className="w-4 h-4 text-primary fill-primary" />
+                          <span className="font-semibold">{stats.teamName}</span>
+                        </DropdownMenuLabel>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="p-2 rounded-lg bg-muted/50">
+                            <p className="text-lg font-bold text-primary">{stats.position}º</p>
+                            <p className="text-[10px] text-muted-foreground">Posição</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-muted/50">
+                            <p className="text-lg font-bold text-foreground">
+                              {stats.currentMonthPoints.toLocaleString("pt-BR")}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{currentMonth}</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-muted/50">
+                            <p className="text-lg font-bold text-foreground">
+                              {stats.totalPoints.toLocaleString("pt-BR")}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Total</p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                   <DropdownMenuSeparator className="bg-border" />
-                  
-                  {/* Mobile Navigation */}
-                  <div className="md:hidden">
-                    <DropdownMenuItem
-                      onClick={() => navigate("/")}
-                      className="text-foreground cursor-pointer"
-                    >
-                      <Home className="w-4 h-4 mr-2" />
-                      Dashboard
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/register")}
-                      className="text-foreground cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Registrar Dados
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/history")}
-                      className="text-foreground cursor-pointer"
-                    >
-                      <History className="w-4 h-4 mr-2" />
-                      Histórico
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/analytics")}
-                      className="text-foreground cursor-pointer"
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Análises
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/rules")}
-                      className="text-foreground cursor-pointer"
-                    >
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      Regras
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/individual")}
-                      className="text-foreground cursor-pointer"
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      Individual
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/goals")}
-                      className="text-foreground cursor-pointer"
-                    >
-                      <Target className="w-4 h-4 mr-2" />
-                      Metas
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/reports")}
-                      className="text-foreground cursor-pointer"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Relatórios
-                    </DropdownMenuItem>
-                    {role === "admin" && (
-                      <DropdownMenuItem
-                        onClick={() => navigate("/admin")}
-                        className="text-foreground cursor-pointer"
-                      >
-                        <Shield className="w-4 h-4 mr-2" />
-                        Painel Admin
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator className="bg-border" />
-                  </div>
                   
                   <DropdownMenuItem
                     onClick={handleSignOut}
-                    className="text-destructive focus:text-destructive cursor-pointer"
+                    className="text-destructive focus:text-destructive cursor-pointer m-1"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sair
+                    Sair da Conta
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
