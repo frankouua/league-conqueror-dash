@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, PartyPopper } from "lucide-react";
 import Header from "@/components/Header";
 import TeamRankingCard from "@/components/TeamRankingCard";
 import ClinicGoalsCard from "@/components/ClinicGoalsCard";
@@ -6,6 +6,7 @@ import RecentAchievements from "@/components/RecentAchievements";
 import TimeCounters from "@/components/TimeCounters";
 import EvolutionChart from "@/components/EvolutionChart";
 import { useTeamScores } from "@/hooks/useTeamScores";
+import { Button } from "@/components/ui/button";
 
 // Calculate days remaining
 const now = new Date();
@@ -20,7 +21,7 @@ const daysRemainingSemester = Math.ceil((endOfSemester.getTime() - now.getTime()
 const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
 const Index = () => {
-  const { teams, achievements, chartData, totalClinicRevenue, isLoading } = useTeamScores();
+  const { teams, achievements, chartData, totalClinicRevenue, isLoading, triggerCelebration } = useTeamScores();
 
   // Get top 2 teams
   const team1 = teams[0];
@@ -52,6 +53,19 @@ const Index = () => {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Acompanhe a competição em tempo real e veja qual equipe está dominando a Copa Unique League 2026
           </p>
+          
+          {/* Celebration Test Button - Hidden in production */}
+          <div className="mt-4 flex justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => triggerCelebration("goal")}
+              className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
+            >
+              <PartyPopper className="w-4 h-4" />
+              Testar Celebração
+            </Button>
+          </div>
         </div>
 
         {/* Time Counters */}

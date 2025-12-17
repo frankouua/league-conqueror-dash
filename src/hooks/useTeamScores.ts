@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Achievement } from "@/components/RecentAchievements";
 import type { ChartData } from "@/components/EvolutionChart";
+import { fireGoldConfetti, fireGoalConfetti, fireLeadershipChange } from "@/lib/confetti";
+import { toast } from "@/hooks/use-toast";
 
 interface TeamScore {
   id: string;
@@ -11,6 +13,12 @@ interface TeamScore {
   qualityPoints: number;
   modifierPoints: number;
   totalRevenue: number;
+}
+
+interface GoalsState {
+  goal1: boolean;
+  goal2: boolean;
+  goal3: boolean;
 }
 
 // Scoring constants
@@ -33,16 +41,26 @@ const SCORING = {
   },
 };
 
+const GOALS = {
+  goal1: 2500000,
+  goal2: 2700000,
+  goal3: 3000000,
+};
+
 export const useTeamScores = () => {
   const [teams, setTeams] = useState<TeamScore[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalClinicRevenue, setTotalClinicRevenue] = useState(0);
+  
+  // Track previous state for celebrations
+  const previousLeaderId = useRef<string | null>(null);
+  const previousGoals = useRef<GoalsState>({ goal1: false, goal2: false, goal3: false });
+  const isFirstLoad = useRef(true);
 
   const calculateScores = useCallback(async () => {
     try {
-      // Fetch teams first
       const { data: teamsData, error: teamsError } = await supabase
         .from("teams")
         .select("id, name")
@@ -63,7 +81,6 @@ export const useTeamScores = () => {
       const allAchievements: Achievement[] = [];
       let clinicRevenue = 0;
 
-      // Fetch all data in parallel
       const [
         { data: allRevenue },
         { data: allNps },
@@ -204,11 +221,73 @@ export const useTeamScores = () => {
 
       // Sort by total points
       teamScores.sort((a, b) => b.totalPoints - a.totalPoints);
-
-      // Sort achievements by most recent
       allAchievements.sort((a, b) => parseTimestamp(b.timestamp) - parseTimestamp(a.timestamp));
 
-      // Simple chart data
+      // Check for celebrations (only after first load)
+      if (!isFirstLoad.current && teamScores.length > 0) {
+        const currentLeaderId = teamScores[0].id;
+        
+        // Leadership change celebration
+        if (previousLeaderId.current && previousLeaderId.current !== currentLeaderId) {
+          fireLeadershipChange();
+          toast({
+            title: "🏆 Nova Liderança!",
+            description: `${teamScores[0].name} assumiu a liderança!`,
+          });
+        }
+
+        // Goal celebrations
+        const currentGoals: GoalsState = {
+          goal1: clinicRevenue >= GOALS.goal1,
+          goal2: clinicRevenue >= GOALS.goal2,
+          goal3: clinicRevenue >= GOALS.goal3,
+        };
+
+        if (!previousGoals.current.goal1 && currentGoals.goal1) {
+          fireGoalConfetti();
+          toast({
+            title: "🎯 Meta 1 Atingida!",
+            description: "Parabéns! A clínica atingiu R$ 2.500.000!",
+          });
+        }
+
+        if (!previousGoals.current.goal2 && currentGoals.goal2) {
+          fireGoalConfetti();
+          toast({
+            title: "👑 Meta 2 Atingida!",
+            description: "+50 pontos para todas as equipes!",
+          });
+        }
+
+        if (!previousGoals.current.goal3 && currentGoals.goal3) {
+          fireGoalConfetti();
+          fireGoldConfetti();
+          toast({
+            title: "💎 Meta 3 Atingida!",
+            description: "+100 pontos para todas as equipes! ÉPICO!",
+          });
+        }
+
+        previousGoals.current = currentGoals;
+      }
+
+      // Update previous leader
+      if (teamScores.length > 0) {
+        previousLeaderId.current = teamScores[0].id;
+      }
+
+      // Mark first load complete
+      if (isFirstLoad.current) {
+        isFirstLoad.current = false;
+        // Set initial goals state
+        previousGoals.current = {
+          goal1: clinicRevenue >= GOALS.goal1,
+          goal2: clinicRevenue >= GOALS.goal2,
+          goal3: clinicRevenue >= GOALS.goal3,
+        };
+      }
+
+      // Chart data
       const months = ["Jul", "Ago", "Set", "Out", "Nov", "Dez"];
       const chart: ChartData[] = months.map(month => ({
         month,
@@ -230,7 +309,6 @@ export const useTeamScores = () => {
   useEffect(() => {
     calculateScores();
 
-    // Real-time subscriptions
     const channel = supabase
       .channel("db-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "revenue_records" }, calculateScores)
@@ -246,7 +324,30 @@ export const useTeamScores = () => {
     };
   }, [calculateScores]);
 
-  return { teams, achievements, chartData, totalClinicRevenue, isLoading, refetch: calculateScores };
+  // Manual celebration trigger for testing
+  const triggerCelebration = useCallback((type: "goal" | "leadership" | "gold") => {
+    switch (type) {
+      case "goal":
+        fireGoalConfetti();
+        break;
+      case "leadership":
+        fireLeadershipChange();
+        break;
+      case "gold":
+        fireGoldConfetti();
+        break;
+    }
+  }, []);
+
+  return { 
+    teams, 
+    achievements, 
+    chartData, 
+    totalClinicRevenue, 
+    isLoading, 
+    refetch: calculateScores,
+    triggerCelebration,
+  };
 };
 
 function formatTimestamp(dateStr: string): string {
