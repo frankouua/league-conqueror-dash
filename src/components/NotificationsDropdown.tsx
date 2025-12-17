@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Check, Target, Trophy, Award, Sparkles } from "lucide-react";
+import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -29,6 +30,7 @@ interface Notification {
 const NotificationsDropdown = () => {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: notifications } = useQuery({
     queryKey: ["notifications", user?.id, profile?.team_id],
@@ -115,8 +117,21 @@ const NotificationsDropdown = () => {
         return <Award className="w-4 h-4 text-amber-500" />;
       case "achievement":
         return <Sparkles className="w-4 h-4 text-purple-500" />;
+      case "stale_lead":
+        return <AlertTriangle className="w-4 h-4 text-orange-500" />;
       default:
         return <Bell className="w-4 h-4" />;
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.read) {
+      markAsRead.mutate(notification.id);
+    }
+    
+    // Navigate to referral leads page for stale_lead notifications
+    if (notification.type === "stale_lead") {
+      navigate("/referral-leads");
     }
   };
 
@@ -163,12 +178,8 @@ const NotificationsDropdown = () => {
               key={notification.id}
               className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              }`}
-              onClick={() => {
-                if (!notification.read) {
-                  markAsRead.mutate(notification.id);
-                }
-              }}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""}`}
+              onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
                 {getNotificationIcon(notification.type)}
@@ -178,14 +189,22 @@ const NotificationsDropdown = () => {
                   {notification.title}
                 </p>
                 <p className="text-xs text-muted-foreground line-clamp-2">
-                  {notification.message}
+                  {notification.message.replace(/\s*\[ID:.*?\]/, "")}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(notification.created_at), {
-                    addSuffix: true,
-                    locale: ptBR,
-                  })}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(notification.created_at), {
+                      addSuffix: true,
+                      locale: ptBR,
+                    })}
+                  </p>
+                  {notification.type === "stale_lead" && (
+                    <span className="text-xs text-orange-500 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Ver pipeline
+                    </span>
+                  )}
+                </div>
               </div>
               {!notification.read && (
                 <div className="w-2 h-2 rounded-full bg-primary mt-1" />
