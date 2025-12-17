@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import SpecialEventsForm from "@/components/admin/SpecialEventsForm";
 import SpecialEventsHistory from "@/components/admin/SpecialEventsHistory";
 import ContestationAdmin from "@/components/admin/ContestationAdmin";
+import RecordsEditor from "@/components/admin/RecordsEditor";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -58,7 +59,7 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="cards" className="max-w-4xl mx-auto">
-          <TabsList className="grid grid-cols-5 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
+          <TabsList className="grid grid-cols-6 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
             <TabsTrigger
               value="cards"
               className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
@@ -72,6 +73,13 @@ const Admin = () => {
             >
               <Zap className="w-5 h-5" />
               <span className="hidden sm:block">Eventos</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="records"
+              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+            >
+              <FileEdit className="w-5 h-5" />
+              <span className="hidden sm:block">Registros</span>
             </TabsTrigger>
             <TabsTrigger
               value="contestations"
@@ -105,6 +113,10 @@ const Admin = () => {
               <SpecialEventsForm />
               <SpecialEventsHistory />
             </div>
+          </TabsContent>
+
+          <TabsContent value="records" className="animate-scale-in">
+            <RecordsEditor />
           </TabsContent>
 
           <TabsContent value="contestations" className="animate-scale-in">
