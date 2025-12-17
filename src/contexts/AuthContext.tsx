@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+type DepartmentType = 'comercial' | 'atendimento' | 'marketing' | 'administrativo' | 'clinico';
+type PositionType = 'comercial_1_captacao' | 'comercial_2_closer' | 'comercial_3_experiencia' | 'comercial_4_farmer' | 'sdr' | 'coordenador' | 'gerente' | 'assistente' | 'outro';
+
 interface Profile {
   id: string;
   user_id: string;
@@ -9,6 +12,8 @@ interface Profile {
   email: string;
   team_id: string | null;
   avatar_url: string | null;
+  department: DepartmentType | null;
+  position: PositionType | null;
 }
 
 interface AuthContextType {
@@ -18,7 +23,7 @@ interface AuthContextType {
   role: "member" | "admin" | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string, teamId: string, role?: "member" | "admin") => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, teamId: string, role?: "member" | "admin", department?: DepartmentType | null, position?: PositionType | null) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Pick<Profile, 'full_name' | 'avatar_url'>>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
@@ -120,7 +125,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     password: string, 
     fullName: string, 
     teamId: string,
-    userRole: "member" | "admin" = "member"
+    userRole: "member" | "admin" = "member",
+    department: DepartmentType | null = null,
+    position: PositionType | null = null
   ) => {
     const redirectUrl = `${window.location.origin}/`;
     
@@ -131,8 +138,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
-          team_id: teamId || null, // null for admins without team
+          team_id: teamId || null,
           role: userRole,
+          department: department,
+          position: position,
         },
       },
     });
