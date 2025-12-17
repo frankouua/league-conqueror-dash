@@ -164,29 +164,64 @@ const PatientJourney = () => {
         </div>
 
         {/* Journey Timeline - Desktop */}
-        <div className="hidden lg:flex items-center justify-center gap-2 mb-12">
-          {journeyStages.map((stage, index) => {
-            const progress = getStageProgress(stage.id, stage.actions.length);
-            return (
-              <div key={stage.id} className="flex items-center">
-                <div 
-                  className="relative flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-primary/90 to-yellow-600/90 text-background font-semibold cursor-pointer transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(212,175,55,0.5)]"
-                  onClick={() => toggleStage(stage.id)}
-                >
-                  <div className="relative">
-                    <stage.icon className="h-5 w-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+        <div className="hidden lg:block mb-16">
+          <div className="flex items-start justify-center gap-4">
+            {journeyStages.map((stage, index) => {
+              const progress = getStageProgress(stage.id, stage.actions.length);
+              const hasFollowUp = index === 0 || index === 1; // Captação and Closer have follow-up
+              
+              return (
+                <div key={stage.id} className="flex items-start">
+                  {/* Stage Column */}
+                  <div className="flex flex-col items-center">
+                    {/* Stage Button */}
+                    <div 
+                      className="relative flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-primary/90 to-yellow-600/90 text-background font-semibold cursor-pointer transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(212,175,55,0.5)]"
+                      onClick={() => toggleStage(stage.id)}
+                    >
+                      <div className="relative">
+                        <stage.icon className="h-5 w-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                      </div>
+                      <span className="text-sm">{stage.title.split(' - ')[1]}</span>
+                      {progress === 100 && (
+                        <CheckCircle2 className="h-4 w-4 ml-1 text-green-300" />
+                      )}
+                    </div>
+                    
+                    {/* Follow-up Curved Arrow */}
+                    {hasFollowUp && (
+                      <div className="relative mt-2 flex flex-col items-center">
+                        <svg width="80" height="50" viewBox="0 0 80 50" className="text-primary">
+                          <path 
+                            d="M40 0 C40 30, 40 30, 75 45" 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            fill="none"
+                            className="drop-shadow-[0_0_4px_rgba(212,175,55,0.5)]"
+                          />
+                          <polygon 
+                            points="75,40 80,50 70,48" 
+                            fill="currentColor"
+                            className="drop-shadow-[0_0_4px_rgba(212,175,55,0.5)]"
+                          />
+                        </svg>
+                        <span className="absolute bottom-0 left-1/2 transform translate-x-2 text-xs font-medium text-primary bg-background/80 px-2 py-0.5 rounded-full border border-primary/30">
+                          Follow-up
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-sm">{stage.title.split(' - ')[1]}</span>
-                  {progress === 100 && (
-                    <CheckCircle2 className="h-4 w-4 ml-1 text-green-300" />
+                  
+                  {/* Arrow to next stage */}
+                  {index < journeyStages.length - 1 && (
+                    <div className="flex items-center pt-3 mx-2">
+                      <ArrowRight className="h-6 w-6 text-primary drop-shadow-[0_0_4px_rgba(212,175,55,0.5)]" />
+                    </div>
                   )}
                 </div>
-                {index < journeyStages.length - 1 && (
-                  <ArrowRight className="h-6 w-6 text-primary mx-3 drop-shadow-[0_0_4px_rgba(212,175,55,0.5)]" />
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Journey Cards */}
