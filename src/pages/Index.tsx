@@ -126,11 +126,9 @@ const Index = () => {
         )}
 
         {/* Team Comparison */}
-        {teams.length >= 2 && (
-          <div className="mb-8 animate-slide-up" style={{ animationDelay: "350ms" }}>
-            <TeamComparisonCard team1={team1} team2={team2} />
-          </div>
-        )}
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: "350ms" }}>
+          <TeamComparisonCard />
+        </div>
 
         {/* Champions & Streak Records */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
