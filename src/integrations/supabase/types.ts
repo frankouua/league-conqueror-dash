@@ -161,6 +161,36 @@ export type Database = {
           },
         ]
       }
+      journey_checklist_progress: {
+        Row: {
+          action_index: number
+          completed: boolean
+          created_at: string
+          id: string
+          stage_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_index: number
+          completed?: boolean
+          created_at?: string
+          id?: string
+          stage_id: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_index?: number
+          completed?: boolean
+          created_at?: string
+          id?: string
+          stage_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
