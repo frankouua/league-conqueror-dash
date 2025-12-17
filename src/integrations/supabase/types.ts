@@ -234,31 +234,40 @@ export type Database = {
       }
       nps_records: {
         Row: {
+          attributed_to_user_id: string | null
           cited_member: boolean
+          counts_for_individual: boolean
           created_at: string
           date: string
           id: string
           member_name: string | null
+          registered_by_admin: boolean
           score: number
           team_id: string
           user_id: string
         }
         Insert: {
+          attributed_to_user_id?: string | null
           cited_member?: boolean
+          counts_for_individual?: boolean
           created_at?: string
           date: string
           id?: string
           member_name?: string | null
+          registered_by_admin?: boolean
           score: number
           team_id: string
           user_id: string
         }
         Update: {
+          attributed_to_user_id?: string | null
           cited_member?: boolean
+          counts_for_individual?: boolean
           created_at?: string
           date?: string
           id?: string
           member_name?: string | null
+          registered_by_admin?: boolean
           score?: number
           team_id?: string
           user_id?: string
@@ -276,30 +285,39 @@ export type Database = {
       other_indicators: {
         Row: {
           ambassadors: number
+          attributed_to_user_id: string | null
+          counts_for_individual: boolean
           created_at: string
           date: string
           id: string
           instagram_mentions: number
+          registered_by_admin: boolean
           team_id: string
           unilovers: number
           user_id: string
         }
         Insert: {
           ambassadors?: number
+          attributed_to_user_id?: string | null
+          counts_for_individual?: boolean
           created_at?: string
           date: string
           id?: string
           instagram_mentions?: number
+          registered_by_admin?: boolean
           team_id: string
           unilovers?: number
           user_id: string
         }
         Update: {
           ambassadors?: number
+          attributed_to_user_id?: string | null
+          counts_for_individual?: boolean
           created_at?: string
           date?: string
           id?: string
           instagram_mentions?: number
+          registered_by_admin?: boolean
           team_id?: string
           unilovers?: number
           user_id?: string
@@ -357,33 +375,42 @@ export type Database = {
       }
       referral_records: {
         Row: {
+          attributed_to_user_id: string | null
           collected: number
+          counts_for_individual: boolean
           created_at: string
           date: string
           id: string
           patient_name: string | null
+          registered_by_admin: boolean
           team_id: string
           to_consultation: number
           to_surgery: number
           user_id: string
         }
         Insert: {
+          attributed_to_user_id?: string | null
           collected?: number
+          counts_for_individual?: boolean
           created_at?: string
           date: string
           id?: string
           patient_name?: string | null
+          registered_by_admin?: boolean
           team_id: string
           to_consultation?: number
           to_surgery?: number
           user_id: string
         }
         Update: {
+          attributed_to_user_id?: string | null
           collected?: number
+          counts_for_individual?: boolean
           created_at?: string
           date?: string
           id?: string
           patient_name?: string | null
+          registered_by_admin?: boolean
           team_id?: string
           to_consultation?: number
           to_surgery?: number
@@ -402,28 +429,37 @@ export type Database = {
       revenue_records: {
         Row: {
           amount: number
+          attributed_to_user_id: string | null
+          counts_for_individual: boolean
           created_at: string
           date: string
           id: string
           notes: string | null
+          registered_by_admin: boolean
           team_id: string
           user_id: string
         }
         Insert: {
           amount: number
+          attributed_to_user_id?: string | null
+          counts_for_individual?: boolean
           created_at?: string
           date: string
           id?: string
           notes?: string | null
+          registered_by_admin?: boolean
           team_id: string
           user_id: string
         }
         Update: {
           amount?: number
+          attributed_to_user_id?: string | null
+          counts_for_individual?: boolean
           created_at?: string
           date?: string
           id?: string
           notes?: string | null
+          registered_by_admin?: boolean
           team_id?: string
           user_id?: string
         }
@@ -507,31 +543,40 @@ export type Database = {
       }
       testimonial_records: {
         Row: {
+          attributed_to_user_id: string | null
+          counts_for_individual: boolean
           created_at: string
           date: string
           id: string
           link: string | null
           patient_name: string | null
+          registered_by_admin: boolean
           team_id: string
           type: Database["public"]["Enums"]["testimonial_type"]
           user_id: string
         }
         Insert: {
+          attributed_to_user_id?: string | null
+          counts_for_individual?: boolean
           created_at?: string
           date: string
           id?: string
           link?: string | null
           patient_name?: string | null
+          registered_by_admin?: boolean
           team_id: string
           type: Database["public"]["Enums"]["testimonial_type"]
           user_id: string
         }
         Update: {
+          attributed_to_user_id?: string | null
+          counts_for_individual?: boolean
           created_at?: string
           date?: string
           id?: string
           link?: string | null
           patient_name?: string | null
+          registered_by_admin?: boolean
           team_id?: string
           type?: Database["public"]["Enums"]["testimonial_type"]
           user_id?: string

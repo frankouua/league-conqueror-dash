@@ -26,20 +26,24 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { IndividualTeamFields, getEffectiveInsertData } from "./IndividualTeamFields";
 
 const otherIndicatorsSchema = z.object({
   unilovers: z.string().optional(),
   ambassadors: z.string().optional(),
   instagramMentions: z.string().optional(),
   date: z.date({ required_error: "Selecione uma data" }),
+  countsForIndividual: z.boolean().default(true),
+  attributedToUserId: z.string().optional(),
 });
 
 type OtherIndicatorsFormData = z.infer<typeof otherIndicatorsSchema>;
 
 const OtherIndicatorsForm = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { user, profile } = useAuth();
+  const { user, profile, role } = useAuth();
   const { toast } = useToast();
+  const isAdmin = role === "admin";
 
   const form = useForm<OtherIndicatorsFormData>({
     resolver: zodResolver(otherIndicatorsSchema),
@@ -47,6 +51,8 @@ const OtherIndicatorsForm = () => {
       unilovers: "",
       ambassadors: "",
       instagramMentions: "",
+      countsForIndividual: true,
+      attributedToUserId: "",
     },
   });
 
@@ -87,18 +93,27 @@ const OtherIndicatorsForm = () => {
         return;
       }
 
+      const insertData = getEffectiveInsertData(
+        user.id,
+        data.attributedToUserId,
+        data.countsForIndividual,
+        isAdmin
+      );
+
       const { error } = await supabase.from("other_indicators").insert({
         team_id: profile.team_id,
-        user_id: user.id,
+        user_id: insertData.effectiveUserId,
         unilovers,
         ambassadors,
         instagram_mentions: instagramMentions,
         date: format(data.date, "yyyy-MM-dd"),
+        counts_for_individual: insertData.counts_for_individual,
+        attributed_to_user_id: insertData.attributed_to_user_id,
+        registered_by_admin: insertData.registered_by_admin,
       });
 
       if (error) throw error;
 
-      // Calculate points
       const points = unilovers * 5 + ambassadors * 50 + instagramMentions * 2;
 
       toast({
@@ -252,6 +267,8 @@ const OtherIndicatorsForm = () => {
               </FormItem>
             )}
           />
+
+          <IndividualTeamFields form={form} />
 
           <Button
             type="submit"
