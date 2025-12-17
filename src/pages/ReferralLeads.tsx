@@ -119,14 +119,21 @@ const ReferralLeads = () => {
   }, [user, authLoading, navigate]);
 
   const fetchLeads = async () => {
-    if (!profile?.team_id) return;
+    // Admins can see all, members need team_id
+    if (role !== "admin" && !profile?.team_id) return;
     setIsLoading(true);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("referral_leads")
       .select("*")
-      .eq("team_id", profile.team_id)
       .order("created_at", { ascending: false });
+
+    // If not admin, filter by team
+    if (role !== "admin" && profile?.team_id) {
+      query = query.eq("team_id", profile.team_id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -159,23 +166,26 @@ const ReferralLeads = () => {
   };
 
   const fetchTeamMembers = async () => {
-    if (!profile?.team_id) return;
-
-    const { data } = await supabase
+    // Admins get all members, regular users get team members
+    let query = supabase
       .from("profiles")
       .select("user_id, full_name")
-      .eq("team_id", profile.team_id)
       .order("full_name");
 
+    if (role !== "admin" && profile?.team_id) {
+      query = query.eq("team_id", profile.team_id);
+    }
+
+    const { data } = await query;
     if (data) setTeamMembers(data);
   };
 
   useEffect(() => {
-    if (profile?.team_id) {
+    if (role === "admin" || profile?.team_id) {
       fetchLeads();
       fetchTeamMembers();
     }
-  }, [profile?.team_id]);
+  }, [profile?.team_id, role]);
 
   const handleCreateLead = async () => {
     if (!user || !profile?.team_id) return;
@@ -302,7 +312,7 @@ const ReferralLeads = () => {
     return acc;
   }, {} as Record<ReferralLeadStatus, ReferralLead[]>);
 
-  if (authLoading || (user && !profile)) {
+  if (authLoading || (user && (!profile || role === null))) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
