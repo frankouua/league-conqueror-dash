@@ -19,6 +19,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import Header from "@/components/Header";
+import { ReferralConversionReport } from "@/components/ReferralConversionReport";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -362,6 +363,9 @@ const ReferralLeads = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Conversion Report */}
+        <ReferralConversionReport leads={leads} />
 
         {/* Pipeline View */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
