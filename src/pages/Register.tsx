@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { DollarSign, Users, Star, ThumbsUp, Heart } from "lucide-react";
+import { DollarSign, Users, Star, ThumbsUp, Heart, XCircle } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,7 @@ import ReferralForm from "@/components/forms/ReferralForm";
 import TestimonialForm from "@/components/forms/TestimonialForm";
 import NPSForm from "@/components/forms/NPSForm";
 import OtherIndicatorsForm from "@/components/forms/OtherIndicatorsForm";
+import CancellationForm from "@/components/forms/CancellationForm";
 
 const Register = () => {
   const { user, profile, isLoading } = useAuth();
@@ -54,7 +55,7 @@ const Register = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="revenue" className="max-w-2xl mx-auto">
-          <TabsList className="grid grid-cols-5 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
+          <TabsList className="grid grid-cols-6 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
             <TabsTrigger
               value="revenue"
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
@@ -90,6 +91,13 @@ const Register = () => {
               <Heart className="w-5 h-5" />
               <span className="text-xs hidden sm:block">Outros</span>
             </TabsTrigger>
+            <TabsTrigger
+              value="cancellation"
+              className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground rounded-lg"
+            >
+              <XCircle className="w-5 h-5" />
+              <span className="text-xs hidden sm:block">Cancelamento</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="revenue" className="animate-scale-in">
@@ -110,6 +118,10 @@ const Register = () => {
 
           <TabsContent value="other" className="animate-scale-in">
             <OtherIndicatorsForm />
+          </TabsContent>
+
+          <TabsContent value="cancellation" className="animate-scale-in">
+            <CancellationForm />
           </TabsContent>
         </Tabs>
 
