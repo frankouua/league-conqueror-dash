@@ -2,6 +2,7 @@ import { Trophy, Crown, Medal, Calendar, Star, Flame, Sparkles } from "lucide-re
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useChampions } from "@/hooks/useChampions";
+import { useStreakRecords } from "@/hooks/useStreakRecords";
 import { Skeleton } from "@/components/ui/skeleton";
 import { playStreakCelebration } from "@/lib/sounds";
 import { useEffect, useRef } from "react";
@@ -13,25 +14,41 @@ const MONTH_NAMES = [
 
 const ChampionsDisplay = () => {
   const { champions, isLoading } = useChampions();
+  const { saveStreakRecord } = useStreakRecords();
   const hasPlayedSound = useRef(false);
+  const hasSavedStreak = useRef(false);
 
-  // Play celebration sound when streak is detected (only once per session)
+  // Play celebration sound and save record when streak is detected
   useEffect(() => {
     if (
       !isLoading &&
       champions.currentStreak &&
-      champions.currentStreak.consecutiveWins >= 3 &&
-      !hasPlayedSound.current
+      champions.currentStreak.consecutiveWins >= 3
     ) {
-      // Small delay to ensure component is visible
-      const timer = setTimeout(() => {
-        playStreakCelebration();
-        hasPlayedSound.current = true;
-      }, 500);
+      // Play sound once per session
+      if (!hasPlayedSound.current) {
+        const timer = setTimeout(() => {
+          playStreakCelebration();
+          hasPlayedSound.current = true;
+        }, 500);
 
-      return () => clearTimeout(timer);
+        return () => clearTimeout(timer);
+      }
+
+      // Save streak record once
+      if (!hasSavedStreak.current) {
+        const year = new Date().getFullYear();
+        saveStreakRecord(
+          champions.currentStreak.teamId,
+          champions.currentStreak.teamName,
+          champions.currentStreak.consecutiveWins,
+          champions.currentStreak.months,
+          year
+        );
+        hasSavedStreak.current = true;
+      }
     }
-  }, [isLoading, champions.currentStreak]);
+  }, [isLoading, champions.currentStreak, saveStreakRecord]);
 
   if (isLoading) {
     return (

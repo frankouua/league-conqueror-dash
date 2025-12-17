@@ -431,6 +431,47 @@ export type Database = {
         }
         Relationships: []
       }
+      winning_streaks: {
+        Row: {
+          consecutive_wins: number
+          created_at: string
+          end_month: number
+          id: string
+          start_month: number
+          team_id: string
+          team_name: string
+          year: number
+        }
+        Insert: {
+          consecutive_wins: number
+          created_at?: string
+          end_month: number
+          id?: string
+          start_month: number
+          team_id: string
+          team_name: string
+          year: number
+        }
+        Update: {
+          consecutive_wins?: number
+          created_at?: string
+          end_month?: number
+          id?: string
+          start_month?: number
+          team_id?: string
+          team_name?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "winning_streaks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
