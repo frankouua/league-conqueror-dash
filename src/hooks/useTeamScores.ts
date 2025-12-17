@@ -55,6 +55,7 @@ export const useTeamScores = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalClinicRevenue, setTotalClinicRevenue] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   // Track previous state for celebrations
   const previousLeaderId = useRef<string | null>(null);
@@ -324,6 +325,21 @@ export const useTeamScores = () => {
       setAchievements(allAchievements.slice(0, 20));
       setChartData(chart);
       setTotalClinicRevenue(clinicRevenue);
+
+      // Find the most recent update from all records
+      const allDates: Date[] = [];
+      allRevenue?.forEach(r => allDates.push(new Date(r.created_at)));
+      allNps?.forEach(r => allDates.push(new Date(r.created_at)));
+      allTestimonials?.forEach(r => allDates.push(new Date(r.created_at)));
+      allReferrals?.forEach(r => allDates.push(new Date(r.created_at)));
+      allIndicators?.forEach(r => allDates.push(new Date(r.created_at)));
+      allCards?.forEach(r => allDates.push(new Date(r.created_at)));
+      allSpecialEvents?.forEach(r => allDates.push(new Date(r.created_at)));
+      
+      if (allDates.length > 0) {
+        const mostRecent = new Date(Math.max(...allDates.map(d => d.getTime())));
+        setLastUpdated(mostRecent);
+      }
     } catch (error) {
       console.error("Error calculating scores:", error);
     } finally {
@@ -371,6 +387,7 @@ export const useTeamScores = () => {
     chartData, 
     totalClinicRevenue, 
     isLoading, 
+    lastUpdated,
     refetch: calculateScores,
     triggerCelebration,
   };
