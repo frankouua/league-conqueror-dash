@@ -19,6 +19,7 @@ interface Contestation {
   created_at: string;
   deadline: string;
   team_id: string;
+  user_id: string;
   teams?: { name: string };
 }
 
@@ -54,6 +55,21 @@ const ContestationAdmin = () => {
     setIsLoading(false);
   };
 
+  const createNotification = async (
+    contestation: Contestation,
+    status: "approved" | "rejected"
+  ) => {
+    const statusText = status === "approved" ? "aprovada" : "rejeitada";
+    
+    await supabase.from("notifications").insert({
+      user_id: contestation.user_id,
+      team_id: contestation.team_id,
+      type: "contestation_response",
+      title: `Contestação ${statusText}`,
+      message: `Sua contestação "${contestation.title}" foi ${statusText}. Confira a resposta do coordenador.`,
+    });
+  };
+
   useEffect(() => {
     fetchContestations();
   }, []);
@@ -71,6 +87,9 @@ const ContestationAdmin = () => {
     setProcessingId(id);
 
     try {
+      const contestation = contestations.find((c) => c.id === id);
+      if (!contestation) throw new Error("Contestação não encontrada");
+
       const { error } = await supabase
         .from("contestations")
         .update({
@@ -82,6 +101,9 @@ const ContestationAdmin = () => {
         .eq("id", id);
 
       if (error) throw error;
+
+      // Create notification for the user
+      await createNotification(contestation, status);
 
       toast({
         title: status === "approved" ? "Contestação Aprovada" : "Contestação Rejeitada",
