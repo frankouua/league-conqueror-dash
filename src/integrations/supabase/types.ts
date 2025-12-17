@@ -14,6 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      nps_records: {
+        Row: {
+          cited_member: boolean
+          created_at: string
+          date: string
+          id: string
+          member_name: string | null
+          score: number
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          cited_member?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          member_name?: string | null
+          score: number
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          cited_member?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          member_name?: string | null
+          score?: number
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nps_records_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      other_indicators: {
+        Row: {
+          ambassadors: number
+          created_at: string
+          date: string
+          id: string
+          instagram_mentions: number
+          team_id: string
+          unilovers: number
+          user_id: string
+        }
+        Insert: {
+          ambassadors?: number
+          created_at?: string
+          date: string
+          id?: string
+          instagram_mentions?: number
+          team_id: string
+          unilovers?: number
+          user_id: string
+        }
+        Update: {
+          ambassadors?: number
+          created_at?: string
+          date?: string
+          id?: string
+          instagram_mentions?: number
+          team_id?: string
+          unilovers?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "other_indicators_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -52,6 +134,88 @@ export type Database = {
           },
         ]
       }
+      referral_records: {
+        Row: {
+          collected: number
+          created_at: string
+          date: string
+          id: string
+          patient_name: string | null
+          team_id: string
+          to_consultation: number
+          to_surgery: number
+          user_id: string
+        }
+        Insert: {
+          collected?: number
+          created_at?: string
+          date: string
+          id?: string
+          patient_name?: string | null
+          team_id: string
+          to_consultation?: number
+          to_surgery?: number
+          user_id: string
+        }
+        Update: {
+          collected?: number
+          created_at?: string
+          date?: string
+          id?: string
+          patient_name?: string | null
+          team_id?: string
+          to_consultation?: number
+          to_surgery?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_records_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_records: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_records_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           created_at: string
@@ -72,6 +236,47 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      testimonial_records: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          link: string | null
+          patient_name: string | null
+          team_id: string
+          type: Database["public"]["Enums"]["testimonial_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          link?: string | null
+          patient_name?: string | null
+          team_id: string
+          type: Database["public"]["Enums"]["testimonial_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          link?: string | null
+          patient_name?: string | null
+          team_id?: string
+          type?: Database["public"]["Enums"]["testimonial_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonial_records_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -113,6 +318,7 @@ export type Database = {
     }
     Enums: {
       app_role: "member" | "admin"
+      testimonial_type: "google" | "video" | "gold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -241,6 +447,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["member", "admin"],
+      testimonial_type: ["google", "video", "gold"],
     },
   },
 } as const

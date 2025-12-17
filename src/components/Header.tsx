@@ -1,7 +1,7 @@
-import { Trophy, LogIn, LogOut, User } from "lucide-react";
+import { Trophy, LogIn, LogOut, User, Plus, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ import {
 const Header = () => {
   const { user, profile, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -38,8 +39,55 @@ const Header = () => {
             </div>
           </Link>
 
-          {/* Actions */}
-          <div className="flex items-center gap-4">
+          {/* Navigation & Actions */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {user && (
+              <>
+                {/* Navigation Links */}
+                <nav className="hidden md:flex items-center gap-1">
+                  <Link to="/">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`gap-2 ${
+                        location.pathname === "/"
+                          ? "text-primary"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Home className="w-4 h-4" />
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`gap-2 ${
+                        location.pathname === "/register"
+                          ? "text-primary"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Registrar
+                    </Button>
+                  </Link>
+                </nav>
+
+                {/* Mobile Register Button */}
+                <Link to="/register" className="md:hidden">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </>
+            )}
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -64,6 +112,26 @@ const Header = () => {
                     </p>
                   </div>
                   <DropdownMenuSeparator className="bg-border" />
+                  
+                  {/* Mobile Navigation */}
+                  <div className="md:hidden">
+                    <DropdownMenuItem
+                      onClick={() => navigate("/")}
+                      className="text-foreground cursor-pointer"
+                    >
+                      <Home className="w-4 h-4 mr-2" />
+                      Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/register")}
+                      className="text-foreground cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Registrar Dados
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-border" />
+                  </div>
+                  
                   <DropdownMenuItem
                     onClick={handleSignOut}
                     className="text-destructive focus:text-destructive cursor-pointer"
