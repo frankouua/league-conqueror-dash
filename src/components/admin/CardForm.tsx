@@ -51,10 +51,10 @@ interface Team {
 }
 
 const cardTypes = {
-  blue: { label: "Cartão Azul", points: 20, color: "text-info", bgColor: "bg-info/10", description: "Inovação" },
-  white: { label: "Cartão Branco", points: 10, color: "text-foreground", bgColor: "bg-foreground/10", description: "Excelência" },
-  yellow: { label: "Cartão Amarelo", points: -15, color: "text-warning", bgColor: "bg-warning/10", description: "Atenção" },
-  red: { label: "Cartão Vermelho", points: -40, color: "text-destructive", bgColor: "bg-destructive/10", description: "Falta Grave" },
+  blue: { label: "Cartão Azul", points: 30, color: "text-info", bgColor: "bg-info/10", description: "Inovação - Ideia inovadora" },
+  white: { label: "Cartão Branco", points: 20, color: "text-foreground", bgColor: "bg-foreground/10", description: "Excelência - Atendimento exemplar" },
+  yellow: { label: "Cartão Amarelo", points: -10, color: "text-warning", bgColor: "bg-warning/10", description: "Atenção - Atrasos/CRM" },
+  red: { label: "Cartão Vermelho", points: -30, color: "text-destructive", bgColor: "bg-destructive/10", description: "Falta Grave - Falha grave" },
 };
 
 const CardForm = () => {

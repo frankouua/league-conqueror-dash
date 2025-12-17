@@ -1,4 +1,4 @@
-import { Trophy, LogIn, LogOut, User, Plus, Home, Shield, History } from "lucide-react";
+import { LogIn, LogOut, User, Plus, Home, Shield, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import copaLogo from "@/assets/copa-unique-logo.png";
 
 const Header = () => {
   const { user, profile, role, signOut } = useAuth();
@@ -26,17 +27,11 @@ const Header = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-            <div className="p-2 rounded-xl bg-gradient-gold-shine shadow-gold">
-              <Trophy className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-gradient-gold tracking-tight">
-                Copa Unique League
-              </h1>
-              <p className="text-xs text-muted-foreground font-medium">
-                2026 Edition
-              </p>
-            </div>
+            <img 
+              src={copaLogo} 
+              alt="Copa Unique League 2026" 
+              className="h-12 w-auto object-contain"
+            />
           </Link>
 
           {/* Navigation & Actions */}
