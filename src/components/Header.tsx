@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import copaLogo from "@/assets/copa-unique-logo.png";
+import copaLogo from "@/assets/logo-copa-unique-league.png";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
 import ProfileEditDialog from "@/components/ProfileEditDialog";
 import { useGoalNotifications } from "@/hooks/useGoalNotifications";

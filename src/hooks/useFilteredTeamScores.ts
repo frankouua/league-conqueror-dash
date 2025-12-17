@@ -14,20 +14,22 @@ interface FilteredTeamScore {
 
 export type PeriodFilter = "month" | "semester" | "year" | "all";
 
+// Scoring constants - Updated to match Playbook
 const SCORING = {
   revenue: { perThousand: 1 },
   quality: {
-    nps9or10: 5,
-    nps9or10WithMention: 10,
-    testimonialGoogle: 10,
-    testimonialVideo: 30,
-    testimonialGold: 50,
-    referralCollected: 5,
-    referralToConsultation: 20,
-    referralToSurgery: 50,
-    ambassador: 50,
-    unilover: 30,
-    instagramMention: 5,
+    nps9: 3,              // NPS 9 = 3pts
+    nps10: 5,             // NPS 10 = 5pts
+    npsCitationBonus: 10, // Citação nominal = +10pts
+    testimonialGoogle: 10,  // Google Review 5★ = 10pts
+    testimonialVideo: 30,   // Vídeo padrão = 30pts
+    testimonialGold: 50,    // Depoimento Ouro = 50pts
+    referralCollected: 5,        // Indicação coletada = 5pts
+    referralToConsultation: 20,  // → Consulta = +20pts
+    referralToSurgery: 50,       // → Cirurgia = +50pts
+    ambassador: 50,       // Paciente Embaixadora = 50pts
+    unilover: 5,          // UniLovers = 5pts
+    instagramMention: 2,  // Menção Instagram = 2pts
   },
 };
 
@@ -96,11 +98,13 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         teamRevenue = teamRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
         revenuePoints = Math.floor(teamRevenue / 1000) * SCORING.revenue.perThousand;
 
-        // NPS
+        // NPS - Updated scoring: NPS 9=3pts, NPS 10=5pts, +10 bonus for citation
         const teamNps = allNps?.filter(r => r.team_id === team.id) || [];
         for (const nps of teamNps) {
           if (nps.score >= 9) {
-            qualityPoints += nps.cited_member ? SCORING.quality.nps9or10WithMention : SCORING.quality.nps9or10;
+            let pts = nps.score === 10 ? SCORING.quality.nps10 : SCORING.quality.nps9;
+            if (nps.cited_member) pts += SCORING.quality.npsCitationBonus;
+            qualityPoints += pts;
           }
         }
 

@@ -10,7 +10,7 @@ import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
 import TeamComparisonCard from "@/components/TeamComparisonCard";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { Button } from "@/components/ui/button";
-import copaLogo from "@/assets/copa-unique-logo.png";
+import copaLogo from "@/assets/logo-copa-unique-league.png";
 
 // Calculate days remaining
 const now = new Date();
