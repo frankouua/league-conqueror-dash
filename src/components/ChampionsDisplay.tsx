@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useChampions } from "@/hooks/useChampions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { playStreakCelebration } from "@/lib/sounds";
+import { useEffect, useRef } from "react";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -11,6 +13,25 @@ const MONTH_NAMES = [
 
 const ChampionsDisplay = () => {
   const { champions, isLoading } = useChampions();
+  const hasPlayedSound = useRef(false);
+
+  // Play celebration sound when streak is detected (only once per session)
+  useEffect(() => {
+    if (
+      !isLoading &&
+      champions.currentStreak &&
+      champions.currentStreak.consecutiveWins >= 3 &&
+      !hasPlayedSound.current
+    ) {
+      // Small delay to ensure component is visible
+      const timer = setTimeout(() => {
+        playStreakCelebration();
+        hasPlayedSound.current = true;
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, champions.currentStreak]);
 
   if (isLoading) {
     return (

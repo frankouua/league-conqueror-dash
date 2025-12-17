@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Achievement } from "@/components/RecentAchievements";
 import type { ChartData } from "@/components/EvolutionChart";
 import { fireGoldConfetti, fireGoalConfetti, fireLeadershipChange } from "@/lib/confetti";
+import { playGoalSound, playLeadershipSound } from "@/lib/sounds";
 import { toast } from "@/hooks/use-toast";
 
 interface TeamScore {
@@ -230,6 +231,7 @@ export const useTeamScores = () => {
         // Leadership change celebration
         if (previousLeaderId.current && previousLeaderId.current !== currentLeaderId) {
           fireLeadershipChange();
+          playLeadershipSound();
           toast({
             title: "🏆 Nova Liderança!",
             description: `${teamScores[0].name} assumiu a liderança!`,
@@ -245,6 +247,7 @@ export const useTeamScores = () => {
 
         if (!previousGoals.current.goal1 && currentGoals.goal1) {
           fireGoalConfetti();
+          playGoalSound();
           toast({
             title: "🎯 Meta 1 Atingida!",
             description: "Parabéns! A clínica atingiu R$ 2.500.000!",
@@ -253,6 +256,7 @@ export const useTeamScores = () => {
 
         if (!previousGoals.current.goal2 && currentGoals.goal2) {
           fireGoalConfetti();
+          playGoalSound();
           toast({
             title: "👑 Meta 2 Atingida!",
             description: "+50 pontos para todas as equipes!",
@@ -262,6 +266,7 @@ export const useTeamScores = () => {
         if (!previousGoals.current.goal3 && currentGoals.goal3) {
           fireGoalConfetti();
           fireGoldConfetti();
+          playGoalSound();
           toast({
             title: "💎 Meta 3 Atingida!",
             description: "+100 pontos para todas as equipes! ÉPICO!",
