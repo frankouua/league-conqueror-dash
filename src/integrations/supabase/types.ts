@@ -336,9 +336,11 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          department: Database["public"]["Enums"]["department_type"] | null
           email: string
           full_name: string
           id: string
+          position: Database["public"]["Enums"]["position_type"] | null
           team_id: string | null
           updated_at: string
           user_id: string
@@ -346,9 +348,11 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          department?: Database["public"]["Enums"]["department_type"] | null
           email: string
           full_name: string
           id?: string
+          position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
           updated_at?: string
           user_id: string
@@ -356,9 +360,11 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          department?: Database["public"]["Enums"]["department_type"] | null
           email?: string
           full_name?: string
           id?: string
+          position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
           updated_at?: string
           user_id?: string
@@ -782,6 +788,22 @@ export type Database = {
       app_role: "member" | "admin"
       card_type: "blue" | "white" | "yellow" | "red"
       contestation_status: "pending" | "approved" | "rejected"
+      department_type:
+        | "comercial"
+        | "atendimento"
+        | "marketing"
+        | "administrativo"
+        | "clinico"
+      position_type:
+        | "comercial_1_captacao"
+        | "comercial_2_closer"
+        | "comercial_3_experiencia"
+        | "comercial_4_farmer"
+        | "sdr"
+        | "coordenador"
+        | "gerente"
+        | "assistente"
+        | "outro"
       referral_lead_status:
         | "nova"
         | "em_contato"
@@ -920,6 +942,24 @@ export const Constants = {
       app_role: ["member", "admin"],
       card_type: ["blue", "white", "yellow", "red"],
       contestation_status: ["pending", "approved", "rejected"],
+      department_type: [
+        "comercial",
+        "atendimento",
+        "marketing",
+        "administrativo",
+        "clinico",
+      ],
+      position_type: [
+        "comercial_1_captacao",
+        "comercial_2_closer",
+        "comercial_3_experiencia",
+        "comercial_4_farmer",
+        "sdr",
+        "coordenador",
+        "gerente",
+        "assistente",
+        "outro",
+      ],
       referral_lead_status: [
         "nova",
         "em_contato",
