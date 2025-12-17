@@ -76,6 +76,7 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         { data: allReferrals },
         { data: allIndicators },
         { data: allCards },
+        { data: allSpecialEvents },
       ] = await Promise.all([
         supabase.from("revenue_records").select("*").gte("date", startStr).lte("date", endStr),
         supabase.from("nps_records").select("*").gte("date", startStr).lte("date", endStr),
@@ -83,6 +84,7 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         supabase.from("referral_records").select("*").gte("date", startStr).lte("date", endStr),
         supabase.from("other_indicators").select("*").gte("date", startStr).lte("date", endStr),
         supabase.from("cards").select("*").gte("date", startStr).lte("date", endStr),
+        supabase.from("special_events").select("*").gte("date", startStr).lte("date", endStr),
       ]);
 
       const teamScores: FilteredTeamScore[] = [];
@@ -138,6 +140,12 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         const teamCards = allCards?.filter(r => r.team_id === team.id) || [];
         for (const card of teamCards) {
           modifierPoints += card.points;
+        }
+
+        // Special Events (Boosters & Turning Points)
+        const teamSpecialEvents = allSpecialEvents?.filter(r => r.team_id === team.id) || [];
+        for (const event of teamSpecialEvents) {
+          modifierPoints += event.points;
         }
 
         teamScores.push({

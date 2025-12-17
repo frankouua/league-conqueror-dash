@@ -1,8 +1,8 @@
-import { Star, Award, AlertTriangle, Trophy, Users, Heart, ThumbsUp } from "lucide-react";
+import { Star, Award, AlertTriangle, Trophy, Users, Heart, ThumbsUp, Zap, Target } from "lucide-react";
 
 export interface Achievement {
   id: string;
-  type: "referral" | "testimonial" | "card_blue" | "card_white" | "card_yellow" | "card_red" | "goal" | "ambassador" | "nps";
+  type: "referral" | "testimonial" | "card_blue" | "card_white" | "card_yellow" | "card_red" | "goal" | "ambassador" | "nps" | "booster" | "turning_point";
   teamName: string;
   description: string;
   timestamp: string;
@@ -33,6 +33,10 @@ const getAchievementIcon = (type: Achievement["type"]) => {
       return <Heart className="w-5 h-5 text-pink-500" />;
     case "nps":
       return <ThumbsUp className="w-5 h-5 text-success" />;
+    case "booster":
+      return <Zap className="w-5 h-5 text-yellow-500" />;
+    case "turning_point":
+      return <Target className="w-5 h-5 text-blue-500" />;
     default:
       return <Star className="w-5 h-5 text-muted-foreground" />;
   }
@@ -58,6 +62,10 @@ const getAchievementBg = (type: Achievement["type"]) => {
       return "bg-pink-500/10";
     case "nps":
       return "bg-success/10";
+    case "booster":
+      return "bg-yellow-500/10";
+    case "turning_point":
+      return "bg-blue-500/10";
     default:
       return "bg-muted";
   }
