@@ -64,14 +64,14 @@ export const IndividualTeamFields = ({
                 <Users className="w-4 h-4" />
                 Atribuir a
               </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ""}>
+              <Select onValueChange={field.onChange} value={field.value || "__self__"}>
                 <FormControl>
                   <SelectTrigger className="bg-secondary border-border">
                     <SelectValue placeholder="Eu mesmo (padrão)" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Eu mesmo</SelectItem>
+                  <SelectItem value="__self__">Eu mesmo</SelectItem>
                   <SelectItem value="team" className="text-primary font-medium">
                     🏆 Contribuição geral do time
                   </SelectItem>
@@ -85,7 +85,7 @@ export const IndividualTeamFields = ({
               <FormDescription className="text-xs">
                 {watchAttributedTo === "team" 
                   ? "Não conta para meta individual de ninguém"
-                  : watchAttributedTo 
+                  : watchAttributedTo && watchAttributedTo !== "__self__"
                     ? "Será atribuído ao membro selecionado"
                     : "Selecione um membro ou deixe como contribuição do time"}
               </FormDescription>
@@ -131,20 +131,25 @@ export const getEffectiveInsertData = (
   countsForIndividual: boolean,
   isAdmin: boolean
 ) => {
-  const effectiveUserId = attributedToUserId && attributedToUserId !== "team" 
-    ? attributedToUserId 
+  // Normalize: "__self__" or empty means "myself"
+  const normalizedAttributed = attributedToUserId === "__self__" || !attributedToUserId 
+    ? undefined 
+    : attributedToUserId;
+  
+  const effectiveUserId = normalizedAttributed && normalizedAttributed !== "team" 
+    ? normalizedAttributed 
     : userId;
   
-  const effectiveCountsForIndividual = attributedToUserId === "team" 
+  const effectiveCountsForIndividual = normalizedAttributed === "team" 
     ? false 
     : countsForIndividual;
 
   return {
     effectiveUserId,
     counts_for_individual: effectiveCountsForIndividual,
-    attributed_to_user_id: attributedToUserId && attributedToUserId !== "team" 
-      ? attributedToUserId 
+    attributed_to_user_id: normalizedAttributed && normalizedAttributed !== "team" 
+      ? normalizedAttributed 
       : null,
-    registered_by_admin: isAdmin && attributedToUserId ? true : false,
+    registered_by_admin: isAdmin && normalizedAttributed ? true : false,
   };
 };
