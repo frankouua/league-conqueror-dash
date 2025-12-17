@@ -1,9 +1,17 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   DollarSign, 
   Star, 
@@ -12,7 +20,8 @@ import {
   Trophy,
   TrendingUp,
   Award,
-  Medal
+  Medal,
+  LineChart as LineChartIcon
 } from "lucide-react";
 import {
   Table,
@@ -22,6 +31,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+} from "recharts";
+import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface MemberPerformance {
   userId: string;
@@ -41,6 +66,8 @@ interface MemberPerformance {
 }
 
 const Individual = () => {
+  const [selectedMember, setSelectedMember] = useState<string>("all");
+
   const { data: teams } = useQuery({
     queryKey: ["teams"],
     queryFn: async () => {
@@ -190,6 +217,86 @@ const Individual = () => {
     return memberPerformance.filter(m => m.teamId === teamId);
   };
 
+  // Generate monthly evolution data for charts
+  const getMonthlyEvolutionData = () => {
+    const months = eachMonthOfInterval({
+      start: subMonths(new Date(), 11),
+      end: new Date(),
+    });
+
+    return months.map(month => {
+      const monthStart = format(startOfMonth(month), "yyyy-MM-dd");
+      const monthEnd = format(endOfMonth(month), "yyyy-MM-dd");
+      const monthLabel = format(month, "MMM/yy", { locale: ptBR });
+
+      const membersData: Record<string, { revenue: number; points: number }> = {};
+
+      profiles?.forEach(profile => {
+        const userId = profile.user_id;
+        
+        // Revenue for this month
+        const monthRevenue = revenueRecords?.filter(r => 
+          r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+        ).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+
+        // Points calculation for this month
+        let monthPoints = Math.floor(monthRevenue / 10000);
+
+        // NPS points
+        const monthNps = npsRecords?.filter(r => 
+          r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+        ) || [];
+        monthNps.forEach(n => {
+          if (n.score === 9) monthPoints += 3;
+          if (n.score === 10) monthPoints += 5;
+          if (n.cited_member) monthPoints += 10;
+        });
+
+        // Testimonial points
+        const monthTestimonials = testimonialRecords?.filter(r => 
+          r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+        ) || [];
+        monthTestimonials.forEach(t => {
+          if (t.type === "google") monthPoints += 10;
+          if (t.type === "video") monthPoints += 20;
+          if (t.type === "gold") monthPoints += 40;
+        });
+
+        // Referral points
+        const monthReferrals = referralRecords?.filter(r => 
+          r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+        ) || [];
+        monthReferrals.forEach(r => {
+          monthPoints += r.collected * 5;
+          monthPoints += r.to_consultation * 15;
+          monthPoints += r.to_surgery * 30;
+        });
+
+        // Other indicators
+        const monthOther = otherIndicators?.filter(r => 
+          r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+        ) || [];
+        monthOther.forEach(o => {
+          monthPoints += o.unilovers * 5;
+          monthPoints += o.ambassadors * 50;
+          monthPoints += o.instagram_mentions * 2;
+        });
+
+        membersData[userId] = { revenue: monthRevenue, points: monthPoints };
+      });
+
+      return { month: monthLabel, ...membersData };
+    });
+  };
+
+  const monthlyData = getMonthlyEvolutionData();
+
+  // Get member colors for charts
+  const memberColors = [
+    "#D4AF37", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", 
+    "#F59E0B", "#06B6D4", "#EF4444", "#84CC16", "#6366F1"
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
       <Header />
@@ -205,9 +312,10 @@ const Individual = () => {
         </div>
 
         <Tabs defaultValue="ranking" className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
-            <TabsTrigger value="ranking">Ranking Geral</TabsTrigger>
-            <TabsTrigger value="teams">Por Equipe</TabsTrigger>
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4">
+            <TabsTrigger value="ranking">Ranking</TabsTrigger>
+            <TabsTrigger value="teams">Equipes</TabsTrigger>
+            <TabsTrigger value="evolution">Evolução</TabsTrigger>
             <TabsTrigger value="details">Detalhado</TabsTrigger>
           </TabsList>
 
@@ -379,6 +487,203 @@ const Individual = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Evolução */}
+          <TabsContent value="evolution" className="space-y-6">
+            {/* Member Selector */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <LineChartIcon className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Visualizar:</span>
+                  </div>
+                  <Select value={selectedMember} onValueChange={setSelectedMember}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Selecione um membro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os membros</SelectItem>
+                      {profiles?.map((profile, index) => (
+                        <SelectItem key={profile.user_id} value={profile.user_id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: memberColors[index % memberColors.length] }}
+                            />
+                            {profile.full_name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Points Evolution Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  Evolução de Pontos (Últimos 12 meses)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: "hsl(var(--card))", 
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px"
+                        }}
+                        formatter={(value: number, name: string) => {
+                          const profile = profiles?.find(p => p.user_id === name);
+                          return [value, profile?.full_name || name];
+                        }}
+                      />
+                      <Legend 
+                        formatter={(value) => {
+                          const profile = profiles?.find(p => p.user_id === value);
+                          return profile?.full_name || value;
+                        }}
+                      />
+                      {profiles?.filter(p => selectedMember === "all" || p.user_id === selectedMember).map((profile, index) => (
+                        <Line
+                          key={profile.user_id}
+                          type="monotone"
+                          dataKey={`${profile.user_id}.points`}
+                          name={profile.user_id}
+                          stroke={memberColors[index % memberColors.length]}
+                          strokeWidth={2}
+                          dot={{ fill: memberColors[index % memberColors.length], r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Revenue Evolution Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-green-500" />
+                  Evolução de Faturamento
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <YAxis 
+                        stroke="hsl(var(--muted-foreground))" 
+                        fontSize={12}
+                        tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: "hsl(var(--card))", 
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px"
+                        }}
+                        formatter={(value: number, name: string) => {
+                          const profile = profiles?.find(p => p.user_id === name);
+                          return [formatCurrency(value), profile?.full_name || name];
+                        }}
+                      />
+                      <Legend 
+                        formatter={(value) => {
+                          const profile = profiles?.find(p => p.user_id === value);
+                          return profile?.full_name || value;
+                        }}
+                      />
+                      {profiles?.filter(p => selectedMember === "all" || p.user_id === selectedMember).map((profile, index) => (
+                        <Bar
+                          key={profile.user_id}
+                          dataKey={`${profile.user_id}.revenue`}
+                          name={profile.user_id}
+                          fill={memberColors[index % memberColors.length]}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cumulative Points Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-primary" />
+                  Pontuação Acumulada
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={monthlyData.map((month, idx) => {
+                      const cumulative: Record<string, number | string> = { month: month.month };
+                      profiles?.forEach(profile => {
+                        let total = 0;
+                        for (let i = 0; i <= idx; i++) {
+                          total += (monthlyData[i][profile.user_id] as { points: number })?.points || 0;
+                        }
+                        cumulative[`${profile.user_id}_cumulative`] = total;
+                      });
+                      return cumulative;
+                    })}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: "hsl(var(--card))", 
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px"
+                        }}
+                        formatter={(value: number, name: string) => {
+                          const userId = name.replace("_cumulative", "");
+                          const profile = profiles?.find(p => p.user_id === userId);
+                          return [value, profile?.full_name || name];
+                        }}
+                      />
+                      <Legend 
+                        formatter={(value) => {
+                          const userId = value.replace("_cumulative", "");
+                          const profile = profiles?.find(p => p.user_id === userId);
+                          return profile?.full_name || value;
+                        }}
+                      />
+                      {profiles?.filter(p => selectedMember === "all" || p.user_id === selectedMember).map((profile, index) => (
+                        <Area
+                          key={profile.user_id}
+                          type="monotone"
+                          dataKey={`${profile.user_id}_cumulative`}
+                          name={`${profile.user_id}_cumulative`}
+                          stroke={memberColors[index % memberColors.length]}
+                          fill={memberColors[index % memberColors.length]}
+                          fillOpacity={0.3}
+                          strokeWidth={2}
+                        />
+                      ))}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
