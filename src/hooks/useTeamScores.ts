@@ -90,6 +90,7 @@ export const useTeamScores = () => {
         { data: allReferrals },
         { data: allIndicators },
         { data: allCards },
+        { data: allSpecialEvents },
       ] = await Promise.all([
         supabase.from("revenue_records").select("*"),
         supabase.from("nps_records").select("*"),
@@ -97,6 +98,7 @@ export const useTeamScores = () => {
         supabase.from("referral_records").select("*"),
         supabase.from("other_indicators").select("*"),
         supabase.from("cards").select("*"),
+        supabase.from("special_events").select("*"),
       ]);
 
       for (const team of teamsData) {
@@ -208,6 +210,20 @@ export const useTeamScores = () => {
             description: `Cartão ${getCardLabel(card.type)}: ${card.reason}`,
             timestamp: formatTimestamp(card.created_at),
             points: card.points,
+          });
+        }
+
+        // Special Events (Boosters & Turning Points)
+        const teamSpecialEvents = allSpecialEvents?.filter(r => r.team_id === team.id) || [];
+        for (const event of teamSpecialEvents) {
+          modifierPoints += event.points;
+          allAchievements.push({
+            id: event.id,
+            type: event.category === "booster" ? "booster" : "turning_point",
+            teamName: team.name,
+            description: `${getEventLabel(event.event_type)}${event.description ? `: ${event.description}` : ""}`,
+            timestamp: formatTimestamp(event.created_at),
+            points: event.points,
           });
         }
 
@@ -326,6 +342,7 @@ export const useTeamScores = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "referral_records" }, calculateScores)
       .on("postgres_changes", { event: "*", schema: "public", table: "other_indicators" }, calculateScores)
       .on("postgres_changes", { event: "*", schema: "public", table: "cards" }, calculateScores)
+      .on("postgres_changes", { event: "*", schema: "public", table: "special_events" }, calculateScores)
       .subscribe();
 
     return () => {
@@ -384,6 +401,17 @@ function parseTimestamp(ts: string): number {
 
 function getCardLabel(type: string): string {
   return { blue: "Azul", white: "Branco", yellow: "Amarelo", red: "Vermelho" }[type] || type;
+}
+
+function getEventLabel(type: string): string {
+  const labels: Record<string, string> = {
+    chuva_fechamentos: "Chuva de Fechamentos",
+    liga_lealdade: "Liga da Lealdade",
+    dia_virada: "Dia da Virada",
+    missao_bruna: "Missão Bruna",
+    var: "VAR",
+  };
+  return labels[type] || type;
 }
 
 export default useTeamScores;

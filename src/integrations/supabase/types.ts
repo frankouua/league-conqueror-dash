@@ -351,6 +351,53 @@ export type Database = {
           },
         ]
       }
+      special_events: {
+        Row: {
+          applied_by: string
+          category: string
+          created_at: string
+          date: string
+          description: string | null
+          event_type: string
+          id: string
+          multiplier: number | null
+          points: number
+          team_id: string
+        }
+        Insert: {
+          applied_by: string
+          category: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          event_type: string
+          id?: string
+          multiplier?: number | null
+          points?: number
+          team_id: string
+        }
+        Update: {
+          applied_by?: string
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          event_type?: string
+          id?: string
+          multiplier?: number | null
+          points?: number
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_events_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           created_at: string
