@@ -1,7 +1,7 @@
 import { 
   LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
-  ChevronDown, Settings, AlertCircle
+  ChevronDown, Settings, AlertCircle, Route
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +57,7 @@ const Header = () => {
     { path: "/history", label: "Histórico", icon: History },
     { path: "/analytics", label: "Análises", icon: BarChart3 },
     { path: "/rules", label: "Regras", icon: BookOpen },
+    { path: "/patient-journey", label: "Jornada", icon: Route },
     { path: "/individual", label: "Individual", icon: Users },
     { path: "/goals", label: "Metas", icon: Target },
     { path: "/reports", label: "Relatórios", icon: FileText },
