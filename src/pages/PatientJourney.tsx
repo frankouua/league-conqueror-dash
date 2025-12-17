@@ -27,7 +27,7 @@ import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
 const journeyStages = [
   {
     id: 1,
-    title: "Comercial 1 - Captação",
+    title: "Comercial 1 - Social Selling",
     subtitle: "Lead → Consulta Agendada",
     icon: Smartphone,
     secondaryIcon: MessageCircle,
@@ -65,7 +65,7 @@ const journeyStages = [
   },
   {
     id: 3,
-    title: "Comercial 3 - Experiência",
+    title: "Comercial 3 - Customer Success",
     subtitle: "0-90 dias pós-op",
     icon: Star,
     secondaryIcon: Crown,
