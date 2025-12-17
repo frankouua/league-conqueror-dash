@@ -24,98 +24,75 @@ import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
 const journeyStages = [
   {
     id: 1,
-    title: "Lead",
-    subtitle: "Captação e Primeiro Contato",
+    title: "Comercial 1 - Captação",
+    subtitle: "Lead → Consulta Agendada",
     icon: UserPlus,
     color: "from-blue-500 to-blue-600",
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/30",
     accentColor: "text-blue-500",
-    team: ["Comercial", "Marketing"],
+    team: ["Comercial"],
     actions: [
-      "Identificar potenciais pacientes",
-      "Responder mensagens e DMs",
-      "Qualificar interesse do lead",
-      "Registrar dados no sistema",
-      "Apresentar a clínica e procedimentos"
+      "Social Selling",
+      "WhatsApp",
+      "Encantar paciente",
+      "Follow-up de leads"
     ],
     indicators: ["Indicações coletadas", "Menções no Instagram"]
   },
   {
     id: 2,
-    title: "Agendamento",
-    subtitle: "Conversão para Consulta",
+    title: "Comercial 2 - Closer",
+    subtitle: "Consulta → Fechamento",
     icon: CalendarCheck,
-    color: "from-purple-500 to-purple-600",
-    bgColor: "bg-purple-500/10",
-    borderColor: "border-purple-500/30",
-    accentColor: "text-purple-500",
-    team: ["Comercial"],
-    actions: [
-      "Confirmar interesse do paciente",
-      "Agendar consulta com o médico",
-      "Enviar confirmação e lembretes",
-      "Preparar documentação necessária",
-      "Orientar sobre o que levar"
-    ],
-    indicators: ["Indicações → Consulta"]
-  },
-  {
-    id: 3,
-    title: "Consulta",
-    subtitle: "Avaliação Médica",
-    icon: Stethoscope,
     color: "from-amber-500 to-amber-600",
     bgColor: "bg-amber-500/10",
     borderColor: "border-amber-500/30",
     accentColor: "text-amber-500",
-    team: ["Médico", "Comercial"],
+    team: ["Comercial"],
     actions: [
-      "Acolher o paciente na clínica",
-      "Apresentar o médico e equipe",
-      "Acompanhar durante a consulta",
-      "Explicar procedimentos e valores",
-      "Negociar formas de pagamento"
+      "Orçamento",
+      "Negociação",
+      "Contratos",
+      "Follow-up de consultas"
     ],
-    indicators: ["NPS", "Faturamento"]
+    indicators: ["Indicações → Consulta", "Faturamento"]
   },
   {
-    id: 4,
-    title: "Cirurgia",
-    subtitle: "Procedimento Realizado",
-    icon: Scissors,
+    id: 3,
+    title: "Comercial 3 - Experiência",
+    subtitle: "0-90 dias pós-op",
+    icon: Stethoscope,
     color: "from-emerald-500 to-emerald-600",
     bgColor: "bg-emerald-500/10",
     borderColor: "border-emerald-500/30",
     accentColor: "text-emerald-500",
-    team: ["Médico", "Comercial", "Enfermagem"],
+    team: ["Comercial"],
     actions: [
-      "Confirmar procedimento agendado",
-      "Orientar preparação pré-operatória",
-      "Acompanhar no dia da cirurgia",
-      "Garantir conforto do paciente",
-      "Registrar indicação → Cirurgia"
+      "Onboarding do paciente",
+      "Upsell de procedimentos",
+      "UniLovers",
+      "Solicitar NPS e depoimentos"
     ],
-    indicators: ["Indicações → Cirurgia", "Faturamento"]
+    indicators: ["Indicações → Cirurgia", "NPS", "UniLovers"]
   },
   {
-    id: 5,
-    title: "Pós-op",
-    subtitle: "Acompanhamento e Fidelização",
+    id: 4,
+    title: "Comercial 4 - Farmer",
+    subtitle: "+90 dias",
     icon: HeartPulse,
     color: "from-rose-500 to-rose-600",
     bgColor: "bg-rose-500/10",
     borderColor: "border-rose-500/30",
     accentColor: "text-rose-500",
-    team: ["Comercial", "Médico"],
+    team: ["Comercial"],
     actions: [
-      "Ligar para saber como está",
-      "Agendar retornos necessários",
-      "Solicitar avaliação NPS",
-      "Pedir depoimento (Google/Vídeo)",
-      "Incentivar indicações de amigos"
+      "Pacientes Antigos",
+      "Manutenção de relacionamento",
+      "Novos Protocolos",
+      "Incentivar indicações"
     ],
-    indicators: ["NPS", "Depoimentos Google", "Depoimentos Vídeo", "UniLovers", "Embaixadores"]
+    indicators: ["Depoimentos Google", "Depoimentos Vídeo", "Embaixadores"]
   }
 ];
 
