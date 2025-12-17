@@ -100,6 +100,7 @@ const Index = () => {
                 revenuePoints={team1.revenuePoints}
                 qualityPoints={team1.qualityPoints}
                 modifierPoints={team1.modifierPoints}
+                totalRevenue={team1.totalRevenue}
                 pointsDifference={pointsDifference}
                 isLeading={true}
               />
@@ -112,6 +113,7 @@ const Index = () => {
                 revenuePoints={team2.revenuePoints}
                 qualityPoints={team2.qualityPoints}
                 modifierPoints={team2.modifierPoints}
+                totalRevenue={team2.totalRevenue}
                 pointsDifference={-pointsDifference}
                 isLeading={false}
               />
