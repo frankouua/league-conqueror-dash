@@ -7,6 +7,15 @@ interface MonthlyChampion {
   teamId: string;
   teamName: string;
   totalPoints: number;
+  isPartOfStreak?: boolean;
+  streakCount?: number;
+}
+
+interface WinningStreak {
+  teamId: string;
+  teamName: string;
+  consecutiveWins: number;
+  months: number[];
 }
 
 interface ChampionsData {
@@ -14,6 +23,7 @@ interface ChampionsData {
   semesterLeader: { teamName: string; points: number } | null;
   yearLeader: { teamName: string; points: number } | null;
   monthlyHistory: MonthlyChampion[];
+  currentStreak: WinningStreak | null;
 }
 
 // Scoring constants (same as useTeamScores)
@@ -40,6 +50,7 @@ export const useChampions = () => {
     semesterLeader: null,
     yearLeader: null,
     monthlyHistory: [],
+    currentStreak: null,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -212,11 +223,46 @@ export const useChampions = () => {
         }
       }
 
+      // Calculate winning streaks
+      let currentStreak: WinningStreak | null = null;
+      if (monthlyHistory.length >= 3) {
+        // Check from the end for current streak
+        let streakTeamId = monthlyHistory[monthlyHistory.length - 1]?.teamId;
+        let streakCount = 0;
+        const streakMonths: number[] = [];
+
+        for (let i = monthlyHistory.length - 1; i >= 0; i--) {
+          if (monthlyHistory[i].teamId === streakTeamId) {
+            streakCount++;
+            streakMonths.unshift(monthlyHistory[i].month);
+            monthlyHistory[i].isPartOfStreak = streakCount >= 3;
+            monthlyHistory[i].streakCount = streakCount;
+          } else {
+            break;
+          }
+        }
+
+        if (streakCount >= 3) {
+          currentStreak = {
+            teamId: streakTeamId,
+            teamName: monthlyHistory[monthlyHistory.length - 1].teamName,
+            consecutiveWins: streakCount,
+            months: streakMonths,
+          };
+
+          // Mark all months in streak
+          for (let i = monthlyHistory.length - streakCount; i < monthlyHistory.length; i++) {
+            monthlyHistory[i].isPartOfStreak = true;
+          }
+        }
+      }
+
       setChampions({
         currentMonthLeader,
         semesterLeader,
         yearLeader,
         monthlyHistory,
+        currentStreak,
       });
     } catch (error) {
       console.error("Error calculating champions:", error);
