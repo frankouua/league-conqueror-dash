@@ -6,17 +6,20 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  UserPlus, 
-  CalendarCheck, 
-  Stethoscope, 
-  Scissors, 
-  HeartPulse,
+  Smartphone, 
+  Trophy, 
+  Star, 
+  Infinity,
   ArrowRight,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   RotateCcw,
-  Cloud
+  Cloud,
+  MessageCircle,
+  Handshake,
+  Crown,
+  TreeDeciduous
 } from "lucide-react";
 import { useState } from "react";
 import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
@@ -26,11 +29,12 @@ const journeyStages = [
     id: 1,
     title: "Comercial 1 - Captação",
     subtitle: "Lead → Consulta Agendada",
-    icon: UserPlus,
-    color: "from-blue-500 to-blue-600",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-500/30",
-    accentColor: "text-blue-500",
+    icon: Smartphone,
+    secondaryIcon: MessageCircle,
+    color: "from-primary to-yellow-600",
+    bgColor: "bg-primary/10",
+    borderColor: "border-primary/30",
+    accentColor: "text-primary",
     team: ["Comercial"],
     actions: [
       "Social Selling",
@@ -44,11 +48,12 @@ const journeyStages = [
     id: 2,
     title: "Comercial 2 - Closer",
     subtitle: "Consulta → Fechamento",
-    icon: CalendarCheck,
-    color: "from-amber-500 to-amber-600",
-    bgColor: "bg-amber-500/10",
-    borderColor: "border-amber-500/30",
-    accentColor: "text-amber-500",
+    icon: Trophy,
+    secondaryIcon: Handshake,
+    color: "from-primary to-yellow-600",
+    bgColor: "bg-primary/10",
+    borderColor: "border-primary/30",
+    accentColor: "text-primary",
     team: ["Comercial"],
     actions: [
       "Orçamento",
@@ -62,11 +67,12 @@ const journeyStages = [
     id: 3,
     title: "Comercial 3 - Experiência",
     subtitle: "0-90 dias pós-op",
-    icon: Stethoscope,
-    color: "from-emerald-500 to-emerald-600",
-    bgColor: "bg-emerald-500/10",
-    borderColor: "border-emerald-500/30",
-    accentColor: "text-emerald-500",
+    icon: Star,
+    secondaryIcon: Crown,
+    color: "from-primary to-yellow-600",
+    bgColor: "bg-primary/10",
+    borderColor: "border-primary/30",
+    accentColor: "text-primary",
     team: ["Comercial"],
     actions: [
       "Onboarding do paciente",
@@ -80,11 +86,12 @@ const journeyStages = [
     id: 4,
     title: "Comercial 4 - Farmer",
     subtitle: "+90 dias",
-    icon: HeartPulse,
-    color: "from-rose-500 to-rose-600",
-    bgColor: "bg-rose-500/10",
-    borderColor: "border-rose-500/30",
-    accentColor: "text-rose-500",
+    icon: Infinity,
+    secondaryIcon: TreeDeciduous,
+    color: "from-primary to-yellow-600",
+    bgColor: "bg-primary/10",
+    borderColor: "border-primary/30",
+    accentColor: "text-primary",
     team: ["Comercial"],
     actions: [
       "Pacientes Antigos",
@@ -122,21 +129,24 @@ const PatientJourney = () => {
       
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Jornada do Paciente
-          </h1>
+        <div className="text-center mb-10">
+          <div className="inline-block mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-yellow-500 to-primary bg-clip-text text-transparent drop-shadow-sm">
+              Jornada do Paciente
+            </h1>
+            <p className="text-primary/80 font-medium mt-1">Processo Comercial Unique</p>
+          </div>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-6">
             Cada etapa da jornada é uma oportunidade de encantar o paciente e gerar pontos para sua equipe
           </p>
           
           {/* Overall Progress */}
-          <div className="max-w-md mx-auto bg-card border border-border rounded-xl p-4">
+          <div className="max-w-md mx-auto bg-gradient-to-br from-card to-primary/5 border border-primary/20 rounded-xl p-4 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-foreground">Progresso Geral</span>
                 <span title="Sincronizado na nuvem">
-                  <Cloud className="h-3 w-3 text-muted-foreground" />
+                  <Cloud className="h-3 w-3 text-primary/60" />
                 </span>
               </div>
               {isLoading ? (
@@ -160,17 +170,19 @@ const PatientJourney = () => {
             return (
               <div key={stage.id} className="flex items-center">
                 <div 
-                  className={`relative flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${stage.color} text-white font-medium cursor-pointer transition-transform hover:scale-105`}
+                  className="relative flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-primary/90 to-yellow-600/90 text-background font-semibold cursor-pointer transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(212,175,55,0.5)]"
                   onClick={() => toggleStage(stage.id)}
                 >
-                  <stage.icon className="h-4 w-4" />
-                  <span>{stage.title}</span>
+                  <div className="relative">
+                    <stage.icon className="h-5 w-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                  </div>
+                  <span className="text-sm">{stage.title.split(' - ')[1]}</span>
                   {progress === 100 && (
-                    <CheckCircle2 className="h-4 w-4 ml-1" />
+                    <CheckCircle2 className="h-4 w-4 ml-1 text-green-300" />
                   )}
                 </div>
                 {index < journeyStages.length - 1 && (
-                  <ArrowRight className="h-5 w-5 text-muted-foreground mx-2" />
+                  <ArrowRight className="h-6 w-6 text-primary mx-3 drop-shadow-[0_0_4px_rgba(212,175,55,0.5)]" />
                 )}
               </div>
             );
@@ -191,14 +203,22 @@ const PatientJourney = () => {
               >
                 <CardHeader className="pb-4">
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
-                    {/* Stage Number & Icon */}
-                    <div className={`relative flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${stage.color} text-white shadow-lg`}>
-                      <stage.icon className="h-8 w-8" />
+                    {/* Stage Icon - Golden Premium Style */}
+                    <div className="relative flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary via-yellow-500 to-primary shadow-[0_0_30px_rgba(212,175,55,0.4)] border border-primary/30">
+                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-transparent to-white/10" />
+                      <div className="relative flex flex-col items-center">
+                        <stage.icon className="h-8 w-8 text-background drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+                        {stage.secondaryIcon && (
+                          <stage.secondaryIcon className="h-4 w-4 text-background/80 mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" />
+                        )}
+                      </div>
                       {isComplete && (
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <div className="absolute -top-2 -right-2 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shadow-lg border-2 border-background">
                           <CheckCircle2 className="h-4 w-4 text-white" />
                         </div>
                       )}
+                      {/* Glow effect */}
+                      <div className="absolute inset-0 rounded-2xl animate-pulse bg-primary/20 blur-xl -z-10" />
                     </div>
                     
                     {/* Title & Teams */}
