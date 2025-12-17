@@ -1,21 +1,23 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Star, Zap, DollarSign, Scale } from "lucide-react";
+import { TrendingUp, Star, Zap, DollarSign, Scale, Calendar } from "lucide-react";
+import { useFilteredTeamScores, PeriodFilter } from "@/hooks/useFilteredTeamScores";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface TeamData {
-  name: string;
-  totalPoints: number;
-  revenuePoints: number;
-  qualityPoints: number;
-  modifierPoints: number;
-  totalRevenue: number;
-}
+const periodLabels: Record<PeriodFilter, string> = {
+  month: "Este Mês",
+  semester: "Semestre",
+  year: "Este Ano",
+  all: "Geral",
+};
 
-interface TeamComparisonCardProps {
-  team1: TeamData;
-  team2: TeamData;
-}
+const TeamComparisonCard = () => {
+  const [period, setPeriod] = useState<PeriodFilter>("all");
+  const { teams, isLoading } = useFilteredTeamScores(period);
 
-const TeamComparisonCard = ({ team1, team2 }: TeamComparisonCardProps) => {
+  const team1 = teams[0];
+  const team2 = teams[1];
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -37,6 +39,25 @@ const TeamComparisonCard = ({ team1, team2 }: TeamComparisonCardProps) => {
       p2: (value2 / total) * 100,
     };
   };
+
+  if (isLoading) {
+    return (
+      <Card className="bg-gradient-card border-border overflow-hidden">
+        <CardHeader className="pb-4">
+          <Skeleton className="h-6 w-48" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!team1 || !team2) {
+    return null;
+  }
 
   const metrics = [
     {
@@ -81,12 +102,35 @@ const TeamComparisonCard = ({ team1, team2 }: TeamComparisonCardProps) => {
   return (
     <Card className="bg-gradient-card border-border overflow-hidden">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <Scale className="w-5 h-5 text-primary" />
-          Comparação Lado a Lado
-        </CardTitle>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Scale className="w-5 h-5 text-primary" />
+            Comparação Lado a Lado
+          </CardTitle>
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+            {(Object.keys(periodLabels) as PeriodFilter[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  period === p
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                {periodLabels[p]}
+              </button>
+            ))}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Period indicator */}
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <Calendar className="w-3 h-3" />
+          <span>Exibindo: {periodLabels[period]}</span>
+        </div>
+
         {/* Team Headers */}
         <div className="grid grid-cols-3 gap-4 text-center">
           <div className="text-left">
