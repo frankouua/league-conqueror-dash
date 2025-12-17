@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Users, Shield, ShieldCheck, Loader2, Trash2, KeyRound, UserX } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Users, Shield, ShieldCheck, Loader2, Trash2, KeyRound, UserX, Filter, Briefcase, BadgeCheck } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -31,12 +31,37 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+type DepartmentType = 'comercial' | 'atendimento' | 'marketing' | 'administrativo' | 'clinico';
+type PositionType = 'comercial_1_captacao' | 'comercial_2_closer' | 'comercial_3_experiencia' | 'comercial_4_farmer' | 'sdr' | 'coordenador' | 'gerente' | 'assistente' | 'outro';
+
+const DEPARTMENT_LABELS: Record<string, string> = {
+  comercial: "Comercial",
+  atendimento: "Atendimento",
+  marketing: "Marketing",
+  administrativo: "Administrativo",
+  clinico: "Clínico",
+};
+
+const POSITION_LABELS: Record<string, string> = {
+  comercial_1_captacao: "Comercial 1 - Captação",
+  comercial_2_closer: "Comercial 2 - Closer",
+  comercial_3_experiencia: "Comercial 3 - Experiência",
+  comercial_4_farmer: "Comercial 4 - Farmer",
+  sdr: "SDR",
+  coordenador: "Coordenador",
+  gerente: "Gerente",
+  assistente: "Assistente",
+  outro: "Outro",
+};
+
 interface Profile {
   id: string;
   user_id: string;
   full_name: string;
   email: string;
   team_id: string | null;
+  department: DepartmentType | null;
+  position: PositionType | null;
   teams: { name: string } | null;
 }
 
@@ -55,6 +80,9 @@ const UserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [sendingResetId, setSendingResetId] = useState<string | null>(null);
+  const [filterDepartment, setFilterDepartment] = useState<string>("all");
+  const [filterPosition, setFilterPosition] = useState<string>("all");
+  const [filterTeam, setFilterTeam] = useState<string>("all");
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -64,7 +92,7 @@ const UserManagement = () => {
     const { data: teamsData } = await supabase.from("teams").select("id, name");
     if (teamsData) setTeams(teamsData);
 
-    // Fetch profiles
+    // Fetch profiles with department and position
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("*, teams(name)")
@@ -105,6 +133,30 @@ const UserManagement = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Filtered users based on filters
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      if (filterDepartment !== "all" && user.department !== filterDepartment) return false;
+      if (filterPosition !== "all" && user.position !== filterPosition) return false;
+      if (filterTeam !== "all") {
+        if (filterTeam === "none" && user.team_id !== null) return false;
+        if (filterTeam !== "none" && user.team_id !== filterTeam) return false;
+      }
+      return true;
+    });
+  }, [users, filterDepartment, filterPosition, filterTeam]);
+
+  // Get unique departments and positions from users
+  const availableDepartments = useMemo(() => {
+    const deps = new Set(users.map(u => u.department).filter(Boolean));
+    return Array.from(deps) as DepartmentType[];
+  }, [users]);
+
+  const availablePositions = useMemo(() => {
+    const pos = new Set(users.map(u => u.position).filter(Boolean));
+    return Array.from(pos) as PositionType[];
+  }, [users]);
 
   const handleTeamChange = async (userId: string, newTeamId: string) => {
     setUpdatingId(userId);
@@ -268,9 +320,79 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {users.length === 0 ? (
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-6 p-4 rounded-lg bg-muted/30 border border-border">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Filter className="w-4 h-4" />
+          <span className="text-sm font-medium">Filtros:</span>
+        </div>
+        
+        <Select value={filterTeam} onValueChange={setFilterTeam}>
+          <SelectTrigger className="w-[160px] bg-background border-border">
+            <SelectValue placeholder="Equipe" />
+          </SelectTrigger>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="all">Todas equipes</SelectItem>
+            <SelectItem value="none">Sem equipe</SelectItem>
+            {teams.map((team) => (
+              <SelectItem key={team.id} value={team.id}>
+                {team.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+          <SelectTrigger className="w-[160px] bg-background border-border">
+            <SelectValue placeholder="Departamento" />
+          </SelectTrigger>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="all">Todos departamentos</SelectItem>
+            {availableDepartments.map((dep) => (
+              <SelectItem key={dep} value={dep}>
+                {DEPARTMENT_LABELS[dep] || dep}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterPosition} onValueChange={setFilterPosition}>
+          <SelectTrigger className="w-[180px] bg-background border-border">
+            <SelectValue placeholder="Cargo" />
+          </SelectTrigger>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="all">Todos cargos</SelectItem>
+            {availablePositions.map((pos) => (
+              <SelectItem key={pos} value={pos}>
+                {POSITION_LABELS[pos] || pos}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(filterTeam !== "all" || filterDepartment !== "all" || filterPosition !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFilterTeam("all");
+              setFilterDepartment("all");
+              setFilterPosition("all");
+            }}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Limpar filtros
+          </Button>
+        )}
+
+        <span className="ml-auto text-sm text-muted-foreground">
+          {filteredUsers.length} de {users.length} usuários
+        </span>
+      </div>
+
+      {filteredUsers.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">
-          Nenhum usuário cadastrado ainda
+          {users.length === 0 ? "Nenhum usuário cadastrado ainda" : "Nenhum usuário encontrado com os filtros selecionados"}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -278,14 +400,14 @@ const UserManagement = () => {
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground">Nome</TableHead>
-                <TableHead className="text-muted-foreground">Email</TableHead>
+                <TableHead className="text-muted-foreground hidden md:table-cell">Dept/Cargo</TableHead>
                 <TableHead className="text-muted-foreground">Função</TableHead>
                 <TableHead className="text-muted-foreground">Equipe</TableHead>
                 <TableHead className="text-muted-foreground text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => {
+              {filteredUsers.map((user) => {
                 const isUpdating = updatingId === user.user_id;
                 const isSendingReset = sendingResetId === user.email;
                 const hasNoTeam = !user.team_id;
@@ -299,7 +421,12 @@ const UserManagement = () => {
                         ) : (
                           <Shield className="w-4 h-4 text-muted-foreground" />
                         )}
-                        <span>{user.full_name}</span>
+                        <div>
+                          <span className="block">{user.full_name}</span>
+                          <span className="text-xs text-muted-foreground md:hidden">
+                            {user.position && (POSITION_LABELS[user.position] || user.position)}
+                          </span>
+                        </div>
                         {hasNoTeam && (
                           <Badge variant="secondary" className="text-xs">
                             Sem acesso
@@ -307,8 +434,24 @@ const UserManagement = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.email}
+                    <TableCell className="hidden md:table-cell">
+                      <div className="flex flex-col gap-1">
+                        {user.department && (
+                          <Badge variant="outline" className="w-fit text-xs gap-1">
+                            <Briefcase className="w-3 h-3" />
+                            {DEPARTMENT_LABELS[user.department] || user.department}
+                          </Badge>
+                        )}
+                        {user.position && (
+                          <Badge variant="secondary" className="w-fit text-xs gap-1">
+                            <BadgeCheck className="w-3 h-3" />
+                            {POSITION_LABELS[user.position] || user.position}
+                          </Badge>
+                        )}
+                        {!user.department && !user.position && (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Select
