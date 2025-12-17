@@ -1,7 +1,7 @@
 import { 
   LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
-  ChevronDown
+  ChevronDown, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,8 +22,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import copaLogo from "@/assets/copa-unique-logo.png";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
+import ProfileEditDialog from "@/components/ProfileEditDialog";
 import { useGoalNotifications } from "@/hooks/useGoalNotifications";
 import { useUserTeamStats } from "@/hooks/useUserTeamStats";
 import { useState } from "react";
@@ -76,6 +78,14 @@ const Header = () => {
       </Button>
     </Link>
   );
+
+  // Get user initials for avatar fallback
+  const initials = (profile?.full_name || "U")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-border">
@@ -170,22 +180,32 @@ const Header = () => {
                     
                     {/* Profile Card */}
                     <div className="p-4 border-b border-border bg-muted/30">
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                          <User className="w-6 h-6 text-primary" />
+                      <ProfileEditDialog>
+                        <div className="flex items-start gap-3 cursor-pointer group">
+                          <div className="relative">
+                            <Avatar className="w-14 h-14 border-2 border-primary/30 group-hover:border-primary/60 transition-colors">
+                              <AvatarImage src={profile?.avatar_url || undefined} />
+                              <AvatarFallback className="bg-primary/20 text-primary text-lg font-bold">
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                              <Settings className="w-3 h-3 text-primary-foreground" />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                              {profile?.full_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {user.email}
+                            </p>
+                            <Badge variant="outline" className="mt-1 text-xs border-primary/50 text-primary">
+                              {role === "admin" ? "Coordenador" : "Membro"}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground truncate">
-                            {profile?.full_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {user.email}
-                          </p>
-                          <Badge variant="outline" className="mt-1 text-xs border-primary/50 text-primary">
-                            {role === "admin" ? "Coordenador" : "Membro"}
-                          </Badge>
-                        </div>
-                      </div>
+                      </ProfileEditDialog>
 
                       {/* Team Stats */}
                       {stats && (
@@ -268,12 +288,15 @@ const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="hidden md:flex gap-2 border-primary/30 text-foreground hover:bg-primary/10 hover:border-primary"
+                    className="hidden md:flex gap-2 border-primary/30 text-foreground hover:bg-primary/10 hover:border-primary pr-3"
                   >
-                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex flex-col items-start max-w-[120px]">
+                    <Avatar className="w-8 h-8 border border-primary/30">
+                      <AvatarImage src={profile?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary/20 text-primary text-sm font-bold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-start max-w-[100px]">
                       <span className="text-sm font-medium truncate w-full text-left">
                         {profile?.full_name?.split(' ')[0] || 'Usuário'}
                       </span>
@@ -286,24 +309,37 @@ const Header = () => {
                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 bg-card border-border">
+                <DropdownMenuContent align="end" className="w-80 bg-card border-border">
                   {/* Profile Section */}
-                  <div className="p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                        <User className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground truncate">
-                          {profile?.full_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        <Badge variant="outline" className="mt-1 text-xs border-primary/50 text-primary">
-                          {role === "admin" ? "Coordenador" : "Membro da Equipe"}
-                        </Badge>
+                  <ProfileEditDialog>
+                    <div className="p-3 cursor-pointer hover:bg-muted/50 rounded-lg transition-colors">
+                      <div className="flex items-start gap-3">
+                        <div className="relative">
+                          <Avatar className="w-12 h-12 border-2 border-primary/30">
+                            <AvatarImage src={profile?.avatar_url || undefined} />
+                            <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                            <Settings className="w-3 h-3 text-primary-foreground" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-foreground truncate">
+                            {profile?.full_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs border-primary/50 text-primary">
+                              {role === "admin" ? "Coordenador" : "Membro da Equipe"}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">Editar perfil →</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </ProfileEditDialog>
 
                   {/* Team Stats */}
                   {stats && (
