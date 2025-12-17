@@ -605,14 +605,14 @@ const ReferralLeads = () => {
               <div>
                 <Label className="text-foreground">Responsável</Label>
                 <Select
-                  value={editingLead.assigned_to || ""}
-                  onValueChange={(value) => handleUpdateAssignment(editingLead.id, value)}
+                  value={editingLead.assigned_to || "_none"}
+                  onValueChange={(value) => handleUpdateAssignment(editingLead.id, value === "_none" ? "" : value)}
                 >
                   <SelectTrigger className="bg-secondary border-border">
                     <SelectValue placeholder="Selecione um responsável" />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="_none">Nenhum</SelectItem>
                     {teamMembers.map((member) => (
                       <SelectItem key={member.user_id} value={member.user_id}>
                         {member.full_name}
