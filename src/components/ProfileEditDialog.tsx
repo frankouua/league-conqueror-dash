@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Camera, Loader2, X, Upload, User } from "lucide-react";
+import { Camera, Loader2, X, Upload, User, Briefcase, BadgeCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+
+const DEPARTMENT_LABELS: Record<string, string> = {
+  comercial: "Comercial",
+  atendimento: "Atendimento",
+  marketing: "Marketing",
+  administrativo: "Administrativo",
+  clinico: "Clínico",
+};
+
+const POSITION_LABELS: Record<string, string> = {
+  comercial_1_captacao: "Comercial 1 - Captação",
+  comercial_2_closer: "Comercial 2 - Closer",
+  comercial_3_experiencia: "Comercial 3 - Experiência",
+  comercial_4_farmer: "Comercial 4 - Farmer",
+  sdr: "SDR",
+  coordenador: "Coordenador",
+  gerente: "Gerente",
+  assistente: "Assistente",
+  outro: "Outro",
+};
 
 interface ProfileEditDialogProps {
   children: React.ReactNode;
@@ -229,6 +250,30 @@ const ProfileEditDialog = ({ children }: ProfileEditDialogProps) => {
               className="bg-muted border-border text-muted-foreground"
             />
           </div>
+
+          {/* Department & Position (read-only) */}
+          {(profile?.department || profile?.position) && (
+            <div className="space-y-3 pt-2 border-t border-border">
+              <Label className="text-muted-foreground flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                Informações Profissionais
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {profile?.department && (
+                  <Badge variant="outline" className="gap-1.5 py-1.5">
+                    <Briefcase className="w-3 h-3" />
+                    {DEPARTMENT_LABELS[profile.department] || profile.department}
+                  </Badge>
+                )}
+                {profile?.position && (
+                  <Badge variant="secondary" className="gap-1.5 py-1.5">
+                    <BadgeCheck className="w-3 h-3" />
+                    {POSITION_LABELS[profile.position] || profile.position}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

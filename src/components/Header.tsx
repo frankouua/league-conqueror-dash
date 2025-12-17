@@ -35,6 +35,26 @@ const MONTH_NAMES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
+const DEPARTMENT_LABELS: Record<string, string> = {
+  comercial: "Comercial",
+  atendimento: "Atendimento",
+  marketing: "Marketing",
+  administrativo: "Administrativo",
+  clinico: "Clínico",
+};
+
+const POSITION_LABELS: Record<string, string> = {
+  comercial_1_captacao: "Comercial 1 - Captação",
+  comercial_2_closer: "Comercial 2 - Closer",
+  comercial_3_experiencia: "Comercial 3 - Experiência",
+  comercial_4_farmer: "Comercial 4 - Farmer",
+  sdr: "SDR",
+  coordenador: "Coordenador",
+  gerente: "Gerente",
+  assistente: "Assistente",
+  outro: "Outro",
+};
+
 const Header = () => {
   const { user, profile, role, signOut } = useAuth();
   const { stats } = useUserTeamStats();
@@ -195,12 +215,21 @@ const Header = () => {
                             <p className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                               {profile?.full_name}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {user.email}
-                            </p>
-                            <Badge variant="outline" className="mt-1 text-xs border-primary/50 text-primary">
-                              {role === "admin" ? "Coordenador" : "Membro"}
-                            </Badge>
+                            {profile?.position && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {POSITION_LABELS[profile.position] || profile.position}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              <Badge variant="outline" className="text-xs border-primary/50 text-primary">
+                                {role === "admin" ? "Coordenador" : "Membro"}
+                              </Badge>
+                              {profile?.department && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {DEPARTMENT_LABELS[profile.department] || profile.department}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </ProfileEditDialog>
@@ -327,13 +356,22 @@ const Header = () => {
                           <p className="font-semibold text-foreground truncate">
                             {profile?.full_name}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                          {profile?.position && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {POSITION_LABELS[profile.position] || profile.position}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-1 mt-1">
                             <Badge variant="outline" className="text-xs border-primary/50 text-primary">
-                              {role === "admin" ? "Coordenador" : "Membro da Equipe"}
+                              {role === "admin" ? "Coordenador" : "Membro"}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">Editar perfil →</span>
+                            {profile?.department && (
+                              <Badge variant="secondary" className="text-xs">
+                                {DEPARTMENT_LABELS[profile.department] || profile.department}
+                              </Badge>
+                            )}
                           </div>
+                          <span className="text-xs text-muted-foreground">Editar perfil →</span>
                         </div>
                       </div>
                     </div>
