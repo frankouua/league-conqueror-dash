@@ -229,7 +229,7 @@ const Individual = () => {
       const monthEnd = format(endOfMonth(month), "yyyy-MM-dd");
       const monthLabel = format(month, "MMM/yy", { locale: ptBR });
 
-      const membersData: Record<string, { revenue: number; points: number }> = {};
+      const membersData: Record<string, { revenue: number; points: number; revenuePoints: number; npsPoints: number; testimonialPoints: number; referralPoints: number; otherPoints: number }> = {};
 
       profiles?.forEach(profile => {
         const userId = profile.user_id;
@@ -239,53 +239,140 @@ const Individual = () => {
           r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
         ).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
 
-        // Points calculation for this month
-        let monthPoints = Math.floor(monthRevenue / 10000);
+        const revenuePoints = Math.floor(monthRevenue / 10000);
 
         // NPS points
         const monthNps = npsRecords?.filter(r => 
           r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
         ) || [];
+        let npsPoints = 0;
         monthNps.forEach(n => {
-          if (n.score === 9) monthPoints += 3;
-          if (n.score === 10) monthPoints += 5;
-          if (n.cited_member) monthPoints += 10;
+          if (n.score === 9) npsPoints += 3;
+          if (n.score === 10) npsPoints += 5;
+          if (n.cited_member) npsPoints += 10;
         });
 
         // Testimonial points
         const monthTestimonials = testimonialRecords?.filter(r => 
           r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
         ) || [];
+        let testimonialPoints = 0;
         monthTestimonials.forEach(t => {
-          if (t.type === "google") monthPoints += 10;
-          if (t.type === "video") monthPoints += 20;
-          if (t.type === "gold") monthPoints += 40;
+          if (t.type === "google") testimonialPoints += 10;
+          if (t.type === "video") testimonialPoints += 20;
+          if (t.type === "gold") testimonialPoints += 40;
         });
 
         // Referral points
         const monthReferrals = referralRecords?.filter(r => 
           r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
         ) || [];
+        let referralPoints = 0;
         monthReferrals.forEach(r => {
-          monthPoints += r.collected * 5;
-          monthPoints += r.to_consultation * 15;
-          monthPoints += r.to_surgery * 30;
+          referralPoints += r.collected * 5;
+          referralPoints += r.to_consultation * 15;
+          referralPoints += r.to_surgery * 30;
         });
 
         // Other indicators
         const monthOther = otherIndicators?.filter(r => 
           r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
         ) || [];
+        let otherPoints = 0;
         monthOther.forEach(o => {
-          monthPoints += o.unilovers * 5;
-          monthPoints += o.ambassadors * 50;
-          monthPoints += o.instagram_mentions * 2;
+          otherPoints += o.unilovers * 5;
+          otherPoints += o.ambassadors * 50;
+          otherPoints += o.instagram_mentions * 2;
         });
 
-        membersData[userId] = { revenue: monthRevenue, points: monthPoints };
+        const monthPoints = revenuePoints + npsPoints + testimonialPoints + referralPoints + otherPoints;
+
+        membersData[userId] = { 
+          revenue: monthRevenue, 
+          points: monthPoints,
+          revenuePoints,
+          npsPoints,
+          testimonialPoints,
+          referralPoints,
+          otherPoints
+        };
       });
 
       return { month: monthLabel, ...membersData };
+    });
+  };
+
+  // Get breakdown data for selected member
+  const getMemberBreakdownData = (userId: string) => {
+    const months = eachMonthOfInterval({
+      start: subMonths(new Date(), 11),
+      end: new Date(),
+    });
+
+    return months.map(month => {
+      const monthStart = format(startOfMonth(month), "yyyy-MM-dd");
+      const monthEnd = format(endOfMonth(month), "yyyy-MM-dd");
+      const monthLabel = format(month, "MMM/yy", { locale: ptBR });
+
+      // Revenue for this month
+      const monthRevenue = revenueRecords?.filter(r => 
+        r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+      ).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+      const revenuePoints = Math.floor(monthRevenue / 10000);
+
+      // NPS points
+      const monthNps = npsRecords?.filter(r => 
+        r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+      ) || [];
+      let npsPoints = 0;
+      monthNps.forEach(n => {
+        if (n.score === 9) npsPoints += 3;
+        if (n.score === 10) npsPoints += 5;
+        if (n.cited_member) npsPoints += 10;
+      });
+
+      // Testimonial points
+      const monthTestimonials = testimonialRecords?.filter(r => 
+        r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+      ) || [];
+      let testimonialPoints = 0;
+      monthTestimonials.forEach(t => {
+        if (t.type === "google") testimonialPoints += 10;
+        if (t.type === "video") testimonialPoints += 20;
+        if (t.type === "gold") testimonialPoints += 40;
+      });
+
+      // Referral points
+      const monthReferrals = referralRecords?.filter(r => 
+        r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+      ) || [];
+      let referralPoints = 0;
+      monthReferrals.forEach(r => {
+        referralPoints += r.collected * 5;
+        referralPoints += r.to_consultation * 15;
+        referralPoints += r.to_surgery * 30;
+      });
+
+      // Other indicators
+      const monthOther = otherIndicators?.filter(r => 
+        r.user_id === userId && r.date >= monthStart && r.date <= monthEnd
+      ) || [];
+      let otherPoints = 0;
+      monthOther.forEach(o => {
+        otherPoints += o.unilovers * 5;
+        otherPoints += o.ambassadors * 50;
+        otherPoints += o.instagram_mentions * 2;
+      });
+
+      return {
+        month: monthLabel,
+        Faturamento: revenuePoints,
+        NPS: npsPoints,
+        Depoimentos: testimonialPoints,
+        Indicações: referralPoints,
+        Outros: otherPoints,
+        total: revenuePoints + npsPoints + testimonialPoints + referralPoints + otherPoints
+      };
     });
   };
 
@@ -523,6 +610,86 @@ const Individual = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Individual Breakdown Chart - Only when a specific member is selected */}
+            {selectedMember !== "all" && (
+              <Card className="border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-primary" />
+                    Breakdown Mensal por Indicador - {profiles?.find(p => p.user_id === selectedMember)?.full_name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={getMemberBreakdownData(selectedMember)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px"
+                          }}
+                        />
+                        <Legend />
+                        <Bar dataKey="Faturamento" stackId="a" fill="#10B981" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="NPS" stackId="a" fill="#3B82F6" />
+                        <Bar dataKey="Depoimentos" stackId="a" fill="#8B5CF6" />
+                        <Bar dataKey="Indicações" stackId="a" fill="#06B6D4" />
+                        <Bar dataKey="Outros" stackId="a" fill="#EC4899" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  
+                  {/* Summary Stats */}
+                  <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {(() => {
+                      const data = getMemberBreakdownData(selectedMember);
+                      const totals = data.reduce((acc, m) => ({
+                        revenue: acc.revenue + m.Faturamento,
+                        nps: acc.nps + m.NPS,
+                        testimonials: acc.testimonials + m.Depoimentos,
+                        referrals: acc.referrals + m.Indicações,
+                        others: acc.others + m.Outros,
+                      }), { revenue: 0, nps: 0, testimonials: 0, referrals: 0, others: 0 });
+                      
+                      return (
+                        <>
+                          <div className="p-3 bg-green-500/10 rounded-lg text-center">
+                            <DollarSign className="w-5 h-5 mx-auto text-green-500 mb-1" />
+                            <p className="text-lg font-bold text-green-600">{totals.revenue}</p>
+                            <p className="text-xs text-muted-foreground">Faturamento</p>
+                          </div>
+                          <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                            <MessageSquare className="w-5 h-5 mx-auto text-blue-500 mb-1" />
+                            <p className="text-lg font-bold text-blue-600">{totals.nps}</p>
+                            <p className="text-xs text-muted-foreground">NPS</p>
+                          </div>
+                          <div className="p-3 bg-purple-500/10 rounded-lg text-center">
+                            <Star className="w-5 h-5 mx-auto text-purple-500 mb-1" />
+                            <p className="text-lg font-bold text-purple-600">{totals.testimonials}</p>
+                            <p className="text-xs text-muted-foreground">Depoimentos</p>
+                          </div>
+                          <div className="p-3 bg-cyan-500/10 rounded-lg text-center">
+                            <Users className="w-5 h-5 mx-auto text-cyan-500 mb-1" />
+                            <p className="text-lg font-bold text-cyan-600">{totals.referrals}</p>
+                            <p className="text-xs text-muted-foreground">Indicações</p>
+                          </div>
+                          <div className="p-3 bg-pink-500/10 rounded-lg text-center">
+                            <TrendingUp className="w-5 h-5 mx-auto text-pink-500 mb-1" />
+                            <p className="text-lg font-bold text-pink-600">{totals.others}</p>
+                            <p className="text-xs text-muted-foreground">Outros</p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Points Evolution Chart */}
             <Card>
