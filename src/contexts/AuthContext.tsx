@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
-          team_id: teamId,
+          team_id: teamId || null, // null for admins without team
           role: userRole,
         },
       },

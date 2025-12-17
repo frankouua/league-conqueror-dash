@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Mail, Lock, User, Users } from "lucide-react";
+import { Trophy, Mail, Lock, User, Users, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -25,7 +26,11 @@ const signUpSchema = z.object({
   fullName: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-  teamId: z.string().min(1, "Selecione uma equipe"),
+  teamId: z.string().optional(),
+  isAdmin: z.boolean(),
+}).refine((data) => data.isAdmin || (data.teamId && data.teamId.length > 0), {
+  message: "Selecione uma equipe ou marque como Administrador",
+  path: ["teamId"],
 });
 
 interface Team {
@@ -42,6 +47,7 @@ const Auth = () => {
     email: "",
     password: "",
     teamId: "",
+    isAdmin: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -140,7 +146,8 @@ const Auth = () => {
           formData.email,
           formData.password,
           formData.fullName,
-          formData.teamId
+          formData.isAdmin ? "" : formData.teamId,
+          formData.isAdmin ? "admin" : "member"
         );
 
         if (error) {
@@ -281,34 +288,61 @@ const Auth = () => {
             </div>
 
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="team" className="text-foreground">
-                  Equipe
-                </Label>
-                <div className="relative">
-                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
-                  <Select
-                    value={formData.teamId}
-                    onValueChange={(value) => handleInputChange("teamId", value)}
-                  >
-                    <SelectTrigger className="pl-11 bg-secondary border-border text-foreground">
-                      <SelectValue placeholder="Selecione sua equipe" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      {teams.map((team) => (
-                        <SelectItem
-                          key={team.id}
-                          value={team.id}
-                          className="text-foreground hover:bg-secondary focus:bg-secondary"
-                        >
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-4">
+                {/* Admin Checkbox */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-secondary/50 border border-border">
+                  <Checkbox
+                    id="isAdmin"
+                    checked={formData.isAdmin}
+                    onCheckedChange={(checked) => {
+                      setFormData((prev) => ({ 
+                        ...prev, 
+                        isAdmin: checked === true,
+                        teamId: checked === true ? "" : prev.teamId 
+                      }));
+                      setErrors((prev) => ({ ...prev, teamId: "" }));
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" />
+                    <Label htmlFor="isAdmin" className="text-foreground cursor-pointer">
+                      Sou Administrador/Coordenador (sem equipe)
+                    </Label>
+                  </div>
                 </div>
-                {errors.teamId && (
-                  <p className="text-destructive text-sm">{errors.teamId}</p>
+
+                {/* Team Select - only show if not admin */}
+                {!formData.isAdmin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="team" className="text-foreground">
+                      Equipe
+                    </Label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                      <Select
+                        value={formData.teamId}
+                        onValueChange={(value) => handleInputChange("teamId", value)}
+                      >
+                        <SelectTrigger className="pl-11 bg-secondary border-border text-foreground">
+                          <SelectValue placeholder="Selecione sua equipe" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          {teams.map((team) => (
+                            <SelectItem
+                              key={team.id}
+                              value={team.id}
+                              className="text-foreground hover:bg-secondary focus:bg-secondary"
+                            >
+                              {team.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {errors.teamId && (
+                      <p className="text-destructive text-sm">{errors.teamId}</p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
