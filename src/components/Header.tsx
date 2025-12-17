@@ -1,7 +1,7 @@
 import { 
   LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
-  ChevronDown, Settings, AlertCircle, Route
+  ChevronDown, Settings, AlertCircle, Route, UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +54,7 @@ const Header = () => {
   const navLinks = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/register", label: "Registrar", icon: Plus },
+    { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/history", label: "Histórico", icon: History },
     { path: "/analytics", label: "Análises", icon: BarChart3 },
     { path: "/rules", label: "Regras", icon: BookOpen },
