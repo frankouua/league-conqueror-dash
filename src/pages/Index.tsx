@@ -6,6 +6,7 @@ import RecentAchievements from "@/components/RecentAchievements";
 import TimeCounters from "@/components/TimeCounters";
 import EvolutionChart from "@/components/EvolutionChart";
 import ChampionsDisplay from "@/components/ChampionsDisplay";
+import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { Button } from "@/components/ui/button";
 import copaLogo from "@/assets/copa-unique-logo.png";
@@ -123,14 +124,19 @@ const Index = () => {
           </div>
         )}
 
-        {/* Champions Display */}
-        <div className="mb-8 animate-slide-up" style={{ animationDelay: "350ms" }}>
-          <ChampionsDisplay />
+        {/* Champions & Streak Records */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="animate-slide-up" style={{ animationDelay: "350ms" }}>
+            <ChampionsDisplay />
+          </div>
+          <div className="animate-slide-up" style={{ animationDelay: "400ms" }}>
+            <StreakRecordsDisplay />
+          </div>
         </div>
 
         {/* Clinic Goals & Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="animate-slide-up" style={{ animationDelay: "400ms" }}>
+          <div className="animate-slide-up" style={{ animationDelay: "450ms" }}>
             <ClinicGoalsCard
               currentRevenue={totalClinicRevenue}
               goal1={2500000}
@@ -148,7 +154,7 @@ const Index = () => {
         </div>
 
         {/* Recent Achievements */}
-        <div className="animate-slide-up" style={{ animationDelay: "600ms" }}>
+        <div className="animate-slide-up" style={{ animationDelay: "550ms" }}>
           {achievements.length > 0 ? (
             <RecentAchievements achievements={achievements} />
           ) : (
