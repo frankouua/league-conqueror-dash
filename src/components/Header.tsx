@@ -1,4 +1,4 @@
-import { LogIn, LogOut, User, Plus, Home, Shield, History } from "lucide-react";
+import { LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -82,6 +82,20 @@ const Header = () => {
                       Histórico
                     </Button>
                   </Link>
+                  <Link to="/analytics">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`gap-2 ${
+                        location.pathname === "/analytics"
+                          ? "text-primary"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                      Análises
+                    </Button>
+                  </Link>
                   {role === "admin" && (
                     <Link to="/admin">
                       <Button
@@ -160,6 +174,13 @@ const Header = () => {
                     >
                       <History className="w-4 h-4 mr-2" />
                       Histórico
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/analytics")}
+                      className="text-foreground cursor-pointer"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Análises
                     </DropdownMenuItem>
                     {role === "admin" && (
                       <DropdownMenuItem
