@@ -1,4 +1,4 @@
-import { Trophy, LogIn, LogOut, User, Plus, Home, Shield } from "lucide-react";
+import { Trophy, LogIn, LogOut, User, Plus, Home, Shield, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -73,6 +73,20 @@ const Header = () => {
                       Registrar
                     </Button>
                   </Link>
+                  <Link to="/history">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`gap-2 ${
+                        location.pathname === "/history"
+                          ? "text-primary"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <History className="w-4 h-4" />
+                      Histórico
+                    </Button>
+                  </Link>
                   {role === "admin" && (
                     <Link to="/admin">
                       <Button
@@ -144,6 +158,13 @@ const Header = () => {
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Registrar Dados
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/history")}
+                      className="text-foreground cursor-pointer"
+                    >
+                      <History className="w-4 h-4 mr-2" />
+                      Histórico
                     </DropdownMenuItem>
                     {role === "admin" && (
                       <DropdownMenuItem
