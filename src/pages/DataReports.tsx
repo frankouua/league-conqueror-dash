@@ -35,6 +35,9 @@ interface UnifiedRecord {
   details: string;
   value: string;
   created_at: string;
+  registered_by_name: string;
+  registered_by_admin: boolean;
+  attributed_to_name: string | null;
 }
 
 const CHART_COLORS = {
@@ -143,6 +146,13 @@ const DataReports = () => {
 
   const isLoading = loadingRevenue || loadingNps || loadingTestimonials || loadingReferrals || loadingIndicators;
 
+  // Helper to get profile name by user_id
+  const getProfileName = (userId: string | null) => {
+    if (!userId) return null;
+    const profile = profiles?.find(p => p.user_id === userId);
+    return profile?.full_name || "Usuário desconhecido";
+  };
+
   // HISTORY: Unify all records
   const unifiedRecords = useMemo(() => {
     const records: UnifiedRecord[] = [];
@@ -157,6 +167,9 @@ const DataReports = () => {
         details: r.notes || "Faturamento registrado",
         value: `R$ ${Number(r.amount).toLocaleString("pt-BR")}`,
         created_at: r.created_at,
+        registered_by_name: getProfileName(r.user_id) || "Desconhecido",
+        registered_by_admin: r.registered_by_admin,
+        attributed_to_name: r.attributed_to_user_id ? getProfileName(r.attributed_to_user_id) : null,
       });
     });
 
@@ -170,6 +183,9 @@ const DataReports = () => {
         details: r.cited_member ? `Citou membro: ${r.member_name}` : "NPS registrado",
         value: `Nota ${r.score}`,
         created_at: r.created_at,
+        registered_by_name: getProfileName(r.user_id) || "Desconhecido",
+        registered_by_admin: r.registered_by_admin,
+        attributed_to_name: r.attributed_to_user_id ? getProfileName(r.attributed_to_user_id) : null,
       });
     });
 
@@ -184,6 +200,9 @@ const DataReports = () => {
         details: `${typeLabels[r.type]} - ${r.patient_name || "Paciente"}`,
         value: r.type,
         created_at: r.created_at,
+        registered_by_name: getProfileName(r.user_id) || "Desconhecido",
+        registered_by_admin: r.registered_by_admin,
+        attributed_to_name: r.attributed_to_user_id ? getProfileName(r.attributed_to_user_id) : null,
       });
     });
 
@@ -201,6 +220,9 @@ const DataReports = () => {
         details: r.patient_name ? `${r.patient_name}: ${parts.join(", ")}` : parts.join(", "),
         value: parts.join(", "),
         created_at: r.created_at,
+        registered_by_name: getProfileName(r.user_id) || "Desconhecido",
+        registered_by_admin: r.registered_by_admin,
+        attributed_to_name: r.attributed_to_user_id ? getProfileName(r.attributed_to_user_id) : null,
       });
     });
 
@@ -218,11 +240,14 @@ const DataReports = () => {
         details: parts.join(", ") || "Indicadores",
         value: parts.join(", "),
         created_at: r.created_at,
+        registered_by_name: getProfileName(r.user_id) || "Desconhecido",
+        registered_by_admin: r.registered_by_admin,
+        attributed_to_name: r.attributed_to_user_id ? getProfileName(r.attributed_to_user_id) : null,
       });
     });
 
     return records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [revenueRecords, npsRecords, testimonialRecords, referralRecords, otherIndicators]);
+  }, [revenueRecords, npsRecords, testimonialRecords, referralRecords, otherIndicators, profiles]);
 
   const filteredRecords = useMemo(() => {
     return unifiedRecords.filter((record) => {
@@ -238,6 +263,9 @@ const DataReports = () => {
     const exportData = filteredRecords.map((record) => ({
       "Data": format(new Date(record.date), "dd/MM/yyyy", { locale: ptBR }),
       "Equipe": record.team_name,
+      "Registrado por": record.registered_by_name,
+      "Via Admin": record.registered_by_admin ? "Sim" : "Não",
+      "Atribuído a": record.attributed_to_name || "-",
       "Tipo": getTypeLabel(record.type),
       "Detalhes": record.details,
       "Valor": record.value,
@@ -247,7 +275,7 @@ const DataReports = () => {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Histórico");
-    ws["!cols"] = [{ wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 25 }, { wch: 18 }];
+    ws["!cols"] = [{ wch: 12 }, { wch: 20 }, { wch: 25 }, { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 40 }, { wch: 25 }, { wch: 18 }];
     XLSX.writeFile(wb, `historico_copa_unique_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
@@ -547,6 +575,7 @@ const DataReports = () => {
                       <TableRow className="bg-muted/50">
                         <TableHead>Data</TableHead>
                         <TableHead>Equipe</TableHead>
+                        <TableHead>Registrado por</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Detalhes</TableHead>
                         <TableHead>Valor</TableHead>
@@ -555,7 +584,7 @@ const DataReports = () => {
                     <TableBody>
                       {filteredRecords.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                             Nenhum registro encontrado
                           </TableCell>
                         </TableRow>
@@ -566,6 +595,19 @@ const DataReports = () => {
                               {format(new Date(record.date), "dd/MM/yyyy", { locale: ptBR })}
                             </TableCell>
                             <TableCell>{record.team_name}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">{record.registered_by_name}</span>
+                                {record.registered_by_admin && (
+                                  <Badge variant="outline" className="w-fit text-xs mt-0.5">Admin</Badge>
+                                )}
+                                {record.attributed_to_name && (
+                                  <span className="text-xs text-muted-foreground">
+                                    → Atribuído a: {record.attributed_to_name}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               <Badge variant={getTypeBadgeVariant(record.type)}>{getTypeLabel(record.type)}</Badge>
                             </TableCell>
