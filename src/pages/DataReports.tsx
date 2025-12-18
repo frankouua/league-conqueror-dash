@@ -273,6 +273,66 @@ const DataReports = () => {
     return profiles?.filter(p => userIds.has(p.user_id)) || [];
   }, [unifiedRecords, profiles]);
 
+  // Calculate statistics per person based on filtered records
+  const userStats = useMemo(() => {
+    const stats: Record<string, {
+      name: string;
+      team_name: string;
+      total_records: number;
+      revenue_count: number;
+      revenue_total: number;
+      nps_count: number;
+      testimonial_count: number;
+      referral_count: number;
+      other_count: number;
+    }> = {};
+
+    filteredRecords.forEach((record) => {
+      if (!stats[record.user_id]) {
+        stats[record.user_id] = {
+          name: record.registered_by_name,
+          team_name: record.team_name,
+          total_records: 0,
+          revenue_count: 0,
+          revenue_total: 0,
+          nps_count: 0,
+          testimonial_count: 0,
+          referral_count: 0,
+          other_count: 0,
+        };
+      }
+
+      stats[record.user_id].total_records++;
+
+      switch (record.type) {
+        case "revenue":
+          stats[record.user_id].revenue_count++;
+          // Extract numeric value from "R$ X.XXX"
+          const numValue = parseFloat(record.value.replace(/[R$\s.]/g, '').replace(',', '.'));
+          if (!isNaN(numValue)) {
+            stats[record.user_id].revenue_total += numValue;
+          }
+          break;
+        case "nps":
+          stats[record.user_id].nps_count++;
+          break;
+        case "testimonial":
+          stats[record.user_id].testimonial_count++;
+          break;
+        case "referral":
+          stats[record.user_id].referral_count++;
+          break;
+        case "other":
+          stats[record.user_id].other_count++;
+          break;
+      }
+    });
+
+    return Object.entries(stats)
+      .map(([userId, data]) => ({ userId, ...data }))
+      .sort((a, b) => b.total_records - a.total_records);
+  }, [filteredRecords]);
+
   const exportToExcel = () => {
     const exportData = filteredRecords.map((record) => ({
       "Data": format(new Date(record.date), "dd/MM/yyyy", { locale: ptBR }),
@@ -594,6 +654,68 @@ const DataReports = () => {
                 );
               })}
             </div>
+
+            {/* Estatísticas por pessoa */}
+            {userStats.length > 0 && (
+              <Card className="border-border/50 bg-card/80 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5 text-primary" />
+                    Resumo por Pessoa ({userStats.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>Pessoa</TableHead>
+                          <TableHead>Equipe</TableHead>
+                          <TableHead className="text-center">Total</TableHead>
+                          <TableHead className="text-center">Faturamento</TableHead>
+                          <TableHead className="text-center">NPS</TableHead>
+                          <TableHead className="text-center">Depoimentos</TableHead>
+                          <TableHead className="text-center">Indicações</TableHead>
+                          <TableHead className="text-center">Outros</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {userStats.map((stat, index) => (
+                          <TableRow key={stat.userId} className={index === 0 ? "bg-primary/5" : "hover:bg-muted/30"}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {index === 0 && <Trophy className="w-4 h-4 text-primary" />}
+                                {stat.name}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{stat.team_name}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center font-bold text-primary">
+                              {stat.total_records}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col">
+                                <span className="font-medium">{stat.revenue_count}</span>
+                                {stat.revenue_total > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    R$ {stat.revenue_total.toLocaleString("pt-BR")}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">{stat.nps_count}</TableCell>
+                            <TableCell className="text-center">{stat.testimonial_count}</TableCell>
+                            <TableCell className="text-center">{stat.referral_count}</TableCell>
+                            <TableCell className="text-center">{stat.other_count}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="border-border/50 bg-card/80 backdrop-blur">
               <CardHeader>
