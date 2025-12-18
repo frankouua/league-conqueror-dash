@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Download, Filter, Calendar, Users, FileSpreadsheet, History, BarChart3, 
   FileText, TrendingUp, DollarSign, Star, MessageSquare, Award, Loader2,
-  Trophy
+  Trophy, User
 } from "lucide-react";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -31,6 +31,7 @@ interface UnifiedRecord {
   type: RecordType;
   team_name: string;
   team_id: string;
+  user_id: string;
   date: string;
   details: string;
   value: string;
@@ -58,6 +59,7 @@ const DataReports = () => {
   // History filters
   const [selectedTeam, setSelectedTeam] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<RecordType>("all");
+  const [selectedUser, setSelectedUser] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   
@@ -163,6 +165,7 @@ const DataReports = () => {
         type: "revenue",
         team_name: (r.teams as any)?.name || "N/A",
         team_id: r.team_id,
+        user_id: r.user_id,
         date: r.date,
         details: r.notes || "Faturamento registrado",
         value: `R$ ${Number(r.amount).toLocaleString("pt-BR")}`,
@@ -179,6 +182,7 @@ const DataReports = () => {
         type: "nps",
         team_name: (r.teams as any)?.name || "N/A",
         team_id: r.team_id,
+        user_id: r.user_id,
         date: r.date,
         details: r.cited_member ? `Citou membro: ${r.member_name}` : "NPS registrado",
         value: `Nota ${r.score}`,
@@ -196,6 +200,7 @@ const DataReports = () => {
         type: "testimonial",
         team_name: (r.teams as any)?.name || "N/A",
         team_id: r.team_id,
+        user_id: r.user_id,
         date: r.date,
         details: `${typeLabels[r.type]} - ${r.patient_name || "Paciente"}`,
         value: r.type,
@@ -216,6 +221,7 @@ const DataReports = () => {
         type: "referral",
         team_name: (r.teams as any)?.name || "N/A",
         team_id: r.team_id,
+        user_id: r.user_id,
         date: r.date,
         details: r.patient_name ? `${r.patient_name}: ${parts.join(", ")}` : parts.join(", "),
         value: parts.join(", "),
@@ -236,6 +242,7 @@ const DataReports = () => {
         type: "other",
         team_name: (r.teams as any)?.name || "N/A",
         team_id: r.team_id,
+        user_id: r.user_id,
         date: r.date,
         details: parts.join(", ") || "Indicadores",
         value: parts.join(", "),
@@ -253,11 +260,18 @@ const DataReports = () => {
     return unifiedRecords.filter((record) => {
       if (selectedTeam !== "all" && record.team_id !== selectedTeam) return false;
       if (selectedType !== "all" && record.type !== selectedType) return false;
+      if (selectedUser !== "all" && record.user_id !== selectedUser) return false;
       if (startDate && record.date < startDate) return false;
       if (endDate && record.date > endDate) return false;
       return true;
     });
-  }, [unifiedRecords, selectedTeam, selectedType, startDate, endDate]);
+  }, [unifiedRecords, selectedTeam, selectedType, selectedUser, startDate, endDate]);
+
+  // Get unique users who have registered records
+  const usersWithRecords = useMemo(() => {
+    const userIds = new Set(unifiedRecords.map(r => r.user_id));
+    return profiles?.filter(p => userIds.has(p.user_id)) || [];
+  }, [unifiedRecords, profiles]);
 
   const exportToExcel = () => {
     const exportData = filteredRecords.map((record) => ({
@@ -492,7 +506,7 @@ const DataReports = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Users className="w-4 h-4" />
@@ -522,6 +536,23 @@ const DataReports = () => {
                         <SelectItem value="testimonial">Depoimento</SelectItem>
                         <SelectItem value="referral">Indicação</SelectItem>
                         <SelectItem value="other">Outros</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Registrado por
+                    </label>
+                    <Select value={selectedUser} onValueChange={setSelectedUser}>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as pessoas</SelectItem>
+                        {usersWithRecords.map((profile) => (
+                          <SelectItem key={profile.user_id} value={profile.user_id}>
+                            {profile.full_name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
