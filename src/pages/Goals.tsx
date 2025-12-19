@@ -57,6 +57,8 @@ const Goals = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [goalForm, setGoalForm] = useState({
     revenue_goal: "",
+    meta2_goal: "",
+    meta3_goal: "",
     nps_goal: "",
     testimonials_goal: "",
     referrals_goal: "",
@@ -181,6 +183,8 @@ const Goals = () => {
         month: selectedMonth,
         year: selectedYear,
         revenue_goal: parseFloat(goalData.revenue_goal.replace(/\./g, "").replace(",", ".")) || 0,
+        meta2_goal: parseFloat(goalData.meta2_goal.replace(/\./g, "").replace(",", ".")) || 0,
+        meta3_goal: parseFloat(goalData.meta3_goal.replace(/\./g, "").replace(",", ".")) || 0,
         nps_goal: parseInt(goalData.nps_goal) || 0,
         testimonials_goal: parseInt(goalData.testimonials_goal) || 0,
         referrals_goal: parseInt(goalData.referrals_goal) || 0,
@@ -256,6 +260,8 @@ const Goals = () => {
   const openEditDialog = () => {
     setGoalForm({
       revenue_goal: myGoal?.revenue_goal?.toString() || "",
+      meta2_goal: myGoal?.meta2_goal?.toString() || "",
+      meta3_goal: myGoal?.meta3_goal?.toString() || "",
       nps_goal: myGoal?.nps_goal?.toString() || "",
       testimonials_goal: myGoal?.testimonials_goal?.toString() || "",
       referrals_goal: myGoal?.referrals_goal?.toString() || "",
@@ -343,42 +349,83 @@ const Goals = () => {
                           <DialogTitle>Definir Metas - {MONTHS[selectedMonth - 1]} {selectedYear}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                          <div>
-                            <Label>Meta de Faturamento (R$)</Label>
-                            <Input
-                              type="text"
-                              placeholder="Ex: 50000"
-                              value={goalForm.revenue_goal}
-                              onChange={(e) => setGoalForm({ ...goalForm, revenue_goal: e.target.value })}
-                            />
+                          {/* Metas de Faturamento */}
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-sm text-primary flex items-center gap-2">
+                              <DollarSign className="w-4 h-4" />
+                              Metas de Faturamento
+                            </h4>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <Label className="text-xs text-success">Meta 1 (R$)</Label>
+                                <Input
+                                  type="text"
+                                  placeholder="Ex: 50.000"
+                                  value={goalForm.revenue_goal}
+                                  onChange={(e) => setGoalForm({ ...goalForm, revenue_goal: e.target.value })}
+                                  className="text-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs text-success">Meta 2 (R$)</Label>
+                                <Input
+                                  type="text"
+                                  placeholder="Ex: 70.000"
+                                  value={goalForm.meta2_goal}
+                                  onChange={(e) => setGoalForm({ ...goalForm, meta2_goal: e.target.value })}
+                                  className="text-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs text-primary">Meta 3 (R$)</Label>
+                                <Input
+                                  type="text"
+                                  placeholder="Ex: 100.000"
+                                  value={goalForm.meta3_goal}
+                                  onChange={(e) => setGoalForm({ ...goalForm, meta3_goal: e.target.value })}
+                                  className="text-sm"
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <Label>Meta de NPS (quantidade)</Label>
-                            <Input
-                              type="number"
-                              placeholder="Ex: 10"
-                              value={goalForm.nps_goal}
-                              onChange={(e) => setGoalForm({ ...goalForm, nps_goal: e.target.value })}
-                            />
+
+                          {/* Outras Metas */}
+                          <div className="space-y-3 border-t border-border pt-4">
+                            <h4 className="font-semibold text-sm text-muted-foreground">Outras Metas</h4>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <Label className="text-xs">NPS (qtd)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="10"
+                                  value={goalForm.nps_goal}
+                                  onChange={(e) => setGoalForm({ ...goalForm, nps_goal: e.target.value })}
+                                  className="text-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Depoimentos (qtd)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="5"
+                                  value={goalForm.testimonials_goal}
+                                  onChange={(e) => setGoalForm({ ...goalForm, testimonials_goal: e.target.value })}
+                                  className="text-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Indicações (qtd)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="8"
+                                  value={goalForm.referrals_goal}
+                                  onChange={(e) => setGoalForm({ ...goalForm, referrals_goal: e.target.value })}
+                                  className="text-sm"
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <Label>Meta de Depoimentos (quantidade)</Label>
-                            <Input
-                              type="number"
-                              placeholder="Ex: 5"
-                              value={goalForm.testimonials_goal}
-                              onChange={(e) => setGoalForm({ ...goalForm, testimonials_goal: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <Label>Meta de Indicações (quantidade)</Label>
-                            <Input
-                              type="number"
-                              placeholder="Ex: 8"
-                              value={goalForm.referrals_goal}
-                              onChange={(e) => setGoalForm({ ...goalForm, referrals_goal: e.target.value })}
-                            />
-                          </div>
+
                           <Button
                             className="w-full"
                             onClick={() => saveGoalMutation.mutate(goalForm)}
