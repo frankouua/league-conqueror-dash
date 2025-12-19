@@ -102,7 +102,19 @@ const Index = () => {
 
         {/* Team Badges Display */}
         <div className="mb-12 animate-scale-in" style={{ animationDelay: "50ms" }}>
-          <TeamBadgesDisplay layout="versus" size="lg" />
+          <TeamBadgesDisplay 
+            layout="versus" 
+            size="lg" 
+            winningTeam={
+              team1 && team2 
+                ? team1.totalPoints > team2.totalPoints 
+                  ? team1.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
+                  : team2.totalPoints > team1.totalPoints
+                  ? team2.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
+                  : "tie"
+                : null
+            }
+          />
         </div>
         <div className="mb-8 animate-slide-up" style={{ animationDelay: "100ms" }}>
           <TimeCounters
