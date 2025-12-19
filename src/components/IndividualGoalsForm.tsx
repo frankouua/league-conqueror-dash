@@ -18,32 +18,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Departamentos/Grupos de procedimento
+// Departamentos/Grupos de procedimento - sincronizados com RevenueForm
 const DEPARTMENTS = [
-  "01 - CIRURGIA PLÁSTICA",
-  "02 - CONSULTA CIRURGIA PLÁSTICA",
-  "03 - PÓS OPERATÓRIO",
-  "04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS",
-  "08 - HARMONIZAÇÃO FACIAL E CORPORAL",
-  "09 - SPA E ESTÉTICA",
-  "UNIQUE TRAVEL EXPERIENCE",
-  "LUXSKIN",
+  { name: "01 - CIRURGIA PLÁSTICA", key: "cirurgia_plastica" },
+  { name: "02 - CONSULTA CIRURGIA PLÁSTICA", key: "consulta_cirurgia_plastica" },
+  { name: "03 - PÓS OPERATÓRIO", key: "pos_operatorio" },
+  { name: "04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS", key: "soroterapia_protocolos" },
+  { name: "08 - HARMONIZAÇÃO FACIAL E CORPORAL", key: "harmonizacao_facial_corporal" },
+  { name: "09 - SPA E ESTÉTICA", key: "spa_estetica" },
+  { name: "UNIQUE TRAVEL EXPERIENCE", key: "unique_travel" },
+  { name: "LUXSKIN", key: "luxskin" },
 ];
-
-// Map department names to revenue_records department field
-const DEPARTMENT_MAP: Record<string, string[]> = {
-  "01 - CIRURGIA PLÁSTICA": ["cirurgia plastica", "cirurgia plástica"],
-  "02 - CONSULTA CIRURGIA PLÁSTICA": ["consulta cirurgia plastica", "consulta cirurgia plástica"],
-  "03 - PÓS OPERATÓRIO": ["pos operatorio", "pós operatório", "pós-operatório"],
-  "04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS": ["soroterapia", "protocolos nutricionais"],
-  "08 - HARMONIZAÇÃO FACIAL E CORPORAL": ["harmonizacao", "harmonização", "harmonização facial"],
-  "09 - SPA E ESTÉTICA": ["spa", "estetica", "estética", "spa e estética"],
-  "UNIQUE TRAVEL EXPERIENCE": ["unique travel", "travel experience"],
-  "LUXSKIN": ["luxskin"],
-};
 
 interface DepartmentGoal {
   department_name: string;
+  department_key: string;
   meta1: string;
   meta2: string;
   meta3: string;
@@ -64,7 +53,8 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
   // Initialize state with all departments
   const [goals, setGoals] = useState<DepartmentGoal[]>(
     DEPARTMENTS.map((dept) => ({
-      department_name: dept,
+      department_name: dept.name,
+      department_key: dept.key,
       meta1: "",
       meta2: "",
       meta3: "",
@@ -134,12 +124,10 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
     },
   });
 
-  // Calculate realized amount for a department
-  const getRealized = (deptName: string, userId?: string) => {
-    const mappings = DEPARTMENT_MAP[deptName] || [];
+  // Calculate realized amount for a department by key
+  const getRealized = (deptKey: string, userId?: string) => {
     const records = revenueRecords?.filter((r) => {
-      const dept = r.department?.toLowerCase() || "";
-      const matchesDept = mappings.some((m) => dept.includes(m.toLowerCase()));
+      const matchesDept = r.department === deptKey;
       if (userId) {
         return matchesDept && (r.user_id === userId || r.attributed_to_user_id === userId);
       }
@@ -155,7 +143,7 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
         const existing = existingGoals?.find(
           (eg) => eg.department_name === g.department_name
         );
-        const realized = getRealized(g.department_name, user?.id);
+        const realized = getRealized(g.department_key, user?.id);
         return {
           ...g,
           meta1: existing?.revenue_goal?.toString() || "",
