@@ -29,8 +29,8 @@ const daysRemainingSemester = Math.ceil((endOfSemester.getTime() - now.getTime()
 const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
 const Index = () => {
-  const { role } = useAuth();
-  const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores();
+  const { role, profile } = useAuth();
+  const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores(profile?.team_id);
 
   // Get top 2 teams
   const team1 = teams[0];

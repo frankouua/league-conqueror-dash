@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Achievement } from "@/components/RecentAchievements";
 import type { ChartData } from "@/components/EvolutionChart";
 import { fireGoldConfetti, fireGoalConfetti, fireLeadershipChange } from "@/lib/confetti";
-import { playGoalSound, playLeadershipSound } from "@/lib/sounds";
+import { playGoalSound, playLeadershipSound, playVictoryFanfare, playDefeatSound } from "@/lib/sounds";
 import { toast } from "@/hooks/use-toast";
 
 interface TeamScore {
@@ -49,7 +49,7 @@ const GOALS = {
   goal3: 3000000,
 };
 
-export const useTeamScores = () => {
+export const useTeamScores = (userTeamId?: string | null) => {
   const [teams, setTeams] = useState<TeamScore[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
@@ -252,11 +252,31 @@ export const useTeamScores = () => {
         // Leadership change celebration
         if (previousLeaderId.current && previousLeaderId.current !== currentLeaderId) {
           fireLeadershipChange();
-          playLeadershipSound();
-          toast({
-            title: "🏆 Nova Liderança!",
-            description: `${teamScores[0].name} assumiu a liderança!`,
-          });
+          
+          // Check if this is the user's team taking the lead
+          if (userTeamId && currentLeaderId === userTeamId) {
+            // User's team is now leading - epic celebration!
+            playVictoryFanfare();
+            toast({
+              title: "🏆🎉 SEU TIME ASSUMIU A LIDERANÇA!",
+              description: `${teamScores[0].name} está no topo! Continue assim!`,
+            });
+          } else if (userTeamId && previousLeaderId.current === userTeamId) {
+            // User's team just lost the lead
+            playDefeatSound();
+            toast({
+              title: "⚠️ Seu time perdeu a liderança!",
+              description: `${teamScores[0].name} assumiu a ponta. É hora de reagir!`,
+              variant: "destructive",
+            });
+          } else {
+            // General leadership change
+            playLeadershipSound();
+            toast({
+              title: "🏆 Nova Liderança!",
+              description: `${teamScores[0].name} assumiu a liderança!`,
+            });
+          }
         }
 
         // Goal celebrations

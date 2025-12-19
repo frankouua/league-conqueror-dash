@@ -133,7 +133,7 @@ export const playGoalSound = () => {
   }
 };
 
-// Leadership change sound
+// Leadership change sound - basic version
 export const playLeadershipSound = () => {
   try {
     const ctx = getAudioContext();
@@ -146,5 +146,75 @@ export const playLeadershipSound = () => {
     playNote(ctx, 523.25, now + 0.1, 0.5, "triangle", 0.2);
   } catch (error) {
     console.warn("Leadership sound failed:", error);
+  }
+};
+
+// Epic victory fanfare - when user's team takes the lead
+export const playVictoryFanfare = () => {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    // Epic fanfare melody
+    const fanfare = [
+      { freq: 392.00, time: 0, duration: 0.15 },      // G4
+      { freq: 392.00, time: 0.15, duration: 0.15 },   // G4
+      { freq: 392.00, time: 0.30, duration: 0.15 },   // G4
+      { freq: 311.13, time: 0.45, duration: 0.35 },   // Eb4
+      { freq: 466.16, time: 0.85, duration: 0.1 },    // Bb4
+      { freq: 392.00, time: 0.95, duration: 0.15 },   // G4
+      { freq: 311.13, time: 1.10, duration: 0.35 },   // Eb4
+      { freq: 523.25, time: 1.50, duration: 0.6 },    // C5 (held)
+    ];
+
+    fanfare.forEach(({ freq, time, duration }) => {
+      playNote(ctx, freq, now + time, duration, "triangle", 0.25);
+    });
+
+    // Add bass notes for power
+    const bass = [
+      { freq: 130.81, time: 0, duration: 0.8 },       // C3
+      { freq: 155.56, time: 0.85, duration: 0.65 },   // Eb3
+      { freq: 196.00, time: 1.50, duration: 0.6 },    // G3
+    ];
+
+    bass.forEach(({ freq, time, duration }) => {
+      playNote(ctx, freq, now + time, duration, "sawtooth", 0.12);
+    });
+
+    // Add harmony chords
+    setTimeout(() => {
+      const ctx2 = getAudioContext();
+      const now2 = ctx2.currentTime;
+      
+      // Victory chord
+      playNote(ctx2, 261.63, now2, 0.5, "sine", 0.15);
+      playNote(ctx2, 329.63, now2, 0.5, "sine", 0.15);
+      playNote(ctx2, 392.00, now2, 0.5, "sine", 0.15);
+      playNote(ctx2, 523.25, now2, 0.5, "sine", 0.15);
+    }, 1500);
+
+    // Final sparkle
+    setTimeout(() => {
+      playSparkle();
+    }, 2000);
+
+  } catch (error) {
+    console.warn("Victory fanfare failed:", error);
+  }
+};
+
+// Defeat sound - when user's team loses the lead
+export const playDefeatSound = () => {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    // Descending sad notes
+    playNote(ctx, 392.00, now, 0.2, "sine", 0.15);
+    playNote(ctx, 349.23, now + 0.2, 0.2, "sine", 0.12);
+    playNote(ctx, 311.13, now + 0.4, 0.3, "sine", 0.1);
+  } catch (error) {
+    console.warn("Defeat sound failed:", error);
   }
 };
