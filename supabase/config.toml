@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.check-stale-leads]
 verify_jwt = false
+
+[functions.figo-webhook]
+verify_jwt = false
