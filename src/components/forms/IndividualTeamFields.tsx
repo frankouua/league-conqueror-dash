@@ -30,7 +30,8 @@ interface IndividualTeamFieldsProps {
 export const IndividualTeamFields = ({ 
   form, 
   countsFieldName = "countsForIndividual",
-  attributedFieldName = "attributedToUserId"
+  attributedFieldName = "attributedToUserId",
+  hideTeamContribution = false
 }: IndividualTeamFieldsProps) => {
   const { user, profile, role } = useAuth();
   const isAdmin = role === "admin";
