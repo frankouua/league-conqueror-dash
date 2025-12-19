@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import GoalProgressDashboard from "@/components/GoalProgressDashboard";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -293,12 +294,18 @@ const Goals = () => {
           </Select>
         </div>
 
-        <Tabs defaultValue="my-goals" className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="my-goals">Minhas Metas</TabsTrigger>
             <TabsTrigger value="team">Minha Equipe</TabsTrigger>
             <TabsTrigger value="all">Visão Geral</TabsTrigger>
           </TabsList>
+
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <GoalProgressDashboard />
+          </TabsContent>
 
           {/* My Goals Tab */}
           <TabsContent value="my-goals" className="space-y-6">
