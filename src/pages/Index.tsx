@@ -10,6 +10,7 @@ import EvolutionChart from "@/components/EvolutionChart";
 import ChampionsDisplay from "@/components/ChampionsDisplay";
 import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
 import TeamComparisonCard from "@/components/TeamComparisonCard";
+import TeamBadgesDisplay from "@/components/TeamBadgesDisplay";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,10 @@ const Index = () => {
           )}
         </div>
 
-        {/* Time Counters */}
+        {/* Team Badges Display */}
+        <div className="mb-12 animate-scale-in" style={{ animationDelay: "50ms" }}>
+          <TeamBadgesDisplay layout="versus" size="lg" />
+        </div>
         <div className="mb-8 animate-slide-up" style={{ animationDelay: "100ms" }}>
           <TimeCounters
             daysRemainingMonth={daysRemainingMonth}
