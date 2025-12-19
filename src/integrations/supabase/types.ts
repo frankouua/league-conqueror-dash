@@ -638,7 +638,7 @@ export type Database = {
           counts_for_individual: boolean
           created_at: string
           date: string
-          department: Database["public"]["Enums"]["department_type"] | null
+          department: string | null
           id: string
           notes: string | null
           registered_by_admin: boolean
@@ -651,7 +651,7 @@ export type Database = {
           counts_for_individual?: boolean
           created_at?: string
           date: string
-          department?: Database["public"]["Enums"]["department_type"] | null
+          department?: string | null
           id?: string
           notes?: string | null
           registered_by_admin?: boolean
@@ -664,7 +664,7 @@ export type Database = {
           counts_for_individual?: boolean
           created_at?: string
           date?: string
-          department?: Database["public"]["Enums"]["department_type"] | null
+          department?: string | null
           id?: string
           notes?: string | null
           registered_by_admin?: boolean

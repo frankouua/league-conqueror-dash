@@ -44,6 +44,31 @@ const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
     },
   });
 
+  // Map database department values to goal department names
+  const departmentMapping: Record<string, string> = {
+    "cirurgia_plastica": "Cirurgia Plástica",
+    "consulta_cirurgia_plastica": "Consulta Cirurgia Plástica",
+    "pos_operatorio": "Pós Operatório",
+    "soroterapia_protocolos": "Soroterapia / Protocolos Nutricionais",
+    "harmonizacao_facial_corporal": "Harmonização Facial e Corporal",
+    "spa_estetica": "Spa e Estética",
+    "unique_travel": "Unique Travel Experience",
+    "luxskin": "Luxskin",
+  };
+
+  // Calculate revenue per department
+  const getDepartmentRevenue = (departmentName: string) => {
+    if (!revenueByDepartment) return 0;
+    
+    // Find matching revenue records
+    const matchingRevenue = revenueByDepartment.filter(r => {
+      const mappedName = departmentMapping[r.department || ""] || "";
+      return mappedName === departmentName;
+    });
+    
+    return matchingRevenue.reduce((sum, r) => sum + Number(r.amount), 0);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -55,29 +80,6 @@ const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
 
   const getProgressPercent = (actual: number, goal: number) => 
     goal > 0 ? Math.min(Math.round((actual / goal) * 100), 100) : 0;
-
-  // Map department names from database to our goals
-  const departmentMapping: Record<string, string> = {
-    "comercial": "Cirurgia Plástica",
-    "clinico": "Pós Operatório",
-    "atendimento": "Harmonização Facial e Corporal",
-    "marketing": "Luxskin",
-    "administrativo": "Spa e Estética",
-  };
-
-  // Calculate revenue per department
-  const getDepartmentRevenue = (departmentName: string) => {
-    if (!revenueByDepartment) return 0;
-    
-    // Check if department matches directly or through mapping
-    const matchingRevenue = revenueByDepartment.filter(r => {
-      const mappedName = departmentMapping[r.department || ""] || "";
-      return mappedName.toLowerCase().includes(departmentName.toLowerCase()) ||
-             departmentName.toLowerCase().includes(mappedName.toLowerCase());
-    });
-    
-    return matchingRevenue.reduce((sum, r) => sum + Number(r.amount), 0);
-  };
 
   // Calculate totals
   const totalMeta1 = departmentGoals?.reduce((sum, g) => sum + Number(g.meta1_goal), 0) || 0;
