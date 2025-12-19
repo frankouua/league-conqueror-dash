@@ -245,7 +245,12 @@ const Auth = () => {
             title: "Conta criada!",
             description: "Você foi cadastrado com sucesso",
           });
-          navigate("/");
+          // Redirecionar para onboarding de metas se tiver equipe
+          if (!formData.isAdmin && formData.teamId) {
+            navigate("/onboarding-goals");
+          } else {
+            navigate("/");
+          }
         }
       }
     } catch (err) {
