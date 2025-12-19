@@ -29,18 +29,7 @@ import {
   Cell,
   ReferenceLine,
 } from "recharts";
-
-// Departamentos/Grupos de procedimento - sincronizados com RevenueForm
-const DEPARTMENTS = [
-  { name: "01 - CIRURGIA PLÁSTICA", key: "cirurgia_plastica" },
-  { name: "02 - CONSULTA CIRURGIA PLÁSTICA", key: "consulta_cirurgia_plastica" },
-  { name: "03 - PÓS OPERATÓRIO", key: "pos_operatorio" },
-  { name: "04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS", key: "soroterapia_protocolos" },
-  { name: "08 - HARMONIZAÇÃO FACIAL E CORPORAL", key: "harmonizacao_facial_corporal" },
-  { name: "09 - SPA E ESTÉTICA", key: "spa_estetica" },
-  { name: "UNIQUE TRAVEL EXPERIENCE", key: "unique_travel" },
-  { name: "LUXSKIN", key: "luxskin" },
-];
+import { DEPARTMENTS } from "@/constants/departments";
 
 interface DepartmentGoal {
   department_name: string;

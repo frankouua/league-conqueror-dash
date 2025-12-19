@@ -34,23 +34,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { IndividualTeamFields, getEffectiveInsertData } from "./IndividualTeamFields";
-
-const SALES_DEPARTMENT_OPTIONS = [
-  { value: "cirurgia_plastica", label: "Cirurgia Plástica" },
-  { value: "consulta_cirurgia_plastica", label: "Consulta Cirurgia Plástica" },
-  { value: "pos_operatorio", label: "Pós Operatório" },
-  { value: "soroterapia_protocolos", label: "Soroterapia / Protocolos Nutricionais" },
-  { value: "harmonizacao_facial_corporal", label: "Harmonização Facial e Corporal" },
-  { value: "spa_estetica", label: "Spa e Estética" },
-  { value: "unique_travel", label: "Unique Travel Experience" },
-  { value: "luxskin", label: "Luxskin" },
-] as const;
+import { DEPARTMENTS, isValidDepartment } from "@/constants/departments";
 
 const revenueSchema = z.object({
   amount: z.string().min(1, "Informe o valor do faturamento"),
   date: z.date({ required_error: "Selecione uma data" }),
   notes: z.string().optional(),
-  department: z.string().min(1, "Selecione o departamento"),
+  department: z.string().min(1, "Selecione o departamento").refine(
+    (val) => isValidDepartment(val),
+    { message: "Departamento inválido - selecione um da lista" }
+  ),
   countsForIndividual: z.boolean().default(true),
   attributedToUserId: z.string().optional(),
 });
@@ -232,8 +225,8 @@ const RevenueForm = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {SALES_DEPARTMENT_OPTIONS.map((dept) => (
-                      <SelectItem key={dept.value} value={dept.value}>
+                    {DEPARTMENTS.map((dept) => (
+                      <SelectItem key={dept.key} value={dept.key}>
                         {dept.label}
                       </SelectItem>
                     ))}
