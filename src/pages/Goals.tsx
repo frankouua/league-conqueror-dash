@@ -40,6 +40,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import GoalProgressDashboard from "@/components/GoalProgressDashboard";
 import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
+import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -295,14 +296,20 @@ const Goals = () => {
           </Select>
         </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full max-w-xl mx-auto grid-cols-5">
+        <Tabs defaultValue="tracking" className="space-y-6">
+          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-6">
+            <TabsTrigger value="tracking">Acompanhamento</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="departments">Departamentos</TabsTrigger>
             <TabsTrigger value="my-goals">Minhas Metas</TabsTrigger>
             <TabsTrigger value="team">Minha Equipe</TabsTrigger>
             <TabsTrigger value="all">Visão Geral</TabsTrigger>
           </TabsList>
+
+          {/* Goal Tracking Tab - Meta vs Realizado */}
+          <TabsContent value="tracking" className="space-y-6">
+            <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
+          </TabsContent>
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
