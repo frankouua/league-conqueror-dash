@@ -39,6 +39,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import GoalProgressDashboard from "@/components/GoalProgressDashboard";
+import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -295,8 +296,9 @@ const Goals = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4">
+          <TabsList className="grid w-full max-w-xl mx-auto grid-cols-5">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="departments">Departamentos</TabsTrigger>
             <TabsTrigger value="my-goals">Minhas Metas</TabsTrigger>
             <TabsTrigger value="team">Minha Equipe</TabsTrigger>
             <TabsTrigger value="all">Visão Geral</TabsTrigger>
@@ -305,6 +307,11 @@ const Goals = () => {
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
             <GoalProgressDashboard />
+          </TabsContent>
+
+          {/* Department Goals Tab */}
+          <TabsContent value="departments" className="space-y-6">
+            <DepartmentGoalsCard month={selectedMonth} year={selectedYear} />
           </TabsContent>
 
           {/* My Goals Tab */}
