@@ -150,6 +150,7 @@ export type Database = {
       individual_goals: {
         Row: {
           created_at: string
+          department_name: string | null
           id: string
           meta2_goal: number | null
           meta3_goal: number | null
@@ -165,6 +166,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          department_name?: string | null
           id?: string
           meta2_goal?: number | null
           meta3_goal?: number | null
@@ -180,6 +182,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          department_name?: string | null
           id?: string
           meta2_goal?: number | null
           meta3_goal?: number | null

@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
 import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
+import IndividualGoalsForm from "@/components/IndividualGoalsForm";
 import {
   LineChart,
   Line,
@@ -448,139 +449,7 @@ const Performance = () => {
           {/* MINHAS METAS */}
           <TabsContent value="my-goals" className="space-y-6">
             {user ? (
-              <Card className="border-primary/30">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5 text-primary" />
-                    Minhas Metas - {MONTHS[selectedMonth - 1]} {selectedYear}
-                  </CardTitle>
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={openEditDialog}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        {myGoal ? "Editar" : "Definir"} Metas
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Definir Metas - {MONTHS[selectedMonth - 1]} {selectedYear}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        {/* Metas de Faturamento */}
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-sm text-primary flex items-center gap-2">
-                            <DollarSign className="w-4 h-4" />
-                            Metas de Faturamento
-                          </h4>
-                          <div className="grid grid-cols-3 gap-3">
-                            <div>
-                              <Label className="text-xs text-success">Meta 1 (R$)</Label>
-                              <Input type="text" placeholder="50.000" value={goalForm.revenue_goal} onChange={(e) => setGoalForm({ ...goalForm, revenue_goal: e.target.value })} className="text-sm" />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-success">Meta 2 (R$)</Label>
-                              <Input type="text" placeholder="70.000" value={goalForm.meta2_goal} onChange={(e) => setGoalForm({ ...goalForm, meta2_goal: e.target.value })} className="text-sm" />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-primary">Meta 3 (R$)</Label>
-                              <Input type="text" placeholder="100.000" value={goalForm.meta3_goal} onChange={(e) => setGoalForm({ ...goalForm, meta3_goal: e.target.value })} className="text-sm" />
-                            </div>
-                          </div>
-                        </div>
-                        {/* Outras Metas */}
-                        <div className="space-y-3 border-t border-border pt-4">
-                          <h4 className="font-semibold text-sm text-muted-foreground">Outras Metas</h4>
-                          <div className="grid grid-cols-3 gap-3">
-                            <div>
-                              <Label className="text-xs">NPS (qtd)</Label>
-                              <Input type="number" placeholder="10" value={goalForm.nps_goal} onChange={(e) => setGoalForm({ ...goalForm, nps_goal: e.target.value })} className="text-sm" />
-                            </div>
-                            <div>
-                              <Label className="text-xs">Depoimentos (qtd)</Label>
-                              <Input type="number" placeholder="5" value={goalForm.testimonials_goal} onChange={(e) => setGoalForm({ ...goalForm, testimonials_goal: e.target.value })} className="text-sm" />
-                            </div>
-                            <div>
-                              <Label className="text-xs">Indicações (qtd)</Label>
-                              <Input type="number" placeholder="8" value={goalForm.referrals_goal} onChange={(e) => setGoalForm({ ...goalForm, referrals_goal: e.target.value })} className="text-sm" />
-                            </div>
-                          </div>
-                        </div>
-                        <Button className="w-full" onClick={() => saveGoalMutation.mutate(goalForm)} disabled={saveGoalMutation.isPending}>
-                          {saveGoalMutation.isPending ? "Salvando..." : "Salvar Metas"}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent>
-                  {myGoal ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 bg-green-500/10 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-5 h-5 text-green-500" />
-                            <span className="font-medium">Faturamento</span>
-                          </div>
-                          {getProgressPercent(myProgress.revenue, Number(myGoal.revenue_goal)) >= 100 && <CheckCircle2 className="w-5 h-5 text-green-500" />}
-                        </div>
-                        <Progress value={getProgressPercent(myProgress.revenue, Number(myGoal.revenue_goal))} className="h-3 mb-2" />
-                        <div className="flex justify-between text-sm">
-                          <span>{formatCurrency(myProgress.revenue)}</span>
-                          <span className="text-muted-foreground">Meta: {formatCurrency(Number(myGoal.revenue_goal))}</span>
-                        </div>
-                      </div>
-                      <div className="p-4 bg-blue-500/10 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <MessageSquare className="w-5 h-5 text-blue-500" />
-                            <span className="font-medium">NPS</span>
-                          </div>
-                          {getProgressPercent(myProgress.nps, myGoal.nps_goal || 0) >= 100 && <CheckCircle2 className="w-5 h-5 text-green-500" />}
-                        </div>
-                        <Progress value={getProgressPercent(myProgress.nps, myGoal.nps_goal || 0)} className="h-3 mb-2" />
-                        <div className="flex justify-between text-sm">
-                          <span>{myProgress.nps} registros</span>
-                          <span className="text-muted-foreground">Meta: {myGoal.nps_goal}</span>
-                        </div>
-                      </div>
-                      <div className="p-4 bg-purple-500/10 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Star className="w-5 h-5 text-purple-500" />
-                            <span className="font-medium">Depoimentos</span>
-                          </div>
-                          {getProgressPercent(myProgress.testimonials, myGoal.testimonials_goal || 0) >= 100 && <CheckCircle2 className="w-5 h-5 text-green-500" />}
-                        </div>
-                        <Progress value={getProgressPercent(myProgress.testimonials, myGoal.testimonials_goal || 0)} className="h-3 mb-2" />
-                        <div className="flex justify-between text-sm">
-                          <span>{myProgress.testimonials}</span>
-                          <span className="text-muted-foreground">Meta: {myGoal.testimonials_goal}</span>
-                        </div>
-                      </div>
-                      <div className="p-4 bg-cyan-500/10 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Users className="w-5 h-5 text-cyan-500" />
-                            <span className="font-medium">Indicações</span>
-                          </div>
-                          {getProgressPercent(myProgress.referrals, myGoal.referrals_goal || 0) >= 100 && <CheckCircle2 className="w-5 h-5 text-green-500" />}
-                        </div>
-                        <Progress value={getProgressPercent(myProgress.referrals, myGoal.referrals_goal || 0)} className="h-3 mb-2" />
-                        <div className="flex justify-between text-sm">
-                          <span>{myProgress.referrals}</span>
-                          <span className="text-muted-foreground">Meta: {myGoal.referrals_goal}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Target className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">Você ainda não definiu metas para este mês.</p>
-                      <Button variant="outline" className="mt-4" onClick={openEditDialog}>Definir Metas</Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <IndividualGoalsForm month={selectedMonth} year={selectedYear} />
             ) : (
               <Card><CardContent className="p-8 text-center text-muted-foreground">Faça login para ver suas metas</CardContent></Card>
             )}
