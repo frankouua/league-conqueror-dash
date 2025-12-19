@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Target, Save, Building2, User, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Target, Save, Building2, User, TrendingUp, AlertTriangle, CheckCircle2, BarChart3 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -17,6 +17,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+  ReferenceLine,
+} from "recharts";
 
 // Departamentos/Grupos de procedimento - sincronizados com RevenueForm
 const DEPARTMENTS = [
@@ -326,10 +338,14 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3">
             <TabsTrigger value="by-department" className="gap-2">
               <Building2 className="w-4 h-4" />
               Por Departamento
+            </TabsTrigger>
+            <TabsTrigger value="chart" className="gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Gráfico
             </TabsTrigger>
             <TabsTrigger value="by-saleswoman" className="gap-2">
               <User className="w-4 h-4" />
@@ -475,6 +491,125 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
                   </TableRow>
                 </TableBody>
               </Table>
+            </div>
+          </TabsContent>
+
+          {/* GRÁFICO */}
+          <TabsContent value="chart" className="space-y-4">
+            <div className="bg-primary/10 rounded-lg p-3 text-center mb-4">
+              <p className="font-semibold text-primary">
+                META 3 vs REALIZADO - {profile?.full_name?.toUpperCase() || "---"}
+              </p>
+            </div>
+
+            {/* Chart */}
+            <div className="h-[400px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={goals.map((g) => {
+                    const meta3 = parseGoalValue(g.meta3);
+                    const shortName = g.department_name.replace(/^\d+\s*-\s*/, "").substring(0, 15);
+                    return {
+                      name: shortName,
+                      fullName: g.department_name,
+                      meta3,
+                      realized: g.realized,
+                      percent: meta3 > 0 ? Math.round((g.realized / meta3) * 100) : 0,
+                    };
+                  })}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={80}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis 
+                    tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    labelFormatter={(label, payload) => {
+                      if (payload && payload[0]) {
+                        return payload[0].payload.fullName;
+                      }
+                      return label;
+                    }}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend />
+                  <Bar 
+                    dataKey="meta3" 
+                    name="Meta 3" 
+                    fill="hsl(var(--primary))" 
+                    radius={[4, 4, 0, 0]}
+                    opacity={0.7}
+                  />
+                  <Bar 
+                    dataKey="realized" 
+                    name="Realizado" 
+                    radius={[4, 4, 0, 0]}
+                  >
+                    {goals.map((g, index) => {
+                      const meta3 = parseGoalValue(g.meta3);
+                      const percent = meta3 > 0 ? (g.realized / meta3) * 100 : 0;
+                      let color = "hsl(var(--destructive))";
+                      if (percent >= 100) color = "hsl(var(--success))";
+                      else if (percent >= 70) color = "hsl(var(--warning))";
+                      return <Cell key={`cell-${index}`} fill={color} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <Card className="bg-primary/10 border-primary/30">
+                <CardContent className="p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Meta 3 Total</p>
+                  <p className="text-xl font-bold text-primary">{formatCurrency(totals.meta3)}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-success/10 border-success/30">
+                <CardContent className="p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Realizado</p>
+                  <p className="text-xl font-bold text-success">{formatCurrency(totals.realized)}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-destructive/10 border-destructive/30">
+                <CardContent className="p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Faltam</p>
+                  <p className="text-xl font-bold text-destructive">
+                    {formatCurrency(Math.max(totals.meta3 - totals.realized, 0))}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className={`${totalProgress.status === "meta3" ? "bg-primary/20 border-primary" : totalProgress.status.includes("meta") ? "bg-success/20 border-success" : "bg-warning/20 border-warning"}`}>
+                <CardContent className="p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Progresso</p>
+                  <p className={`text-xl font-bold ${totalProgress.color}`}>
+                    {totalProgress.percent}%
+                  </p>
+                  <Badge 
+                    className={`mt-1 ${
+                      totalProgress.status === "meta3" ? "bg-primary" :
+                      totalProgress.status.includes("meta") ? "bg-success" :
+                      "bg-warning"
+                    }`}
+                  >
+                    {totalProgress.label}
+                  </Badge>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
