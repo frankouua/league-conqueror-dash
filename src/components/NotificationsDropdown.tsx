@@ -119,6 +119,8 @@ const NotificationsDropdown = () => {
         return <Target className="w-4 h-4 text-green-500" />;
       case "goal_team":
         return <Trophy className="w-4 h-4 text-primary" />;
+      case "goal_reminder":
+        return <Target className="w-4 h-4 text-blue-500" />;
       case "milestone":
         return <Award className="w-4 h-4 text-amber-500" />;
       case "achievement":
@@ -135,9 +137,11 @@ const NotificationsDropdown = () => {
       markAsRead.mutate(notification.id);
     }
     
-    // Navigate to referral leads page for stale_lead notifications
+    // Navigate based on notification type
     if (notification.type === "stale_lead") {
       navigate("/referral-leads");
+    } else if (notification.type === "goal_reminder") {
+      navigate("/onboarding-goals");
     }
   };
 
@@ -184,7 +188,7 @@ const NotificationsDropdown = () => {
               key={notification.id}
               className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""}`}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
@@ -208,6 +212,12 @@ const NotificationsDropdown = () => {
                     <span className="text-xs text-orange-500 flex items-center gap-1">
                       <ExternalLink className="w-3 h-3" />
                       Ver pipeline
+                    </span>
+                  )}
+                  {notification.type === "goal_reminder" && (
+                    <span className="text-xs text-blue-500 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Definir metas
                     </span>
                   )}
                 </div>

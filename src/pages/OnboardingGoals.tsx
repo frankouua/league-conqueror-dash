@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Target, Trophy, TrendingUp, DollarSign, Info } from "lucide-react";
+import { Target, Trophy, TrendingUp, DollarSign, Info, Users } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -51,6 +51,34 @@ const OnboardingGoals = () => {
     meta3: "",
   });
 
+  // Buscar soma das metas da equipe
+  const { data: teamGoalsSum } = useQuery({
+    queryKey: ["team-goals-sum", profile?.team_id, currentMonth, currentYear],
+    queryFn: async () => {
+      if (!profile?.team_id) return null;
+
+      const { data, error } = await supabase
+        .from("individual_goals")
+        .select("revenue_goal, meta2_goal, meta3_goal")
+        .eq("team_id", profile.team_id)
+        .eq("month", currentMonth)
+        .eq("year", currentYear);
+
+      if (error) throw error;
+
+      const sum = {
+        meta1: data?.reduce((acc, g) => acc + (Number(g.revenue_goal) || 0), 0) || 0,
+        meta2: data?.reduce((acc, g) => acc + (Number(g.meta2_goal) || 0), 0) || 0,
+        meta3: data?.reduce((acc, g) => acc + (Number(g.meta3_goal) || 0), 0) || 0,
+        count: data?.length || 0,
+      };
+
+      return sum;
+    },
+    enabled: !!profile?.team_id,
+    refetchInterval: 5000, // Atualiza a cada 5 segundos
+  });
+
   // Redirecionar se não estiver logado
   useEffect(() => {
     if (!authLoading && !user) {
@@ -83,7 +111,9 @@ const OnboardingGoals = () => {
         team_id: profile.team_id,
         month: currentMonth,
         year: currentYear,
-        revenue_goal: parseCurrencyInput(goalForm.meta1), // Usando meta1 como meta principal
+        revenue_goal: parseCurrencyInput(goalForm.meta1),
+        meta2_goal: parseCurrencyInput(goalForm.meta2),
+        meta3_goal: parseCurrencyInput(goalForm.meta3),
         nps_goal: 0,
         testimonials_goal: 0,
         referrals_goal: 0,
@@ -154,6 +184,46 @@ const OnboardingGoals = () => {
             A somatória das metas de todos os colaboradores formará a meta da equipe.
           </p>
         </div>
+
+        {/* Card de Soma da Equipe */}
+        {teamGoalsSum && (
+          <Card className="mb-8 border-green-500/30 bg-green-500/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Users className="w-5 h-5 text-green-500" />
+                Soma das Metas da Sua Equipe (Tempo Real)
+              </CardTitle>
+              <CardDescription>
+                {teamGoalsSum.count} colaborador(es) já definiram suas metas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 rounded-lg bg-background/50">
+                  <p className="text-xs text-muted-foreground mb-1">Soma Meta 1</p>
+                  <p className="text-lg font-bold text-green-600">{formatCurrency(teamGoalsSum.meta1)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    de {formatCurrency(TOTALS.meta1)}
+                  </p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-background/50">
+                  <p className="text-xs text-muted-foreground mb-1">Soma Meta 2</p>
+                  <p className="text-lg font-bold text-yellow-600">{formatCurrency(teamGoalsSum.meta2)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    de {formatCurrency(TOTALS.meta2)}
+                  </p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-background/50">
+                  <p className="text-xs text-muted-foreground mb-1">Soma Meta 3</p>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(teamGoalsSum.meta3)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    de {formatCurrency(TOTALS.meta3)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabela de Referência */}
         <Card className="mb-8 border-primary/20">
