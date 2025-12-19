@@ -50,7 +50,7 @@ const revenueSchema = z.object({
   amount: z.string().min(1, "Informe o valor do faturamento"),
   date: z.date({ required_error: "Selecione uma data" }),
   notes: z.string().optional(),
-  department: z.string().optional(),
+  department: z.string().min(1, "Selecione o departamento"),
   countsForIndividual: z.boolean().default(true),
   attributedToUserId: z.string().optional(),
 });
@@ -223,7 +223,7 @@ const RevenueForm = () => {
               <FormItem>
                 <FormLabel className="text-foreground flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
-                  Departamento (opcional)
+                  Departamento <span className="text-destructive">*</span>
                 </FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
