@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Star, Zap, DollarSign, Scale, Calendar } from "lucide-react";
 import { useFilteredTeamScores, PeriodFilter } from "@/hooks/useFilteredTeamScores";
 import { Skeleton } from "@/components/ui/skeleton";
+import brasaoLioness from "@/assets/brasao-lioness-team.png";
+import brasaoTroia from "@/assets/brasao-troia-team.png";
 
 const periodLabels: Record<PeriodFilter, string> = {
   month: "Este Mês",
@@ -132,19 +134,29 @@ const TeamComparisonCard = () => {
         </div>
 
         {/* Team Headers */}
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="text-left">
-            <span className="text-sm font-semibold text-primary truncate block">
+        <div className="grid grid-cols-3 gap-4 text-center items-center">
+          <div className="flex items-center gap-2">
+            <img 
+              src={team1.name.toLowerCase().includes("lioness") ? brasaoLioness : brasaoTroia} 
+              alt={team1.name}
+              className="w-8 h-8 object-contain"
+            />
+            <span className="text-sm font-semibold text-primary truncate">
               {team1.name}
             </span>
           </div>
           <div>
             <span className="text-xs text-muted-foreground">VS</span>
           </div>
-          <div className="text-right">
-            <span className="text-sm font-semibold text-primary truncate block">
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-sm font-semibold text-primary truncate">
               {team2.name}
             </span>
+            <img 
+              src={team2.name.toLowerCase().includes("lioness") ? brasaoLioness : brasaoTroia} 
+              alt={team2.name}
+              className="w-8 h-8 object-contain"
+            />
           </div>
         </div>
 

@@ -812,8 +812,8 @@ const DataReports = () => {
                       <YAxis stroke="hsl(0 0% 60%)" fontSize={12} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                       <Tooltip {...chartTooltipStyle} formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`} />
                       <Legend />
-                      <Bar dataKey="team1" name={teams?.[0]?.name || "Equipe 1"} fill={CHART_COLORS.team1} radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="team2" name={teams?.[1]?.name || "Equipe 2"} fill={CHART_COLORS.team2} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="team1" name={teams?.[0]?.name || "Lioness Team"} fill={CHART_COLORS.team1} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="team2" name={teams?.[1]?.name || "Tróia Team"} fill={CHART_COLORS.team2} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
