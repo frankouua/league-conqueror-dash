@@ -9,6 +9,8 @@ import {
   Legend,
 } from "recharts";
 import { TrendingUp } from "lucide-react";
+import brasaoLioness from "@/assets/brasao-lioness-team.png";
+import brasaoTroia from "@/assets/brasao-troia-team.png";
 
 export interface ChartData {
   month: string;
@@ -23,6 +25,9 @@ interface EvolutionChartProps {
 }
 
 const EvolutionChart = ({ data, team1Name, team2Name }: EvolutionChartProps) => {
+  const team1Logo = team1Name.toLowerCase().includes("lioness") ? brasaoLioness : brasaoTroia;
+  const team2Logo = team2Name.toLowerCase().includes("lioness") ? brasaoLioness : brasaoTroia;
+
   return (
     <div className="bg-gradient-card rounded-2xl p-6 border border-border">
       <div className="flex items-center gap-3 mb-6">
@@ -34,6 +39,22 @@ const EvolutionChart = ({ data, team1Name, team2Name }: EvolutionChartProps) => 
           <p className="text-muted-foreground text-sm">
             Comparação mensal entre equipes
           </p>
+        </div>
+      </div>
+
+      {/* Team Legend with Logos */}
+      <div className="flex items-center justify-center gap-8 mb-4">
+        <div className="flex items-center gap-2">
+          <img src={team1Logo} alt={team1Name} className="w-8 h-8 object-contain" />
+          <span className="text-sm font-medium" style={{ color: "hsl(43 65% 52%)" }}>
+            {team1Name}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <img src={team2Logo} alt={team2Name} className="w-8 h-8 object-contain" />
+          <span className="text-sm font-medium" style={{ color: "hsl(217 91% 60%)" }}>
+            {team2Name}
+          </span>
         </div>
       </div>
 
@@ -68,11 +89,6 @@ const EvolutionChart = ({ data, team1Name, team2Name }: EvolutionChartProps) => 
               }}
               labelStyle={{ color: "hsl(0 0% 98%)", fontWeight: "bold" }}
               itemStyle={{ color: "hsl(0 0% 60%)" }}
-            />
-            <Legend
-              wrapperStyle={{
-                paddingTop: "20px",
-              }}
             />
             <Line
               type="monotone"
