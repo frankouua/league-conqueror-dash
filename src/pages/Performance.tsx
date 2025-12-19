@@ -40,6 +40,7 @@ import {
   Building2,
 } from "lucide-react";
 import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
+import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 import {
   LineChart,
   Line,
@@ -368,14 +369,20 @@ const Performance = () => {
           </Select>
         </div>
 
-        <Tabs defaultValue="ranking" className="space-y-6">
-          <TabsList className="grid w-full max-w-xl mx-auto grid-cols-5">
+        <Tabs defaultValue="tracking" className="space-y-6">
+          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-6">
+            <TabsTrigger value="tracking">Acompanhamento</TabsTrigger>
             <TabsTrigger value="ranking">Ranking</TabsTrigger>
             <TabsTrigger value="departments">Departamentos</TabsTrigger>
             <TabsTrigger value="my-goals">Minhas Metas</TabsTrigger>
             <TabsTrigger value="team">Minha Equipe</TabsTrigger>
             <TabsTrigger value="all">Visão Geral</TabsTrigger>
           </TabsList>
+
+          {/* GOAL TRACKING - Meta vs Realizado */}
+          <TabsContent value="tracking" className="space-y-6">
+            <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
+          </TabsContent>
 
           {/* DEPARTMENT GOALS */}
           <TabsContent value="departments" className="space-y-6">
