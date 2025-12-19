@@ -35,19 +35,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { IndividualTeamFields, getEffectiveInsertData } from "./IndividualTeamFields";
 
-const DEPARTMENT_OPTIONS = [
-  { value: "comercial", label: "Comercial" },
-  { value: "atendimento", label: "Atendimento" },
-  { value: "marketing", label: "Marketing" },
-  { value: "administrativo", label: "Administrativo" },
-  { value: "clinico", label: "Clínico" },
+const SALES_DEPARTMENT_OPTIONS = [
+  { value: "cirurgia_plastica", label: "Cirurgia Plástica" },
+  { value: "consulta_cirurgia_plastica", label: "Consulta Cirurgia Plástica" },
+  { value: "pos_operatorio", label: "Pós Operatório" },
+  { value: "soroterapia_protocolos", label: "Soroterapia / Protocolos Nutricionais" },
+  { value: "harmonizacao_facial_corporal", label: "Harmonização Facial e Corporal" },
+  { value: "spa_estetica", label: "Spa e Estética" },
+  { value: "unique_travel", label: "Unique Travel Experience" },
+  { value: "luxskin", label: "Luxskin" },
 ] as const;
 
 const revenueSchema = z.object({
   amount: z.string().min(1, "Informe o valor do faturamento"),
   date: z.date({ required_error: "Selecione uma data" }),
   notes: z.string().optional(),
-  department: z.enum(["comercial", "atendimento", "marketing", "administrativo", "clinico"]).optional(),
+  department: z.string().optional(),
   countsForIndividual: z.boolean().default(true),
   attributedToUserId: z.string().optional(),
 });
@@ -229,7 +232,7 @@ const RevenueForm = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {DEPARTMENT_OPTIONS.map((dept) => (
+                    {SALES_DEPARTMENT_OPTIONS.map((dept) => (
                       <SelectItem key={dept.value} value={dept.value}>
                         {dept.label}
                       </SelectItem>
