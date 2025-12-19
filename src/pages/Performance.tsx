@@ -37,7 +37,9 @@ import {
   Trophy,
   Medal,
   Award,
+  Building2,
 } from "lucide-react";
+import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
 import {
   LineChart,
   Line,
@@ -367,12 +369,18 @@ const Performance = () => {
         </div>
 
         <Tabs defaultValue="ranking" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4">
+          <TabsList className="grid w-full max-w-xl mx-auto grid-cols-5">
             <TabsTrigger value="ranking">Ranking</TabsTrigger>
+            <TabsTrigger value="departments">Departamentos</TabsTrigger>
             <TabsTrigger value="my-goals">Minhas Metas</TabsTrigger>
             <TabsTrigger value="team">Minha Equipe</TabsTrigger>
             <TabsTrigger value="all">Visão Geral</TabsTrigger>
           </TabsList>
+
+          {/* DEPARTMENT GOALS */}
+          <TabsContent value="departments" className="space-y-6">
+            <DepartmentGoalsCard month={selectedMonth} year={selectedYear} />
+          </TabsContent>
 
           {/* RANKING */}
           <TabsContent value="ranking" className="space-y-4">
