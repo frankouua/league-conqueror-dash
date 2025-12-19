@@ -95,7 +95,7 @@ const Index = () => {
                 className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
               >
                 <PartyPopper className="w-4 h-4" />
-                Testar Celebração
+                Celebrar!
               </Button>
             </div>
           )}
