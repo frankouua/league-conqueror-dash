@@ -24,6 +24,7 @@ interface IndividualTeamFieldsProps {
   form: UseFormReturn<any>;
   countsFieldName?: string;
   attributedFieldName?: string;
+  hideTeamContribution?: boolean;
 }
 
 export const IndividualTeamFields = ({ 
