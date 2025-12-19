@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import Header from "@/components/Header";
 import TeamRankingCard from "@/components/TeamRankingCard";
 import ClinicGoalsCard from "@/components/ClinicGoalsCard";
+import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
 import RecentAchievements from "@/components/RecentAchievements";
 import TimeCounters from "@/components/TimeCounters";
 import EvolutionChart from "@/components/EvolutionChart";
@@ -194,6 +195,11 @@ const Index = () => {
               team2Name={team2?.name || "Tróia Team"}
             />
           </div>
+        </div>
+
+        {/* Department Goals */}
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: "575ms" }}>
+          <DepartmentGoalsCard month={now.getMonth() + 1} year={now.getFullYear()} />
         </div>
 
         {/* Recent Achievements */}
