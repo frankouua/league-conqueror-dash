@@ -115,6 +115,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          meta2_goal: number | null
+          meta3_goal: number | null
           month: number
           nps_goal: number | null
           referrals_goal: number | null
@@ -128,6 +130,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          meta2_goal?: number | null
+          meta3_goal?: number | null
           month: number
           nps_goal?: number | null
           referrals_goal?: number | null
@@ -141,6 +145,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          meta2_goal?: number | null
+          meta3_goal?: number | null
           month?: number
           nps_goal?: number | null
           referrals_goal?: number | null
