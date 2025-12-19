@@ -5,8 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Target, Save } from "lucide-react";
+import { Target, Save, Building2, User, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -16,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Departamentos/Grupos de procedimento conforme a imagem
+// Departamentos/Grupos de procedimento
 const DEPARTMENTS = [
   "01 - CIRURGIA PLÁSTICA",
   "02 - CONSULTA CIRURGIA PLÁSTICA",
@@ -28,11 +30,24 @@ const DEPARTMENTS = [
   "LUXSKIN",
 ];
 
+// Map department names to revenue_records department field
+const DEPARTMENT_MAP: Record<string, string[]> = {
+  "01 - CIRURGIA PLÁSTICA": ["cirurgia plastica", "cirurgia plástica"],
+  "02 - CONSULTA CIRURGIA PLÁSTICA": ["consulta cirurgia plastica", "consulta cirurgia plástica"],
+  "03 - PÓS OPERATÓRIO": ["pos operatorio", "pós operatório", "pós-operatório"],
+  "04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS": ["soroterapia", "protocolos nutricionais"],
+  "08 - HARMONIZAÇÃO FACIAL E CORPORAL": ["harmonizacao", "harmonização", "harmonização facial"],
+  "09 - SPA E ESTÉTICA": ["spa", "estetica", "estética", "spa e estética"],
+  "UNIQUE TRAVEL EXPERIENCE": ["unique travel", "travel experience"],
+  "LUXSKIN": ["luxskin"],
+};
+
 interface DepartmentGoal {
   department_name: string;
   meta1: string;
   meta2: string;
   meta3: string;
+  realized: number;
 }
 
 interface IndividualGoalsFormProps {
@@ -44,6 +59,7 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("by-department");
 
   // Initialize state with all departments
   const [goals, setGoals] = useState<DepartmentGoal[]>(
@@ -52,6 +68,7 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
       meta1: "",
       meta2: "",
       meta3: "",
+      realized: 0,
     }))
   );
 
@@ -73,27 +90,82 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
     enabled: !!user?.id,
   });
 
+  // Fetch revenue records for this month/year
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endDate = `${year}-${String(month).padStart(2, "0")}-31`;
+
+  const { data: revenueRecords } = useQuery({
+    queryKey: ["revenue-by-dept", user?.id, month, year],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("revenue_records")
+        .select("*")
+        .gte("date", startDate)
+        .lte("date", endDate);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch all profiles for "Por Vendedora" view
+  const { data: profiles } = useQuery({
+    queryKey: ["profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch all individual goals for all users
+  const { data: allGoals } = useQuery({
+    queryKey: ["all-individual-goals", month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("individual_goals")
+        .select("*")
+        .eq("month", month)
+        .eq("year", year)
+        .not("department_name", "is", null);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Calculate realized amount for a department
+  const getRealized = (deptName: string, userId?: string) => {
+    const mappings = DEPARTMENT_MAP[deptName] || [];
+    const records = revenueRecords?.filter((r) => {
+      const dept = r.department?.toLowerCase() || "";
+      const matchesDept = mappings.some((m) => dept.includes(m.toLowerCase()));
+      if (userId) {
+        return matchesDept && (r.user_id === userId || r.attributed_to_user_id === userId);
+      }
+      return matchesDept;
+    });
+    return records?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+  };
+
   // Update state when existing goals are fetched
   useEffect(() => {
-    if (existingGoals && existingGoals.length > 0) {
-      setGoals((prev) =>
-        prev.map((g) => {
-          const existing = existingGoals.find(
-            (eg) => eg.department_name === g.department_name
-          );
-          if (existing) {
-            return {
-              ...g,
-              meta1: existing.revenue_goal?.toString() || "",
-              meta2: existing.meta2_goal?.toString() || "",
-              meta3: existing.meta3_goal?.toString() || "",
-            };
-          }
-          return g;
-        })
-      );
-    }
-  }, [existingGoals]);
+    setGoals((prev) =>
+      prev.map((g) => {
+        const existing = existingGoals?.find(
+          (eg) => eg.department_name === g.department_name
+        );
+        const realized = getRealized(g.department_name, user?.id);
+        return {
+          ...g,
+          meta1: existing?.revenue_goal?.toString() || "",
+          meta2: existing?.meta2_goal?.toString() || "",
+          meta3: existing?.meta3_goal?.toString() || "",
+          realized,
+        };
+      })
+    );
+  }, [existingGoals, revenueRecords, user?.id]);
 
   // Save mutation
   const saveMutation = useMutation({
@@ -102,10 +174,7 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
         throw new Error("Usuário não autenticado");
       }
 
-      // Filter only departments with at least one goal value
-      const goalsToSave = goals.filter(
-        (g) => g.meta1 || g.meta2 || g.meta3
-      );
+      const goalsToSave = goals.filter((g) => g.meta1 || g.meta2 || g.meta3);
 
       for (const goal of goalsToSave) {
         const payload = {
@@ -119,7 +188,6 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
           meta3_goal: parseFloat(goal.meta3.replace(/\./g, "").replace(",", ".")) || 0,
         };
 
-        // Check if exists
         const existing = existingGoals?.find(
           (eg) => eg.department_name === goal.department_name
         );
@@ -141,6 +209,7 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["individual-goals"] });
       queryClient.invalidateQueries({ queryKey: ["individual-goals-by-dept"] });
+      queryClient.invalidateQueries({ queryKey: ["all-individual-goals"] });
       toast({ title: "Metas salvas com sucesso!" });
     },
     onError: (error) => {
@@ -162,21 +231,82 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
     );
   };
 
-  // Calculate totals
-  const totals = goals.reduce(
-    (acc, g) => ({
-      meta1: acc.meta1 + (parseFloat(g.meta1.replace(/\./g, "").replace(",", ".")) || 0),
-      meta2: acc.meta2 + (parseFloat(g.meta2.replace(/\./g, "").replace(",", ".")) || 0),
-      meta3: acc.meta3 + (parseFloat(g.meta3.replace(/\./g, "").replace(",", ".")) || 0),
-    }),
-    { meta1: 0, meta2: 0, meta3: 0 }
-  );
-
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
     }).format(value);
+
+  const parseGoalValue = (value: string) =>
+    parseFloat(value.replace(/\./g, "").replace(",", ".")) || 0;
+
+  // Calculate progress and status for a goal
+  const getProgressStatus = (realized: number, meta1: number, meta2: number, meta3: number) => {
+    if (meta3 <= 0 && meta2 <= 0 && meta1 <= 0) {
+      return { percent: 0, status: "none", label: "Sem meta", color: "text-muted-foreground" };
+    }
+
+    // Calculate progress based on Meta 3 (our focus)
+    const targetMeta = meta3 > 0 ? meta3 : meta2 > 0 ? meta2 : meta1;
+    const percent = targetMeta > 0 ? Math.round((realized / targetMeta) * 100) : 0;
+
+    if (meta3 > 0 && realized >= meta3) {
+      return { percent: Math.min(percent, 100), status: "meta3", label: "Meta 3 ✓", color: "text-primary" };
+    }
+    if (meta2 > 0 && realized >= meta2) {
+      return { percent: Math.min(percent, 100), status: "meta2", label: "Meta 2 ✓", color: "text-success" };
+    }
+    if (meta1 > 0 && realized >= meta1) {
+      return { percent: Math.min(percent, 100), status: "meta1", label: "Meta 1 ✓", color: "text-success" };
+    }
+    
+    return { percent, status: "pending", label: `${percent}%`, color: "text-warning" };
+  };
+
+  // Calculate totals
+  const totals = goals.reduce(
+    (acc, g) => ({
+      meta1: acc.meta1 + parseGoalValue(g.meta1),
+      meta2: acc.meta2 + parseGoalValue(g.meta2),
+      meta3: acc.meta3 + parseGoalValue(g.meta3),
+      realized: acc.realized + g.realized,
+    }),
+    { meta1: 0, meta2: 0, meta3: 0, realized: 0 }
+  );
+
+  const totalProgress = getProgressStatus(totals.realized, totals.meta1, totals.meta2, totals.meta3);
+
+  // Calculate data for "Por Vendedora" view
+  const getSalesPersonData = () => {
+    if (!profiles || !allGoals) return [];
+
+    return profiles.map((p) => {
+      const userGoals = allGoals.filter((g) => g.user_id === p.user_id);
+      const totalMeta1 = userGoals.reduce((sum, g) => sum + Number(g.revenue_goal || 0), 0);
+      const totalMeta2 = userGoals.reduce((sum, g) => sum + Number(g.meta2_goal || 0), 0);
+      const totalMeta3 = userGoals.reduce((sum, g) => sum + Number(g.meta3_goal || 0), 0);
+      
+      // Calculate realized for this user
+      const userRevenue = revenueRecords?.filter(
+        (r) => r.user_id === p.user_id || r.attributed_to_user_id === p.user_id
+      );
+      const realized = userRevenue?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+
+      const progress = getProgressStatus(realized, totalMeta1, totalMeta2, totalMeta3);
+
+      return {
+        userId: p.user_id,
+        name: p.full_name,
+        meta1: totalMeta1,
+        meta2: totalMeta2,
+        meta3: totalMeta3,
+        realized,
+        remaining: Math.max((totalMeta3 || totalMeta2 || totalMeta1) - realized, 0),
+        progress,
+      };
+    }).filter((p) => p.meta1 > 0 || p.meta2 > 0 || p.meta3 > 0 || p.realized > 0)
+      .sort((a, b) => b.realized - a.realized);
+  };
 
   if (isLoading) {
     return (
@@ -188,12 +318,14 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
     );
   }
 
+  const salesPersonData = getSalesPersonData();
+
   return (
     <Card className="border-primary/30">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2">
           <Target className="w-5 h-5 text-primary" />
-          Minhas Metas por Grupo de Procedimento
+          Acompanhamento de Metas
         </CardTitle>
         <Button
           onClick={() => saveMutation.mutate()}
@@ -205,81 +337,229 @@ export default function IndividualGoalsForm({ month, year }: IndividualGoalsForm
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="bg-primary/10 rounded-lg p-3 mb-4 text-center">
-          <p className="font-semibold text-primary">
-            VENDEDORA: {profile?.full_name?.toUpperCase() || "---"}
-          </p>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+            <TabsTrigger value="by-department" className="gap-2">
+              <Building2 className="w-4 h-4" />
+              Por Departamento
+            </TabsTrigger>
+            <TabsTrigger value="by-saleswoman" className="gap-2">
+              <User className="w-4 h-4" />
+              Por Vendedora
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-primary/10">
-                <TableHead className="font-bold text-primary min-w-[280px]">
-                  Grupo de procedimento
-                </TableHead>
-                <TableHead className="text-center font-bold text-primary w-[150px]">
-                  META 1
-                </TableHead>
-                <TableHead className="text-center font-bold text-primary w-[150px]">
-                  META 2
-                </TableHead>
-                <TableHead className="text-center font-bold text-primary w-[150px]">
-                  META 3
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {goals.map((goal, index) => (
-                <TableRow key={goal.department_name} className="hover:bg-muted/50">
-                  <TableCell className="font-medium text-sm">
-                    {goal.department_name}
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="text"
-                      placeholder="R$ 0,00"
-                      value={goal.meta1}
-                      onChange={(e) => updateGoal(index, "meta1", e.target.value)}
-                      className="text-center text-sm h-9"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="text"
-                      placeholder="R$ 0,00"
-                      value={goal.meta2}
-                      onChange={(e) => updateGoal(index, "meta2", e.target.value)}
-                      className="text-center text-sm h-9"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="text"
-                      placeholder="R$ 0,00"
-                      value={goal.meta3}
-                      onChange={(e) => updateGoal(index, "meta3", e.target.value)}
-                      className="text-center text-sm h-9"
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {/* Total Row */}
-              <TableRow className="bg-primary/10 font-bold">
-                <TableCell className="font-bold text-center">TOTAL</TableCell>
-                <TableCell className="text-center text-success">
-                  {formatCurrency(totals.meta1)}
-                </TableCell>
-                <TableCell className="text-center text-success">
-                  {formatCurrency(totals.meta2)}
-                </TableCell>
-                <TableCell className="text-center text-primary">
-                  {formatCurrency(totals.meta3)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
+          {/* POR DEPARTAMENTO */}
+          <TabsContent value="by-department" className="space-y-4">
+            <div className="bg-primary/10 rounded-lg p-3 text-center">
+              <p className="font-semibold text-primary">
+                VENDEDORA: {profile?.full_name?.toUpperCase() || "---"}
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-bold min-w-[220px]">Departamento</TableHead>
+                    <TableHead className="text-center font-bold w-[120px]">META 1</TableHead>
+                    <TableHead className="text-center font-bold w-[120px]">META 2</TableHead>
+                    <TableHead className="text-center font-bold w-[120px]">META 3</TableHead>
+                    <TableHead className="text-center font-bold text-success w-[120px]">REALIZADO</TableHead>
+                    <TableHead className="text-center font-bold text-destructive w-[120px]">FALTAM</TableHead>
+                    <TableHead className="text-center font-bold w-[100px]">PROGRESSO</TableHead>
+                    <TableHead className="text-center font-bold w-[100px]">STATUS</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {goals.map((goal, index) => {
+                    const meta1 = parseGoalValue(goal.meta1);
+                    const meta2 = parseGoalValue(goal.meta2);
+                    const meta3 = parseGoalValue(goal.meta3);
+                    const targetMeta = meta3 > 0 ? meta3 : meta2 > 0 ? meta2 : meta1;
+                    const remaining = Math.max(targetMeta - goal.realized, 0);
+                    const progress = getProgressStatus(goal.realized, meta1, meta2, meta3);
+
+                    return (
+                      <TableRow key={goal.department_name} className="hover:bg-muted/30">
+                        <TableCell className="font-medium text-sm">
+                          {goal.department_name}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="text"
+                            placeholder="0"
+                            value={goal.meta1}
+                            onChange={(e) => updateGoal(index, "meta1", e.target.value)}
+                            className="text-center text-sm h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="text"
+                            placeholder="0"
+                            value={goal.meta2}
+                            onChange={(e) => updateGoal(index, "meta2", e.target.value)}
+                            className="text-center text-sm h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="text"
+                            placeholder="0"
+                            value={goal.meta3}
+                            onChange={(e) => updateGoal(index, "meta3", e.target.value)}
+                            className="text-center text-sm h-8 border-primary/50"
+                          />
+                        </TableCell>
+                        <TableCell className="text-center text-success font-medium">
+                          {formatCurrency(goal.realized)}
+                        </TableCell>
+                        <TableCell className="text-center text-destructive font-medium">
+                          {formatCurrency(remaining)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={progress.color}>{progress.percent}%</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={progress.status === "meta3" ? "default" : progress.status.includes("meta") ? "secondary" : "outline"}
+                            className={`text-xs ${
+                              progress.status === "meta3" ? "bg-primary" :
+                              progress.status === "meta2" || progress.status === "meta1" ? "bg-success text-success-foreground" :
+                              progress.status === "pending" ? "bg-warning/20 text-warning border-warning" :
+                              ""
+                            }`}
+                          >
+                            {progress.status === "none" ? (
+                              <span className="flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                0%
+                              </span>
+                            ) : progress.status === "pending" ? (
+                              <span className="flex items-center gap-1">
+                                <TrendingUp className="w-3 h-3" />
+                                {progress.percent}%
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                {progress.label}
+                              </span>
+                            )}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {/* TOTAL ROW */}
+                  <TableRow className="bg-primary/10 font-bold border-t-2 border-primary/30">
+                    <TableCell className="font-bold">TOTAL</TableCell>
+                    <TableCell className="text-center">{formatCurrency(totals.meta1)}</TableCell>
+                    <TableCell className="text-center">{formatCurrency(totals.meta2)}</TableCell>
+                    <TableCell className="text-center text-primary">{formatCurrency(totals.meta3)}</TableCell>
+                    <TableCell className="text-center text-success">{formatCurrency(totals.realized)}</TableCell>
+                    <TableCell className="text-center text-destructive">
+                      {formatCurrency(Math.max((totals.meta3 || totals.meta2 || totals.meta1) - totals.realized, 0))}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={totalProgress.color}>{totalProgress.percent}%</span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant="default"
+                        className={`${
+                          totalProgress.status === "meta3" ? "bg-primary" :
+                          totalProgress.status.includes("meta") ? "bg-success" :
+                          "bg-warning/20 text-warning border-warning"
+                        }`}
+                      >
+                        {totalProgress.status === "pending" ? (
+                          <span className="flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            {totalProgress.percent}%
+                          </span>
+                        ) : (
+                          totalProgress.label
+                        )}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          {/* POR VENDEDORA */}
+          <TabsContent value="by-saleswoman" className="space-y-4">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-bold min-w-[200px]">Vendedora</TableHead>
+                    <TableHead className="text-center font-bold w-[120px]">META 1</TableHead>
+                    <TableHead className="text-center font-bold w-[120px]">META 2</TableHead>
+                    <TableHead className="text-center font-bold w-[120px]">META 3</TableHead>
+                    <TableHead className="text-center font-bold text-success w-[120px]">REALIZADO</TableHead>
+                    <TableHead className="text-center font-bold text-destructive w-[120px]">FALTAM</TableHead>
+                    <TableHead className="text-center font-bold w-[100px]">PROGRESSO</TableHead>
+                    <TableHead className="text-center font-bold w-[100px]">STATUS</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {salesPersonData.map((person) => (
+                    <TableRow key={person.userId} className="hover:bg-muted/30">
+                      <TableCell className="font-medium">{person.name}</TableCell>
+                      <TableCell className="text-center">{formatCurrency(person.meta1)}</TableCell>
+                      <TableCell className="text-center">{formatCurrency(person.meta2)}</TableCell>
+                      <TableCell className="text-center text-primary font-medium">{formatCurrency(person.meta3)}</TableCell>
+                      <TableCell className="text-center text-success font-medium">{formatCurrency(person.realized)}</TableCell>
+                      <TableCell className="text-center text-destructive font-medium">{formatCurrency(person.remaining)}</TableCell>
+                      <TableCell className="text-center">
+                        <span className={person.progress.color}>{person.progress.percent}%</span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={person.progress.status === "meta3" ? "default" : person.progress.status.includes("meta") ? "secondary" : "outline"}
+                          className={`text-xs ${
+                            person.progress.status === "meta3" ? "bg-primary" :
+                            person.progress.status === "meta2" || person.progress.status === "meta1" ? "bg-success text-success-foreground" :
+                            person.progress.status === "pending" ? "bg-warning/20 text-warning border-warning" :
+                            ""
+                          }`}
+                        >
+                          {person.progress.status === "none" ? (
+                            <span className="flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" />
+                              0%
+                            </span>
+                          ) : person.progress.status === "pending" ? (
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" />
+                              {person.progress.percent}%
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              {person.progress.label}
+                            </span>
+                          )}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {salesPersonData.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        Nenhuma vendedora com metas cadastradas para este mês.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
