@@ -17,6 +17,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import brasaoLioness from "@/assets/brasao-lioness-team.png";
+import brasaoTroia from "@/assets/brasao-troia-team.png";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -463,30 +465,38 @@ const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {teamData.map((team, index) => (
-                  <div
-                    key={team.name}
-                    className={`flex items-center justify-between p-4 rounded-lg ${
-                      index === 0 ? "bg-primary/10 border border-primary/30" : "bg-muted/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <Badge variant={index === 0 ? "default" : "secondary"} className="text-lg px-3">
-                        {index + 1}º
-                      </Badge>
-                      <div>
-                        <p className="font-semibold text-lg">{team.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatCurrency(team.revenue)} em faturamento
-                        </p>
+                {teamData.map((team, index) => {
+                  const teamLogo = team.name.toLowerCase().includes("lioness") ? brasaoLioness : brasaoTroia;
+                  return (
+                    <div
+                      key={team.name}
+                      className={`flex items-center justify-between p-4 rounded-lg ${
+                        index === 0 ? "bg-primary/10 border border-primary/30" : "bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <Badge variant={index === 0 ? "default" : "secondary"} className="text-lg px-3">
+                          {index + 1}º
+                        </Badge>
+                        <img 
+                          src={teamLogo} 
+                          alt={team.name}
+                          className={`w-12 h-12 object-contain ${index === 0 ? "animate-pulse" : ""}`}
+                        />
+                        <div>
+                          <p className="font-semibold text-lg">{team.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {formatCurrency(team.revenue)} em faturamento
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-primary">{team.totalPoints}</p>
+                        <p className="text-xs text-muted-foreground">pontos</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">{team.totalPoints}</p>
-                      <p className="text-xs text-muted-foreground">pontos</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

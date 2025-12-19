@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Download, Filter, Calendar, Users, FileSpreadsheet } from "lucide-react";
+import brasaoLioness from "@/assets/brasao-lioness-team.png";
+import brasaoTroia from "@/assets/brasao-troia-team.png";
 
 type RecordType = "revenue" | "nps" | "testimonial" | "referral" | "other" | "all";
 
@@ -372,21 +374,29 @@ const History = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredRecords.slice(0, 100).map((record) => (
-                      <TableRow key={`${record.type}-${record.id}`} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">
-                          {format(new Date(record.date), "dd/MM/yyyy", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>{record.team_name}</TableCell>
-                        <TableCell>
-                          <Badge variant={getTypeBadgeVariant(record.type)}>
-                            {getTypeLabel(record.type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="max-w-[300px] truncate">{record.details}</TableCell>
-                        <TableCell className="font-medium">{record.value}</TableCell>
-                      </TableRow>
-                    ))
+                    filteredRecords.slice(0, 100).map((record) => {
+                      const teamLogo = record.team_name.toLowerCase().includes("lioness") ? brasaoLioness : brasaoTroia;
+                      return (
+                        <TableRow key={`${record.type}-${record.id}`} className="hover:bg-muted/30">
+                          <TableCell className="font-medium">
+                            {format(new Date(record.date), "dd/MM/yyyy", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <img src={teamLogo} alt={record.team_name} className="w-6 h-6 object-contain" />
+                              <span>{record.team_name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getTypeBadgeVariant(record.type)}>
+                              {getTypeLabel(record.type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[300px] truncate">{record.details}</TableCell>
+                          <TableCell className="font-medium">{record.value}</TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
