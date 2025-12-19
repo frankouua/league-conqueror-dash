@@ -24,12 +24,14 @@ interface IndividualTeamFieldsProps {
   form: UseFormReturn<any>;
   countsFieldName?: string;
   attributedFieldName?: string;
+  hideTeamContribution?: boolean;
 }
 
 export const IndividualTeamFields = ({ 
   form, 
   countsFieldName = "countsForIndividual",
-  attributedFieldName = "attributedToUserId"
+  attributedFieldName = "attributedToUserId",
+  hideTeamContribution = false
 }: IndividualTeamFieldsProps) => {
   const { user, profile, role } = useAuth();
   const isAdmin = role === "admin";
@@ -72,9 +74,11 @@ export const IndividualTeamFields = ({
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="__self__">Eu mesmo</SelectItem>
-                  <SelectItem value="team" className="text-primary font-medium">
-                    🏆 Contribuição geral do time
-                  </SelectItem>
+                  {!hideTeamContribution && (
+                    <SelectItem value="team" className="text-primary font-medium">
+                      🏆 Contribuição geral do time
+                    </SelectItem>
+                  )}
                   {teamMembers?.filter(m => m.user_id !== user?.id).map((member) => (
                     <SelectItem key={member.user_id} value={member.user_id}>
                       {member.full_name}

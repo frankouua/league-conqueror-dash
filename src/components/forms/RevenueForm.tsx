@@ -263,7 +263,7 @@ const RevenueForm = () => {
             )}
           />
 
-          <IndividualTeamFields form={form} />
+          <IndividualTeamFields form={form} hideTeamContribution />
 
           <Button
             type="submit"
