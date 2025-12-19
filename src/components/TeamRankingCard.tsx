@@ -1,4 +1,6 @@
 import { Trophy, TrendingUp, TrendingDown, Minus, DollarSign } from "lucide-react";
+import brasaoLioness from "@/assets/brasao-lioness-team.png";
+import brasaoTroia from "@/assets/brasao-troia-team.png";
 
 interface TeamRankingCardProps {
   position: 1 | 2;
@@ -23,6 +25,13 @@ const TeamRankingCard = ({
   pointsDifference = 0,
   isLeading,
 }: TeamRankingCardProps) => {
+  // Determine which logo to use based on team name
+  const teamLogo = teamName.toLowerCase().includes("lioness") 
+    ? brasaoLioness 
+    : teamName.toLowerCase().includes("tr") 
+    ? brasaoTroia 
+    : position === 1 ? brasaoLioness : brasaoTroia;
+
   return (
     <div
       className={`relative rounded-2xl p-6 transition-all duration-500 ${
@@ -49,38 +58,46 @@ const TeamRankingCard = ({
         </div>
       )}
 
-      {/* Team Name */}
-      <div className="mt-4 mb-6">
-        <h3
-          className={`text-2xl font-bold ${
-            isLeading ? "text-gradient-gold" : "text-foreground"
-          }`}
-        >
-          {teamName}
-        </h3>
-        <div className="flex items-center gap-2 mt-1">
-          {pointsDifference > 0 ? (
-            <>
-              <TrendingUp className="w-4 h-4 text-success" />
-              <span className="text-success text-sm font-medium">
-                +{pointsDifference} pts à frente
-              </span>
-            </>
-          ) : pointsDifference < 0 ? (
-            <>
-              <TrendingDown className="w-4 h-4 text-destructive" />
-              <span className="text-destructive text-sm font-medium">
-                {pointsDifference} pts atrás
-              </span>
-            </>
-          ) : (
-            <>
-              <Minus className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground text-sm font-medium">
-                Empate
-              </span>
-            </>
-          )}
+      {/* Team Logo and Name */}
+      <div className="mt-4 mb-6 flex items-center gap-4">
+        <img 
+          src={teamLogo} 
+          alt={`Brasão ${teamName}`}
+          className="w-16 h-16 object-contain drop-shadow-lg"
+          style={{ filter: "drop-shadow(0 0 10px hsl(43 65% 52% / 0.3))" }}
+        />
+        <div>
+          <h3
+            className={`text-2xl font-bold ${
+              isLeading ? "text-gradient-gold" : "text-foreground"
+            }`}
+          >
+            {teamName}
+          </h3>
+          <div className="flex items-center gap-2 mt-1">
+            {pointsDifference > 0 ? (
+              <>
+                <TrendingUp className="w-4 h-4 text-success" />
+                <span className="text-success text-sm font-medium">
+                  +{pointsDifference} pts à frente
+                </span>
+              </>
+            ) : pointsDifference < 0 ? (
+              <>
+                <TrendingDown className="w-4 h-4 text-destructive" />
+                <span className="text-destructive text-sm font-medium">
+                  {pointsDifference} pts atrás
+                </span>
+              </>
+            ) : (
+              <>
+                <Minus className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground text-sm font-medium">
+                  Empate
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

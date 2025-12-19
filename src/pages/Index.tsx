@@ -178,8 +178,8 @@ const Index = () => {
           <div className="animate-slide-up" style={{ animationDelay: "550ms" }}>
             <EvolutionChart
               data={chartData}
-              team1Name={team1?.name || "Equipe 1"}
-              team2Name={team2?.name || "Equipe 2"}
+              team1Name={team1?.name || "Lioness Team"}
+              team2Name={team2?.name || "Tróia Team"}
             />
           </div>
         </div>
