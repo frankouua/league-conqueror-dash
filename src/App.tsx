@@ -15,6 +15,7 @@ import Performance from "./pages/Performance";
 import Guides from "./pages/Guides";
 import ReferralLeads from "./pages/ReferralLeads";
 import PatientKanban from "./pages/PatientKanban";
+import OnboardingGoals from "./pages/OnboardingGoals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/register" element={<Register />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/onboarding-goals" element={<ProtectedRoute><OnboardingGoals /></ProtectedRoute>} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/data-reports" element={<ProtectedRoute><DataReports /></ProtectedRoute>} />
             <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
