@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
+import { CalendarIcon, DollarSign, Loader2, Building2 } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,16 +22,32 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { IndividualTeamFields, getEffectiveInsertData } from "./IndividualTeamFields";
 
+const DEPARTMENT_OPTIONS = [
+  { value: "comercial", label: "Comercial" },
+  { value: "atendimento", label: "Atendimento" },
+  { value: "marketing", label: "Marketing" },
+  { value: "administrativo", label: "Administrativo" },
+  { value: "clinico", label: "Clínico" },
+] as const;
+
 const revenueSchema = z.object({
   amount: z.string().min(1, "Informe o valor do faturamento"),
   date: z.date({ required_error: "Selecione uma data" }),
   notes: z.string().optional(),
+  department: z.enum(["comercial", "atendimento", "marketing", "administrativo", "clinico"]).optional(),
   countsForIndividual: z.boolean().default(true),
   attributedToUserId: z.string().optional(),
 });
@@ -49,6 +65,7 @@ const RevenueForm = () => {
     defaultValues: {
       amount: "",
       notes: "",
+      department: undefined,
       countsForIndividual: true,
       attributedToUserId: "",
     },
@@ -96,6 +113,7 @@ const RevenueForm = () => {
         amount,
         date: format(data.date, "yyyy-MM-dd"),
         notes: data.notes || null,
+        department: data.department || null,
         counts_for_individual: insertData.counts_for_individual,
         attributed_to_user_id: insertData.attributed_to_user_id,
         registered_by_admin: insertData.registered_by_admin,
@@ -190,6 +208,34 @@ const RevenueForm = () => {
                     />
                   </PopoverContent>
                 </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Departamento (opcional)
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue placeholder="Selecione o departamento" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {DEPARTMENT_OPTIONS.map((dept) => (
+                      <SelectItem key={dept.value} value={dept.value}>
+                        {dept.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

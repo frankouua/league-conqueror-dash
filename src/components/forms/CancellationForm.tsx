@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, XCircle, Loader2 } from "lucide-react";
+import { CalendarIcon, XCircle, Loader2, Building2 } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,15 +23,31 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+const DEPARTMENT_OPTIONS = [
+  { value: "comercial", label: "Comercial" },
+  { value: "atendimento", label: "Atendimento" },
+  { value: "marketing", label: "Marketing" },
+  { value: "administrativo", label: "Administrativo" },
+  { value: "clinico", label: "Clínico" },
+] as const;
+
 const cancellationSchema = z.object({
   amount: z.string().min(1, "Informe o valor do cancelamento"),
   date: z.date({ required_error: "Selecione uma data" }),
   reason: z.string().min(3, "Informe o motivo do cancelamento"),
+  department: z.enum(["comercial", "atendimento", "marketing", "administrativo", "clinico"]).optional(),
 });
 
 type CancellationFormData = z.infer<typeof cancellationSchema>;
@@ -46,6 +62,7 @@ const CancellationForm = () => {
     defaultValues: {
       amount: "",
       reason: "",
+      department: undefined,
     },
   });
 
@@ -87,6 +104,7 @@ const CancellationForm = () => {
         amount: negativeAmount,
         date: format(data.date, "yyyy-MM-dd"),
         notes: `[CANCELAMENTO] ${data.reason}`,
+        department: data.department || null,
       });
 
       if (error) throw error;
@@ -151,6 +169,34 @@ const CancellationForm = () => {
                 <FormDescription className="text-muted-foreground">
                   Informe o valor que será abatido
                 </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Departamento (opcional)
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue placeholder="Selecione o departamento" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {DEPARTMENT_OPTIONS.map((dept) => (
+                      <SelectItem key={dept.value} value={dept.value}>
+                        {dept.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
