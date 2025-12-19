@@ -111,6 +111,42 @@ export type Database = {
           },
         ]
       }
+      department_goals: {
+        Row: {
+          created_at: string
+          department_name: string
+          id: string
+          meta1_goal: number
+          meta2_goal: number
+          meta3_goal: number
+          month: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          department_name: string
+          id?: string
+          meta1_goal?: number
+          meta2_goal?: number
+          meta3_goal?: number
+          month: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          department_name?: string
+          id?: string
+          meta1_goal?: number
+          meta2_goal?: number
+          meta3_goal?: number
+          month?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       individual_goals: {
         Row: {
           created_at: string
