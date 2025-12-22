@@ -17,6 +17,7 @@ import {
 import copaLogo from "@/assets/logo-copa-unique-league.png";
 import cardsSystem from "@/assets/cards-system.png";
 import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
+import PrizeRulesAndHistory from "@/components/PrizeRulesAndHistory";
 
 const journeyStages = [
   {
@@ -240,10 +241,14 @@ const Guides = () => {
         </div>
 
         <Tabs defaultValue="rules" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4">
             <TabsTrigger value="rules" className="gap-2">
               <BookOpen className="w-4 h-4" />
               Regras
+            </TabsTrigger>
+            <TabsTrigger value="prizes" className="gap-2">
+              <Trophy className="w-4 h-4" />
+              Premiações
             </TabsTrigger>
             <TabsTrigger value="commercial" className="gap-2">
               <Target className="w-4 h-4" />
@@ -469,6 +474,11 @@ const Guides = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* PREMIAÇÕES */}
+          <TabsContent value="prizes" className="space-y-6">
+            <PrizeRulesAndHistory />
           </TabsContent>
 
           {/* GUIA COMERCIAL */}

@@ -1,4 +1,4 @@
-import { Trophy, Crown, Medal, Calendar, Star, Flame, Sparkles } from "lucide-react";
+import { Trophy, Crown, Medal, Calendar, Star, Flame, Sparkles, Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useChampions } from "@/hooks/useChampions";
@@ -6,6 +6,7 @@ import { useStreakRecords } from "@/hooks/useStreakRecords";
 import { Skeleton } from "@/components/ui/skeleton";
 import { playStreakCelebration } from "@/lib/sounds";
 import { useEffect, useRef } from "react";
+import PrizeHistoryCompact from "./PrizeHistoryCompact";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -245,6 +246,11 @@ const ChampionsDisplay = () => {
             </div>
           </div>
         )}
+
+        {/* Prize History Section */}
+        <div className="pt-4 border-t border-border">
+          <PrizeHistoryCompact year={now.getFullYear()} />
+        </div>
       </CardContent>
     </Card>
   );
