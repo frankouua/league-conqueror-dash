@@ -116,11 +116,11 @@ const Index = () => {
           )}
         </div>
 
-        {/* Team Badges Display */}
-        <div className="mb-12 animate-scale-in" style={{ animationDelay: "50ms" }}>
+        {/* Team Badges Display - TV Optimized */}
+        <div className="mb-8 animate-scale-in" style={{ animationDelay: "50ms" }}>
           <TeamBadgesDisplay 
-            layout="versus" 
-            size="lg" 
+            layout="tv" 
+            size="xl" 
             winningTeam={
               team1 && team2 
                 ? team1.totalPoints > team2.totalPoints 
@@ -130,6 +130,16 @@ const Index = () => {
                   : "tie"
                 : null
             }
+            team1={team1 ? {
+              name: team1.name,
+              totalPoints: team1.totalPoints,
+              totalRevenue: team1.totalRevenue
+            } : null}
+            team2={team2 ? {
+              name: team2.name,
+              totalPoints: team2.totalPoints,
+              totalRevenue: team2.totalRevenue
+            } : null}
           />
         </div>
         <div className="mb-8 animate-slide-up" style={{ animationDelay: "100ms" }}>

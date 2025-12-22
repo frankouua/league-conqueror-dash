@@ -1,28 +1,215 @@
-import { Crown } from "lucide-react";
+import { Crown, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import brasaoLioness from "@/assets/brasao-lioness-team.png";
 import brasaoTroia from "@/assets/brasao-troia-team.png";
 
-interface TeamBadgesDisplayProps {
-  layout?: "horizontal" | "versus";
-  size?: "sm" | "md" | "lg";
-  winningTeam?: "lioness" | "troia" | "tie" | null;
+interface TeamData {
+  name: string;
+  totalPoints: number;
+  totalRevenue: number;
 }
 
-const TeamBadgesDisplay = ({ layout = "versus", size = "lg", winningTeam = null }: TeamBadgesDisplayProps) => {
+interface TeamBadgesDisplayProps {
+  layout?: "horizontal" | "versus" | "tv";
+  size?: "sm" | "md" | "lg" | "xl";
+  winningTeam?: "lioness" | "troia" | "tie" | null;
+  team1?: TeamData | null;
+  team2?: TeamData | null;
+}
+
+const TeamBadgesDisplay = ({ 
+  layout = "versus", 
+  size = "lg", 
+  winningTeam = null,
+  team1 = null,
+  team2 = null
+}: TeamBadgesDisplayProps) => {
   const sizeClasses = {
     sm: "w-20 h-20",
     md: "w-32 h-32",
     lg: "w-40 h-40 md:w-48 md:h-48",
+    xl: "w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64",
   };
 
   const textSizes = {
     sm: "text-sm",
     md: "text-lg",
     lg: "text-xl md:text-2xl",
+    xl: "text-2xl md:text-3xl lg:text-4xl",
+  };
+
+  const pointsSizes = {
+    sm: "text-lg",
+    md: "text-2xl",
+    lg: "text-3xl md:text-4xl",
+    xl: "text-4xl md:text-5xl lg:text-6xl",
   };
 
   const isLionessWinning = winningTeam === "lioness";
   const isTroiaWinning = winningTeam === "troia";
+  
+  const pointsDifference = team1 && team2 ? Math.abs(team1.totalPoints - team2.totalPoints) : 0;
+
+  // TV-optimized layout for large screens
+  if (layout === "tv") {
+    return (
+      <div className="flex items-center justify-center gap-6 md:gap-12 lg:gap-20 py-8">
+        {/* Lioness Team */}
+        <div className="flex flex-col items-center relative">
+          {isLionessWinning && (
+            <div className="absolute -top-8 md:-top-10 z-20">
+              <Crown className="w-12 h-12 md:w-16 md:h-16 text-primary animate-float" />
+            </div>
+          )}
+          <div className={`${sizeClasses[size]} relative group`}>
+            <div className={`absolute inset-0 rounded-full blur-3xl transition-all ${
+              isLionessWinning ? "bg-primary/50" : "bg-primary/25"
+            }`} />
+            <img
+              src={brasaoLioness}
+              alt="Brasão Lioness Team"
+              className={`w-full h-full object-contain relative z-10 drop-shadow-2xl ${
+                isLionessWinning ? "winner-badge" : ""
+              }`}
+              style={{ filter: `drop-shadow(0 0 ${isLionessWinning ? "50px" : "35px"} hsl(43 65% 52% / ${isLionessWinning ? "0.8" : "0.5"}))` }}
+            />
+          </div>
+          <h3 className={`${textSizes[size]} font-black text-gradient-gold mt-4`}>
+            Lioness Team
+          </h3>
+          
+          {/* Points Display */}
+          {team1 && (
+            <div className="mt-3 text-center">
+              <p className={`${pointsSizes[size]} font-black ${isLionessWinning ? "text-gradient-gold" : "text-foreground"}`}>
+                {team1.totalPoints.toLocaleString("pt-BR")}
+              </p>
+              <p className="text-muted-foreground text-sm md:text-base font-medium">pontos</p>
+              
+              {/* Point Difference */}
+              <div className="mt-2 flex items-center justify-center gap-1">
+                {pointsDifference > 0 && isLionessWinning ? (
+                  <>
+                    <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-success" />
+                    <span className="text-success text-sm md:text-base font-semibold">
+                      +{pointsDifference} pts
+                    </span>
+                  </>
+                ) : pointsDifference > 0 && !isLionessWinning ? (
+                  <>
+                    <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-destructive" />
+                    <span className="text-destructive text-sm md:text-base font-semibold">
+                      -{pointsDifference} pts
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Minus className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+                    <span className="text-muted-foreground text-sm md:text-base font-semibold">
+                      Empate
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Revenue */}
+              <div className="mt-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
+                <p className="text-success text-lg md:text-xl lg:text-2xl font-bold">
+                  R$ {team1.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {isLionessWinning && (
+            <span className="text-sm md:text-base font-bold text-primary bg-primary/20 px-4 py-2 rounded-full mt-3 animate-pulse">
+              🏆 Liderando
+            </span>
+          )}
+        </div>
+
+        {/* VS Separator */}
+        <div className="flex flex-col items-center justify-center">
+          <span className="text-5xl md:text-7xl lg:text-8xl font-black text-primary animate-pulse">
+            VS
+          </span>
+        </div>
+
+        {/* Tróia Team */}
+        <div className="flex flex-col items-center relative">
+          {isTroiaWinning && (
+            <div className="absolute -top-8 md:-top-10 z-20">
+              <Crown className="w-12 h-12 md:w-16 md:h-16 text-primary animate-float" />
+            </div>
+          )}
+          <div className={`${sizeClasses[size]} relative group`}>
+            <div className={`absolute inset-0 rounded-full blur-3xl transition-all ${
+              isTroiaWinning ? "bg-primary/50" : "bg-info/25"
+            }`} />
+            <img
+              src={brasaoTroia}
+              alt="Brasão Tróia Team"
+              className={`w-full h-full object-contain relative z-10 drop-shadow-2xl ${
+                isTroiaWinning ? "winner-badge" : ""
+              }`}
+              style={{ filter: `drop-shadow(0 0 ${isTroiaWinning ? "50px" : "35px"} hsl(${isTroiaWinning ? "43 65% 52%" : "217 91% 60%"} / ${isTroiaWinning ? "0.8" : "0.5"}))` }}
+            />
+          </div>
+          <h3 className={`${textSizes[size]} font-black text-gradient-gold mt-4`}>
+            Tróia Team
+          </h3>
+          
+          {/* Points Display */}
+          {team2 && (
+            <div className="mt-3 text-center">
+              <p className={`${pointsSizes[size]} font-black ${isTroiaWinning ? "text-gradient-gold" : "text-foreground"}`}>
+                {team2.totalPoints.toLocaleString("pt-BR")}
+              </p>
+              <p className="text-muted-foreground text-sm md:text-base font-medium">pontos</p>
+              
+              {/* Point Difference */}
+              <div className="mt-2 flex items-center justify-center gap-1">
+                {pointsDifference > 0 && isTroiaWinning ? (
+                  <>
+                    <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-success" />
+                    <span className="text-success text-sm md:text-base font-semibold">
+                      +{pointsDifference} pts
+                    </span>
+                  </>
+                ) : pointsDifference > 0 && !isTroiaWinning ? (
+                  <>
+                    <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-destructive" />
+                    <span className="text-destructive text-sm md:text-base font-semibold">
+                      -{pointsDifference} pts
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Minus className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+                    <span className="text-muted-foreground text-sm md:text-base font-semibold">
+                      Empate
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Revenue */}
+              <div className="mt-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
+                <p className="text-success text-lg md:text-xl lg:text-2xl font-bold">
+                  R$ {team2.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {isTroiaWinning && (
+            <span className="text-sm md:text-base font-bold text-primary bg-primary/20 px-4 py-2 rounded-full mt-3 animate-pulse">
+              🏆 Liderando
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (layout === "horizontal") {
     return (
@@ -68,7 +255,7 @@ const TeamBadgesDisplay = ({ layout = "versus", size = "lg", winningTeam = null 
     );
   }
 
-  // Versus layout
+  // Versus layout (default)
   return (
     <div className="flex items-center justify-center gap-4 md:gap-8">
       <div className="flex flex-col items-center animate-slide-up relative">
