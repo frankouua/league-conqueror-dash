@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Users as UsersIcon, Loader2, ExternalLink } from "lucide-react";
@@ -43,6 +43,7 @@ type ReferralFormData = z.infer<typeof referralSchema>;
 
 const ReferralForm = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [adminSelectedTeamId, setAdminSelectedTeamId] = useState<string | undefined>();
   const { user, profile, role } = useAuth();
   const { toast } = useToast();
   const isAdmin = role === "admin";
@@ -59,11 +60,17 @@ const ReferralForm = () => {
     },
   });
 
+  const handleTeamChange = useCallback((teamId: string) => {
+    setAdminSelectedTeamId(teamId);
+  }, []);
+
   const onSubmit = async (data: ReferralFormData) => {
-    if (!user || !profile?.team_id) {
+    const effectiveTeamId = isAdmin && adminSelectedTeamId ? adminSelectedTeamId : profile?.team_id;
+    
+    if (!user || !effectiveTeamId) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado e vinculado a uma equipe",
+        description: isAdmin ? "Selecione um time" : "Você precisa estar logado e vinculado a uma equipe",
         variant: "destructive",
       });
       return;
@@ -90,11 +97,12 @@ const ReferralForm = () => {
         user.id,
         data.attributedToUserId,
         data.countsForIndividual,
-        isAdmin
+        isAdmin,
+        effectiveTeamId
       );
 
       const { error } = await supabase.from("referral_records").insert({
-        team_id: profile.team_id,
+        team_id: effectiveTeamId,
         user_id: insertData.effectiveUserId,
         collected,
         to_consultation: toConsultation,
@@ -279,7 +287,7 @@ const ReferralForm = () => {
             )}
           />
 
-          <IndividualTeamFields form={form} />
+          <IndividualTeamFields form={form} onTeamChange={handleTeamChange} />
 
           <Button
             type="submit"

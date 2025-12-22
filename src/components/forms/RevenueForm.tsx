@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, DollarSign, Loader2, Building2 } from "lucide-react";
@@ -52,6 +52,7 @@ type RevenueFormData = z.infer<typeof revenueSchema>;
 
 const RevenueForm = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [adminSelectedTeamId, setAdminSelectedTeamId] = useState<string | undefined>();
   const { user, profile, role } = useAuth();
   const { toast } = useToast();
   const isAdmin = role === "admin";
@@ -67,11 +68,17 @@ const RevenueForm = () => {
     },
   });
 
+  const handleTeamChange = useCallback((teamId: string) => {
+    setAdminSelectedTeamId(teamId);
+  }, []);
+
   const onSubmit = async (data: RevenueFormData) => {
-    if (!user || !profile?.team_id) {
+    const effectiveTeamId = isAdmin && adminSelectedTeamId ? adminSelectedTeamId : profile?.team_id;
+    
+    if (!user || !effectiveTeamId) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado e vinculado a uma equipe",
+        description: isAdmin ? "Selecione um time" : "Você precisa estar logado e vinculado a uma equipe",
         variant: "destructive",
       });
       return;
@@ -100,11 +107,12 @@ const RevenueForm = () => {
         user.id,
         data.attributedToUserId,
         data.countsForIndividual,
-        isAdmin
+        isAdmin,
+        effectiveTeamId
       );
 
       const { error } = await supabase.from("revenue_records").insert({
-        team_id: profile.team_id,
+        team_id: effectiveTeamId,
         user_id: insertData.effectiveUserId,
         amount,
         date: format(data.date, "yyyy-MM-dd"),
@@ -256,7 +264,7 @@ const RevenueForm = () => {
             )}
           />
 
-          <IndividualTeamFields form={form} hideTeamContribution />
+          <IndividualTeamFields form={form} hideTeamContribution onTeamChange={handleTeamChange} />
 
           <Button
             type="submit"
