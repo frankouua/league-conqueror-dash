@@ -47,6 +47,12 @@ const TeamBadgesDisplay = ({
   const isLionessWinning = winningTeam === "lioness";
   const isTroiaWinning = winningTeam === "troia";
   
+  // Map team data to correct team based on name, not position
+  const lionessData = team1?.name.toLowerCase().includes("lioness") ? team1 : 
+                      team2?.name.toLowerCase().includes("lioness") ? team2 : null;
+  const troiaData = team1?.name.toLowerCase().includes("tr") ? team1 : 
+                    team2?.name.toLowerCase().includes("tr") ? team2 : null;
+  
   const pointsDifference = team1 && team2 ? Math.abs(team1.totalPoints - team2.totalPoints) : 0;
 
   // TV-optimized layout for large screens
@@ -78,10 +84,10 @@ const TeamBadgesDisplay = ({
           </h3>
           
           {/* Points Display */}
-          {team1 && (
+          {lionessData && (
             <div className="mt-3 text-center">
               <p className={`${pointsSizes[size]} font-black ${isLionessWinning ? "text-gradient-gold" : "text-foreground"}`}>
-                {team1.totalPoints.toLocaleString("pt-BR")}
+                {lionessData.totalPoints.toLocaleString("pt-BR")}
               </p>
               <p className="text-muted-foreground text-sm md:text-base font-medium">pontos</p>
               
@@ -114,7 +120,7 @@ const TeamBadgesDisplay = ({
               {/* Revenue */}
               <div className="mt-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
                 <p className="text-success text-lg md:text-xl lg:text-2xl font-bold">
-                  R$ {team1.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  R$ {lionessData.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </p>
               </div>
             </div>
@@ -159,10 +165,10 @@ const TeamBadgesDisplay = ({
           </h3>
           
           {/* Points Display */}
-          {team2 && (
+          {troiaData && (
             <div className="mt-3 text-center">
               <p className={`${pointsSizes[size]} font-black ${isTroiaWinning ? "text-gradient-gold" : "text-foreground"}`}>
-                {team2.totalPoints.toLocaleString("pt-BR")}
+                {troiaData.totalPoints.toLocaleString("pt-BR")}
               </p>
               <p className="text-muted-foreground text-sm md:text-base font-medium">pontos</p>
               
@@ -195,7 +201,7 @@ const TeamBadgesDisplay = ({
               {/* Revenue */}
               <div className="mt-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
                 <p className="text-success text-lg md:text-xl lg:text-2xl font-bold">
-                  R$ {team2.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  R$ {troiaData.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </p>
               </div>
             </div>
