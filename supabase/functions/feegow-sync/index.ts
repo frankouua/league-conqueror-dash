@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       
       const endpoints = [
         { name: 'appoints/search', method: 'GET', url: `https://api.feegow.com/v1/api/appoints/search?data_start=${lastWeek}&data_end=${today}` },
-        { name: 'financial/list-invoice', method: 'GET', url: `https://api.feegow.com/v1/api/financial/list-invoice?data_start=${lastWeek}&data_end=${today}&tipo_transacao=C` },
+        { name: 'appoints/status', method: 'GET', url: `https://api.feegow.com/v1/api/appoints/status` },
       ];
 
       const results: Record<string, any> = {};
@@ -111,18 +111,26 @@ Deno.serve(async (req) => {
           }
 
           let sampleData = null;
-          if (responseData.content && Array.isArray(responseData.content) && responseData.content.length > 0) {
-            sampleData = {
-              keys: Object.keys(responseData.content[0]),
-              sample: responseData.content[0],
-              count: responseData.content.length
-            };
+          let allData = null;
+          if (responseData.content && Array.isArray(responseData.content)) {
+            if (responseData.content.length > 0) {
+              sampleData = {
+                keys: Object.keys(responseData.content[0]),
+                sample: responseData.content[0],
+                count: responseData.content.length
+              };
+            }
+            // For status endpoint, return all data
+            if (endpoint.name === 'appoints/status') {
+              allData = responseData.content;
+            }
           }
 
           results[endpoint.name] = {
             status: response.status,
             success: response.ok,
             sampleData,
+            allData,
             recordCount: responseData.content?.length || 0,
           };
 
@@ -196,53 +204,9 @@ Deno.serve(async (req) => {
     console.log(`Period: ${dateStart} to ${dateEnd}`);
 
     // =====================================================
-    // STEP 1: Fetch appointments to get agendado_por (scheduler)
+    // STEP 1: Fetch invoices/payments first
     // =====================================================
-    console.log('Step 1: Fetching appointments...');
-    
-    const appointsResponse = await fetch(
-      `https://api.feegow.com/v1/api/appoints/search?data_start=${dateStart}&data_end=${dateEnd}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-access-token': feegowToken,
-        },
-      }
-    );
-
-    if (!appointsResponse.ok) {
-      const errorText = await appointsResponse.text();
-      throw new Error(`Failed to fetch appointments: ${appointsResponse.status} - ${errorText}`);
-    }
-
-    const appointsData = await appointsResponse.json();
-    const appointments: FeegowAppointment[] = appointsData.content || [];
-    console.log(`Fetched ${appointments.length} appointments`);
-
-    // Build map: paciente_id -> agendado_por (use most recent appointment for each patient)
-    const patientToScheduler: Map<number, string> = new Map();
-    const patientToSchedulerDetails: Map<number, { name: string; date: string }> = new Map();
-    
-    for (const appt of appointments) {
-      if (appt.paciente_id && appt.agendado_por) {
-        const existing = patientToSchedulerDetails.get(appt.paciente_id);
-        const apptDate = parseFeegowDate(appt.data);
-        
-        // Keep the most recent scheduler
-        if (!existing || apptDate > existing.date) {
-          patientToScheduler.set(appt.paciente_id, appt.agendado_por);
-          patientToSchedulerDetails.set(appt.paciente_id, { name: appt.agendado_por, date: apptDate });
-        }
-      }
-    }
-    
-    console.log(`Built scheduler map for ${patientToScheduler.size} patients`);
-
-    // =====================================================
-    // STEP 2: Fetch invoices/payments
-    // =====================================================
-    console.log('Step 2: Fetching invoices...');
+    console.log('Step 1: Fetching invoices...');
     
     const invoiceResponse = await fetch(
       `https://api.feegow.com/v1/api/financial/list-invoice?data_start=${dateStart}&data_end=${dateEnd}&tipo_transacao=C`,
@@ -264,9 +228,72 @@ Deno.serve(async (req) => {
     const invoices: FeegowInvoice[] = invoiceData.content || [];
     console.log(`Fetched ${invoices.length} invoices`);
 
-    if (invoices.length > 0) {
-      console.log('Sample invoice keys:', Object.keys(invoices[0]).join(', '));
+    // Collect unique patient IDs from invoices
+    const patientIdsFromInvoices = new Set<number>();
+    for (const invoice of invoices) {
+      if (invoice.paciente_id) {
+        patientIdsFromInvoices.add(invoice.paciente_id);
+      }
     }
+    console.log(`Found ${patientIdsFromInvoices.size} unique patients with invoices`);
+
+    // =====================================================
+    // STEP 2: Fetch appointments - look back further to find scheduler
+    // We need to find when the patient was originally scheduled
+    // =====================================================
+    console.log('Step 2: Fetching appointments (looking back 150 days for scheduler info)...');
+    
+    // Look back 150 days from the start date to find scheduler info (API limit is 6 months)
+    const lookbackStartDate = new Date(dateStart);
+    lookbackStartDate.setDate(lookbackStartDate.getDate() - 150);
+    const lookbackDateStr = formatDateFeegow(lookbackStartDate);
+    
+    const appointsResponse = await fetch(
+      `https://api.feegow.com/v1/api/appoints/search?data_start=${lookbackDateStr}&data_end=${dateEnd}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-access-token': feegowToken,
+        },
+      }
+    );
+
+    if (!appointsResponse.ok) {
+      const errorText = await appointsResponse.text();
+      throw new Error(`Failed to fetch appointments: ${appointsResponse.status} - ${errorText}`);
+    }
+
+    const appointsData = await appointsResponse.json();
+    const appointments: FeegowAppointment[] = appointsData.content || [];
+    console.log(`Fetched ${appointments.length} appointments from ${lookbackDateStr} to ${dateEnd}`);
+
+    // Build map: paciente_id -> agendado_por (use FIRST appointment = original scheduler)
+    const patientToScheduler: Map<number, string> = new Map();
+    const patientToSchedulerDetails: Map<number, { name: string; date: string }> = new Map();
+    
+    // Sort appointments by date (oldest first) to get the original scheduler
+    const sortedAppointments = [...appointments].sort((a, b) => {
+      const dateA = parseFeegowDate(a.data);
+      const dateB = parseFeegowDate(b.data);
+      return dateA.localeCompare(dateB);
+    });
+    
+    for (const appt of sortedAppointments) {
+      // Only process appointments for patients that have invoices
+      if (appt.paciente_id && appt.agendado_por && patientIdsFromInvoices.has(appt.paciente_id)) {
+        // Only set if not already set (keep the FIRST/oldest scheduler)
+        if (!patientToScheduler.has(appt.paciente_id)) {
+          patientToScheduler.set(appt.paciente_id, appt.agendado_por);
+          patientToSchedulerDetails.set(appt.paciente_id, { 
+            name: appt.agendado_por, 
+            date: parseFeegowDate(appt.data) 
+          });
+        }
+      }
+    }
+    
+    console.log(`Built scheduler map for ${patientToScheduler.size} of ${patientIdsFromInvoices.size} patients with invoices`)
 
     // =====================================================
     // STEP 3: Get user mappings from database
