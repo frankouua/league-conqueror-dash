@@ -147,6 +147,57 @@ export type Database = {
         }
         Relationships: []
       }
+      feegow_sync_logs: {
+        Row: {
+          completed_at: string | null
+          date_end: string | null
+          date_start: string | null
+          error_message: string | null
+          errors: number | null
+          id: string
+          inserted: number | null
+          paid_accounts: number | null
+          sellers_not_found: string[] | null
+          skipped: number | null
+          started_at: string
+          status: string
+          total_accounts: number | null
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          date_end?: string | null
+          date_start?: string | null
+          error_message?: string | null
+          errors?: number | null
+          id?: string
+          inserted?: number | null
+          paid_accounts?: number | null
+          sellers_not_found?: string[] | null
+          skipped?: number | null
+          started_at?: string
+          status?: string
+          total_accounts?: number | null
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          date_end?: string | null
+          date_start?: string | null
+          error_message?: string | null
+          errors?: number | null
+          id?: string
+          inserted?: number | null
+          paid_accounts?: number | null
+          sellers_not_found?: string[] | null
+          skipped?: number | null
+          started_at?: string
+          status?: string
+          total_accounts?: number | null
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       individual_goals: {
         Row: {
           created_at: string
