@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Star, Loader2 } from "lucide-react";
@@ -55,6 +55,7 @@ const testimonialTypes = {
 
 const TestimonialForm = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [adminSelectedTeamId, setAdminSelectedTeamId] = useState<string | undefined>();
   const { user, profile, role } = useAuth();
   const { toast } = useToast();
   const isAdmin = role === "admin";
@@ -69,11 +70,17 @@ const TestimonialForm = () => {
     },
   });
 
+  const handleTeamChange = useCallback((teamId: string) => {
+    setAdminSelectedTeamId(teamId);
+  }, []);
+
   const onSubmit = async (data: TestimonialFormData) => {
-    if (!user || !profile?.team_id) {
+    const effectiveTeamId = isAdmin && adminSelectedTeamId ? adminSelectedTeamId : profile?.team_id;
+    
+    if (!user || !effectiveTeamId) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado e vinculado a uma equipe",
+        description: isAdmin ? "Selecione um time" : "Você precisa estar logado e vinculado a uma equipe",
         variant: "destructive",
       });
       return;
@@ -86,11 +93,12 @@ const TestimonialForm = () => {
         user.id,
         data.attributedToUserId,
         data.countsForIndividual,
-        isAdmin
+        isAdmin,
+        effectiveTeamId
       );
 
       const { error } = await supabase.from("testimonial_records").insert({
-        team_id: profile.team_id,
+        team_id: effectiveTeamId,
         user_id: insertData.effectiveUserId,
         type: data.type,
         link: data.link || null,
@@ -245,7 +253,7 @@ const TestimonialForm = () => {
             )}
           />
 
-          <IndividualTeamFields form={form} />
+          <IndividualTeamFields form={form} onTeamChange={handleTeamChange} />
 
           <Button
             type="submit"
