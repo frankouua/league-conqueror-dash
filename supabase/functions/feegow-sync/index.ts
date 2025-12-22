@@ -130,15 +130,15 @@ Deno.serve(async (req) => {
 
     console.log(`Loaded ${Object.keys(employeesMap).length} employees`);
 
-    // Fetch paid accounts/invoices using financial accounts-list endpoint
-    // The endpoint structure may vary - we try multiple approaches
+    // Fetch paid accounts/invoices using financial list endpoint
+    // Try multiple FEEGOW endpoints as documentation varies
     console.log('Fetching financial accounts...');
     
     let accounts: FeegowAccount[] = [];
     
-    // Try the financial accounts-list endpoint
-    const accountsResponse = await fetch(
-      `https://api.feegow.com/v1/api/financial/accounts-list`,
+    // Try the financial/list endpoint first (documented as "Listar contas")
+    const listResponse = await fetch(
+      `https://api.feegow.com/v1/api/financial/list`,
       {
         method: 'POST',
         headers: {
@@ -146,28 +146,103 @@ Deno.serve(async (req) => {
           'x-access-token': feegowToken,
         },
         body: JSON.stringify({
-          data_start: dateStart,
-          data_end: dateEnd,
-          status: 'pago', // Only paid accounts
+          data_inicio: dateStart,
+          data_fim: dateEnd,
           tipo: 'R', // R = Receber (receivables/sales)
+          pago: true,
         }),
       }
     );
 
-    if (accountsResponse.ok) {
-      const accountsData = await accountsResponse.json();
-      console.log('Accounts response:', JSON.stringify(accountsData).slice(0, 1000));
+    console.log('financial/list response status:', listResponse.status);
+
+    if (listResponse.ok) {
+      const listData = await listResponse.json();
+      console.log('financial/list response:', JSON.stringify(listData).slice(0, 1500));
       
-      if (accountsData.success && accountsData.content) {
-        accounts = Array.isArray(accountsData.content) 
-          ? accountsData.content 
-          : [accountsData.content];
+      if (listData.success && listData.content) {
+        accounts = Array.isArray(listData.content) 
+          ? listData.content 
+          : [listData.content];
       }
     } else {
-      const errorText = await accountsResponse.text();
-      console.log('accounts-list failed, trying sales-list. Error:', errorText);
-      
-      // Try alternative endpoint: sales-list
+      const errorText = await listResponse.text();
+      console.log('financial/list failed. Error:', errorText);
+    }
+
+    // If no results, try with different parameter names
+    if (accounts.length === 0) {
+      console.log('Trying alternative parameters...');
+      const altResponse = await fetch(
+        `https://api.feegow.com/v1/api/financial/list`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': feegowToken,
+          },
+          body: JSON.stringify({
+            data_start: dateStart,
+            data_end: dateEnd,
+            status: 'pago',
+          }),
+        }
+      );
+
+      console.log('Alternative params response status:', altResponse.status);
+
+      if (altResponse.ok) {
+        const altData = await altResponse.json();
+        console.log('Alternative response:', JSON.stringify(altData).slice(0, 1500));
+        
+        if (altData.success && altData.content) {
+          accounts = Array.isArray(altData.content) 
+            ? altData.content 
+            : [altData.content];
+        }
+      }
+    }
+    
+    // Try the financial accounts-list endpoint as fallback
+    if (accounts.length === 0) {
+      console.log('Trying accounts-list endpoint...');
+      const accountsResponse = await fetch(
+        `https://api.feegow.com/v1/api/financial/accounts-list`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': feegowToken,
+          },
+          body: JSON.stringify({
+            data_start: dateStart,
+            data_end: dateEnd,
+            status: 'pago',
+            tipo: 'R',
+          }),
+        }
+      );
+
+      console.log('accounts-list response status:', accountsResponse.status);
+
+      if (accountsResponse.ok) {
+        const accountsData = await accountsResponse.json();
+        console.log('accounts-list response:', JSON.stringify(accountsData).slice(0, 1500));
+        
+        if (accountsData.success && accountsData.content) {
+          accounts = Array.isArray(accountsData.content) 
+            ? accountsData.content 
+            : [accountsData.content];
+        }
+      } else {
+        const errorText = await accountsResponse.text();
+        console.log('accounts-list failed. Error:', errorText);
+      }
+    }
+
+    // Try sales-list endpoint
+    if (accounts.length === 0) {
+      console.log('Trying sales-list endpoint...');
       const salesResponse = await fetch(
         `https://api.feegow.com/v1/api/financial/sales-list`,
         {
@@ -183,9 +258,11 @@ Deno.serve(async (req) => {
         }
       );
 
+      console.log('sales-list response status:', salesResponse.status);
+
       if (salesResponse.ok) {
         const salesData = await salesResponse.json();
-        console.log('Sales response:', JSON.stringify(salesData).slice(0, 1000));
+        console.log('sales-list response:', JSON.stringify(salesData).slice(0, 1500));
         
         if (salesData.success && salesData.content) {
           accounts = Array.isArray(salesData.content) 
@@ -194,46 +271,50 @@ Deno.serve(async (req) => {
         }
       } else {
         const salesError = await salesResponse.text();
-        console.error('Both endpoints failed. Sales error:', salesError);
-        
-        // Fallback: use appointments with status "Atendido" (paid)
-        console.log('Falling back to appointments endpoint...');
-        const appointmentsResponse = await fetch(
-          `https://api.feegow.com/v1/api/appoints/search`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-access-token': feegowToken,
-            },
-            body: JSON.stringify({
-              data_start: dateStart,
-              data_end: dateEnd,
-              list_procedures: 1,
-            }),
-          }
-        );
+        console.log('sales-list failed. Error:', salesError);
+      }
+    }
 
-        if (appointmentsResponse.ok) {
-          const appointmentsData = await appointmentsResponse.json();
-          console.log('Appointments response:', JSON.stringify(appointmentsData).slice(0, 1000));
-          
-          if (appointmentsData.success && appointmentsData.content) {
-            // Convert appointments to account format
-            const appointments = appointmentsData.content;
-            accounts = appointments
-              .filter((a: any) => a.status_id === 3) // Atendido = paid
-              .map((a: any) => ({
-                id: a.agendamento_id,
-                paciente_id: a.paciente_id,
-                valor: a.valor_total_agendamento,
-                data_pagamento: a.data,
-                data: a.data,
-                funcionario_nome: a.agendado_por,
-                unidade_id: a.unidade_id,
-                nome_fantasia: a.nome_fantasia,
-              }));
-          }
+    // Fallback: use appointments with status "Atendido" (paid)
+    if (accounts.length === 0) {
+      console.log('Falling back to appointments endpoint...');
+      const appointmentsResponse = await fetch(
+        `https://api.feegow.com/v1/api/appoints/search`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': feegowToken,
+          },
+          body: JSON.stringify({
+            data_start: dateStart,
+            data_end: dateEnd,
+            list_procedures: 1,
+          }),
+        }
+      );
+
+      console.log('appoints/search response status:', appointmentsResponse.status);
+
+      if (appointmentsResponse.ok) {
+        const appointmentsData = await appointmentsResponse.json();
+        console.log('Appointments response:', JSON.stringify(appointmentsData).slice(0, 1500));
+        
+        if (appointmentsData.success && appointmentsData.content) {
+          // Convert appointments to account format
+          const appointments = appointmentsData.content;
+          accounts = appointments
+            .filter((a: any) => a.status_id === 3) // Atendido = paid
+            .map((a: any) => ({
+              id: a.agendamento_id,
+              paciente_id: a.paciente_id,
+              valor: a.valor_total_agendamento,
+              data_pagamento: a.data,
+              data: a.data,
+              funcionario_nome: a.agendado_por,
+              unidade_id: a.unidade_id,
+              nome_fantasia: a.nome_fantasia,
+            }));
         }
       }
     }
