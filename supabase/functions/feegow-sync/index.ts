@@ -83,14 +83,14 @@ Deno.serve(async (req) => {
     if (action === 'diagnose') {
       console.log('Running FEEGOW API diagnostics...');
       
+      const today = formatDateFeegow(new Date());
+      const lastWeek = formatDateFeegow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+      
       const endpoints = [
         { name: 'employee/list', method: 'GET', url: 'https://api.feegow.com/v1/api/employee/list' },
         { name: 'professional/list', method: 'GET', url: 'https://api.feegow.com/v1/api/professional/list' },
-        { name: 'company/units', method: 'GET', url: 'https://api.feegow.com/v1/api/company/units' },
-        { name: 'company/data', method: 'GET', url: 'https://api.feegow.com/v1/api/company/data' },
-        { name: 'company/info', method: 'GET', url: 'https://api.feegow.com/v1/api/company/info' },
-        { name: 'user/logged', method: 'GET', url: 'https://api.feegow.com/v1/api/user/logged' },
         { name: 'patient/list', method: 'GET', url: 'https://api.feegow.com/v1/api/patient/list' },
+        { name: 'financial/list-invoice', method: 'GET', url: `https://api.feegow.com/v1/api/financial/list-invoice?data_start=${lastWeek}&data_end=${today}&tipo_transacao=C` },
       ];
 
       const results: Record<string, any> = {};
