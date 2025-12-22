@@ -18,6 +18,7 @@ import PatientKanban from "./pages/PatientKanban";
 import OnboardingGoals from "./pages/OnboardingGoals";
 import SalesDashboard from "./pages/SalesDashboard";
 import TVDisplay from "./pages/TVDisplay";
+import CommercialGuides from "./pages/CommercialGuides";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
             <Route path="/referral-leads" element={<ProtectedRoute><ReferralLeads /></ProtectedRoute>} />
             <Route path="/patient-kanban" element={<ProtectedRoute><PatientKanban /></ProtectedRoute>} />
+            <Route path="/guias-comerciais" element={<ProtectedRoute><CommercialGuides /></ProtectedRoute>} />
             <Route path="/sales-dashboard" element={<ProtectedRoute requireAdmin><SalesDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/tv" element={<TVDisplay />} />
