@@ -27,7 +27,7 @@ import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
 const journeyStages = [
   {
     id: 1,
-    title: "Comercial 1 - Social Selling",
+    title: "Comercial 1 - SDR / Social Selling",
     subtitle: "Lead → Consulta Agendada",
     icon: Smartphone,
     secondaryIcon: MessageCircle,
@@ -37,10 +37,20 @@ const journeyStages = [
     accentColor: "text-primary",
     team: ["Comercial"],
     actions: [
-      "Social Selling",
-      "WhatsApp",
-      "Encantar paciente",
-      "Follow-up de leads"
+      // Prospecção e Qualificação
+      "Prospecção ativa (redes sociais, tráfego pago, indicações)",
+      "Responder leads em até 5 minutos",
+      "Qualificar lead (dor, sonho, urgência)",
+      "Preencher Dossiê de Qualificação completo",
+      // Agendamento
+      "Apresentar diferenciais Unique (CPI, 3R, Travel)",
+      "Quebrar objeções de agendamento",
+      "Agendar consulta e confirmar pagamento",
+      "Confirmar pagamento no Asaas",
+      // Passagem de Bastão
+      "Enviar mensagem de transição para paciente",
+      "Notificar Closer com dossiê completo",
+      "Passar lead em até 2 horas após confirmação"
     ],
     indicators: ["Indicações coletadas", "Menções no Instagram"]
   },
@@ -56,17 +66,37 @@ const journeyStages = [
     accentColor: "text-primary",
     team: ["Comercial"],
     actions: [
-      "Orçamento",
-      "Negociação",
-      "Contratos",
-      "Follow-up de consultas"
+      // Pós-Consulta Imediato
+      "Receber dossiê do SDR/Social Selling",
+      "Contatar paciente em até 2h após consulta",
+      "Aplicar método SPIN Selling (Situação, Problema, Implicação, Necessidade)",
+      // Proposta e Negociação
+      "Apresentar proposta e ancoragem de valor",
+      "Explicar Método CPI e diferenciais",
+      "Oferecer projetos (Espelho, Minha Jornada, Indica & Transforma)",
+      "Criar cupom personalizado se participar de projeto",
+      "Negociar formas de pagamento",
+      // Follow-up 14 dias
+      "D+2: Enviar depoimento/vídeo de paciente similar",
+      "D+4: Ligar para tirar dúvidas",
+      "D+6: WhatsApp de escassez (agenda fechando)",
+      "D+9: Áudio personalizado emocional",
+      "D+12: Última tentativa de fechamento",
+      "D+14: Encaminhar ao coordenador se não fechou",
+      // Fechamento e Passagem
+      "Confirmar assinatura do contrato",
+      "Confirmar pagamento da entrada",
+      "Preencher Dossiê de Pré-Operatório",
+      "Atualizar cadastro no Feegow",
+      "Enviar mensagem de transição para paciente",
+      "Notificar CS em até 1 hora após fechamento"
     ],
     indicators: ["Indicações → Consulta", "Faturamento"]
   },
   {
     id: 3,
     title: "Comercial 3 - Customer Success",
-    subtitle: "0-90 dias pós-op",
+    subtitle: "Fechamento → Alta (0-6 meses)",
     icon: Star,
     secondaryIcon: Crown,
     color: "from-primary to-yellow-600",
@@ -75,17 +105,35 @@ const journeyStages = [
     accentColor: "text-primary",
     team: ["Comercial"],
     actions: [
-      "Onboarding do paciente",
-      "Upsell de procedimentos",
-      "UniLovers",
-      "Solicitar NPS e depoimentos"
+      // Onboarding (Pré-Operatório)
+      "Receber dossiê do Closer",
+      "Boas-vindas em até 1 hora após fechamento",
+      "Adicionar paciente ao grupo exclusivo WhatsApp",
+      "Orientar sobre exames e preparativos",
+      "Explicar Método CPI e 7 pilares",
+      "Acompanhar necessidades especiais (Unique Travel)",
+      // Pós-Operatório
+      "Acompanhar retornos médicos",
+      "Monitorar recuperação (perfil emocional)",
+      "Identificar oportunidades de upsell",
+      "Coletar NPS com citação de nome",
+      "Solicitar depoimentos (Google, vídeo, gold)",
+      "Incentivar indicações durante acompanhamento",
+      "Registrar UniLovers ativos",
+      // Passagem para Alta
+      "Confirmar alta após 6 meses",
+      "Preencher Dossiê de Pós-Venda e Alta",
+      "Registrar NPS e nível de satisfação",
+      "Identificar interesses futuros (procedimentos, LuxSkin)",
+      "Enviar mensagem de transição para paciente",
+      "Notificar Farmer em até 24h após alta"
     ],
     indicators: ["Indicações → Cirurgia", "NPS", "UniLovers"]
   },
   {
     id: 4,
     title: "Comercial 4 - Farmer",
-    subtitle: "+90 dias",
+    subtitle: "Alta (+6 meses) → Relacionamento Contínuo",
     icon: Infinity,
     secondaryIcon: TreeDeciduous,
     color: "from-primary to-yellow-600",
@@ -94,10 +142,22 @@ const journeyStages = [
     accentColor: "text-primary",
     team: ["Comercial"],
     actions: [
-      "Pacientes Antigos",
-      "Manutenção de relacionamento",
-      "Novos Protocolos",
-      "Incentivar indicações"
+      // Recebimento e Onboarding LTV
+      "Receber dossiê de Alta do CS",
+      "Adicionar à cadência de relacionamento em 24h",
+      "Mapear histórico completo de procedimentos",
+      // Cultivo e Relacionamento
+      "Manter contato em datas importantes (aniversário)",
+      "Enviar conteúdos exclusivos e novidades",
+      "Apresentar novos protocolos e procedimentos",
+      "Incentivar programa de Embaixadores",
+      "Coletar depoimentos Google e Vídeo",
+      // Reativação
+      "Identificar interesse em novo procedimento",
+      "Qualificar interesse antes de reativar",
+      "Preencher Dossiê de Reativação",
+      "Enviar mensagem de transição para paciente",
+      "Notificar SDR/Closer em até 1h para reativação"
     ],
     indicators: ["Depoimentos Google", "Depoimentos Vídeo", "Embaixadores"]
   }
