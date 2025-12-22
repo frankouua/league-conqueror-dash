@@ -318,12 +318,32 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Try to find user by name (partial match)
-        const { data: matchedUser } = await supabase
-          .from('profiles')
-          .select('user_id, team_id, department, full_name')
-          .ilike('full_name', `%${sellerName.split(' ')[0]}%`)
+        // First, check feegow_user_mapping table for exact match
+        const { data: mappedUser } = await supabase
+          .from('feegow_user_mapping')
+          .select('user_id')
+          .eq('feegow_name', sellerName)
           .maybeSingle();
+
+        let matchedUser: any = null;
+
+        if (mappedUser) {
+          // Found in mapping table, get full profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('user_id, team_id, department, full_name')
+            .eq('user_id', mappedUser.user_id)
+            .maybeSingle();
+          matchedUser = profileData;
+        } else {
+          // Try to find user by name (partial match on first name)
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('user_id, team_id, department, full_name')
+            .ilike('full_name', `%${sellerName.split(' ')[0]}%`)
+            .maybeSingle();
+          matchedUser = profileData;
+        }
 
         if (!matchedUser) {
           if (!notFoundSellers.includes(sellerName)) {
@@ -407,6 +427,26 @@ Deno.serve(async (req) => {
         .eq('id', logId);
     }
 
+    // Create notifications for admins if there are unmapped sellers
+    if (notFoundSellers.length > 0 && supabase) {
+      // Get all admin user IDs
+      const { data: adminRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+
+      if (adminRoles && adminRoles.length > 0) {
+        const notifications = adminRoles.map((admin: any) => ({
+          user_id: admin.user_id,
+          title: 'Vendedores FEEGOW não mapeados',
+          message: `${notFoundSellers.length} vendedor(es) não encontrado(s): ${notFoundSellers.slice(0, 3).join(', ')}${notFoundSellers.length > 3 ? '...' : ''}. Configure o mapeamento no painel Admin.`,
+          type: 'feegow_sync_warning',
+        }));
+
+        await supabase.from('notifications').insert(notifications);
+      }
+    }
+
     return new Response(
       JSON.stringify(result),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -426,6 +466,23 @@ Deno.serve(async (req) => {
           error_message: errorMessage,
         })
         .eq('id', logId);
+
+      // Create error notification for admins
+      const { data: adminRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+
+      if (adminRoles && adminRoles.length > 0) {
+        const notifications = adminRoles.map((admin: any) => ({
+          user_id: admin.user_id,
+          title: 'Erro na sincronização FEEGOW',
+          message: `A sincronização falhou: ${errorMessage.slice(0, 100)}`,
+          type: 'feegow_sync_error',
+        }));
+
+        await supabase.from('notifications').insert(notifications);
+      }
     }
 
     return new Response(

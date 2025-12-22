@@ -6,10 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Calendar, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RefreshCw, Calendar, CheckCircle, XCircle, Clock, AlertTriangle, Link2, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Link } from "react-router-dom";
+import FeegowUserMapping from "./FeegowUserMapping";
 
 interface SyncLog {
   id: string;
@@ -119,12 +122,33 @@ const FeegowSync = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Sync Control Card */}
-      <Card className="border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-primary" />
+    <Tabs defaultValue="sync" className="space-y-6">
+      <div className="flex items-center justify-between">
+        <TabsList>
+          <TabsTrigger value="sync" className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Sincronização
+          </TabsTrigger>
+          <TabsTrigger value="mapping" className="flex items-center gap-2">
+            <Link2 className="w-4 h-4" />
+            Mapeamentos
+          </TabsTrigger>
+        </TabsList>
+        
+        <Button asChild variant="outline" size="sm">
+          <Link to="/sales-dashboard" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Dashboard de Vendas
+          </Link>
+        </Button>
+      </div>
+
+      <TabsContent value="sync" className="space-y-6 mt-0">
+        {/* Sync Control Card */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-primary" />
             Sincronização FEEGOW
           </CardTitle>
           <CardDescription>
@@ -264,7 +288,12 @@ const FeegowSync = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="mapping" className="mt-0">
+        <FeegowUserMapping />
+      </TabsContent>
+    </Tabs>
   );
 };
 
