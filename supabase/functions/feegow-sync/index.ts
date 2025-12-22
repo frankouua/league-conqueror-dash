@@ -76,16 +76,21 @@ Deno.serve(async (req) => {
 
     // Handle diagnose action - test all endpoints
     if (action === 'diagnose') {
-      console.log('Running FEEGOW API diagnostics...');
+      console.log('Running FEEGOW API diagnostics - searching for seller endpoints...');
       
       const today = formatDateFeegow(new Date());
       const lastWeek = formatDateFeegow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
       
+      // Test endpoints that might contain seller/vendedor information
       const endpoints = [
-        { name: 'employee/list', method: 'GET', url: 'https://api.feegow.com/v1/api/employee/list' },
-        { name: 'professional/list', method: 'GET', url: 'https://api.feegow.com/v1/api/professional/list' },
-        { name: 'patient/list', method: 'GET', url: 'https://api.feegow.com/v1/api/patient/list' },
-        { name: 'financial/list-invoice', method: 'GET', url: `https://api.feegow.com/v1/api/financial/list-invoice?data_start=${lastWeek}&data_end=${today}&tipo_transacao=C` },
+        { name: 'appoints/search', method: 'GET', url: `https://api.feegow.com/v1/api/appoints/search?data_start=${lastWeek}&data_end=${today}` },
+        { name: 'appoints/list', method: 'GET', url: `https://api.feegow.com/v1/api/appoints/list?data_start=${lastWeek}&data_end=${today}` },
+        { name: 'financial/receivable', method: 'GET', url: `https://api.feegow.com/v1/api/financial/receivable?data_start=${lastWeek}&data_end=${today}` },
+        { name: 'financial/payment', method: 'GET', url: `https://api.feegow.com/v1/api/financial/payment?data_start=${lastWeek}&data_end=${today}` },
+        { name: 'procedure/list', method: 'GET', url: `https://api.feegow.com/v1/api/procedure/list` },
+        { name: 'account/list', method: 'GET', url: `https://api.feegow.com/v1/api/account/list?data_start=${lastWeek}&data_end=${today}` },
+        { name: 'vendedor/list', method: 'GET', url: `https://api.feegow.com/v1/api/vendedor/list` },
+        { name: 'seller/list', method: 'GET', url: `https://api.feegow.com/v1/api/seller/list` },
       ];
 
       const results: Record<string, any> = {};
@@ -108,13 +113,34 @@ Deno.serve(async (req) => {
             responseData = responseText;
           }
 
+          // Extract sample to look for seller fields
+          let sampleData = null;
+          if (responseData.content && Array.isArray(responseData.content) && responseData.content.length > 0) {
+            sampleData = {
+              keys: Object.keys(responseData.content[0]),
+              sample: responseData.content[0],
+              count: responseData.content.length
+            };
+          } else if (responseData.content && typeof responseData.content === 'object') {
+            sampleData = {
+              keys: Object.keys(responseData.content),
+              sample: responseData.content
+            };
+          }
+
           results[endpoint.name] = {
             status: response.status,
             success: response.ok,
-            data: typeof responseData === 'object' ? responseData : { raw: responseData.slice(0, 500) },
+            sampleData,
+            rawPreview: typeof responseData === 'object' 
+              ? JSON.stringify(responseData).slice(0, 1500) 
+              : String(responseData).slice(0, 500),
           };
 
           console.log(`${endpoint.name}: ${response.status} - ${response.ok ? 'OK' : 'FAILED'}`);
+          if (sampleData) {
+            console.log(`  Keys found: ${sampleData.keys?.join(', ')}`);
+          }
         } catch (error: unknown) {
           results[endpoint.name] = {
             status: 0,
@@ -128,6 +154,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: true,
           action: 'diagnose',
+          message: 'Tested seller-related endpoints',
           results,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
