@@ -72,18 +72,32 @@ const Index = () => {
             Acompanhe a competição em tempo real. Cada atendimento importa. Cada sonho realizado vale ouro.
           </p>
           
-          {/* Last Updated */}
-          {lastUpdated && (
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
-              <Clock className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">
-                Última atualização:{" "}
-                <span className="text-foreground font-medium">
-                  {format(lastUpdated, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                </span>
+          {/* Live Indicator & Last Updated */}
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+            {/* Live Indicator */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              <span className="text-sm font-medium text-emerald-500">
+                Ao Vivo
               </span>
             </div>
-          )}
+            
+            {/* Last Updated */}
+            {lastUpdated && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
+                <Clock className="w-4 h-4 text-primary" />
+                <span className="text-sm text-muted-foreground">
+                  Atualizado:{" "}
+                  <span className="text-foreground font-medium">
+                    {format(lastUpdated, "HH:mm", { locale: ptBR })}
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Celebration Test Button - Admin Only */}
           {role === "admin" && (
