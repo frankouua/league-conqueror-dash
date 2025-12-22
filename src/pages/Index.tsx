@@ -12,6 +12,7 @@ import ChampionsDisplay from "@/components/ChampionsDisplay";
 import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
 import TeamComparisonCard from "@/components/TeamComparisonCard";
 import TeamBadgesDisplay from "@/components/TeamBadgesDisplay";
+import TeamPrizesDisplay from "@/components/TeamPrizesDisplay";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -190,6 +191,11 @@ const Index = () => {
           <div className="animate-slide-up" style={{ animationDelay: "450ms" }}>
             <StreakRecordsDisplay />
           </div>
+        </div>
+
+        {/* Team Prizes */}
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: "475ms" }}>
+          <TeamPrizesDisplay />
         </div>
 
         {/* Clinic Goals & Chart */}

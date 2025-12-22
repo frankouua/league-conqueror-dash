@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, RefreshCw } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, RefreshCw, Trophy } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import ContestationAdmin from "@/components/admin/ContestationAdmin";
 import RecordsEditor from "@/components/admin/RecordsEditor";
 import GoalNotifications from "@/components/admin/GoalNotifications";
 import FeegowSync from "@/components/admin/FeegowSync";
+import PrizeForm from "@/components/admin/PrizeForm";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -61,13 +62,20 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="cards" className="max-w-4xl mx-auto">
-          <TabsList className="grid grid-cols-8 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
+          <TabsList className="grid grid-cols-9 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
             <TabsTrigger
               value="cards"
               className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
             >
               <Award className="w-5 h-5" />
               <span className="hidden sm:block">Cartões</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="prizes"
+              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+            >
+              <Trophy className="w-5 h-5" />
+              <span className="hidden sm:block">Prêmios</span>
             </TabsTrigger>
             <TabsTrigger
               value="events"
@@ -122,6 +130,10 @@ const Admin = () => {
 
           <TabsContent value="cards" className="animate-scale-in">
             <CardForm />
+          </TabsContent>
+
+          <TabsContent value="prizes" className="animate-scale-in">
+            <PrizeForm />
           </TabsContent>
 
           <TabsContent value="events" className="animate-scale-in">

@@ -809,6 +809,62 @@ export type Database = {
           },
         ]
       }
+      team_prizes: {
+        Row: {
+          amount: number
+          awarded_at: string
+          awarded_by: string
+          created_at: string
+          extra_rewards: string | null
+          id: string
+          items: string[] | null
+          notes: string | null
+          period_month: number | null
+          period_semester: number | null
+          prize_type: string
+          team_id: string
+          year: number
+        }
+        Insert: {
+          amount?: number
+          awarded_at?: string
+          awarded_by: string
+          created_at?: string
+          extra_rewards?: string | null
+          id?: string
+          items?: string[] | null
+          notes?: string | null
+          period_month?: number | null
+          period_semester?: number | null
+          prize_type: string
+          team_id: string
+          year: number
+        }
+        Update: {
+          amount?: number
+          awarded_at?: string
+          awarded_by?: string
+          created_at?: string
+          extra_rewards?: string | null
+          id?: string
+          items?: string[] | null
+          notes?: string | null
+          period_month?: number | null
+          period_semester?: number | null
+          prize_type?: string
+          team_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_prizes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           created_at: string
