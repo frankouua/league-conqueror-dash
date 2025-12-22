@@ -6,31 +6,26 @@ const corsHeaders = {
 };
 
 // FEEGOW API response interfaces
-interface FeegowAccount {
-  id: number;
-  conta_id?: number;
-  paciente_id: number;
-  paciente_nome?: string;
-  valor: number | string;
-  valor_pago?: number | string;
-  data_vencimento?: string;
-  data_pagamento?: string;
-  data?: string;
-  status?: string;
-  pago?: boolean;
-  funcionario_id?: number;
-  funcionario_nome?: string;
-  sys_user?: number;
-  usuario_nome?: string;
+interface FeegowInvoiceDetail {
   unidade_id?: number;
-  unidade_nome?: string;
-  nome_fantasia?: string;
+  responsavel?: string | null;
+  movement_id?: number;
+  invoice_id?: number;
+  tipo_conta?: number;
+  conta_id?: number;
+  valor?: number | string;
   descricao?: string;
-  observacoes?: string;
+  data?: string;
 }
 
-interface FeegowEmployee {
-  funcionario_id: number;
+interface FeegowInvoice {
+  detalhes?: FeegowInvoiceDetail[];
+  pagamentos?: any[];
+  itens?: any[];
+}
+
+interface FeegowProfessional {
+  profissional_id: number;
   nome: string;
   sys_user?: number;
 }
@@ -230,10 +225,10 @@ Deno.serve(async (req) => {
 
     console.log(`Syncing FEEGOW payments from ${dateStart} to ${dateEnd}`);
 
-    // First, fetch employees list to map IDs to names
-    console.log('Fetching employees list...');
-    const employeesResponse = await fetch(
-      `https://api.feegow.com/v1/api/employee/list`,
+    // Fetch professionals list to map IDs to names
+    console.log('Fetching professionals list...');
+    const professionalsResponse = await fetch(
+      `https://api.feegow.com/v1/api/professional/list`,
       {
         method: 'GET',
         headers: {
@@ -243,231 +238,80 @@ Deno.serve(async (req) => {
       }
     );
 
-    const employeesMap: Record<number, string> = {};
+    const professionalsMap: Record<number, string> = {};
     const sysUserToNameMap: Record<number, string> = {};
     
-    if (employeesResponse.ok) {
-      const employeesData = await employeesResponse.json();
-      console.log('Employees response:', JSON.stringify(employeesData).slice(0, 500));
-      if (employeesData.success && employeesData.content) {
-        for (const emp of employeesData.content) {
-          if (emp.funcionario_id && emp.nome) {
-            employeesMap[emp.funcionario_id] = emp.nome;
+    if (professionalsResponse.ok) {
+      const professionalsData = await professionalsResponse.json();
+      console.log('Professionals response:', JSON.stringify(professionalsData).slice(0, 500));
+      if (professionalsData.success && professionalsData.content) {
+        for (const prof of professionalsData.content) {
+          if (prof.profissional_id && prof.nome) {
+            professionalsMap[prof.profissional_id] = prof.nome;
           }
-          if (emp.sys_user && emp.nome) {
-            sysUserToNameMap[emp.sys_user] = emp.nome;
+          if (prof.sys_user && prof.nome) {
+            sysUserToNameMap[prof.sys_user] = prof.nome;
           }
         }
       }
     } else {
-      console.log('Failed to fetch employees, will try to match by other fields');
+      console.log('Failed to fetch professionals, will try to match by other fields');
     }
 
-    console.log(`Loaded ${Object.keys(employeesMap).length} employees`);
+    console.log(`Loaded ${Object.keys(professionalsMap).length} professionals`);
 
-    // Fetch paid accounts/invoices using financial list endpoint
-    // Try multiple FEEGOW endpoints as documentation varies
-    console.log('Fetching financial accounts...');
+    // Fetch invoices using financial/list-invoice endpoint (GET with query params)
+    console.log('Fetching financial invoices with list-invoice endpoint...');
     
-    let accounts: FeegowAccount[] = [];
+    let invoices: FeegowInvoice[] = [];
     
-    // Try the financial/list endpoint first (documented as "Listar contas")
-    const listResponse = await fetch(
-      `https://api.feegow.com/v1/api/financial/list`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-access-token': feegowToken,
-        },
-        body: JSON.stringify({
-          data_inicio: dateStart,
-          data_fim: dateEnd,
-          tipo: 'R', // R = Receber (receivables/sales)
-          pago: true,
-        }),
-      }
-    );
-
-    console.log('financial/list response status:', listResponse.status);
-
-    if (listResponse.ok) {
-      const listData = await listResponse.json();
-      console.log('financial/list response:', JSON.stringify(listData).slice(0, 1500));
-      
-      if (listData.success && listData.content) {
-        accounts = Array.isArray(listData.content) 
-          ? listData.content 
-          : [listData.content];
-      }
-    } else {
-      const errorText = await listResponse.text();
-      console.log('financial/list failed. Error:', errorText);
-    }
-
-    // If no results, try with different parameter names
-    if (accounts.length === 0) {
-      console.log('Trying alternative parameters...');
-      const altResponse = await fetch(
-        `https://api.feegow.com/v1/api/financial/list`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-access-token': feegowToken,
-          },
-          body: JSON.stringify({
-            data_start: dateStart,
-            data_end: dateEnd,
-            status: 'pago',
-          }),
-        }
-      );
-
-      console.log('Alternative params response status:', altResponse.status);
-
-      if (altResponse.ok) {
-        const altData = await altResponse.json();
-        console.log('Alternative response:', JSON.stringify(altData).slice(0, 1500));
-        
-        if (altData.success && altData.content) {
-          accounts = Array.isArray(altData.content) 
-            ? altData.content 
-            : [altData.content];
-        }
-      }
-    }
+    // Use list-invoice endpoint with tipo_transacao=C (crédito/vendas)
+    const invoiceUrl = `https://api.feegow.com/v1/api/financial/list-invoice?data_start=${dateStart}&data_end=${dateEnd}&tipo_transacao=C`;
+    console.log('Fetching:', invoiceUrl);
     
-    // Try the financial accounts-list endpoint as fallback
-    if (accounts.length === 0) {
-      console.log('Trying accounts-list endpoint...');
-      const accountsResponse = await fetch(
-        `https://api.feegow.com/v1/api/financial/accounts-list`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-access-token': feegowToken,
-          },
-          body: JSON.stringify({
-            data_start: dateStart,
-            data_end: dateEnd,
-            status: 'pago',
-            tipo: 'R',
-          }),
-        }
-      );
-
-      console.log('accounts-list response status:', accountsResponse.status);
-
-      if (accountsResponse.ok) {
-        const accountsData = await accountsResponse.json();
-        console.log('accounts-list response:', JSON.stringify(accountsData).slice(0, 1500));
-        
-        if (accountsData.success && accountsData.content) {
-          accounts = Array.isArray(accountsData.content) 
-            ? accountsData.content 
-            : [accountsData.content];
-        }
-      } else {
-        const errorText = await accountsResponse.text();
-        console.log('accounts-list failed. Error:', errorText);
-      }
-    }
-
-    // Try sales-list endpoint
-    if (accounts.length === 0) {
-      console.log('Trying sales-list endpoint...');
-      const salesResponse = await fetch(
-        `https://api.feegow.com/v1/api/financial/sales-list`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-access-token': feegowToken,
-          },
-          body: JSON.stringify({
-            data_start: dateStart,
-            data_end: dateEnd,
-          }),
-        }
-      );
-
-      console.log('sales-list response status:', salesResponse.status);
-
-      if (salesResponse.ok) {
-        const salesData = await salesResponse.json();
-        console.log('sales-list response:', JSON.stringify(salesData).slice(0, 1500));
-        
-        if (salesData.success && salesData.content) {
-          accounts = Array.isArray(salesData.content) 
-            ? salesData.content 
-            : [salesData.content];
-        }
-      } else {
-        const salesError = await salesResponse.text();
-        console.log('sales-list failed. Error:', salesError);
-      }
-    }
-
-    // Fallback: use appointments with status "Atendido" (paid)
-    if (accounts.length === 0) {
-      console.log('Falling back to appointments endpoint...');
-      const appointmentsResponse = await fetch(
-        `https://api.feegow.com/v1/api/appoints/search`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-access-token': feegowToken,
-          },
-          body: JSON.stringify({
-            data_start: dateStart,
-            data_end: dateEnd,
-            list_procedures: 1,
-          }),
-        }
-      );
-
-      console.log('appoints/search response status:', appointmentsResponse.status);
-
-      if (appointmentsResponse.ok) {
-        const appointmentsData = await appointmentsResponse.json();
-        console.log('Appointments response:', JSON.stringify(appointmentsData).slice(0, 1500));
-        
-        if (appointmentsData.success && appointmentsData.content) {
-          // Convert appointments to account format
-          const appointments = appointmentsData.content;
-          accounts = appointments
-            .filter((a: any) => a.status_id === 3) // Atendido = paid
-            .map((a: any) => ({
-              id: a.agendamento_id,
-              paciente_id: a.paciente_id,
-              valor: a.valor_total_agendamento,
-              data_pagamento: a.data,
-              data: a.data,
-              funcionario_nome: a.agendado_por,
-              unidade_id: a.unidade_id,
-              nome_fantasia: a.nome_fantasia,
-            }));
-        }
-      }
-    }
-
-    console.log(`Found ${accounts.length} payment records`);
-
-    // Filter only paid accounts
-    const paidAccounts = accounts.filter(acc => {
-      // Check various ways to determine if paid
-      if (acc.pago === true) return true;
-      if (acc.status?.toLowerCase() === 'pago') return true;
-      if (acc.valor_pago && parseAmount(String(acc.valor_pago)) > 0) return true;
-      if (acc.data_pagamento) return true;
-      // If we got from appointments fallback, they're already filtered
-      return true;
+    const invoiceResponse = await fetch(invoiceUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-access-token': feegowToken,
+      },
     });
 
-    console.log(`Processing ${paidAccounts.length} paid accounts`);
+    console.log('financial/list-invoice response status:', invoiceResponse.status);
+
+    if (invoiceResponse.ok) {
+      const invoiceData = await invoiceResponse.json();
+      console.log('financial/list-invoice response preview:', JSON.stringify(invoiceData).slice(0, 3000));
+      
+      if (invoiceData.success && invoiceData.content) {
+        invoices = Array.isArray(invoiceData.content) 
+          ? invoiceData.content 
+          : [invoiceData.content];
+        
+        // Log first invoice structure to understand the data
+        if (invoices.length > 0) {
+          console.log('Sample invoice structure:', JSON.stringify(invoices[0], null, 2));
+          console.log('Available invoice keys:', Object.keys(invoices[0]).join(', '));
+        }
+      }
+    } else {
+      const errorText = await invoiceResponse.text();
+      console.log('financial/list-invoice failed. Error:', errorText);
+    }
+
+    console.log(`Found ${invoices.length} invoice records`);
+
+    // Flatten all invoice details into individual records
+    const allDetails: FeegowInvoiceDetail[] = [];
+    for (const invoice of invoices) {
+      if (invoice.detalhes && Array.isArray(invoice.detalhes)) {
+        for (const detail of invoice.detalhes) {
+          allDetails.push(detail);
+        }
+      }
+    }
+
+    console.log(`Extracted ${allDetails.length} individual details from invoices`);
 
     // Department mapping based on unit name
     const departmentMapping: Record<string, string> = {
@@ -483,44 +327,37 @@ Deno.serve(async (req) => {
     let errors = 0;
     const notFoundSellers: string[] = [];
 
-    for (const account of paidAccounts) {
+    for (const detail of allDetails) {
       try {
-        // Get amount - try multiple fields
-        const amount = parseAmount(
-          String(account.valor_pago || account.valor || 0)
-        );
+        // Get amount
+        const amount = parseAmount(String(detail.valor || 0));
 
         if (amount <= 0) {
-          console.log(`Skipping account ${account.id || account.conta_id}: zero amount`);
+          console.log(`Skipping detail ${detail.movement_id || detail.conta_id}: zero amount`);
           skipped++;
           continue;
         }
 
-        // Get date - try multiple fields
-        const dateStr = account.data_pagamento || account.data_vencimento || account.data;
+        // Get date
+        const dateStr = detail.data;
         if (!dateStr) {
-          console.log(`Skipping account ${account.id || account.conta_id}: no date`);
+          console.log(`Skipping detail ${detail.movement_id || detail.conta_id}: no date`);
           skipped++;
           continue;
         }
         const date = parseFeegowDate(dateStr);
 
-        // Get seller name - try multiple fields
-        let sellerName = 
-          account.funcionario_nome || 
-          account.usuario_nome ||
-          (account.funcionario_id ? employeesMap[account.funcionario_id] : null) ||
-          (account.sys_user ? sysUserToNameMap[account.sys_user] : null) ||
-          null;
+        // Get seller name from responsavel field
+        let sellerName = detail.responsavel || null;
 
         if (!sellerName) {
-          console.log(`Skipping account ${account.id || account.conta_id}: no seller identified`);
+          console.log(`Skipping detail ${detail.movement_id || detail.conta_id}: no seller (responsavel is null)`);
           skipped++;
           continue;
         }
 
-        // Check for duplicates using feegow_id in notes
-        const feegowId = `feegow_acc_${account.id || account.conta_id}`;
+        // Check for duplicates using movement_id in notes
+        const feegowId = `feegow_mov_${detail.movement_id || detail.invoice_id}_${detail.conta_id}`;
         
         const { data: existingRecord } = await supabase
           .from('revenue_records')
@@ -570,18 +407,8 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Map department from unit name or use user's department
-        let department = matchedUser.department || 'comercial';
-        const unitName = account.nome_fantasia || account.unidade_nome || '';
-        if (unitName) {
-          const unitLower = unitName.toLowerCase();
-          for (const [key, value] of Object.entries(departmentMapping)) {
-            if (unitLower.includes(key)) {
-              department = value;
-              break;
-            }
-          }
-        }
+        // Map department from user's department (no unit name available in detail)
+        const department = matchedUser.department || 'comercial';
 
         // Insert revenue record
         const { error: insertError } = await supabase
@@ -592,7 +419,7 @@ Deno.serve(async (req) => {
             user_id: matchedUser.user_id,
             team_id: matchedUser.team_id,
             department,
-            notes: `FEEGOW Sync | ID: ${feegowId} | Vendedor: ${sellerName} | Paciente: ${account.paciente_nome || account.paciente_id}`,
+            notes: `FEEGOW Sync | ID: ${feegowId} | Vendedor: ${sellerName} | ${detail.descricao || 'N/A'}`,
             registered_by_admin: true,
             counts_for_individual: true,
             attributed_to_user_id: matchedUser.user_id,
@@ -606,7 +433,7 @@ Deno.serve(async (req) => {
           inserted++;
         }
       } catch (err) {
-        console.error(`Error processing account:`, err);
+        console.error(`Error processing detail:`, err);
         errors++;
       }
     }
@@ -615,8 +442,8 @@ Deno.serve(async (req) => {
       success: true,
       message: `Sync completed`,
       stats: {
-        total_accounts: accounts.length,
-        paid_accounts: paidAccounts.length,
+        total_invoices: invoices.length,
+        total_details: allDetails.length,
         inserted,
         skipped,
         errors,
@@ -633,8 +460,8 @@ Deno.serve(async (req) => {
         .update({
           status: 'success',
           completed_at: new Date().toISOString(),
-          total_accounts: accounts.length,
-          paid_accounts: paidAccounts.length,
+          total_accounts: allDetails.length,
+          paid_accounts: allDetails.length,
           inserted,
           skipped,
           errors,
