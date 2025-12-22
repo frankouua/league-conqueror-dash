@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { 
   Smartphone, 
   Trophy, 
@@ -19,10 +25,15 @@ import {
   MessageCircle,
   Handshake,
   Crown,
-  TreeDeciduous
+  TreeDeciduous,
+  Info,
+  BookOpen,
+  Clock
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
+import { getActionScript } from "@/constants/commercialScripts";
 
 const journeyStages = [
   {
@@ -411,31 +422,81 @@ const PatientJourney = () => {
                       )}
                     </div>
                     
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {stage.actions.map((action, actionIndex) => {
-                        const isChecked = checklist[stage.id]?.[actionIndex] || false;
-                        
-                        return (
-                          <label
-                            key={actionIndex}
-                            className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                              isChecked 
-                                ? 'bg-green-500/10 border border-green-500/30' 
-                                : 'bg-background/60 border border-transparent hover:border-primary/30'
-                            }`}
-                          >
-                            <Checkbox
-                              checked={isChecked}
-                              onCheckedChange={() => toggleAction(stage.id, actionIndex)}
-                              className="mt-0.5"
-                              disabled={isLoading}
-                            />
-                            <span className={`text-sm ${isChecked ? 'text-green-600 line-through' : 'text-foreground'}`}>
-                              {action}
-                            </span>
-                          </label>
-                        );
-                      })}
+                    <TooltipProvider delayDuration={300}>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {stage.actions.map((action, actionIndex) => {
+                          const isChecked = checklist[stage.id]?.[actionIndex] || false;
+                          const scriptData = getActionScript(stage.id, action);
+                          const hasScript = scriptData && (scriptData.script || scriptData.description || scriptData.checklist || scriptData.sla);
+                          
+                          return (
+                            <Tooltip key={actionIndex}>
+                              <TooltipTrigger asChild>
+                                <label
+                                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                                    isChecked 
+                                      ? 'bg-green-500/10 border border-green-500/30' 
+                                      : 'bg-background/60 border border-transparent hover:border-primary/30'
+                                  }`}
+                                >
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={() => toggleAction(stage.id, actionIndex)}
+                                    className="mt-0.5"
+                                    disabled={isLoading}
+                                  />
+                                  <span className={`text-sm flex-1 ${isChecked ? 'text-green-600 line-through' : 'text-foreground'}`}>
+                                    {action}
+                                  </span>
+                                  {hasScript && (
+                                    <Info className="h-3.5 w-3.5 text-primary/60 flex-shrink-0 mt-0.5" />
+                                  )}
+                                </label>
+                              </TooltipTrigger>
+                              {hasScript && (
+                                <TooltipContent side="top" className="max-w-sm p-3 bg-popover border border-border z-50">
+                                  <div className="space-y-2 text-xs">
+                                    {scriptData.sla && (
+                                      <div className="flex items-center gap-1 text-primary font-medium">
+                                        <Clock className="h-3 w-3" />
+                                        SLA: {scriptData.sla}
+                                      </div>
+                                    )}
+                                    {scriptData.description && (
+                                      <p className="text-muted-foreground">{scriptData.description}</p>
+                                    )}
+                                    {scriptData.checklist && (
+                                      <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                                        {scriptData.checklist.slice(0, 3).map((item, i) => (
+                                          <li key={i}>{item}</li>
+                                        ))}
+                                        {scriptData.checklist.length > 3 && (
+                                          <li className="text-primary">+{scriptData.checklist.length - 3} mais...</li>
+                                        )}
+                                      </ul>
+                                    )}
+                                    {scriptData.script && (
+                                      <p className="italic text-muted-foreground border-l-2 border-primary/30 pl-2 line-clamp-3">
+                                        "{scriptData.script.substring(0, 100)}..."
+                                      </p>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          );
+                        })}
+                      </div>
+                    </TooltipProvider>
+                    
+                    {/* Link para guia completo */}
+                    <div className="mt-4 pt-4 border-t border-border/50">
+                      <Link to={`/guias-comerciais?stage=${stage.id}`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <BookOpen className="h-4 w-4" />
+                          Ver guia completo com scripts e dossiês
+                        </Button>
+                      </Link>
                     </div>
                   </CardContent>
                 )}
