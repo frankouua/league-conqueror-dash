@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, Calendar, CheckCircle, XCircle, Clock, AlertTriangle, Link2, BarChart3 } from "lucide-react";
+import { RefreshCw, Calendar, CheckCircle, XCircle, Clock, AlertTriangle, Link2, BarChart3, Key } from "lucide-react";
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,6 +35,8 @@ const FeegowSync = () => {
   const queryClient = useQueryClient();
   const [dateStart, setDateStart] = useState(format(subDays(new Date(), 7), "yyyy-MM-dd"));
   const [dateEnd, setDateEnd] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [showTokenUpdate, setShowTokenUpdate] = useState(false);
+  const [newToken, setNewToken] = useState("");
 
   const { data: logs, isLoading: logsLoading } = useQuery({
     queryKey: ["feegow-sync-logs"],
@@ -135,13 +137,60 @@ const FeegowSync = () => {
           </TabsTrigger>
         </TabsList>
         
-        <Button asChild variant="outline" size="sm">
-          <Link to="/sales-dashboard" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Dashboard de Vendas
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowTokenUpdate(!showTokenUpdate)}
+          >
+            <Key className="w-4 h-4 mr-2" />
+            Atualizar Token
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/sales-dashboard" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Dashboard de Vendas
+            </Link>
+          </Button>
+        </div>
       </div>
+
+      {showTokenUpdate && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Key className="w-4 h-4 text-amber-500" />
+              Atualizar Token FEEGOW
+            </CardTitle>
+            <CardDescription>
+              Cole o novo token da API FEEGOW para atualizar a integração
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Input
+              type="password"
+              placeholder="Cole o novo token aqui..."
+              value={newToken}
+              onChange={(e) => setNewToken(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Para atualizar o token, vá em <strong>Configurações → Segredos</strong> no painel do Lovable 
+              ou solicite ao administrador para atualizar o secret <code>FEEGOW_API_TOKEN</code>.
+            </p>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              onClick={() => {
+                setShowTokenUpdate(false);
+                setNewToken("");
+                toast.info("Para atualizar o token, peça ao Lovable: 'atualizar o token FEEGOW'");
+              }}
+            >
+              Entendi
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <TabsContent value="sync" className="space-y-6 mt-0">
         {/* Sync Control Card */}
