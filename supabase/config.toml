@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.figo-webhook]
 verify_jwt = false
+
+[functions.feegow-sync]
+verify_jwt = false
