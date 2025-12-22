@@ -64,17 +64,92 @@ Deno.serve(async (req) => {
     let dateStart: string;
     let dateEnd: string;
     let triggeredBy = 'cron';
+    let action = 'sync';
     
     try {
       const body = await req.json();
       dateStart = body.date_start || formatDateFeegow(new Date());
       dateEnd = body.date_end || formatDateFeegow(new Date());
       triggeredBy = body.triggered_by || 'manual';
+      action = body.action || 'sync';
     } catch {
       // Default to today
       const today = new Date();
       dateStart = formatDateFeegow(today);
       dateEnd = formatDateFeegow(today);
+    }
+
+    // Handle list-units action
+    if (action === 'list-units') {
+      console.log('Fetching available units...');
+      
+      const unitsResponse = await fetch(
+        `https://api.feegow.com/v1/api/company/units`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': feegowToken,
+          },
+        }
+      );
+
+      console.log('Units response status:', unitsResponse.status);
+      
+      if (unitsResponse.ok) {
+        const unitsData = await unitsResponse.json();
+        console.log('Units response:', JSON.stringify(unitsData));
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            action: 'list-units',
+            data: unitsData,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const errorText = await unitsResponse.text();
+        console.log('Units endpoint failed:', errorText);
+        
+        // Try alternative endpoint
+        const altUnitsResponse = await fetch(
+          `https://api.feegow.com/v1/api/unit/list`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-access-token': feegowToken,
+            },
+          }
+        );
+
+        console.log('Alt units response status:', altUnitsResponse.status);
+        
+        if (altUnitsResponse.ok) {
+          const altUnitsData = await altUnitsResponse.json();
+          console.log('Alt units response:', JSON.stringify(altUnitsData));
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              action: 'list-units',
+              data: altUnitsData,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            action: 'list-units',
+            error: 'Failed to fetch units',
+            details: errorText,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Create sync log entry
