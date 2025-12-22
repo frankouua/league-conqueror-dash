@@ -79,6 +79,66 @@ Deno.serve(async (req) => {
       dateEnd = formatDateFeegow(today);
     }
 
+    // Handle diagnose action - test all endpoints
+    if (action === 'diagnose') {
+      console.log('Running FEEGOW API diagnostics...');
+      
+      const endpoints = [
+        { name: 'employee/list', method: 'GET', url: 'https://api.feegow.com/v1/api/employee/list' },
+        { name: 'professional/list', method: 'GET', url: 'https://api.feegow.com/v1/api/professional/list' },
+        { name: 'company/units', method: 'GET', url: 'https://api.feegow.com/v1/api/company/units' },
+        { name: 'company/data', method: 'GET', url: 'https://api.feegow.com/v1/api/company/data' },
+        { name: 'company/info', method: 'GET', url: 'https://api.feegow.com/v1/api/company/info' },
+        { name: 'user/logged', method: 'GET', url: 'https://api.feegow.com/v1/api/user/logged' },
+        { name: 'patient/list', method: 'GET', url: 'https://api.feegow.com/v1/api/patient/list' },
+      ];
+
+      const results: Record<string, any> = {};
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint.url, {
+            method: endpoint.method,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-access-token': feegowToken,
+            },
+          });
+
+          const responseText = await response.text();
+          let responseData;
+          try {
+            responseData = JSON.parse(responseText);
+          } catch {
+            responseData = responseText;
+          }
+
+          results[endpoint.name] = {
+            status: response.status,
+            success: response.ok,
+            data: typeof responseData === 'object' ? responseData : { raw: responseData.slice(0, 500) },
+          };
+
+          console.log(`${endpoint.name}: ${response.status} - ${response.ok ? 'OK' : 'FAILED'}`);
+        } catch (error: unknown) {
+          results[endpoint.name] = {
+            status: 0,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action: 'diagnose',
+          results,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Handle list-units action
     if (action === 'list-units') {
       console.log('Fetching available units...');
