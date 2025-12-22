@@ -41,10 +41,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let logId: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let supabase: any = null;
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const feegowToken = Deno.env.get('FEEGOW_API_TOKEN');
+
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (!feegowToken) {
       console.error('FEEGOW_API_TOKEN not configured');
@@ -54,21 +60,37 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     // Parse request body for optional date range
     let dateStart: string;
     let dateEnd: string;
+    let triggeredBy = 'cron';
     
     try {
       const body = await req.json();
       dateStart = body.date_start || formatDateFeegow(new Date());
       dateEnd = body.date_end || formatDateFeegow(new Date());
+      triggeredBy = body.triggered_by || 'manual';
     } catch {
       // Default to today
       const today = new Date();
       dateStart = formatDateFeegow(today);
       dateEnd = formatDateFeegow(today);
+    }
+
+    // Create sync log entry
+    const { data: logData, error: logError } = await supabase
+      .from('feegow_sync_logs')
+      .insert({
+        date_start: dateStart,
+        date_end: dateEnd,
+        triggered_by: triggeredBy,
+        status: 'running',
+      })
+      .select('id')
+      .single();
+
+    if (!logError && logData) {
+      logId = logData.id;
     }
 
     console.log(`Syncing FEEGOW payments from ${dateStart} to ${dateEnd}`);
@@ -368,6 +390,23 @@ Deno.serve(async (req) => {
 
     console.log('Sync result:', JSON.stringify(result, null, 2));
 
+    // Update sync log with success
+    if (logId && supabase) {
+      await supabase
+        .from('feegow_sync_logs')
+        .update({
+          status: 'success',
+          completed_at: new Date().toISOString(),
+          total_accounts: accounts.length,
+          paid_accounts: paidAccounts.length,
+          inserted,
+          skipped,
+          errors,
+          sellers_not_found: notFoundSellers,
+        })
+        .eq('id', logId);
+    }
+
     return new Response(
       JSON.stringify(result),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -376,6 +415,19 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error('Unexpected error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Update sync log with error
+    if (logId && supabase) {
+      await supabase
+        .from('feegow_sync_logs')
+        .update({
+          status: 'error',
+          completed_at: new Date().toISOString(),
+          error_message: errorMessage,
+        })
+        .eq('id', logId);
+    }
+
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
