@@ -700,7 +700,7 @@ const CommercialGuides = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-lg p-4 border-l-4 border-blue-500">
+                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-lg p-4 border-l-4 border-blue-500 text-blue-900 dark:text-blue-100">
                           <pre className="text-sm whitespace-pre-wrap font-sans">
                             {currentStage.transitionScript}
                           </pre>
@@ -735,7 +735,7 @@ const CommercialGuides = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg p-4 border-l-4 border-purple-500">
+                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg p-4 border-l-4 border-purple-500 text-purple-900 dark:text-purple-100">
                           <pre className="text-sm whitespace-pre-wrap font-sans">
                             {currentStage.notificationTemplate}
                           </pre>
@@ -775,7 +775,7 @@ const CommercialGuides = () => {
                                 )}
                               </Button>
                             </div>
-                            <div className="bg-muted/50 rounded-lg p-3 text-sm whitespace-pre-wrap border-l-4 border-green-500">
+                            <div className="bg-muted/50 rounded-lg p-3 text-sm whitespace-pre-wrap border-l-4 border-green-500 text-foreground">
                               {action.script}
                             </div>
                           </div>
@@ -868,7 +868,7 @@ const CommercialGuides = () => {
                                   )}
                                 </Button>
                               </div>
-                              <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 text-sm whitespace-pre-wrap border-l-4 border-green-500">
+                              <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 text-sm whitespace-pre-wrap border-l-4 border-green-500 text-green-900 dark:text-green-100">
                                 {handler.response}
                               </div>
                             </div>
