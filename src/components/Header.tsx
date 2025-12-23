@@ -2,8 +2,9 @@ import {
   LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
   ChevronDown, Settings, AlertCircle, Route, UserPlus, MessageSquareText,
-  ShieldAlert
+  ShieldAlert, Flame
 } from "lucide-react";
+import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -59,6 +60,7 @@ const POSITION_LABELS: Record<string, string> = {
 const Header = () => {
   const { user, profile, role, signOut } = useAuth();
   const { stats } = useUserTeamStats();
+  const goalProgress = useGoalProgress();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -74,7 +76,7 @@ const Header = () => {
 
   const navLinks = [
     { path: "/", label: "Dashboard", icon: Home },
-    { path: "/onboarding-goals", label: "Metas", icon: TrendingUp },
+    { path: "/onboarding-goals", label: "Metas", icon: TrendingUp, showBadge: goalProgress?.isNearGoal || goalProgress?.hasReachedGoal },
     { path: "/register", label: "Registrar", icon: Plus },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/patient-kanban", label: "Jornada", icon: Route },
@@ -85,7 +87,7 @@ const Header = () => {
     { path: "/guias-comerciais", label: "Scripts", icon: MessageSquareText },
   ];
 
-  const NavItem = ({ path, label, icon: Icon, onClick }: { path: string; label: string; icon: any; onClick?: () => void }) => (
+  const NavItem = ({ path, label, icon: Icon, onClick, showBadge }: { path: string; label: string; icon: any; onClick?: () => void; showBadge?: boolean }) => (
     <Link to={path} onClick={onClick}>
       <Button
         variant="ghost"
@@ -98,6 +100,19 @@ const Header = () => {
       >
         <Icon className="w-4 h-4" />
         {label}
+        {showBadge && (
+          <Badge 
+            variant="default" 
+            className={`ml-auto text-[10px] px-1.5 py-0 h-5 ${
+              goalProgress?.hasReachedGoal 
+                ? "bg-green-500 hover:bg-green-600" 
+                : "bg-orange-500 hover:bg-orange-600 animate-pulse"
+            }`}
+          >
+            <Flame className="w-3 h-3 mr-0.5" />
+            {goalProgress?.hasReachedGoal ? "100%" : `${Math.round(goalProgress?.progress || 0)}%`}
+          </Badge>
+        )}
       </Button>
     </Link>
   );
@@ -127,7 +142,7 @@ const Header = () => {
           {user && (
             <nav className="hidden lg:flex items-center gap-1">
               {navLinks.map((link) => (
-                <Link key={link.path} to={link.path}>
+                <Link key={link.path} to={link.path} className="relative">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -139,6 +154,19 @@ const Header = () => {
                   >
                     <link.icon className="w-4 h-4" />
                     <span className="hidden xl:inline">{link.label}</span>
+                    {link.showBadge && (
+                      <Badge 
+                        variant="default" 
+                        className={`ml-1 text-[10px] px-1.5 py-0 h-5 ${
+                          goalProgress?.hasReachedGoal 
+                            ? "bg-green-500 hover:bg-green-600" 
+                            : "bg-orange-500 hover:bg-orange-600 animate-pulse"
+                        }`}
+                      >
+                        <Flame className="w-3 h-3 mr-0.5" />
+                        {goalProgress?.hasReachedGoal ? "100%" : `${Math.round(goalProgress?.progress || 0)}%`}
+                      </Badge>
+                    )}
                   </Button>
                 </Link>
               ))}
