@@ -92,6 +92,7 @@ export const useTeamScores = (userTeamId?: string | null) => {
         { data: allIndicators },
         { data: allCards },
         { data: allSpecialEvents },
+        { data: allCancellations },
       ] = await Promise.all([
         supabase.from("revenue_records").select("*"),
         supabase.from("nps_records").select("*"),
@@ -100,6 +101,7 @@ export const useTeamScores = (userTeamId?: string | null) => {
         supabase.from("other_indicators").select("*"),
         supabase.from("cards").select("*"),
         supabase.from("special_events").select("*"),
+        supabase.from("cancellations").select("*").in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]),
       ]);
 
       for (const team of teamsData) {
@@ -110,8 +112,14 @@ export const useTeamScores = (userTeamId?: string | null) => {
 
         // Revenue
         const teamRevenueRecords = allRevenue?.filter(r => r.team_id === team.id) || [];
-        teamRevenue = teamRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
-        revenuePoints = Math.floor(teamRevenue / 1000) * SCORING.revenue.perThousand;
+        const grossRevenue = teamRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
+        
+        // Subtract confirmed cancellations from revenue
+        const teamCancellations = allCancellations?.filter(c => c.team_id === team.id) || [];
+        const cancelledAmount = teamCancellations.reduce((sum, c) => sum + Number(c.contract_value), 0);
+        
+        teamRevenue = grossRevenue - cancelledAmount;
+        revenuePoints = Math.floor(Math.max(0, teamRevenue) / 1000) * SCORING.revenue.perThousand;
 
         // NPS - Updated scoring: NPS 9=3pts, NPS 10=5pts, +10 bonus for citation
         const teamNps = allNps?.filter(r => r.team_id === team.id) || [];
@@ -379,6 +387,7 @@ export const useTeamScores = (userTeamId?: string | null) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "other_indicators" }, calculateScores)
       .on("postgres_changes", { event: "*", schema: "public", table: "cards" }, calculateScores)
       .on("postgres_changes", { event: "*", schema: "public", table: "special_events" }, calculateScores)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cancellations" }, calculateScores)
       .subscribe();
 
     return () => {

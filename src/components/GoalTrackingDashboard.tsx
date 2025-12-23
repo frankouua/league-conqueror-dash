@@ -72,6 +72,21 @@ const GoalTrackingDashboard = ({ month, year }: GoalTrackingDashboardProps) => {
     },
   });
 
+  // Fetch confirmed cancellations
+  const { data: cancellations } = useQuery({
+    queryKey: ["cancellations-tracking", month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cancellations")
+        .select("*")
+        .gte("cancellation_request_date", startDate)
+        .lte("cancellation_request_date", endDate)
+        .in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch all profiles
   const { data: profiles } = useQuery({
     queryKey: ["profiles-tracking"],
@@ -148,6 +163,9 @@ const GoalTrackingDashboard = ({ month, year }: GoalTrackingDashboardProps) => {
     );
   };
 
+  // Calculate total cancelled amount
+  const totalCancelledAmount = cancellations?.reduce((sum, c) => sum + Number(c.contract_value), 0) || 0;
+
   // Calculate revenue by department
   const getRevenueByDepartment = (departmentName: string) => {
     if (!revenueRecords) return 0;
@@ -174,9 +192,10 @@ const GoalTrackingDashboard = ({ month, year }: GoalTrackingDashboardProps) => {
   const totalMeta3 = departmentGoals?.reduce((sum, g) => sum + Number(g.meta3_goal), 0) || 0;
   const totalDeptRevenue = revenueRecords?.filter(r => r.department).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
   
-  // Individual totals
+  // Individual totals - subtract cancellations from total revenue
   const totalIndividualGoal = individualGoals?.reduce((sum, g) => sum + Number(g.revenue_goal), 0) || 0;
-  const totalRevenue = revenueRecords?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+  const grossRevenue = revenueRecords?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+  const totalRevenue = grossRevenue - totalCancelledAmount;
 
   // Get individual data with goals and actual
   const individualsData = profiles?.map(profile => {
