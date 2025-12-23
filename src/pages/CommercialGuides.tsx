@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowLeft, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ArrowLeft, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,12 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { COMMERCIAL_SCRIPTS, OBJECTION_HANDLERS, BENEFIT_PROJECTS, PAYMENT_CONDITIONS, StageScripts, ActionScript } from "@/constants/commercialScripts";
 
 const CommercialGuides = () => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [selectedStage, setSelectedStage] = useState<number>(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -35,6 +39,40 @@ const CommercialGuides = () => {
     3: <Users className="h-5 w-5" />,
     4: <Sparkles className="h-5 w-5" />
   };
+
+  // Função de busca
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    const results: { type: string; stageId: number; title: string; content: string }[] = [];
+
+    COMMERCIAL_SCRIPTS.forEach((stage) => {
+      stage.actions.forEach((action) => {
+        if (action.action.toLowerCase().includes(query) || action.script?.toLowerCase().includes(query) || action.description?.toLowerCase().includes(query)) {
+          results.push({ type: 'action', stageId: stage.stageId, title: action.action, content: action.script || action.description || '' });
+        }
+      });
+      if (stage.transitionScript?.toLowerCase().includes(query)) {
+        results.push({ type: 'script', stageId: stage.stageId, title: 'Script de Transição', content: stage.transitionScript });
+      }
+    });
+
+    OBJECTION_HANDLERS.forEach((obj) => {
+      if (obj.objection.toLowerCase().includes(query) || obj.response.toLowerCase().includes(query)) {
+        results.push({ type: 'objection', stageId: 2, title: obj.objection, content: obj.response });
+      }
+    });
+
+    BENEFIT_PROJECTS.forEach((proj) => {
+      if (proj.name.toLowerCase().includes(query) || proj.description.toLowerCase().includes(query)) {
+        results.push({ type: 'project', stageId: 2, title: proj.name, content: proj.description });
+      }
+    });
+
+    return filterType === 'all' ? results : results.filter(r => r.type === filterType);
+  }, [searchQuery, filterType]);
+
+  const isSearchMode = searchQuery.trim().length > 0;
 
   const currentStage = COMMERCIAL_SCRIPTS.find(s => s.stageId === selectedStage);
 
