@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,9 +12,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink, Megaphone, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "@/hooks/use-toast";
 
 interface Notification {
   id: string;
@@ -31,7 +39,8 @@ const NotificationsDropdown = () => {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-
+  const [popupNotification, setPopupNotification] = useState<Notification | null>(null);
+  const shownNotifications = useRef<Set<string>>(new Set());
   const { data: notifications } = useQuery({
     queryKey: ["notifications", user?.id, profile?.team_id],
     queryFn: async () => {
@@ -56,7 +65,7 @@ const NotificationsDropdown = () => {
     enabled: !!user?.id,
   });
 
-  // Subscribe to realtime notifications
+  // Subscribe to realtime notifications and show popup for admin announcements
   useEffect(() => {
     if (!user?.id) return;
 
@@ -69,8 +78,26 @@ const NotificationsDropdown = () => {
           schema: "public",
           table: "notifications",
         },
-        () => {
+        (payload) => {
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
+          
+          // Show popup for admin announcements
+          const newNotification = payload.new as Notification;
+          if (
+            newNotification.type === "admin_announcement" &&
+            newNotification.user_id === user.id &&
+            !shownNotifications.current.has(newNotification.id)
+          ) {
+            shownNotifications.current.add(newNotification.id);
+            setPopupNotification(newNotification);
+            
+            // Also show toast for immediate attention
+            toast({
+              title: `📢 ${newNotification.title}`,
+              description: newNotification.message.substring(0, 100) + (newNotification.message.length > 100 ? "..." : ""),
+              duration: 8000,
+            });
+          }
         }
       )
       .subscribe();
@@ -131,8 +158,17 @@ const NotificationsDropdown = () => {
         return <AlertTriangle className="w-4 h-4 text-red-500" />;
       case "seller_warning":
         return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+      case "admin_announcement":
+        return <Megaphone className="w-4 h-4 text-primary" />;
       default:
         return <Bell className="w-4 h-4" />;
+    }
+  };
+
+  const handleClosePopup = () => {
+    if (popupNotification) {
+      markAsRead.mutate(popupNotification.id);
+      setPopupNotification(null);
     }
   };
 
@@ -152,6 +188,35 @@ const NotificationsDropdown = () => {
   if (!user) return null;
 
   return (
+    <>
+      {/* Popup Dialog for Admin Announcements */}
+      <Dialog open={!!popupNotification} onOpenChange={(open) => !open && handleClosePopup()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Megaphone className="w-5 h-5 text-primary" />
+              </div>
+              <DialogTitle className="text-lg">{popupNotification?.title}</DialogTitle>
+            </div>
+            <DialogDescription className="pt-4 text-base text-foreground whitespace-pre-wrap">
+              {popupNotification?.message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-between items-center mt-4">
+            <span className="text-xs text-muted-foreground">
+              {popupNotification && formatDistanceToNow(new Date(popupNotification.created_at), {
+                addSuffix: true,
+                locale: ptBR,
+              })}
+            </span>
+            <Button onClick={handleClosePopup}>
+              Entendi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
@@ -192,7 +257,7 @@ const NotificationsDropdown = () => {
               key={notification.id}
             className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""}`}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
@@ -236,9 +301,10 @@ const NotificationsDropdown = () => {
             <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">Nenhuma notificação</p>
           </div>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 };
 
