@@ -2727,9 +2727,251 @@ export const REFERRAL_MANAGEMENT_PROCESS = {
   ]
 };
 
+// ============================================
+// GESTÃO DE CANCELAMENTOS
+// ============================================
+export interface CancellationRule {
+  reason: string;
+  allowsFineWaiver: boolean;
+  retentionPriority: 'alta' | 'media' | 'baixa';
+  retentionApproach: string;
+  scripts: {
+    initial: string;
+    followUp?: string;
+    lastChance?: string;
+  };
+}
+
+export const CANCELLATION_MANAGEMENT = {
+  title: "Gestão de Cancelamentos",
+  mission: "EVITAR CANCELAMENTOS AO MÁXIMO! Cada cancelamento impacta diretamente as metas da equipe. O valor cancelado é SUBTRAÍDO do faturamento realizado. Prioridade absoluta é a RETENÇÃO do paciente.",
+  
+  policy: {
+    finePercentage: 30,
+    refundPercentage: 70,
+    refundDeadlineDays: 30,
+    creditValidityMonths: 12,
+    contractRequired: true,
+    rules: [
+      "Multa de 30% do valor do contrato é retida em caso de cancelamento",
+      "70% do valor é estornado ao paciente em até 30 dias",
+      "Cancelamento SEMPRE requer assinatura de distrato/contrato",
+      "Valor do cancelamento é SUBTRAÍDO da meta realizada da equipe",
+      "Se o paciente retornar em até 12 meses, os 30% retidos viram entrada para o mesmo procedimento"
+    ]
+  },
+
+  fineExemptions: {
+    title: "Isenção de Multa",
+    description: "Em casos específicos, a multa pode ser isenta para preservar o relacionamento e possibilitar retorno futuro:",
+    reasons: [
+      {
+        reason: "Problemas de Saúde",
+        description: "Paciente apresentou problema de saúde que impossibilita a realização do procedimento",
+        requiresDocumentation: true,
+        documentationType: "Atestado ou laudo médico"
+      },
+      {
+        reason: "Óbito na Família",
+        description: "Falecimento de familiar próximo",
+        requiresDocumentation: true,
+        documentationType: "Certidão de óbito"
+      },
+      {
+        reason: "Doença Grave de Familiar",
+        description: "Familiar próximo com doença grave que requer cuidados",
+        requiresDocumentation: true,
+        documentationType: "Atestado médico do familiar"
+      }
+    ]
+  },
+
+  creditRecovery: {
+    title: "Recuperação via Crédito",
+    description: "Estratégia para manter o paciente vinculado à clínica mesmo após o cancelamento",
+    rules: [
+      "Os 30% retidos ficam como CRÉDITO por 12 meses",
+      "O crédito só pode ser usado no MESMO procedimento do contrato original",
+      "O crédito funciona como ENTRADA para um novo contrato",
+      "Após 12 meses sem uso, o crédito é perdido",
+      "Esta opção deve ser oferecida ATIVAMENTE durante o processo de cancelamento"
+    ],
+    script: "Entendo sua decisão. Quero te propor algo especial: os 30% que ficariam retidos podem ser utilizados como entrada para o mesmo procedimento caso você decida retornar em até 12 meses. Assim, você não perde esse valor e pode realizar seu sonho quando o momento for mais adequado. O que acha?"
+  },
+
+  kpis: {
+    taxaRetencao: "Meta: > 40%",
+    tempoMedioRetencao: "Meta: < 48 horas",
+    tentativasRetencao: "Mínimo: 3 tentativas",
+    cancelamentosEvitados: "Meta mensal: > 50%"
+  },
+
+  impactOnGoals: {
+    title: "Impacto nas Metas",
+    description: "Cancelamentos afetam DIRETAMENTE o resultado da equipe",
+    rules: [
+      "Valor cancelado = Subtração do faturamento realizado",
+      "Exemplo: Se vendemos R$ 1.500.000 e cancelaram R$ 100.000, o resultado é R$ 1.400.000",
+      "Cancelamentos evitados NÃO somam pontos extras, apenas mantêm o que já foi conquistado",
+      "Motivo para MÁXIMA prioridade na retenção!"
+    ]
+  }
+};
+
+export const CANCELLATION_RULES: CancellationRule[] = [
+  {
+    reason: "financial",
+    allowsFineWaiver: false,
+    retentionPriority: "alta",
+    retentionApproach: "Oferecer condições especiais de parcelamento, entrada facilitada, ou opções de procedimentos alternativos com menor investimento",
+    scripts: {
+      initial: "Entendo que o momento financeiro pode estar desafiador. Deixa eu te apresentar algumas alternativas que podem ajudar:\n\n1. Podemos reparcelar o valor em mais vezes\n2. Temos opções de entrada flexível\n3. Existe a possibilidade de um procedimento similar com investimento menor\n\nO importante é não desistir do seu sonho! O que acha de conversarmos sobre essas opções?",
+      followUp: "Olá! Passei para saber se você conseguiu analisar as condições que te apresentei. Lembre-se: se você cancelar agora, 30% do valor ficará retido. Mas se preferir, esse valor pode virar crédito por 12 meses. Vamos encontrar uma solução juntos?",
+      lastChance: "Antes de finalizar o cancelamento, quero te fazer uma última proposta especial. O que você acha de pausar o procedimento por 3 meses? Assim você se organiza financeiramente e não perde o valor investido."
+    }
+  },
+  {
+    reason: "health",
+    allowsFineWaiver: true,
+    retentionPriority: "baixa",
+    retentionApproach: "Demonstrar empatia, oferecer crédito sem multa e manter relacionamento para retorno futuro",
+    scripts: {
+      initial: "Sentimos muito por essa situação. Sua saúde é prioridade absoluta e entendemos completamente sua decisão. Por se tratar de um motivo de saúde, não aplicaremos a multa de 30%. Você receberá o reembolso integral em até 30 dias. Quando estiver recuperado(a), estaremos aqui para te receber de volta. Cuide-se! 💙",
+      followUp: "Olá! Só passando para saber como você está. Esperamos que esteja se recuperando bem. Lembre-se que a Unique estará sempre aqui para quando você estiver pronta(o) para realizar seu sonho. Um abraço!"
+    }
+  },
+  {
+    reason: "dissatisfaction",
+    allowsFineWaiver: false,
+    retentionPriority: "alta",
+    retentionApproach: "Escutar atentamente, pedir desculpas sinceras, oferecer soluções personalizadas e envolver a coordenação se necessário",
+    scripts: {
+      initial: "Lamento muito saber que você está insatisfeita. Sua opinião é muito importante para nós. Posso entender melhor o que aconteceu? Quero garantir que encontremos uma solução que te deixe 100% satisfeita. Podemos agendar uma conversa com nossa coordenadora para analisarmos seu caso pessoalmente?",
+      followUp: "Olá! Nossa coordenadora analisou seu caso pessoalmente e preparamos uma proposta especial para você. Podemos conversar? Queremos muito reconquistar sua confiança.",
+      lastChance: "Entendo que você está decidida, mas antes de finalizar, gostaria de te oferecer uma última alternativa: [proposta personalizada baseada na reclamação]. O que acha? Queremos muito ter você conosco."
+    }
+  },
+  {
+    reason: "changed_mind",
+    allowsFineWaiver: false,
+    retentionPriority: "alta",
+    retentionApproach: "Entender o real motivo, reforçar benefícios do procedimento e oferecer mais tempo para decisão",
+    scripts: {
+      initial: "Entendo que pode ter surgido alguma dúvida ou insegurança. Isso é completamente normal! Muitas pacientes passam por esse momento antes do procedimento. Posso te contar: mais de 95% das pacientes que realizaram o procedimento ficaram extremamente satisfeitas. O que está te deixando insegura? Vamos conversar com calma?",
+      followUp: "Olá! Pensando em você, preparei alguns depoimentos de pacientes que tiveram dúvidas parecidas com as suas antes do procedimento. Tenho certeza que vai te ajudar! Posso te enviar?",
+      lastChance: "Antes de finalizar, que tal adiar por 30 dias ao invés de cancelar? Assim você tem mais tempo para pensar sem perder o valor investido. Se depois de 30 dias você ainda quiser cancelar, faremos sem problema. O que acha?"
+    }
+  },
+  {
+    reason: "competitor",
+    allowsFineWaiver: false,
+    retentionPriority: "alta",
+    retentionApproach: "Destacar diferenciais da Unique, oferecer condições especiais e não denegrir concorrência",
+    scripts: {
+      initial: "Respeito sua decisão de pesquisar outras opções. Posso te perguntar qual foi o diferencial que te chamou atenção na outra clínica? Pergunto porque quero entender se há algo que possamos oferecer para que você realize seu sonho aqui, com a segurança e qualidade que a Unique oferece há mais de 15 anos.",
+      followUp: "Olá! Quero te fazer uma proposta especial. Consigo igualar as condições que te ofereceram, mantendo todos os diferenciais da Unique: equipe médica renomada, estrutura hospitalar completa e acompanhamento pós-operatório de excelência. Podemos conversar?",
+      lastChance: "Antes de você fechar com outra clínica, gostaria de te oferecer algo que tenho certeza que não vão oferecer: [diferencial único Unique]. Posso te apresentar?"
+    }
+  },
+  {
+    reason: "scheduling",
+    allowsFineWaiver: false,
+    retentionPriority: "media",
+    retentionApproach: "Oferecer flexibilidade total de datas, adiamento sem custos e manter o procedimento agendado",
+    scripts: {
+      initial: "Sem problema! Podemos remarcar para uma data que seja melhor para você. Temos disponibilidade em [datas alternativas]. Qual funcionaria melhor? Você não precisa cancelar, podemos apenas adiar.",
+      followUp: "Olá! Já verificamos nossa agenda e encontramos algumas datas que podem funcionar melhor para você: [opções]. O que acha? Assim você mantém seu procedimento garantido!",
+      lastChance: "Entendo que a agenda está complicada. Que tal deixarmos em aberto e você escolher a data quando for conveniente? Podemos 'pausar' seu contrato por até 3 meses sem nenhum custo adicional."
+    }
+  },
+  {
+    reason: "personal",
+    allowsFineWaiver: false,
+    retentionPriority: "media",
+    retentionApproach: "Demonstrar empatia, oferecer suporte e apresentar opção de pausa ou crédito",
+    scripts: {
+      initial: "Entendo que questões pessoais podem impactar nossos planos. Saiba que estamos aqui para te apoiar. Posso te oferecer uma alternativa: ao invés de cancelar, podemos pausar seu procedimento por alguns meses até que você se sinta pronta. O que acha?",
+      followUp: "Olá! Como você está? Espero que esteja tudo bem. Só queria lembrar que, caso você decida retomar seu procedimento, estamos aqui para te receber. Sem pressa, ok?",
+      lastChance: "Se o cancelamento for inevitável, gostaria de te oferecer a opção de converter os 30% retidos em crédito. Assim, quando você estiver pronta para retomar, já terá esse valor como entrada. É válido por 12 meses. Faz sentido para você?"
+    }
+  },
+  {
+    reason: "other",
+    allowsFineWaiver: false,
+    retentionPriority: "media",
+    retentionApproach: "Investigar o real motivo, demonstrar interesse genuíno e oferecer soluções personalizadas",
+    scripts: {
+      initial: "Entendo sua decisão. Posso te perguntar o que te levou a tomar essa decisão? Gostaria de entender melhor para ver se há algo que possamos fazer para ajudar.",
+      followUp: "Olá! Analisei seu caso com nossa equipe e gostaríamos de te apresentar uma proposta personalizada. Podemos conversar por alguns minutos?",
+      lastChance: "Antes de finalizarmos o cancelamento, gostaria de te oferecer a opção de crédito: os 30% ficam válidos por 12 meses como entrada para o mesmo procedimento. Assim você não perde o valor investido caso mude de ideia no futuro."
+    }
+  }
+];
+
+export const CANCELLATION_RETENTION_CHECKLIST = {
+  title: "Checklist de Retenção",
+  description: "Passos obrigatórios antes de aprovar qualquer cancelamento",
+  steps: [
+    {
+      order: 1,
+      action: "Primeira Tentativa de Contato",
+      description: "Ligar para o paciente para entender o motivo real",
+      responsible: "CS/Farmer",
+      maxTime: "24 horas após solicitação"
+    },
+    {
+      order: 2,
+      action: "Análise do Motivo",
+      description: "Identificar o motivo e verificar se há isenção de multa",
+      responsible: "CS/Farmer",
+      maxTime: "Imediato"
+    },
+    {
+      order: 3,
+      action: "Apresentar Alternativas",
+      description: "Oferecer pausa, adiamento, parcelamento ou crédito",
+      responsible: "CS/Farmer",
+      maxTime: "Durante a ligação"
+    },
+    {
+      order: 4,
+      action: "Escalar para Coordenação",
+      description: "Se não resolver, passar o caso para o coordenador",
+      responsible: "Coordenador",
+      maxTime: "48 horas"
+    },
+    {
+      order: 5,
+      action: "Proposta Final",
+      description: "Coordenador faz última tentativa com proposta especial",
+      responsible: "Coordenador",
+      maxTime: "72 horas"
+    },
+    {
+      order: 6,
+      action: "Formalização",
+      description: "Se não houver acordo, processar cancelamento com contrato",
+      responsible: "Administrativo",
+      maxTime: "5 dias úteis"
+    }
+  ],
+  goldenRules: [
+    "NUNCA cancelar sem pelo menos 3 tentativas de retenção",
+    "SEMPRE oferecer a opção de crédito antes de confirmar cancelamento",
+    "SEMPRE documentar todas as tentativas de retenção no sistema",
+    "NUNCA processar cancelamento sem assinatura de contrato/distrato",
+    "SEMPRE informar sobre o impacto nas metas durante reuniões de equipe"
+  ]
+};
+
 // Helper para buscar script de uma ação específica
 export const getActionScript = (stageId: number, actionText: string): ActionScript | undefined => {
   const stage = COMMERCIAL_SCRIPTS.find(s => s.stageId === stageId);
   if (!stage) return undefined;
   return stage.actions.find(a => a.action === actionText);
+};
+
+// Helper para buscar regra de cancelamento por motivo
+export const getCancellationRule = (reason: string): CancellationRule | undefined => {
+  return CANCELLATION_RULES.find(r => r.reason === reason);
 };
