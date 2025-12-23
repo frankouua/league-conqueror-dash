@@ -22,7 +22,17 @@ interface FavoriteScript {
   addedAt: string;
 }
 
+interface CopyHistoryItem {
+  id: string;
+  title: string;
+  content: string;
+  stageId: number;
+  copiedAt: string;
+}
+
 const FAVORITES_KEY = "commercial-guides-favorites";
+const COPY_HISTORY_KEY = "commercial-guides-copy-history";
+const MAX_HISTORY_ITEMS = 10;
 
 const CommercialGuides = () => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
@@ -31,15 +41,25 @@ const CommercialGuides = () => {
   const [filterType, setFilterType] = useState<string>("all");
   const [favorites, setFavorites] = useState<FavoriteScript[]>([]);
   const [showFavorites, setShowFavorites] = useState(false);
+  const [copyHistory, setCopyHistory] = useState<CopyHistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
-  // Carregar favoritos do localStorage
+  // Carregar favoritos e histórico do localStorage
   useEffect(() => {
-    const stored = localStorage.getItem(FAVORITES_KEY);
-    if (stored) {
+    const storedFavorites = localStorage.getItem(FAVORITES_KEY);
+    if (storedFavorites) {
       try {
-        setFavorites(JSON.parse(stored));
+        setFavorites(JSON.parse(storedFavorites));
       } catch (e) {
         console.error("Erro ao carregar favoritos:", e);
+      }
+    }
+    const storedHistory = localStorage.getItem(COPY_HISTORY_KEY);
+    if (storedHistory) {
+      try {
+        setCopyHistory(JSON.parse(storedHistory));
+      } catch (e) {
+        console.error("Erro ao carregar histórico:", e);
       }
     }
   }, []);
@@ -47,6 +67,11 @@ const CommercialGuides = () => {
   const saveFavorites = (newFavorites: FavoriteScript[]) => {
     setFavorites(newFavorites);
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
+  };
+
+  const saveCopyHistory = (newHistory: CopyHistoryItem[]) => {
+    setCopyHistory(newHistory);
+    localStorage.setItem(COPY_HISTORY_KEY, JSON.stringify(newHistory));
   };
 
   const generateScriptId = (type: string, stageId: number, title: string) => {
@@ -70,11 +95,50 @@ const CommercialGuides = () => {
     }
   };
 
-  const copyToClipboard = (text: string, label: string) => {
+  const addToCopyHistory = (title: string, content: string, stageId: number) => {
+    const id = `${Date.now()}-${title.replace(/\s+/g, '-').toLowerCase()}`;
+    const newItem: CopyHistoryItem = {
+      id,
+      title,
+      content,
+      stageId,
+      copiedAt: new Date().toISOString()
+    };
+    // Remove duplicatas do mesmo título e limita a MAX_HISTORY_ITEMS
+    const filteredHistory = copyHistory.filter(h => h.title !== title);
+    const newHistory = [newItem, ...filteredHistory].slice(0, MAX_HISTORY_ITEMS);
+    saveCopyHistory(newHistory);
+  };
+
+  const clearCopyHistory = () => {
+    saveCopyHistory([]);
+    toast.success("Histórico limpo!");
+  };
+
+  const copyToClipboard = (text: string, label: string, title?: string, stageId?: number) => {
     navigator.clipboard.writeText(text);
     setCopiedText(label);
     toast.success("Copiado para a área de transferência!");
     setTimeout(() => setCopiedText(null), 2000);
+    
+    // Adicionar ao histórico se tiver título
+    if (title && stageId !== undefined) {
+      addToCopyHistory(title, text, stageId);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "agora";
+    if (diffMins < 60) return `${diffMins}min atrás`;
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    return `${diffDays}d atrás`;
   };
 
   const stageColors: Record<number, string> = {
@@ -143,9 +207,21 @@ const CommercialGuides = () => {
           </div>
           <div className="flex items-center gap-2 ml-auto">
             <Button
+              variant={showHistory ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setShowHistory(!showHistory); setShowFavorites(false); }}
+              className="gap-2"
+            >
+              <Clock className={`h-4 w-4`} />
+              <span className="hidden sm:inline">Recentes</span>
+              {copyHistory.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5">{copyHistory.length}</Badge>
+              )}
+            </Button>
+            <Button
               variant={showFavorites ? "default" : "outline"}
               size="sm"
-              onClick={() => setShowFavorites(!showFavorites)}
+              onClick={() => { setShowFavorites(!showFavorites); setShowHistory(false); }}
               className="gap-2"
             >
               <Star className={`h-4 w-4 ${showFavorites ? 'fill-current' : ''}`} />
@@ -154,7 +230,7 @@ const CommercialGuides = () => {
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5">{favorites.length}</Badge>
               )}
             </Button>
-            <Badge variant="secondary">Unique Plástica Avançada</Badge>
+            <Badge variant="secondary" className="hidden md:inline-flex">Unique Plástica Avançada</Badge>
           </div>
         </div>
       </header>
@@ -276,6 +352,73 @@ const CommercialGuides = () => {
           </Card>
         )}
 
+        {/* Copy History Section */}
+        {showHistory && (
+          <Card className="mb-6 border-blue-500/30 bg-blue-500/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                  Copiados Recentemente
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {copyHistory.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearCopyHistory} className="text-muted-foreground hover:text-destructive">
+                      Limpar
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => setShowHistory(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>Últimos {MAX_HISTORY_ITEMS} scripts copiados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {copyHistory.length > 0 ? (
+                <div className="space-y-3">
+                  {copyHistory.map((item) => (
+                    <Card key={item.id} className="border-border/50">
+                      <CardHeader className="pb-2 pt-3 px-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs">
+                              Comercial {item.stageId}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTimeAgo(item.copiedAt)}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => copyToClipboard(item.content, item.id)}
+                          >
+                            {copiedText === item.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                        <p className="font-medium text-sm">{item.title}</p>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-3">
+                        <div className="bg-muted/30 rounded-lg p-2 text-xs whitespace-pre-wrap max-h-[80px] overflow-y-auto">
+                          {item.content.slice(0, 150)}{item.content.length > 150 ? '...' : ''}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>Nenhum script copiado ainda</p>
+                  <p className="text-sm">Copie scripts para acessá-los rapidamente aqui</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Search Results */}
         {isSearchMode ? (
           <div className="space-y-4">
@@ -319,7 +462,7 @@ const CommercialGuides = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(result.content, `result-${index}`)}
+                        onClick={() => copyToClipboard(result.content, `result-${index}`, result.title, result.stageId)}
                       >
                         {copiedText === `result-${index}` ? (
                           <><Check className="h-4 w-4 mr-1 text-green-500" /> Copiado</>
@@ -503,7 +646,7 @@ const CommercialGuides = () => {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => copyToClipboard(action.script!, `action-${index}`)}
+                                        onClick={() => copyToClipboard(action.script!, `action-${index}`, action.action, currentStage.stageId)}
                                         className="h-7 px-2"
                                       >
                                         {copiedText === `action-${index}` ? (
@@ -543,7 +686,7 @@ const CommercialGuides = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => copyToClipboard(currentStage.transitionScript!, 'transition')}
+                            onClick={() => copyToClipboard(currentStage.transitionScript!, 'transition', 'Script de Transição', currentStage.stageId)}
                           >
                             {copiedText === 'transition' ? (
                               <><Check className="h-4 w-4 mr-1 text-green-500" /> Copiado</>
@@ -578,7 +721,7 @@ const CommercialGuides = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => copyToClipboard(currentStage.notificationTemplate!, 'notification')}
+                            onClick={() => copyToClipboard(currentStage.notificationTemplate!, 'notification', 'Template de Notificação', currentStage.stageId)}
                           >
                             {copiedText === 'notification' ? (
                               <><Check className="h-4 w-4 mr-1 text-green-500" /> Copiado</>
