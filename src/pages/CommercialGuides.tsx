@@ -18,6 +18,7 @@ import InfluencerStrategies from "@/components/InfluencerStrategies";
 import LoyaltyStrategies from "@/components/LoyaltyStrategies";
 import { CampaignCalendar } from "@/components/CampaignCalendar";
 import CancellationStrategies from "@/components/CancellationStrategies";
+import CommercialGoalsBanner from "@/components/CommercialGoalsBanner";
 
 interface FavoriteScript {
   id: string;
@@ -260,6 +261,9 @@ const CommercialGuides = () => {
       </header>
 
       <main className="container px-4 py-6">
+        {/* Goals Banner - First Thing They See */}
+        <CommercialGoalsBanner />
+
         {/* Search Bar */}
         <Card className="mb-6 border-primary/20 bg-card/50 backdrop-blur">
           <CardContent className="p-4">
