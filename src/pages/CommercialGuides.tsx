@@ -157,6 +157,14 @@ const CommercialGuides = () => {
     5: <Sparkles className="h-5 w-5" />
   };
 
+  const stageLabels: Record<number, { title: string; subtitle: string }> = {
+    1: { title: "Comercial 1", subtitle: "SDR" },
+    2: { title: "Comercial 1", subtitle: "Social Selling" },
+    3: { title: "Comercial 2", subtitle: "Closer" },
+    4: { title: "Comercial 3", subtitle: "Customer Success" },
+    5: { title: "Comercial 4", subtitle: "Farmer" }
+  };
+
   // Função de busca
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -495,7 +503,7 @@ const CommercialGuides = () => {
         ) : (
           <>
             {/* Stage Selector */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
               {COMMERCIAL_SCRIPTS.map((stage) => (
                 <button
                   key={stage.stageId}
@@ -509,12 +517,9 @@ const CommercialGuides = () => {
                   <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stageColors[stage.stageId]} flex items-center justify-center text-white mb-2`}>
                     {stageIcons[stage.stageId]}
                   </div>
-                  <p className="text-sm font-semibold text-left">Comercial {stage.stageId}</p>
+                  <p className="text-sm font-semibold text-left">{stageLabels[stage.stageId]?.title || `Comercial ${stage.stageId}`}</p>
                   <p className="text-xs text-muted-foreground text-left truncate">
-                    {stage.stageId === 1 && "SDR / Social Selling"}
-                    {stage.stageId === 2 && "Closer"}
-                    {stage.stageId === 3 && "Customer Success"}
-                    {stage.stageId === 4 && "Farmer"}
+                    {stageLabels[stage.stageId]?.subtitle || stage.title}
                   </p>
                 </button>
               ))}
