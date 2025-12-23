@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink, Megaphone, X } from "lucide-react";
+import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink, Megaphone, X, Flame } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -146,6 +146,8 @@ const NotificationsDropdown = () => {
         return <Target className="w-4 h-4 text-green-500" />;
       case "goal_team":
         return <Trophy className="w-4 h-4 text-primary" />;
+      case "goal_near":
+        return <Flame className="w-4 h-4 text-orange-500" />;
       case "goal_reminder":
         return <Target className="w-4 h-4 text-blue-500" />;
       case "milestone":
@@ -165,6 +167,14 @@ const NotificationsDropdown = () => {
     }
   };
 
+  // Extract progress percentage from goal_near notification message
+  const extractProgress = (message: string): number | null => {
+    const match = message.match(/(\d+)%/);
+    if (match) return parseInt(match[1]);
+    // For near goal notifications, default to 90%
+    return 90;
+  };
+
   const handleClosePopup = () => {
     if (popupNotification) {
       markAsRead.mutate(popupNotification.id);
@@ -180,7 +190,7 @@ const NotificationsDropdown = () => {
     // Navigate based on notification type
     if (notification.type === "stale_lead") {
       navigate("/referral-leads");
-    } else if (notification.type === "goal_reminder") {
+    } else if (notification.type === "goal_reminder" || notification.type === "goal_near") {
       navigate("/onboarding-goals");
     }
   };
@@ -257,7 +267,7 @@ const NotificationsDropdown = () => {
               key={notification.id}
             className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""}`}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
@@ -270,6 +280,23 @@ const NotificationsDropdown = () => {
                 <p className="text-xs text-muted-foreground line-clamp-2">
                   {notification.message.replace(/\s*\[ID:.*?\]/, "")}
                 </p>
+                
+                {/* Progress bar for goal_near notifications */}
+                {notification.type === "goal_near" && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-orange-500 font-medium">Progresso</span>
+                      <span className="text-orange-500 font-bold">90%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-500 animate-pulse"
+                        style={{ width: "90%" }}
+                      />
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(notification.created_at), {
@@ -287,6 +314,12 @@ const NotificationsDropdown = () => {
                     <span className="text-xs text-blue-500 flex items-center gap-1">
                       <ExternalLink className="w-3 h-3" />
                       Definir metas
+                    </span>
+                  )}
+                  {notification.type === "goal_near" && (
+                    <span className="text-xs text-orange-500 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Ver metas
                     </span>
                   )}
                 </div>
