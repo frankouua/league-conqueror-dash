@@ -14,6 +14,157 @@ export type Database = {
   }
   public: {
     Tables: {
+      cancellation_history: {
+        Row: {
+          action: string
+          cancellation_id: string
+          created_at: string
+          id: string
+          new_status: Database["public"]["Enums"]["cancellation_status"] | null
+          notes: string | null
+          old_status: Database["public"]["Enums"]["cancellation_status"] | null
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          cancellation_id: string
+          created_at?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["cancellation_status"] | null
+          notes?: string | null
+          old_status?: Database["public"]["Enums"]["cancellation_status"] | null
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          cancellation_id?: string
+          created_at?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["cancellation_status"] | null
+          notes?: string | null
+          old_status?: Database["public"]["Enums"]["cancellation_status"] | null
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellation_history_cancellation_id_fkey"
+            columns: ["cancellation_id"]
+            isOneToOne: false
+            referencedRelation: "cancellations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cancellations: {
+        Row: {
+          apply_fine: boolean
+          cancellation_request_date: string
+          contract_signed: boolean | null
+          contract_url: string | null
+          contract_value: number
+          created_at: string
+          credit_used_at: string | null
+          credit_used_for: string | null
+          credit_valid_until: string | null
+          fine_amount: number | null
+          fine_percentage: number
+          id: string
+          original_sale_date: string | null
+          patient_email: string | null
+          patient_name: string
+          patient_phone: string | null
+          procedure_name: string
+          reason: Database["public"]["Enums"]["cancellation_reason"]
+          reason_details: string | null
+          refund_amount: number | null
+          refund_completed: boolean | null
+          refund_completed_at: string | null
+          refund_deadline: string | null
+          retained_at: string | null
+          retained_by: string | null
+          retention_attempts: number
+          retention_notes: string | null
+          status: Database["public"]["Enums"]["cancellation_status"]
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apply_fine?: boolean
+          cancellation_request_date?: string
+          contract_signed?: boolean | null
+          contract_url?: string | null
+          contract_value: number
+          created_at?: string
+          credit_used_at?: string | null
+          credit_used_for?: string | null
+          credit_valid_until?: string | null
+          fine_amount?: number | null
+          fine_percentage?: number
+          id?: string
+          original_sale_date?: string | null
+          patient_email?: string | null
+          patient_name: string
+          patient_phone?: string | null
+          procedure_name: string
+          reason: Database["public"]["Enums"]["cancellation_reason"]
+          reason_details?: string | null
+          refund_amount?: number | null
+          refund_completed?: boolean | null
+          refund_completed_at?: string | null
+          refund_deadline?: string | null
+          retained_at?: string | null
+          retained_by?: string | null
+          retention_attempts?: number
+          retention_notes?: string | null
+          status?: Database["public"]["Enums"]["cancellation_status"]
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apply_fine?: boolean
+          cancellation_request_date?: string
+          contract_signed?: boolean | null
+          contract_url?: string | null
+          contract_value?: number
+          created_at?: string
+          credit_used_at?: string | null
+          credit_used_for?: string | null
+          credit_valid_until?: string | null
+          fine_amount?: number | null
+          fine_percentage?: number
+          id?: string
+          original_sale_date?: string | null
+          patient_email?: string | null
+          patient_name?: string
+          patient_phone?: string | null
+          procedure_name?: string
+          reason?: Database["public"]["Enums"]["cancellation_reason"]
+          reason_details?: string | null
+          refund_amount?: number | null
+          refund_completed?: boolean | null
+          refund_completed_at?: string | null
+          refund_deadline?: string | null
+          retained_at?: string | null
+          retained_by?: string | null
+          retention_attempts?: number
+          retention_notes?: string | null
+          status?: Database["public"]["Enums"]["cancellation_status"]
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cards: {
         Row: {
           applied_by: string
@@ -1075,6 +1226,22 @@ export type Database = {
     }
     Enums: {
       app_role: "member" | "admin"
+      cancellation_reason:
+        | "financial"
+        | "health"
+        | "dissatisfaction"
+        | "changed_mind"
+        | "competitor"
+        | "scheduling"
+        | "personal"
+        | "other"
+      cancellation_status:
+        | "pending_retention"
+        | "retention_attempt"
+        | "retained"
+        | "cancelled_with_fine"
+        | "cancelled_no_fine"
+        | "credit_used"
       card_type: "blue" | "white" | "yellow" | "red"
       contestation_status: "pending" | "approved" | "rejected"
       department_type:
@@ -1234,6 +1401,24 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["member", "admin"],
+      cancellation_reason: [
+        "financial",
+        "health",
+        "dissatisfaction",
+        "changed_mind",
+        "competitor",
+        "scheduling",
+        "personal",
+        "other",
+      ],
+      cancellation_status: [
+        "pending_retention",
+        "retention_attempt",
+        "retained",
+        "cancelled_with_fine",
+        "cancelled_no_fine",
+        "credit_used",
+      ],
       card_type: ["blue", "white", "yellow", "red"],
       contestation_status: ["pending", "approved", "rejected"],
       department_type: [

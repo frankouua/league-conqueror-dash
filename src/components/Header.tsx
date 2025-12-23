@@ -1,7 +1,8 @@
 import { 
   LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
-  ChevronDown, Settings, AlertCircle, Route, UserPlus, MessageSquareText
+  ChevronDown, Settings, AlertCircle, Route, UserPlus, MessageSquareText,
+  ShieldAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -76,6 +77,7 @@ const Header = () => {
     { path: "/register", label: "Registrar", icon: Plus },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/patient-kanban", label: "Jornada", icon: Route },
+    { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
     { path: "/data-reports", label: "Relatórios", icon: FileText },
     { path: "/performance", label: "Desempenho", icon: Target },
     { path: "/guides", label: "Guias", icon: BookOpen },
