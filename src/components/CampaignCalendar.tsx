@@ -30,10 +30,12 @@ import {
   Gem,
   RefreshCw,
   TrendingUp,
-  Activity
+  Activity,
+  Eye,
+  Candy
 } from "lucide-react";
 
-// Campanhas 2026 - UNIQUE
+// Campanhas 2026 - UNIQUE + Datas de Visibilidade
 const CAMPAIGNS_2026 = [
   {
     month: 1,
@@ -48,6 +50,17 @@ const CAMPAIGNS_2026 = [
         concept: "Saúde, recuperação e reequilíbrio pós-festas",
         focus: "Soroterapia (Imunidade, Detox, Energia)",
         actions: ["Posts sobre recuperação pós-festas", "Destaque Soroterapia", "Foco em energia e imunidade"],
+        status: "pendente"
+      },
+      {
+        name: "Ano Novo",
+        date: "01 Jan",
+        type: "visibilidade",
+        icon: PartyPopper,
+        color: "bg-violet-500",
+        concept: "Celebração do novo ano",
+        focus: "Conteúdo motivacional e metas",
+        actions: ["Post de celebração", "Mensagem de ano novo", "Metas de autocuidado 2026"],
         status: "pendente"
       },
       {
@@ -77,6 +90,17 @@ const CAMPAIGNS_2026 = [
         focus: "Protocolos nutricionais e emagrecimento estratégico",
         actions: ["Conteúdo sobre disciplina", "Protocolos nutricionais", "Emagrecimento estratégico"],
         status: "pendente"
+      },
+      {
+        name: "Carnaval",
+        date: "14-17 Fev",
+        type: "visibilidade",
+        icon: PartyPopper,
+        color: "bg-yellow-500",
+        concept: "Preparação e recuperação pós-carnaval",
+        focus: "Cuidados pré e pós-folia",
+        actions: ["Dicas pré-carnaval", "Cuidados com a pele", "Recuperação pós-folia", "Hidratação"],
+        status: "pendente"
       }
     ]
   },
@@ -93,6 +117,17 @@ const CAMPAIGNS_2026 = [
         concept: "Autonomia e autoestima feminina (Dia da Mulher)",
         focus: "Planejamento e cirurgia plástica corporal",
         actions: ["Campanha Dia da Mulher (08/03)", "Empoderamento feminino", "Cirurgias corporais"],
+        status: "pendente"
+      },
+      {
+        name: "Dia da Mulher",
+        date: "08 Mar",
+        type: "visibilidade",
+        icon: Heart,
+        color: "bg-pink-600",
+        concept: "Dia Internacional da Mulher",
+        focus: "Empoderamento e autoestima",
+        actions: ["Homenagem às mulheres", "Stories especiais", "Depoimentos de pacientes", "Lives"],
         status: "pendente"
       },
       {
@@ -122,6 +157,17 @@ const CAMPAIGNS_2026 = [
         focus: "Harmonização facial e procedimentos não cirúrgicos",
         actions: ["Destaque harmonização facial", "Procedimentos não cirúrgicos", "Elegância natural"],
         status: "pendente"
+      },
+      {
+        name: "Páscoa",
+        date: "05 Abr",
+        type: "visibilidade",
+        icon: Gift,
+        color: "bg-amber-400",
+        concept: "Celebração da Páscoa",
+        focus: "Renovação e cuidados",
+        actions: ["Post temático", "Mensagem de renovação", "Brindes especiais clínica"],
+        status: "pendente"
       }
     ]
   },
@@ -138,6 +184,17 @@ const CAMPAIGNS_2026 = [
         concept: "A mulher além da maternidade (Dia das Mães)",
         focus: "Cirurgias corporais e combinadas (Mommy Makeover)",
         actions: ["Campanha Dia das Mães (10/05)", "Mommy Makeover", "Pacotes especiais mães"],
+        status: "pendente"
+      },
+      {
+        name: "Dia das Mães",
+        date: "10 Mai",
+        type: "visibilidade",
+        icon: Heart,
+        color: "bg-rose-600",
+        concept: "Celebração do Dia das Mães",
+        focus: "Homenagem e presentes",
+        actions: ["Vouchers presente", "Stories emocionais", "Depoimentos mães", "Sorteios"],
         status: "pendente"
       },
       {
@@ -164,8 +221,30 @@ const CAMPAIGNS_2026 = [
         icon: Heart,
         color: "bg-red-500",
         concept: "Confiança, sensualidade e conexão (Dia dos Namorados)",
-        focus: "Procedimentos e cirurgias para casais (Harmonização Facial, Preenchimento Labial, Bioestimuladores, Cirurgias Corporais)",
+        focus: "Procedimentos e cirurgias para casais",
         actions: ["Pacotes de casal", "Descontos progressivos", "Consultas conjuntas", "Recuperação acompanhada"],
+        status: "pendente"
+      },
+      {
+        name: "Dia dos Namorados",
+        date: "12 Jun",
+        type: "visibilidade",
+        icon: Heart,
+        color: "bg-red-600",
+        concept: "Celebração do amor",
+        focus: "Casais e presentes",
+        actions: ["Pacotes românticos", "Vouchers de presente", "Conteúdo de casal", "Promoções duplas"],
+        status: "pendente"
+      },
+      {
+        name: "Festa Junina",
+        date: "24 Jun",
+        type: "visibilidade",
+        icon: PartyPopper,
+        color: "bg-orange-500",
+        concept: "Festas juninas",
+        focus: "Conteúdo temático",
+        actions: ["Posts temáticos", "Decoração clínica", "Engajamento redes"],
         status: "pendente"
       }
     ]
@@ -183,6 +262,17 @@ const CAMPAIGNS_2026 = [
         concept: "Cuidado silencioso e sofisticado",
         focus: "Pós-operatório, recuperação e soroterapia de cicatrização",
         actions: ["Foco em pós-operatório", "Recuperação de pacientes", "Soroterapia cicatrização"],
+        status: "pendente"
+      },
+      {
+        name: "Férias de Inverno",
+        date: "01-31 Jul",
+        type: "visibilidade",
+        icon: Snowflake,
+        color: "bg-blue-500",
+        concept: "Férias escolares de inverno",
+        focus: "Procedimentos aproveitando férias",
+        actions: ["Recuperação em casa", "Pacotes férias", "Cirurgias planejadas"],
         status: "pendente"
       },
       {
@@ -212,6 +302,17 @@ const CAMPAIGNS_2026 = [
         focus: "Protocolos nutricionais e planejamento corporal",
         actions: ["Planejamento verão", "Protocolos nutricionais", "Antecipação de procedimentos"],
         status: "pendente"
+      },
+      {
+        name: "Dia dos Pais",
+        date: "09 Ago",
+        type: "visibilidade",
+        icon: Users,
+        color: "bg-blue-600",
+        concept: "Celebração do Dia dos Pais",
+        focus: "Procedimentos masculinos",
+        actions: ["Pacotes masculinos", "Vouchers para pais", "Conteúdo familiar", "Harmonização masc."],
+        status: "pendente"
       }
     ]
   },
@@ -228,6 +329,17 @@ const CAMPAIGNS_2026 = [
         concept: "Florescer com naturalidade (Primavera)",
         focus: "Harmonização facial e procedimentos refinados",
         actions: ["Início da primavera (22/09)", "Procedimentos refinados", "Renovação natural"],
+        status: "pendente"
+      },
+      {
+        name: "Primavera",
+        date: "22 Set",
+        type: "visibilidade",
+        icon: Flower2,
+        color: "bg-green-400",
+        concept: "Início da Primavera",
+        focus: "Renovação e florescimento",
+        actions: ["Conteúdo sobre renovação", "Preparação para verão", "Skincare primavera"],
         status: "pendente"
       },
       {
@@ -257,6 +369,28 @@ const CAMPAIGNS_2026 = [
         focus: "Conteúdo educativo, avaliações e suporte nutricional",
         actions: ["Outubro Rosa", "Conteúdo educativo", "Avaliações especiais", "Suporte nutricional"],
         status: "pendente"
+      },
+      {
+        name: "Dia das Crianças",
+        date: "12 Out",
+        type: "visibilidade",
+        icon: Baby,
+        color: "bg-cyan-500",
+        concept: "Dia das Crianças",
+        focus: "Famílias e crianças",
+        actions: ["Conteúdo família", "Ações para mães", "Engajamento redes"],
+        status: "pendente"
+      },
+      {
+        name: "Halloween",
+        date: "31 Out",
+        type: "visibilidade",
+        icon: Candy,
+        color: "bg-orange-600",
+        concept: "Halloween",
+        focus: "Conteúdo criativo",
+        actions: ["Posts criativos", "Stories temáticos", "Engajamento divertido"],
+        status: "pendente"
       }
     ]
   },
@@ -273,6 +407,17 @@ const CAMPAIGNS_2026 = [
         concept: "Autoestima e confiança feminina pré-verão",
         focus: "Procedimentos corporais e faciais não cirúrgicos",
         actions: ["Preparação verão", "Procedimentos não cirúrgicos", "Autoestima feminina"],
+        status: "pendente"
+      },
+      {
+        name: "Black Friday",
+        date: "27 Nov",
+        type: "visibilidade",
+        icon: ShoppingBag,
+        color: "bg-gray-900",
+        concept: "Principal data promocional do ano",
+        focus: "Descontos e promoções agressivas",
+        actions: ["Descontos especiais", "Pacotes exclusivos", "Urgência e escassez", "Condições únicas"],
         status: "pendente"
       },
       {
@@ -302,6 +447,28 @@ const CAMPAIGNS_2026 = [
         focus: "Planejamento cirúrgico e soroterapia de energia",
         actions: ["Encerramento do ano", "Planejamento 2027", "Soroterapia energia", "Gratidão aos pacientes"],
         status: "pendente"
+      },
+      {
+        name: "Natal",
+        date: "25 Dez",
+        type: "visibilidade",
+        icon: Gift,
+        color: "bg-red-500",
+        concept: "Celebração do Natal",
+        focus: "Presentes e família",
+        actions: ["Mensagem de Natal", "Vouchers presente", "Conteúdo emocional", "Agradecimento pacientes"],
+        status: "pendente"
+      },
+      {
+        name: "Réveillon",
+        date: "31 Dez",
+        type: "visibilidade",
+        icon: PartyPopper,
+        color: "bg-purple-600",
+        concept: "Virada de ano",
+        focus: "Preparação para festas",
+        actions: ["Procedimentos express", "Glow up fim de ano", "Mensagem de despedida"],
+        status: "pendente"
       }
     ]
   }
@@ -311,7 +478,8 @@ const CAMPAIGN_TYPES = {
   mensal: { label: "Campanha Mensal", color: "bg-blue-500", icon: Calendar },
   comemorativo: { label: "Data Comemorativa", color: "bg-pink-500", icon: Heart },
   sazonal: { label: "Sazonal", color: "bg-green-500", icon: Sun },
-  day_especial: { label: "DAY Especial", color: "bg-purple-500", icon: Zap }
+  day_especial: { label: "DAY Especial", color: "bg-purple-500", icon: Zap },
+  visibilidade: { label: "Visibilidade", color: "bg-orange-500", icon: Eye }
 };
 
 const DAYS_ESPECIAIS = [
@@ -321,6 +489,23 @@ const DAYS_ESPECIAIS = [
   { periodo: "Jul/Ago", nome: "LASER DAY", procedimento: "Rejuvenescimento a Laser" },
   { periodo: "Set/Out", nome: "HARMONIZAÇÃO DAY", procedimento: "Harmonização Facial Completa" },
   { periodo: "Nov/Dez", nome: "SKINCARE DAY", procedimento: "Protocolo de Skincare Premium" }
+];
+
+const DATAS_VISIBILIDADE = [
+  { data: "01 Jan", nome: "Ano Novo", tipo: "Celebração" },
+  { data: "14-17 Fev", nome: "Carnaval", tipo: "Feriado" },
+  { data: "08 Mar", nome: "Dia da Mulher", tipo: "Comemorativo" },
+  { data: "05 Abr", nome: "Páscoa", tipo: "Feriado" },
+  { data: "10 Mai", nome: "Dia das Mães", tipo: "Comemorativo" },
+  { data: "12 Jun", nome: "Dia dos Namorados", tipo: "Comemorativo" },
+  { data: "24 Jun", nome: "Festa Junina", tipo: "Cultural" },
+  { data: "09 Ago", nome: "Dia dos Pais", tipo: "Comemorativo" },
+  { data: "22 Set", nome: "Primavera", tipo: "Sazonal" },
+  { data: "12 Out", nome: "Dia das Crianças", tipo: "Comemorativo" },
+  { data: "31 Out", nome: "Halloween", tipo: "Cultural" },
+  { data: "27 Nov", nome: "Black Friday", tipo: "Promocional" },
+  { data: "25 Dez", nome: "Natal", tipo: "Feriado" },
+  { data: "31 Dez", nome: "Réveillon", tipo: "Celebração" }
 ];
 
 export function CampaignCalendar() {
@@ -343,7 +528,7 @@ export function CampaignCalendar() {
 
   const upcomingCampaigns = allCampaigns
     .filter(c => c.month >= new Date().getMonth() + 1)
-    .slice(0, 6);
+    .slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -401,10 +586,11 @@ export function CampaignCalendar() {
       </div>
 
       <Tabs defaultValue="visao-geral" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="por-mes">Por Mês</TabsTrigger>
           <TabsTrigger value="days">DAYs Especiais</TabsTrigger>
+          <TabsTrigger value="visibilidade">Visibilidade</TabsTrigger>
           <TabsTrigger value="proximas">Próximas</TabsTrigger>
         </TabsList>
 
@@ -430,13 +616,18 @@ export function CampaignCalendar() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="space-y-2">
-                    {month.campaigns.map((campaign, idx) => (
+                  <div className="space-y-1.5">
+                    {month.campaigns.slice(0, 3).map((campaign, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${campaign.color}`} />
-                        <span className="text-xs truncate font-medium">{campaign.name}</span>
+                        <span className="text-xs truncate">{campaign.name}</span>
                       </div>
                     ))}
+                    {month.campaigns.length > 3 && (
+                      <span className="text-xs text-muted-foreground">
+                        +{month.campaigns.length - 3} mais
+                      </span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -507,7 +698,7 @@ export function CampaignCalendar() {
                               <p className="text-sm font-medium">{campaign.concept}</p>
                             </div>
                             <div className="p-3 rounded-lg bg-primary/10">
-                              <p className="text-xs text-muted-foreground mb-1">Foco Comercial</p>
+                              <p className="text-xs text-muted-foreground mb-1">Foco</p>
                               <p className="text-sm font-medium">{campaign.focus}</p>
                             </div>
                           </div>
@@ -631,6 +822,70 @@ export function CampaignCalendar() {
           </Card>
         </TabsContent>
 
+        {/* Datas de Visibilidade */}
+        <TabsContent value="visibilidade" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-orange-500" />
+                Datas de Alta Visibilidade 2026
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Datas importantes para produção de conteúdo e engajamento nas redes sociais
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-3">
+                {DATAS_VISIBILIDADE.map((data, idx) => (
+                  <div 
+                    key={idx}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-orange-500/5 to-amber-500/5 border border-orange-500/20"
+                  >
+                    <div className="p-2 rounded-full bg-orange-500 text-white">
+                      <Eye className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{data.nome}</p>
+                      <p className="text-xs text-muted-foreground">{data.data}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">{data.tipo}</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Dicas de Conteúdo */}
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Dicas para Conteúdo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="font-medium text-sm">📅 Planejamento Antecipado</p>
+                  <p className="text-xs text-muted-foreground">Prepare o conteúdo com pelo menos 7 dias de antecedência</p>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="font-medium text-sm">📸 Banco de Imagens</p>
+                  <p className="text-xs text-muted-foreground">Tenha fotos e vídeos temáticos prontos para cada data</p>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="font-medium text-sm">📝 Stories e Reels</p>
+                  <p className="text-xs text-muted-foreground">Priorize formatos de vídeo curto para maior alcance</p>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="font-medium text-sm">🎁 Promoções Relâmpago</p>
+                  <p className="text-xs text-muted-foreground">Use datas de visibilidade para ofertas exclusivas de 24-48h</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Próximas Campanhas */}
         <TabsContent value="proximas" className="mt-4">
           <Card>
@@ -670,7 +925,7 @@ export function CampaignCalendar() {
           </Card>
 
           {/* Resumo por tipo */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
             {Object.entries(CAMPAIGN_TYPES).map(([key, value]) => {
               const count = allCampaigns.filter(c => c.type === key).length;
               const Icon = value.icon;
@@ -681,7 +936,7 @@ export function CampaignCalendar() {
                       <Icon className="h-5 w-5" />
                     </div>
                     <p className="text-2xl font-bold">{count}</p>
-                    <p className="text-sm text-muted-foreground">{value.label}</p>
+                    <p className="text-xs text-muted-foreground">{value.label}</p>
                   </CardContent>
                 </Card>
               );
