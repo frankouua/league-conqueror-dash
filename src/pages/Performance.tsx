@@ -352,9 +352,9 @@ const Performance = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Desempenho & Metas</h1>
-          <p className="text-muted-foreground">Ranking individual e acompanhamento de metas</p>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">Desempenho & Metas</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Ranking individual e acompanhamento</p>
         </div>
 
         {/* Month/Year Selector */}
@@ -377,14 +377,29 @@ const Performance = () => {
         </div>
 
         <Tabs defaultValue="tracking" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-6">
-            <TabsTrigger value="tracking">Acompanhamento</TabsTrigger>
-            <TabsTrigger value="ranking">Ranking</TabsTrigger>
-            <TabsTrigger value="departments">Departamentos</TabsTrigger>
-            <TabsTrigger value="my-goals">Minhas Metas</TabsTrigger>
-            <TabsTrigger value="team">Minha Equipe</TabsTrigger>
-            <TabsTrigger value="all">Visão Geral</TabsTrigger>
-          </TabsList>
+          {/* Mobile: scrollable horizontal tabs */}
+          <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-2xl md:mx-auto md:grid-cols-6 gap-1">
+              <TabsTrigger value="tracking" className="whitespace-nowrap text-xs sm:text-sm px-3">
+                Acompanhar
+              </TabsTrigger>
+              <TabsTrigger value="ranking" className="whitespace-nowrap text-xs sm:text-sm px-3">
+                Ranking
+              </TabsTrigger>
+              <TabsTrigger value="departments" className="whitespace-nowrap text-xs sm:text-sm px-3">
+                Deptos
+              </TabsTrigger>
+              <TabsTrigger value="my-goals" className="whitespace-nowrap text-xs sm:text-sm px-3">
+                Metas
+              </TabsTrigger>
+              <TabsTrigger value="team" className="whitespace-nowrap text-xs sm:text-sm px-3">
+                Equipe
+              </TabsTrigger>
+              <TabsTrigger value="all" className="whitespace-nowrap text-xs sm:text-sm px-3">
+                Geral
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* GOAL TRACKING - Meta vs Realizado */}
           <TabsContent value="tracking" className="space-y-6">
@@ -413,31 +428,32 @@ const Performance = () => {
                         <p className="text-xs text-muted-foreground">pontos</p>
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-5 gap-2 text-center text-xs">
+                    {/* Grid responsivo: 3 colunas no mobile, 5 no desktop */}
+                    <div className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-2 text-center text-xs">
                       <div className="p-2 bg-green-500/10 rounded">
-                        <DollarSign className="w-4 h-4 mx-auto text-green-500 mb-1" />
+                        <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 mx-auto text-green-500 mb-1" />
                         <p className="font-semibold">{member.revenuePoints}</p>
-                        <p className="text-muted-foreground">Fat.</p>
+                        <p className="text-muted-foreground text-[10px] sm:text-xs">Fat.</p>
                       </div>
                       <div className="p-2 bg-blue-500/10 rounded">
-                        <MessageSquare className="w-4 h-4 mx-auto text-blue-500 mb-1" />
+                        <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mx-auto text-blue-500 mb-1" />
                         <p className="font-semibold">{member.npsPoints}</p>
-                        <p className="text-muted-foreground">NPS</p>
+                        <p className="text-muted-foreground text-[10px] sm:text-xs">NPS</p>
                       </div>
                       <div className="p-2 bg-purple-500/10 rounded">
-                        <Star className="w-4 h-4 mx-auto text-purple-500 mb-1" />
+                        <Star className="w-3 h-3 sm:w-4 sm:h-4 mx-auto text-purple-500 mb-1" />
                         <p className="font-semibold">{member.testimonialPoints}</p>
-                        <p className="text-muted-foreground">Dep.</p>
+                        <p className="text-muted-foreground text-[10px] sm:text-xs">Dep.</p>
                       </div>
                       <div className="p-2 bg-cyan-500/10 rounded">
-                        <Users className="w-4 h-4 mx-auto text-cyan-500 mb-1" />
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mx-auto text-cyan-500 mb-1" />
                         <p className="font-semibold">{member.referralPoints}</p>
-                        <p className="text-muted-foreground">Ind.</p>
+                        <p className="text-muted-foreground text-[10px] sm:text-xs">Ind.</p>
                       </div>
-                      <div className="p-2 bg-pink-500/10 rounded">
-                        <TrendingUp className="w-4 h-4 mx-auto text-pink-500 mb-1" />
+                      <div className="p-2 bg-pink-500/10 rounded col-span-3 sm:col-span-1">
+                        <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mx-auto text-pink-500 mb-1" />
                         <p className="font-semibold">{member.otherPoints}</p>
-                        <p className="text-muted-foreground">Outros</p>
+                        <p className="text-muted-foreground text-[10px] sm:text-xs">Outros</p>
                       </div>
                     </div>
                   </CardContent>
