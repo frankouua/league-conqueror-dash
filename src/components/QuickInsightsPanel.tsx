@@ -1,10 +1,13 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import {
   Target,
   AlertTriangle,
@@ -17,6 +20,8 @@ import {
   Trophy,
   ArrowUp,
   ArrowDown,
+  Bell,
+  Loader2,
 } from "lucide-react";
 
 interface QuickInsightsProps {
@@ -52,6 +57,10 @@ const POSITION_LABELS: Record<string, string> = {
 };
 
 export default function QuickInsightsPanel({ month, year }: QuickInsightsProps) {
+  const { role } = useAuth();
+  const { toast } = useToast();
+  const [isChecking, setIsChecking] = useState(false);
+
   // Calculate days remaining in month
   const now = new Date();
   const endOfMonth = new Date(year, month, 0);
@@ -222,6 +231,28 @@ export default function QuickInsightsPanel({ month, year }: QuickInsightsProps) 
     return suggestions;
   }, [dangerCount, warningCount, achievedCount, daysRemaining]);
 
+  // Trigger check critical sellers
+  const triggerCheck = async () => {
+    setIsChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("check-critical-sellers");
+      if (error) throw error;
+      toast({
+        title: "Verificação concluída",
+        description: `${data.critical} crítico(s), ${data.warning} em atenção. ${data.notificationsCreated} alertas criados.`,
+      });
+    } catch (error) {
+      console.error("Error checking sellers:", error);
+      toast({
+        title: "Erro na verificação",
+        description: "Não foi possível verificar as vendedoras.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   const getStatusColor = (status: SellerInsight["status"]) => {
     switch (status) {
       case "danger": return "bg-red-500";
@@ -243,15 +274,31 @@ export default function QuickInsightsPanel({ month, year }: QuickInsightsProps) 
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Lightbulb className="w-5 h-5 text-primary" />
             Visão Rápida & Estratégias
           </div>
           <div className="flex items-center gap-2">
+            {role === "admin" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={triggerCheck}
+                disabled={isChecking}
+                className="text-xs h-7 gap-1"
+              >
+                {isChecking ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Bell className="w-3 h-3" />
+                )}
+                Enviar Alertas
+              </Button>
+            )}
             <Badge variant="outline" className="text-xs">
               <Clock className="w-3 h-3 mr-1" />
-              {daysRemaining} dias restantes
+              {daysRemaining} dias
             </Badge>
           </div>
         </CardTitle>

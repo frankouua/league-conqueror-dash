@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.feegow-sync]
 verify_jwt = false
+
+[functions.check-critical-sellers]
+verify_jwt = false
