@@ -12,8 +12,6 @@ import {
   Sun, 
   Snowflake,
   Flower2,
-  GraduationCap,
-  Baby,
   Users,
   ShoppingBag,
   PartyPopper,
@@ -22,23 +20,45 @@ import {
   Target,
   MessageSquare,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Zap,
+  Syringe,
+  Leaf,
+  Smile,
+  Baby,
+  Ribbon,
+  Gem,
+  RefreshCw,
+  TrendingUp,
+  Activity
 } from "lucide-react";
 
-// Estrutura base das campanhas - será preenchida com dados do documento
+// Campanhas 2026 - UNIQUE
 const CAMPAIGNS_2026 = [
   {
     month: 1,
     monthName: "Janeiro",
     campaigns: [
       {
-        name: "Ano Novo - Renovação",
-        date: "01-15 Jan",
-        type: "sazonal",
-        icon: PartyPopper,
+        name: "UNIQUE RESET",
+        date: "01-31 Jan",
+        type: "mensal",
+        icon: RefreshCw,
+        color: "bg-cyan-500",
+        concept: "Saúde, recuperação e reequilíbrio pós-festas",
+        focus: "Soroterapia (Imunidade, Detox, Energia)",
+        actions: ["Posts sobre recuperação pós-festas", "Destaque Soroterapia", "Foco em energia e imunidade"],
+        status: "pendente"
+      },
+      {
+        name: "BOTOX DAY",
+        date: "Jan/Fev",
+        type: "day_especial",
+        icon: Syringe,
         color: "bg-purple-500",
-        description: "Campanha de início de ano focada em renovação e novos objetivos",
-        actions: ["Posts motivacionais", "Ofertas especiais primeiro trimestre", "Lançamento programa anual"],
+        concept: "DAY Especial de alto volume",
+        focus: "Aplicação de Toxina Botulínica",
+        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Oportunidade de upsell"],
         status: "pendente"
       }
     ]
@@ -48,13 +68,14 @@ const CAMPAIGNS_2026 = [
     monthName: "Fevereiro",
     campaigns: [
       {
-        name: "Carnaval",
-        date: "14-17 Fev",
-        type: "sazonal",
-        icon: PartyPopper,
-        color: "bg-yellow-500",
-        description: "Campanha de carnaval",
-        actions: ["Cuidados pré-carnaval", "Recuperação pós-folia"],
+        name: "UNIQUE BALANCE",
+        date: "01-28 Fev",
+        type: "mensal",
+        icon: Activity,
+        color: "bg-green-500",
+        concept: "Disciplina, constância e autocuidado",
+        focus: "Protocolos nutricionais e emagrecimento estratégico",
+        actions: ["Conteúdo sobre disciplina", "Protocolos nutricionais", "Emagrecimento estratégico"],
         status: "pendente"
       }
     ]
@@ -64,13 +85,25 @@ const CAMPAIGNS_2026 = [
     monthName: "Março",
     campaigns: [
       {
-        name: "Dia da Mulher",
-        date: "08 Mar",
+        name: "UNIQUE WOMAN",
+        date: "01-31 Mar",
         type: "comemorativo",
         icon: Heart,
         color: "bg-pink-500",
-        description: "Celebração do Dia Internacional da Mulher",
-        actions: ["Homenagens", "Ofertas especiais", "Conteúdo empoderamento"],
+        concept: "Autonomia e autoestima feminina (Dia da Mulher)",
+        focus: "Planejamento e cirurgia plástica corporal",
+        actions: ["Campanha Dia da Mulher (08/03)", "Empoderamento feminino", "Cirurgias corporais"],
+        status: "pendente"
+      },
+      {
+        name: "BIOPLASTIA DAY",
+        date: "Mar/Abr",
+        type: "day_especial",
+        icon: Sparkles,
+        color: "bg-rose-500",
+        concept: "DAY Especial de alto volume",
+        focus: "Preenchimento Facial Leve",
+        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Conversão para cirurgia: 10%"],
         status: "pendente"
       }
     ]
@@ -80,13 +113,14 @@ const CAMPAIGNS_2026 = [
     monthName: "Abril",
     campaigns: [
       {
-        name: "Páscoa",
-        date: "05 Abr",
-        type: "sazonal",
-        icon: Gift,
+        name: "UNIQUE HARMONY",
+        date: "01-30 Abr",
+        type: "mensal",
+        icon: Smile,
         color: "bg-amber-500",
-        description: "Campanha de Páscoa",
-        actions: ["Ações temáticas", "Brindes especiais"],
+        concept: "Naturalidade, equilíbrio e elegância",
+        focus: "Harmonização facial e procedimentos não cirúrgicos",
+        actions: ["Destaque harmonização facial", "Procedimentos não cirúrgicos", "Elegância natural"],
         status: "pendente"
       }
     ]
@@ -96,13 +130,25 @@ const CAMPAIGNS_2026 = [
     monthName: "Maio",
     campaigns: [
       {
-        name: "Dia das Mães",
-        date: "10 Mai",
+        name: "UNIQUE ESSENCE",
+        date: "01-31 Mai",
         type: "comemorativo",
-        icon: Heart,
+        icon: Baby,
         color: "bg-rose-500",
-        description: "Uma das datas mais importantes do ano para conversão",
-        actions: ["Pacotes presente", "Vouchers para mães", "Campanha emocional"],
+        concept: "A mulher além da maternidade (Dia das Mães)",
+        focus: "Cirurgias corporais e combinadas (Mommy Makeover)",
+        actions: ["Campanha Dia das Mães (10/05)", "Mommy Makeover", "Pacotes especiais mães"],
+        status: "pendente"
+      },
+      {
+        name: "SOROTERAPIA DAY",
+        date: "Mai/Jun",
+        type: "day_especial",
+        icon: Zap,
+        color: "bg-yellow-500",
+        concept: "DAY Especial de alto volume",
+        focus: "Protocolos de Energia e Imunidade",
+        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Foco em energia"],
         status: "pendente"
       }
     ]
@@ -112,23 +158,14 @@ const CAMPAIGNS_2026 = [
     monthName: "Junho",
     campaigns: [
       {
-        name: "Dia dos Namorados",
-        date: "12 Jun",
+        name: "UNIQUE DESIRE",
+        date: "01-30 Jun",
         type: "comemorativo",
         icon: Heart,
         color: "bg-red-500",
-        description: "Campanha romântica focada em casais",
-        actions: ["Pacotes duplos", "Presentes para o casal", "Conteúdo romântico"],
-        status: "pendente"
-      },
-      {
-        name: "Festa Junina",
-        date: "24 Jun",
-        type: "sazonal",
-        icon: PartyPopper,
-        color: "bg-orange-500",
-        description: "Tema de festa junina",
-        actions: ["Decoração temática", "Ações especiais"],
+        concept: "Confiança, sensualidade e conexão (Dia dos Namorados)",
+        focus: "Procedimentos e cirurgias para casais (Harmonização Facial, Preenchimento Labial, Bioestimuladores, Cirurgias Corporais)",
+        actions: ["Pacotes de casal", "Descontos progressivos", "Consultas conjuntas", "Recuperação acompanhada"],
         status: "pendente"
       }
     ]
@@ -138,13 +175,25 @@ const CAMPAIGNS_2026 = [
     monthName: "Julho",
     campaigns: [
       {
-        name: "Férias de Inverno",
+        name: "UNIQUE CARE",
         date: "01-31 Jul",
-        type: "sazonal",
+        type: "mensal",
         icon: Snowflake,
         color: "bg-blue-400",
-        description: "Campanha de férias escolares",
-        actions: ["Procedimentos para férias", "Pacotes família"],
+        concept: "Cuidado silencioso e sofisticado",
+        focus: "Pós-operatório, recuperação e soroterapia de cicatrização",
+        actions: ["Foco em pós-operatório", "Recuperação de pacientes", "Soroterapia cicatrização"],
+        status: "pendente"
+      },
+      {
+        name: "LASER DAY",
+        date: "Jul/Ago",
+        type: "day_especial",
+        icon: Sun,
+        color: "bg-orange-500",
+        concept: "DAY Especial de alto volume",
+        focus: "Rejuvenescimento a Laser",
+        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Conversão para cirurgia"],
         status: "pendente"
       }
     ]
@@ -154,13 +203,14 @@ const CAMPAIGNS_2026 = [
     monthName: "Agosto",
     campaigns: [
       {
-        name: "Dia dos Pais",
-        date: "09 Ago",
-        type: "comemorativo",
-        icon: Users,
-        color: "bg-blue-600",
-        description: "Campanha focada em homenagear os pais",
-        actions: ["Pacotes masculinos", "Vouchers para pais", "Conteúdo familiar"],
+        name: "UNIQUE PREP",
+        date: "01-31 Ago",
+        type: "mensal",
+        icon: TrendingUp,
+        color: "bg-indigo-500",
+        concept: "Organização e antecipação para o verão",
+        focus: "Protocolos nutricionais e planejamento corporal",
+        actions: ["Planejamento verão", "Protocolos nutricionais", "Antecipação de procedimentos"],
         status: "pendente"
       }
     ]
@@ -170,13 +220,25 @@ const CAMPAIGNS_2026 = [
     monthName: "Setembro",
     campaigns: [
       {
-        name: "Primavera",
-        date: "22 Set",
+        name: "UNIQUE BLOOM",
+        date: "01-30 Set",
         type: "sazonal",
         icon: Flower2,
         color: "bg-green-500",
-        description: "Início da primavera - renovação",
-        actions: ["Campanhas de renovação", "Preparação para o verão"],
+        concept: "Florescer com naturalidade (Primavera)",
+        focus: "Harmonização facial e procedimentos refinados",
+        actions: ["Início da primavera (22/09)", "Procedimentos refinados", "Renovação natural"],
+        status: "pendente"
+      },
+      {
+        name: "HARMONIZAÇÃO DAY",
+        date: "Set/Out",
+        type: "day_especial",
+        icon: Gem,
+        color: "bg-violet-500",
+        concept: "DAY Especial de alto volume",
+        focus: "Harmonização Facial Completa",
+        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Pacote completo"],
         status: "pendente"
       }
     ]
@@ -186,23 +248,14 @@ const CAMPAIGNS_2026 = [
     monthName: "Outubro",
     campaigns: [
       {
-        name: "Dia das Crianças",
-        date: "12 Out",
+        name: "UNIQUE ROSA",
+        date: "01-31 Out",
         type: "comemorativo",
-        icon: Baby,
-        color: "bg-cyan-500",
-        description: "Campanha voltada para crianças e famílias",
-        actions: ["Ações para crianças", "Pacotes família"],
-        status: "pendente"
-      },
-      {
-        name: "Halloween",
-        date: "31 Out",
-        type: "sazonal",
-        icon: Sparkles,
-        color: "bg-orange-600",
-        description: "Tema de Halloween",
-        actions: ["Ações temáticas", "Decoração especial"],
+        icon: Ribbon,
+        color: "bg-pink-500",
+        concept: "Saúde da mulher e prevenção (Outubro Rosa)",
+        focus: "Conteúdo educativo, avaliações e suporte nutricional",
+        actions: ["Outubro Rosa", "Conteúdo educativo", "Avaliações especiais", "Suporte nutricional"],
         status: "pendente"
       }
     ]
@@ -212,13 +265,25 @@ const CAMPAIGNS_2026 = [
     monthName: "Novembro",
     campaigns: [
       {
-        name: "Black Friday",
-        date: "27 Nov",
-        type: "promocional",
-        icon: ShoppingBag,
-        color: "bg-gray-900",
-        description: "Principal data promocional do ano",
-        actions: ["Descontos agressivos", "Pacotes especiais", "Urgência e escassez"],
+        name: "UNIQUE CONFIDENCE",
+        date: "01-30 Nov",
+        type: "mensal",
+        icon: Star,
+        color: "bg-amber-600",
+        concept: "Autoestima e confiança feminina pré-verão",
+        focus: "Procedimentos corporais e faciais não cirúrgicos",
+        actions: ["Preparação verão", "Procedimentos não cirúrgicos", "Autoestima feminina"],
+        status: "pendente"
+      },
+      {
+        name: "SKINCARE DAY",
+        date: "Nov/Dez",
+        type: "day_especial",
+        icon: Leaf,
+        color: "bg-emerald-500",
+        concept: "DAY Especial de alto volume",
+        focus: "Protocolo de Skincare Premium",
+        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Skincare completo"],
         status: "pendente"
       }
     ]
@@ -228,23 +293,14 @@ const CAMPAIGNS_2026 = [
     monthName: "Dezembro",
     campaigns: [
       {
-        name: "Natal",
-        date: "25 Dez",
+        name: "UNIQUE CLOSURE",
+        date: "01-31 Dez",
         type: "comemorativo",
         icon: Gift,
         color: "bg-red-600",
-        description: "Campanha de Natal e fim de ano",
-        actions: ["Presentes especiais", "Vouchers", "Conteúdo emocional"],
-        status: "pendente"
-      },
-      {
-        name: "Réveillon",
-        date: "31 Dez",
-        type: "sazonal",
-        icon: PartyPopper,
-        color: "bg-purple-600",
-        description: "Preparação para o Ano Novo",
-        actions: ["Preparação para festas", "Pacotes de fim de ano"],
+        concept: "Gratidão, vínculo e encerramento de ciclos",
+        focus: "Planejamento cirúrgico e soroterapia de energia",
+        actions: ["Encerramento do ano", "Planejamento 2027", "Soroterapia energia", "Gratidão aos pacientes"],
         status: "pendente"
       }
     ]
@@ -252,11 +308,20 @@ const CAMPAIGNS_2026 = [
 ];
 
 const CAMPAIGN_TYPES = {
-  comemorativo: { label: "Comemorativo", color: "bg-pink-500", icon: Heart },
-  sazonal: { label: "Sazonal", color: "bg-blue-500", icon: Sun },
-  promocional: { label: "Promocional", color: "bg-green-500", icon: ShoppingBag },
-  institucional: { label: "Institucional", color: "bg-purple-500", icon: Star }
+  mensal: { label: "Campanha Mensal", color: "bg-blue-500", icon: Calendar },
+  comemorativo: { label: "Data Comemorativa", color: "bg-pink-500", icon: Heart },
+  sazonal: { label: "Sazonal", color: "bg-green-500", icon: Sun },
+  day_especial: { label: "DAY Especial", color: "bg-purple-500", icon: Zap }
 };
+
+const DAYS_ESPECIAIS = [
+  { periodo: "Jan/Fev", nome: "BOTOX DAY", procedimento: "Aplicação de Toxina Botulínica" },
+  { periodo: "Mar/Abr", nome: "BIOPLASTIA DAY", procedimento: "Preenchimento Facial Leve" },
+  { periodo: "Mai/Jun", nome: "SOROTERAPIA DAY", procedimento: "Protocolos de Energia e Imunidade" },
+  { periodo: "Jul/Ago", nome: "LASER DAY", procedimento: "Rejuvenescimento a Laser" },
+  { periodo: "Set/Out", nome: "HARMONIZAÇÃO DAY", procedimento: "Harmonização Facial Completa" },
+  { periodo: "Nov/Dez", nome: "SKINCARE DAY", procedimento: "Protocolo de Skincare Premium" }
+];
 
 export function CampaignCalendar() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -278,19 +343,19 @@ export function CampaignCalendar() {
 
   const upcomingCampaigns = allCampaigns
     .filter(c => c.month >= new Date().getMonth() + 1)
-    .slice(0, 5);
+    .slice(0, 6);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Calendar className="h-6 w-6 text-primary" />
-            Calendário de Campanhas 2026
+            Master Calendar UNIQUE 2026
           </h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Planejamento anual de campanhas e datas especiais
+            Estratégia de Campanhas • Meta: R$ 3.000.000/mês
           </p>
         </div>
         <div className="flex gap-2">
@@ -336,9 +401,10 @@ export function CampaignCalendar() {
       </div>
 
       <Tabs defaultValue="visao-geral" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="por-mes">Por Mês</TabsTrigger>
+          <TabsTrigger value="days">DAYs Especiais</TabsTrigger>
           <TabsTrigger value="proximas">Próximas</TabsTrigger>
         </TabsList>
 
@@ -353,7 +419,6 @@ export function CampaignCalendar() {
                 }`}
                 onClick={() => {
                   setSelectedMonth(month.month);
-                  setViewMode("calendar");
                 }}
               >
                 <CardHeader className="pb-2">
@@ -365,18 +430,13 @@ export function CampaignCalendar() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="space-y-1">
-                    {month.campaigns.slice(0, 2).map((campaign, idx) => (
+                  <div className="space-y-2">
+                    {month.campaigns.map((campaign, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${campaign.color}`} />
-                        <span className="text-xs truncate">{campaign.name}</span>
+                        <span className="text-xs truncate font-medium">{campaign.name}</span>
                       </div>
                     ))}
-                    {month.campaigns.length > 2 && (
-                      <span className="text-xs text-muted-foreground">
-                        +{month.campaigns.length - 2} mais
-                      </span>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -422,22 +482,35 @@ export function CampaignCalendar() {
                 ) : (
                   currentMonthData?.campaigns.map((campaign, idx) => {
                     const Icon = campaign.icon;
+                    const typeInfo = CAMPAIGN_TYPES[campaign.type as keyof typeof CAMPAIGN_TYPES];
                     return (
                       <Card key={idx} className="overflow-hidden">
                         <div className={`h-2 ${campaign.color}`} />
                         <CardHeader>
-                          <CardTitle className="flex items-center justify-between">
+                          <CardTitle className="flex items-center justify-between flex-wrap gap-2">
                             <div className="flex items-center gap-2">
-                              <Icon className="h-5 w-5" />
+                              <div className={`p-2 rounded-lg ${campaign.color} text-white`}>
+                                <Icon className="h-5 w-5" />
+                              </div>
                               {campaign.name}
                             </div>
-                            <Badge variant="outline">{campaign.date}</Badge>
+                            <div className="flex gap-2">
+                              <Badge variant="outline">{campaign.date}</Badge>
+                              <Badge className={typeInfo?.color}>{typeInfo?.label}</Badge>
+                            </div>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <p className="text-sm text-muted-foreground">
-                            {campaign.description}
-                          </p>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div className="p-3 rounded-lg bg-muted/50">
+                              <p className="text-xs text-muted-foreground mb-1">Conceito</p>
+                              <p className="text-sm font-medium">{campaign.concept}</p>
+                            </div>
+                            <div className="p-3 rounded-lg bg-primary/10">
+                              <p className="text-xs text-muted-foreground mb-1">Foco Comercial</p>
+                              <p className="text-sm font-medium">{campaign.focus}</p>
+                            </div>
+                          </div>
                           
                           <div>
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -476,6 +549,88 @@ export function CampaignCalendar() {
           </div>
         </TabsContent>
 
+        {/* DAYs Especiais */}
+        <TabsContent value="days" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-purple-500" />
+                Estratégia de Volume: DAYs Especiais
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Ações bimestrais de alto volume e preço atrativo para gerar fluxo de caixa, atrair novos leads e criar oportunidades de upsell.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Metas */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <Card className="bg-purple-500/10 border-purple-500/20">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-2xl font-bold text-purple-600">30</p>
+                      <p className="text-sm text-muted-foreground">Pacientes/dia</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-green-500/10 border-green-500/20">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-2xl font-bold text-green-600">R$ 45k</p>
+                      <p className="text-sm text-muted-foreground">Receita média/dia</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-amber-500/10 border-amber-500/20">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-2xl font-bold text-amber-600">10%</p>
+                      <p className="text-sm text-muted-foreground">Conversão p/ cirurgia</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Lista de DAYs */}
+                <div className="space-y-3">
+                  {DAYS_ESPECIAIS.map((day, idx) => (
+                    <div 
+                      key={idx}
+                      className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-purple-500/5 to-violet-500/5 border border-purple-500/20"
+                    >
+                      <div className="p-3 rounded-full bg-purple-500 text-white">
+                        <Zap className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-lg">{day.nome}</p>
+                          <Badge variant="outline" className="text-xs">{day.periodo}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{day.procedimento}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* KPIs */}
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                KPIs e Rastreamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Todas as ações serão monitoradas via UTMs, cupons de desconto e CRM para garantir a mensuração precisa:
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Badge variant="secondary" className="justify-center py-2">CPL (Custo por Lead)</Badge>
+                <Badge variant="secondary" className="justify-center py-2">CAC (Custo de Aquisição)</Badge>
+                <Badge variant="secondary" className="justify-center py-2">Taxa de Conversão</Badge>
+                <Badge variant="secondary" className="justify-center py-2">ROI</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Próximas Campanhas */}
         <TabsContent value="proximas" className="mt-4">
           <Card>
@@ -489,6 +644,7 @@ export function CampaignCalendar() {
               <div className="space-y-3">
                 {upcomingCampaigns.map((campaign, idx) => {
                   const Icon = campaign.icon;
+                  const typeInfo = CAMPAIGN_TYPES[campaign.type as keyof typeof CAMPAIGN_TYPES];
                   return (
                     <div 
                       key={idx}
@@ -504,7 +660,7 @@ export function CampaignCalendar() {
                         </p>
                       </div>
                       <Badge variant="outline">
-                        {CAMPAIGN_TYPES[campaign.type as keyof typeof CAMPAIGN_TYPES]?.label}
+                        {typeInfo?.label}
                       </Badge>
                     </div>
                   );
