@@ -635,197 +635,353 @@ export const COMMERCIAL_SCRIPTS: StageScripts[] = [
     stageId: 3,
     stageKey: "closer",
     title: "Closer - Fechamento de Vendas",
-    mission: "Transformar leads qualificados em clientes efetivos, negociando e fechando acordos de forma eficiente, alinhada aos valores e metas da Unique.",
-    objective: "Transformar consultas realizadas em cirurgias fechadas.",
+    mission: "O Closer é a peça-chave para transformar leads qualificados em clientes efetivos, sendo responsável por negociar e fechar acordos de forma eficiente, alinhada aos valores e metas da Unique Plástica Avançada.",
+    objective: "Transformar consultas realizadas em cirurgias fechadas. IMPORTANTE: O Closer assume o lead APÓS a consulta médica. Seu trabalho é apresentar a proposta, negociar e fechar a venda.",
     teamGoal: {
-      meta3: "R$ 2.134.513",
-      meta3Individual: "R$ 1.067.256",
+      meta1: "R$ 1.778.761 (Equipe) | R$ 889.380 (Individual) - 29 cirurgias",
+      meta2: "R$ 1.921.061 (Equipe) | R$ 960.531 (Individual) - 32 cirurgias",
+      meta3: "R$ 2.134.513 (Equipe) | R$ 1.067.256 (Individual) - 35 cirurgias",
+      meta3Individual: "R$ 1.067.256 - ~18 cirurgias",
       members: ["Larissa", "Bianca"]
     },
     kpis: [
-      "Taxa de Comparecimento à Consulta",
-      "Taxa de Conversão (Consulta → Cirurgia Fechada) - Meta: ≥ 50%",
-      "Ticket Médio por Cirurgia",
-      "Valor Total Vendido (R$)",
-      "Uso correto da política de descontos"
+      "Contatos pós-consulta: 5+/dia",
+      "Reuniões de proposta: 3+/dia",
+      "Follow-ups realizados: 15+/dia",
+      "Fechamentos: 1+/dia",
+      "Taxa de conversão (consulta → venda): >30%",
+      "Ticket médio: R$ 60.000+",
+      "NPS pós-venda: >9"
+    ],
+    supervisionChecklist: [
+      "Monitorar: Taxa de comparecimento, conversão, ticket médio",
+      "Se taxa de comparecimento < 80%: Revisar processo de confirmação",
+      "Se taxa de conversão < 50%: Fazer sessão de roleplay do Método CPI",
+      "Se ticket médio baixo: Treinar técnicas de upsell",
+      "Checklist semanal: Acompanhar 1+ consulta presencialmente",
+      "Analisar 5 propostas comerciais enviadas",
+      "Verificar se política de descontos está sendo respeitada"
+    ],
+    interventions: [
+      { condition: "Taxa de comparecimento < 80%", action: "Revisar processo de confirmação" },
+      { condition: "Taxa de conversão < 50%", action: "Fazer sessão de roleplay do Método CPI" },
+      { condition: "Ticket médio baixo", action: "Treinar técnicas de upsell" }
     ],
     actions: [
+      // ATRIBUIÇÕES PRINCIPAIS
       {
-        action: "Receber dossiê do SDR/Social Selling",
-        description: "Revisar todas as informações antes do primeiro contato.",
+        action: "Principais Atribuições",
+        description: "Responsabilidades do Closer.",
+        checklist: [
+          "Negociação e Fechamento: Gerenciar reuniões presenciais e remotas",
+          "Apresentar serviços valorizando métodos exclusivos (CPI, 3R, Unique Travel)",
+          "Trabalhar objeções de forma estratégica",
+          "Gestão do Processo: Lançamento no Feegow e planilhas",
+          "Atualizar CRM (Kommo) com dados e interações",
+          "Garantir cumprimento das etapas do pipeline",
+          "Relacionamento: Desenvolver confiança e conexão emocional",
+          "Acompanhar cliente nas etapas pré e pós-fechamento",
+          "Colaboração: Feedback para gestor sobre objeções comuns",
+          "Alinhar estratégias com SDRs e gestores"
+        ]
+      },
+      // AGENDA DE SUCESSO
+      {
+        action: "Check-in Matinal (08:00 - 08:30)",
+        description: "Verificar consultas do dia anterior, preparar abordagens."
+      },
+      {
+        action: "Contato Pós-Consulta (08:30 - 09:00)",
+        description: "Ligar para pacientes que consultaram ontem."
+      },
+      {
+        action: "Reuniões de Proposta (09:00 - 10:30)",
+        description: "Apresentações de orçamento (Zoom/presencial)."
+      },
+      {
+        action: "Follow-up D+2 a D+4 (10:30 - 11:30)",
+        description: "Cadência de acompanhamento."
+      },
+      {
+        action: "Atualização CRM (11:30 - 12:00)",
+        description: "Registrar todas as interações."
+      },
+      {
+        action: "Reuniões de Proposta (13:00 - 14:00)",
+        description: "Apresentações de orçamento."
+      },
+      {
+        action: "Negociações Ativas (14:00 - 15:00)",
+        description: "Trabalhar objeções, fechar vendas."
+      },
+      {
+        action: "Follow-up D+6 a D+9 (15:00 - 16:00)",
+        description: "Cadência de acompanhamento."
+      },
+      {
+        action: "Preparação de Passagem (16:00 - 17:00)",
+        description: "Dossiês para CS (vendas fechadas)."
+      },
+      {
+        action: "Encaminhamento ao Coordenador (17:00 - 17:30)",
+        description: "Leads D+14 sem fechamento."
+      },
+      {
+        action: "Check-out (17:30 - 18:00)",
+        description: "Atualizar CRM, planejar próximo dia."
+      },
+      // PROCESSO DE VENDAS
+      {
+        action: "Etapa 1: Recebimento do Lead (Pós-Consulta)",
+        description: "O que você recebe do SDR após a consulta médica.",
         checklist: [
           "Dossiê completo do paciente",
           "Informações da consulta médica",
           "Procedimento recomendado pelo cirurgião",
           "Nível de urgência do paciente"
-        ]
-      },
-      {
-        action: "Contatar paciente em até 2h após consulta",
-        description: "Primeiro contato pós-consulta é crucial.",
-        sla: "2 horas",
-        script: "Olá, [Nome]! Tudo bem?\n\nAqui é [Seu Nome] da Unique Plástica Avançada.\n\nQue bom falar com você! Sei que durante a consulta você já deu o primeiro passo em direção ao sonho da sua transformação.\n\nEstou aqui para tirar todas as dúvidas e entender como podemos avançar juntos nesse processo.\n\nMe conta: como foi a consulta? O que você achou do Dr. [Nome do Médico]?"
-      },
-      {
-        action: "Aplicar método SPIN Selling (Situação, Problema, Implicação, Necessidade)",
-        description: "Técnica de vendas consultivas para entender profundamente o cliente.",
-        checklist: [
-          "S - SITUAÇÃO: O que te motivou a buscar a cirurgia neste momento?",
-          "P - PROBLEMA: O que mais te incomoda que gostaria de mudar?",
-          "I - IMPLICAÇÃO: Se não realizar agora, como se sentirá em 6 meses?",
-          "N - NECESSIDADE: Se pudesse mudar algo hoje, o que seria?"
         ],
-        tips: [
-          "Ouvir atentamente e anotar",
-          "Fazer perguntas abertas",
-          "Conectar emocionalmente",
-          "Identificar a dor real"
+        sla: "Contatar paciente em até 2 horas após a consulta. Ligar primeiro, se não atender, enviar WhatsApp."
+      },
+      {
+        action: "Etapa 2: Primeiro Contato Pós-Consulta",
+        description: "Ligação inicial após a consulta médica.",
+        script: "Olá, [Nome]! Tudo bem?\n\nAqui é [Seu Nome] da Unique Plástica Avançada.\n\nQue bom falar com você! Sei que durante a consulta você já deu o primeiro passo em direção ao sonho da sua transformação.\n\nEstou aqui para tirar todas as dúvidas e entender como podemos avançar juntos nesse processo.\n\nMe conta: como foi a consulta? O que você achou do Dr. [Nome do Médico]?\n\n[OUVIR ATENTAMENTE]\n\nQue maravilha! E me conta: o que mais te chamou atenção no que o Dr. [Nome] explicou?\n\n[OUVIR E ANOTAR]\n\nPerfeito! Agora vou te explicar como funciona o próximo passo para realizarmos esse sonho juntas..."
+      },
+      // MÉTODO SPIN SELLING
+      {
+        action: "Etapa 3: Perguntas SPIN Selling - Situação",
+        description: "Entender o contexto do paciente.",
+        script: "• O que te motivou a buscar a cirurgia plástica neste momento da sua vida?\n• Quais mudanças você gostaria de ver ao final do procedimento?\n• Quais foram as principais dúvidas ou preocupações que surgiram após a consulta?\n• O que seria mais importante para você nesse processo? (Ex.: resultado natural, recuperação rápida, suporte no pós-operatório)"
+      },
+      {
+        action: "Perguntas SPIN Selling - Problema",
+        description: "Identificar a dor do paciente.",
+        script: "• O que mais te incomoda no seu corpo/rosto que gostaria de mudar?\n• Existe algo que você tentou fazer para melhorar essa situação e não funcionou?\n• O que te impede de se sentir completamente confiante hoje?\n• Se não resolvermos esse problema agora, como isso pode afetar sua autoestima?\n• Qual é a principal barreira que você sente para dar o próximo passo nesse sonho?"
+      },
+      {
+        action: "Perguntas SPIN Selling - Implicação",
+        description: "Mostrar consequências de não agir.",
+        script: "• Se não realizar esse procedimento agora, como você acha que se sentirá daqui a 6 meses?\n• Como a falta de ação pode impactar sua rotina ou seus planos futuros?\n• Já imaginou como seria continuar se sentindo assim por mais um ano?\n• De que maneira essa situação pode prejudicar sua vida social ou profissional?\n• Você acha que resolver isso agora poderia trazer benefícios para outras áreas da sua vida?"
+      },
+      {
+        action: "Perguntas SPIN Selling - Necessidade de Solução",
+        description: "Criar desejo pela solução.",
+        script: "• Se você pudesse mudar algo hoje, o que seria e por quê?\n• Como você imagina que sua vida seria após realizar esse procedimento?\n• O que é mais importante para você ao escolher uma clínica ou um cirurgião?\n• Se eu pudesse garantir um resultado que atendesse todas as suas expectativas, você estaria pronta para avançar?\n• Quais benefícios imediatos você espera obter com essa transformação?"
+      },
+      // APRESENTAÇÃO DA PROPOSTA
+      {
+        action: "Etapa 4: Apresentação da Proposta - Ancoragem de Valor",
+        description: "Valorizar o investimento antes do preço.",
+        script: "[Nome], agora que entendi perfeitamente o que você busca, vou te apresentar o plano ideal para a sua transformação.\n\nDiferente de outras clínicas, aqui na Unique oferecemos um acompanhamento completo, desde o planejamento personalizado até o pós-operatório, garantindo segurança e resultados naturais.\n\nO nosso Método CPI é focado em transformar vidas com excelência e cuidado em cada detalhe.\n\nSabemos que uma transformação como essa não é apenas uma cirurgia, mas um investimento em você mesma, na sua autoestima e qualidade de vida.\n\nPense assim: dividindo o valor do procedimento pelos anos que você aproveitará esse resultado, o custo mensal se torna mínimo perto do impacto positivo que você terá diariamente."
+      },
+      {
+        action: "Apresentação do Orçamento",
+        description: "Detalhar o investimento e formas de pagamento.",
+        script: "O investimento para o seu procedimento de [PROCEDIMENTO] é de R$ [VALOR].\n\nEsse valor inclui:\n✅ Cirurgia completa com o Dr. [Nome]\n✅ Anestesia e equipe médica\n✅ Internação e todos os cuidados hospitalares\n✅ Acompanhamento pós-operatório completo\n✅ Protocolo CPI de preparação e recuperação\n\nTrabalhamos com as seguintes formas de pagamento:\n💳 PIX à vista: 10% de desconto\n💳 Cartão de crédito: até 12x\n💳 Financiamento: até 36x\n\nQual dessas opções faz mais sentido para você?"
+      },
+      // MÉTODO CPI E DIFERENCIAIS
+      {
+        action: "Apresentação de Valor e Método CPI",
+        description: "Destacar diferenciais exclusivos da Unique.",
+        script: "[Nome], quero te explicar por que a Unique é diferente de qualquer outra clínica que você já pesquisou.\n\nAqui, criamos um método que vai muito além da cirurgia. É o Método CPI – Cirurgia Plástica Integrativa, que prepara seu corpo e mente para um resultado mais seguro, saudável e duradouro.\n\nNosso método considera não só o estético, mas também seu histórico, sua saúde, sua rotina e sua essência.\n\nPor isso, nossos resultados são tão superiores. Não é só cirurgia, é transformação completa.",
+        checklist: [
+          "Método CPI (Cirurgia Plástica Integrativa): 7 pilares de cuidado integral",
+          "Método 3R: Recuperação otimizada, Resultados naturais, Retorno rápido",
+          "Unique Travel: Suporte completo para pacientes de fora",
+          "Equipe de Excelência: Dr. André Oliveira - criador do Método CPI"
         ]
       },
+      // POLÍTICA DE DESCONTOS
       {
-        action: "Apresentar proposta e ancoragem de valor",
-        description: "Valorizar o investimento antes de falar do preço.",
-        script: "[Nome], agora que entendi perfeitamente o que você busca, vou te apresentar o plano ideal para a sua transformação.\n\nDiferente de outras clínicas, aqui na Unique oferecemos um acompanhamento completo, desde o planejamento personalizado até o pós-operatório, garantindo segurança e resultados naturais.\n\nO nosso Método CPI é focado em transformar vidas com excelência e cuidado em cada detalhe.\n\nPense assim: dividindo o valor do procedimento pelos anos que você aproveitará esse resultado, o custo mensal se torna mínimo perto do impacto positivo que você terá diariamente."
-      },
-      {
-        action: "Explicar Método CPI e diferenciais",
-        description: "Destacar os métodos exclusivos da Unique.",
+        action: "Política de Descontos e Projetos",
+        description: "Regras de benefícios e projetos.",
         checklist: [
-          "Método CPI - Cirurgia Plástica Integrativa (7 pilares)",
-          "Método 3R - Recuperação, Resultados naturais, Retorno rápido",
-          "Unique Travel - Suporte completo para pacientes de fora",
-          "Equipe de excelência - Dr. André Oliveira"
-        ]
-      },
-      {
-        action: "Oferecer projetos (Espelho, Minha Jornada, Indica & Transforma)",
-        description: "Projetos que geram benefícios para o paciente.",
-        script: "[Nome], aqui na Unique, criamos projetos que celebram histórias reais.\n\nVocê pode participar como protagonista da sua transformação e, com isso, desbloquear benefícios especiais.\n\nSe você quiser fazer parte de uma dessas ações – como gravar seu depoimento, compartilhar seu antes e depois ou até indicar amigas – a gente reconhece isso com um presente exclusivo e um benefício especial.",
-        checklist: [
-          "Espelho Unique - Autoriza uso do antes/depois (5%)",
-          "Minha Jornada Unique - Minidocumentário (5%)",
-          "Por Trás da Transformação - História em texto/entrevista (5%)",
-          "Voz Unique - Participação no podcast (5%)",
-          "Indica & Transforma - Indica 3+ pessoas (5%)"
-        ],
-        tips: [
+          "Cada projeto validado = 5% de benefício sobre o valor",
           "Máximo 2 projetos = 10% de benefício",
-          "PIX à vista = 10% OFF",
-          "Nunca falar 'desconto', falar 'benefício'"
-        ]
-      },
-      {
-        action: "Criar cupom personalizado se participar de projeto",
-        description: "Registrar participação em projetos.",
-        tips: [
-          "Formato: NOMEESOBRENOMEPACIENTE10",
-          "Ex: BRUNAGUIMARAES10",
-          "Registrar na planilha com projetos escolhidos",
-          "Comunicar ao marketing"
-        ]
-      },
-      {
-        action: "Negociar formas de pagamento",
-        description: "Apresentar opções de pagamento.",
-        checklist: [
-          "PIX à vista: 10% de desconto",
-          "Cartão de crédito: até 12x",
-          "Financiamento: até 36x"
+          "PIX sem projeto = 10% OFF | Com 1 projeto = 15% OFF | Com 2 projetos = 20% OFF",
+          "Cartão sem projeto = Valor integral | Com 1 projeto = 5% OFF | Com 2 projetos = 10% OFF"
         ],
-        script: "Qual dessas opções faz mais sentido para você: PIX com 10% de desconto ou parcelamento no cartão?"
-      },
-      {
-        action: "D+2: Enviar depoimento/vídeo de paciente similar",
-        description: "Primeiro follow-up com prova social.",
-        script: "Oi [Nome]! Lembrei de você e separei esse depoimento da [Paciente] que fez o mesmo procedimento. Olha só o resultado! [LINK]"
-      },
-      {
-        action: "D+4: Ligar para tirar dúvidas",
-        description: "Contato por ligação para resolver objeções.",
         tips: [
-          "Preferir ligação a mensagem",
-          "Se não atender, deixar áudio",
-          "Anotar todas as dúvidas no CRM"
+          "Nunca falar 'desconto' - usar 'benefício' ou 'condição especial'",
+          "Não dar desconto de primeira sem lead demonstrar precisar"
         ]
       },
       {
-        action: "D+6: WhatsApp de escassez (agenda fechando)",
-        description: "Criar urgência com disponibilidade limitada.",
-        script: "Oi [Nome]! Passando para avisar que a agenda do Dr. [Nome] está fechando para este mês. Consegui segurar uma vaga para você até amanhã. Vamos fechar?"
-      },
-      {
-        action: "D+9: Áudio personalizado emocional",
-        description: "Conexão emocional através de áudio.",
-        tips: [
-          "Mencionar o sonho dela",
-          "Falar do impacto na autoestima",
-          "Ser genuína e empática",
-          "Máximo 1 minuto"
-        ]
-      },
-      {
-        action: "D+12: Última tentativa de fechamento",
-        description: "Último contato antes de encaminhar ao coordenador.",
-        script: "Oi [Nome]! Essa é minha última tentativa de te ajudar a realizar esse sonho. Respeito sua decisão, mas não quero que você perca essa oportunidade. Posso te ajudar de alguma forma?"
-      },
-      {
-        action: "D+14: Encaminhar ao coordenador se não fechou",
-        description: "Lead sem fechamento vai para avaliação do coordenador.",
-        sla: "14 dias"
-      },
-      {
-        action: "Confirmar assinatura do contrato",
-        description: "Verificar contrato assinado antes de passar para CS."
-      },
-      {
-        action: "Confirmar pagamento da entrada",
-        description: "Verificar pagamento confirmado."
-      },
-      {
-        action: "Preencher Dossiê de Pré-Operatório",
-        description: "Documentar informações para o CS.",
+        action: "Projetos Válidos (cada um vale 5%)",
+        description: "Opções de projetos para benefícios.",
+        script: "[Nome], aqui na Unique, criamos projetos que celebram histórias reais.\n\nVocê pode participar como protagonista da sua transformação e, com isso, desbloquear benefícios especiais.\n\nSe você quiser fazer parte de uma dessas ações – como gravar seu depoimento, compartilhar seu antes e depois ou até indicar amigas – a gente reconhece isso com um presente exclusivo e um benefício especial.\n\nTemos um plano para quem quer fazer parte do nosso projeto de transformação com a Unique. Você pode ser nossa paciente destaque, embaixadora ou inspiração.\n\nE isso, claro, vem com benefícios exclusivos.",
         checklist: [
-          "Dados pessoais completos",
-          "Cirurgia(s) contratada(s) e valor",
-          "Data da cirurgia",
-          "Forma de pagamento",
-          "Necessidades especiais (ex: Unique Travel)",
-          "Perfil emocional (ansiosa, tranquila, etc.)"
+          "Espelho Unique: Autoriza antes/depois, responde perguntas, collab nas redes",
+          "Minha Jornada Unique: Registro completo pré ao pós-op, minidocumentário",
+          "Por Trás da Transformação: Compartilha história em texto ou entrevista",
+          "Voz Unique: Participação especial no podcast",
+          "Indica & Transforma: Indica 3+ pessoas para agendar consulta"
         ]
       },
       {
-        action: "Atualizar cadastro no Feegow",
-        description: "Manter sistema atualizado."
+        action: "Fluxo de Liberação do Benefício",
+        description: "Processo para aplicar benefício de projeto.",
+        checklist: [
+          "1. Apresentar projetos com ênfase no pertencimento e inspiração",
+          "2. Paciente preenche formulário: https://uniquemedicespa.typeform.com/to/Kh7ExpFG",
+          "3. Criar cupom personalizado: NOMEESOBRENOMEPACIENTE10 (Ex: BRUNAGUIMARAES10)",
+          "4. Registrar na planilha com projetos escolhidos",
+          "5. Comunicar ao marketing para programar ações"
+        ]
+      },
+      // SCRIPTS
+      {
+        action: "Script - WhatsApp Pós-Consulta",
+        description: "Mensagem para pacientes que não atenderam ligação.",
+        script: "Olá, [Nome], tudo bem?\n\nAqui é [Seu Nome] da Unique Plástica Avançada.\n\nEstou acompanhando o seu caso e notei que ainda não avançamos com sua cirurgia.\n\nPosso te ajudar a esclarecer alguma dúvida ou alinhar um planejamento para você conquistar o resultado que deseja?\n\nEstou à disposição! 💖"
       },
       {
-        action: "Enviar mensagem de transição para paciente",
-        description: "Preparar paciente para o CS.",
-        script: "[NOME], parabéns pela decisão que vai mudar sua vida! Seu contrato está confirmado e sua jornada de transformação começou oficialmente! 🚀\n\nAgora, a [NOME DA CS], nossa anja da guarda do pós-venda, vai cuidar de você em cada detalhe até o dia da sua cirurgia e depois dela.\n\nEla vai te adicionar em um grupo exclusivo no WhatsApp e te passar todas as orientações sobre exames, preparativos e o que mais você precisar.\n\nA Unique inteira está com você!"
+        action: "Script - E-mail Pós-Consulta",
+        description: "E-mail de acompanhamento.",
+        script: "Assunto: Realize seu sonho com as condições atuais\n\nOlá, [Nome],\n\nDurante a consulta, vimos o quanto a cirurgia plástica pode transformar sua vida e autoestima. Quero reforçar que estamos aqui para te apoiar em cada etapa desse processo.\n\nAtualmente, ainda temos condições especiais para o seu caso, mas elas são válidas por tempo limitado devido ao aumento dos custos dos insumos cirúrgicos.\n\nVamos agendar sua transformação e garantir as melhores condições?\n\nEstou à disposição para tirar dúvidas e ajudar no planejamento.\n\nAbraços,\n[Seu Nome]\nUnique Plástica Avançada"
       },
       {
-        action: "Notificar CS em até 1 hora após fechamento",
-        description: "SLA de passagem de bastão.",
-        sla: "1 hora",
-        script: "🎉 NOVA PACIENTE CIRÚRGICA!\n\nPaciente: [NOME]\nWhatsApp: [NÚMERO]\nCirurgia: [NOME DA CIRURGIA]\nData da Cirurgia: [DATA]\n\nContrato assinado e entrada paga. Dossiê completo no CRM.\n\nPor favor, iniciar o onboarding em até 1 hora."
+        action: "Script - Criação de Urgência",
+        description: "Criar senso de urgência com escassez real.",
+        script: "[Nome], essa é uma oportunidade única.\n\nCom o dólar em alta, nossos materiais cirúrgicos têm sofrido reajustes, e os valores serão atualizados em breve.\n\nSe fecharmos hoje, conseguimos garantir as condições atuais e priorizar sua agenda.\n\nVamos dar esse próximo passo juntos?"
+      },
+      {
+        action: "Script - Fechamento",
+        description: "Momento do fechamento da venda.",
+        script: "[Nome], pelo que conversamos, você tem uma história linda e um sonho verdadeiro.\n\nEstou aqui para te ajudar a realizar esse sonho com toda segurança e cuidado que você merece.\n\nVamos fechar hoje e garantir sua vaga na agenda do Dr. [Nome]?\n\nQual forma de pagamento fica melhor para você: PIX com 10% de desconto ou parcelamento no cartão?\n\n[SILÊNCIO ESTRATÉGICO - AGUARDAR RESPOSTA]"
+      },
+      // QUEBRA DE OBJEÇÕES
+      {
+        action: "Quebra de Objeções - Está Caro / Preço Alto",
+        description: "Superar objeção de preço.",
+        script: "Entendo que o valor é um ponto importante. Mas me conta: o que é mais importante para você, preço ou segurança na sua vida?\n\nSe pensarmos no custo-benefício, você estará investindo em um resultado que vai te acompanhar por muitos anos.\n\nDiferente de uma viagem ou um bem material, a cirurgia plástica é um investimento que vai te acompanhar por toda a vida.\n\nSe dividirmos o valor do procedimento por anos de resultados e autoestima elevada, o custo se torna quase insignificante perto do impacto que terá na sua confiança e qualidade de vida.\n\nAlém disso, oferecemos opções de parcelamento para facilitar esse sonho."
+      },
+      {
+        action: "Quebra de Objeções - Vou Pensar / Deixar para Depois",
+        description: "Superar objeção de adiamento.",
+        script: "Claro, entendo perfeitamente. Esse é um passo importante e deve ser dado com segurança.\n\nMas preciso te avisar com carinho: adiar esse sonho vale a pena?\n\nHoje temos condições exclusivas para garantir sua cirurgia ainda este mês, com toda a qualidade e atenção que você merece.\n\nDevido ao aumento dos custos dos materiais cirúrgicos (dólar em alta), nossos valores serão reajustados em breve.\n\nAproveitar agora não é apenas realizar um sonho, mas também fazer isso com as melhores condições.\n\nPosso segurar seu horário por 1 hora sem compromisso, apenas para você não perder essa chance. Te reservo?"
+      },
+      {
+        action: "Quebra de Objeções - Preciso Falar com Marido/Família",
+        description: "Superar objeção de decisão compartilhada.",
+        script: "Claro, entendo perfeitamente! É uma decisão importante e é ótimo que você queira compartilhar com quem você ama.\n\nInclusive, podemos agendar uma conversa com você e seu marido juntos, para que ele também conheça nosso método e tire todas as dúvidas.\n\nQue tal marcarmos essa conversa para amanhã? Assim vocês podem decidir juntos com todas as informações."
+      },
+      {
+        action: "Quebra de Objeções - Não Tenho Tempo Agora",
+        description: "Superar objeção de tempo.",
+        script: "Eu entendo que a rotina pode ser corrida, mas sabemos como planejar cada etapa para que sua recuperação seja tranquila e eficiente, respeitando seu tempo.\n\nInclusive, o Método CPI foi criado justamente para otimizar sua recuperação e você voltar às atividades o mais rápido possível.\n\nQual seria o melhor período para você? Podemos planejar com antecedência."
+      },
+      {
+        action: "Quebra de Objeções - Estou Insegura",
+        description: "Superar objeção de medo/insegurança.",
+        script: "Compreendo que tomar uma decisão como essa gera muitas emoções.\n\nPor isso, nossa equipe estará com você em cada etapa, garantindo total segurança e apoio.\n\nQuais são suas maiores dúvidas ou preocupações?\n\nVamos conversar para garantir que você esteja completamente confiante e tranquila com esse próximo passo."
+      },
+      {
+        action: "Quebra de Objeções - Vi Mais Barato em Outro Lugar",
+        description: "Superar objeção de concorrência.",
+        script: "Entendo sua preocupação com o investimento.\n\nMas me permite uma pergunta: você sabe exatamente o que está incluído nesse valor mais baixo?\n\nAqui na Unique, nosso valor inclui:\n• Cirurgião referência nacional\n• Equipe completa de anestesia e enfermagem\n• Hospital de primeira linha\n• Acompanhamento pós-operatório completo\n• Protocolo CPI de preparação e recuperação\n\nMuitas vezes, valores muito baixos escondem custos extras ou falta de estrutura adequada.\n\nQuando se trata da sua saúde e segurança, o barato pode sair muito caro.\n\nO que você prefere: economizar agora e se arriscar, ou investir na sua segurança e ter resultados garantidos?"
+      },
+      // FOLLOW-UP 14 DIAS
+      {
+        action: "Follow-up Cadência 14 Dias",
+        description: "Sequência obrigatória de acompanhamento.",
+        tips: [
+          "D0 Zoom/Presencial: Proposta + Projeto - Apresentação completa",
+          "D+2 WhatsApp: Vídeo ou depoimento - 'Oi [Nome]! Lembrei de você e separei esse depoimento da [Paciente] que fez o mesmo procedimento. Olha só o resultado! [LINK]'",
+          "D+4 Ligação: Confirmação - Ligar para tirar dúvidas",
+          "D+6 WhatsApp: Escassez - 'Oi [Nome]! Passando para avisar que a agenda do Dr. [Nome] está fechando para este mês. Consegui segurar uma vaga para você até amanhã. Vamos fechar?'",
+          "D+9 Áudio: Emocional - Enviar áudio personalizado reforçando o sonho",
+          "D+12 WhatsApp: Último incentivo - 'Oi [Nome]! Essa é minha última tentativa de te ajudar a realizar esse sonho. Respeito sua decisão, mas não quero que você perca essa oportunidade. Me avisa o que decidiu?'",
+          "D+14: Encaminhar para Coordenador - Passar dossiê completo"
+        ]
+      },
+      // PASSAGEM DE BASTÃO
+      {
+        action: "Passagem de Bastão para CS - Checklist",
+        description: "O paciente FECHOU A CIRURGIA (contrato assinado e pagamento confirmado).",
+        checklist: [
+          "Contrato assinado",
+          "Pagamento confirmado (ou entrada paga)",
+          "Data da cirurgia agendada",
+          "Cadastro completo no Feegow",
+          "Ficha do paciente atualizada",
+          "Cupom e projeto comunicados ao marketing",
+          "Paciente ciente dos prazos e regras",
+          "Paciente ciente dos pilares do Método CPI"
+        ]
+      },
+      {
+        action: "Mensagem de Boas-Vindas para Paciente",
+        description: "Enviar após fechamento confirmado.",
+        script: "🎉 Parabéns, [Nome]!\n\nVocê acaba de dar o passo mais importante para a sua transformação!\n\nA partir de agora, você faz parte da família Unique e teremos o maior prazer em cuidar de você em cada etapa dessa jornada.\n\nEm breve, nossa equipe de Customer Success entrará em contato para te apresentar todo o processo de preparação pelo Método CPI.\n\nVocê está em excelentes mãos! 💖\n\nQualquer dúvida, estou à disposição.\n\nAbraços,\n[Seu Nome]"
+      },
+      {
+        action: "Notificação para CS",
+        description: "Enviar no grupo ou diretamente para o CS.",
+        script: "🎉 NOVA VENDA FECHADA!\n\n📋 DADOS DO PACIENTE:\n• Nome: [NOME]\n• WhatsApp: [NÚMERO]\n• Cirurgião: [NOME DO MÉDICO]\n• Procedimento: [PROCEDIMENTO]\n• Data da cirurgia: [DATA]\n\n📊 DADOS COMERCIAIS:\n• Valor: R$ [VALOR]\n• Forma de pagamento: [FORMA]\n• Projeto Unique: [PROJETO ESCOLHIDO]\n• Cupom: [CÓDIGO]\n\n📝 OBSERVAÇÕES:\n• Nível de entusiasmo: [ALTO/MÉDIO/BAIXO]\n• Pontos de atenção: [OBSERVAÇÕES]\n\n📎 Dossiê completo no Feegow e CRM.\n\nPor favor, entrar em contato em até 24 horas para iniciar o onboarding!",
+        sla: "CS assumir em até 24h (cirurgia < 30 dias) | 48h (30-60 dias) | 72h (> 60 dias)"
+      },
+      {
+        action: "Passagem para Coordenador - Lead Não Fechou",
+        description: "Se após 14 dias o lead não fechou.",
+        script: "⚠️ LEAD PARA RECUPERAÇÃO - COORDENADOR\n\n📋 DADOS DO LEAD:\n• Nome: [NOME]\n• WhatsApp: [NÚMERO]\n• Cirurgião consultado: [NOME]\n• Procedimento de interesse: [PROCEDIMENTO]\n\n📊 HISTÓRICO:\n• Data da consulta: [DATA]\n• Data da última interação: [DATA]\n• Objeção principal: [OBJEÇÃO]\n• Proposta apresentada: R$ [VALOR]\n• Projeto oferecido: [ ] Sim [ ] Não\n\n📝 AÇÕES REALIZADAS:\n• D0: Proposta apresentada\n• D2: WhatsApp com depoimento\n• D4: Ligação de confirmação\n• D6: WhatsApp com escassez\n• D9: Áudio emocional\n• D12: Último incentivo\n\n❓ MOTIVO DO NÃO FECHAMENTO:\n[EXPLICAR]\n\n📎 Dossiê completo no CRM."
+      },
+      // O QUE NÃO FAZER
+      {
+        action: "O Que NÃO Fazer",
+        description: "Erros a evitar no processo de fechamento.",
+        checklist: [
+          "NÃO dar desconto de primeira sem que o lead demonstre precisar",
+          "NÃO falar em 'promoção' - use 'condição especial' ou 'benefício'",
+          "NÃO pressionar de forma agressiva - seja consultivo",
+          "NÃO ignorar objeções - trate cada uma com empatia",
+          "NÃO passar o lead para CS antes do pagamento confirmado",
+          "NÃO deixar lead sem follow-up por mais de 2 dias"
+        ],
+        tips: [
+          "Venda é transferência de confiança. Se você acredita, o cliente acredita.",
+          "Objeção é pedido de mais informação, não rejeição.",
+          "Silêncio estratégico é sua melhor ferramenta de fechamento.",
+          "Cada 'não' te aproxima do 'sim'."
+        ]
       }
     ],
     dossier: {
-      title: "Dossiê de Pré-Operatório",
+      title: "Dossiê Comercial 2 - Paciente que Fechou",
       fields: [
+        "1. DADOS DO FECHAMENTO:",
         "Nome completo",
         "Data do fechamento",
         "Cirurgião",
         "Data da cirurgia agendada",
         "Procedimentos",
         "Tipo de anestesia",
-        "Pacote contratado",
-        "Forma de pagamento",
-        "Necessidades especiais",
-        "Perfil emocional"
+        "Pacote contratado: Básico / Intermediário / Avançado",
+        "2. INFORMAÇÕES COMERCIAIS:",
+        "Forma de pagamento: PIX / Cartão / Financiamento",
+        "Valor total",
+        "Desconto aplicado (%)",
+        "Cupom utilizado",
+        "Projeto Unique escolhido",
+        "Formulário preenchido: Sim / Não",
+        "Termo assinado: Sim / Não",
+        "3. CONFIRMAÇÕES:",
+        "Cadastro completo no Feegow",
+        "Ficha do paciente atualizada",
+        "Cupom e projeto comunicados ao marketing",
+        "Mensagem de boas-vindas enviada",
+        "4. ALINHAMENTO COM O PACIENTE:",
+        "Entendeu os prazos e regras",
+        "Ciente dos pilares do Método CPI",
+        "Se sente acolhido e seguro",
+        "Confirmou participação nos projetos",
+        "5. OBSERVAÇÕES IMPORTANTES",
+        "6. NÍVEL DE ENTUSIASMO: Muito alto / Médio / Baixo",
+        "7. POSSIBILIDADE DE DEPOIMENTO/INDICAÇÃO: Alta / Média / Baixa"
       ]
     },
-    transitionScript: "[NOME], parabéns pela decisão que vai mudar sua vida! Seu contrato está confirmado e sua jornada de transformação começou oficialmente! 🚀\n\nAgora, a [NOME DA CS], nossa anja da guarda do pós-venda, vai cuidar de você em cada detalhe até o dia da sua cirurgia e depois dela.\n\nEla vai te adicionar em um grupo exclusivo no WhatsApp e te passar todas as orientações sobre exames, preparativos e o que mais você precisar.\n\nA Unique inteira está com você!",
-    notificationTemplate: "🎉 NOVA PACIENTE CIRÚRGICA!\n\nPaciente: [NOME]\nWhatsApp: [NÚMERO]\nCirurgia: [NOME DA CIRURGIA]\nData da Cirurgia: [DATA]\n\nContrato assinado e entrada paga. Dossiê completo no CRM.\n\nPor favor, iniciar o onboarding em até 1 hora."
+    transitionScript: "🎉 Parabéns, [Nome]!\n\nVocê acaba de dar o passo mais importante para a sua transformação!\n\nA partir de agora, você faz parte da família Unique e teremos o maior prazer em cuidar de você em cada etapa dessa jornada.\n\nEm breve, nossa equipe de Customer Success entrará em contato para te apresentar todo o processo de preparação pelo Método CPI.\n\nVocê está em excelentes mãos! 💖",
+    notificationTemplate: "🎉 NOVA VENDA FECHADA!\n\n📋 DADOS DO PACIENTE:\n• Nome: [NOME]\n• WhatsApp: [NÚMERO]\n• Cirurgião: [NOME DO MÉDICO]\n• Procedimento: [PROCEDIMENTO]\n• Data da cirurgia: [DATA]\n\n📊 DADOS COMERCIAIS:\n• Valor: R$ [VALOR]\n• Forma de pagamento: [FORMA]\n• Projeto Unique: [PROJETO ESCOLHIDO]\n\n📎 Dossiê completo no Feegow e CRM.\n\nPor favor, entrar em contato em até 24 horas para iniciar o onboarding!"
   },
   // ============================================
   // CUSTOMER SUCCESS - Pós-Venda
