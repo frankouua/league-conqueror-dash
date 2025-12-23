@@ -241,24 +241,27 @@ const Guides = () => {
         </div>
 
         <Tabs defaultValue="rules" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4">
-            <TabsTrigger value="rules" className="gap-2">
-              <BookOpen className="w-4 h-4" />
-              Regras
-            </TabsTrigger>
-            <TabsTrigger value="prizes" className="gap-2">
-              <Trophy className="w-4 h-4" />
-              Premiações
-            </TabsTrigger>
-            <TabsTrigger value="commercial" className="gap-2">
-              <Target className="w-4 h-4" />
-              Guia Comercial
-            </TabsTrigger>
-            <TabsTrigger value="journey" className="gap-2">
-              <Route className="w-4 h-4" />
-              Jornada
-            </TabsTrigger>
-          </TabsList>
+          {/* Mobile: scrollable horizontal tabs */}
+          <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-2xl md:mx-auto md:grid-cols-4 gap-1">
+              <TabsTrigger value="rules" className="gap-2 whitespace-nowrap text-xs sm:text-sm px-3">
+                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+                Regras
+              </TabsTrigger>
+              <TabsTrigger value="prizes" className="gap-2 whitespace-nowrap text-xs sm:text-sm px-3">
+                <Trophy className="w-3 h-3 sm:w-4 sm:h-4" />
+                Prêmios
+              </TabsTrigger>
+              <TabsTrigger value="commercial" className="gap-2 whitespace-nowrap text-xs sm:text-sm px-3">
+                <Target className="w-3 h-3 sm:w-4 sm:h-4" />
+                Comercial
+              </TabsTrigger>
+              <TabsTrigger value="journey" className="gap-2 whitespace-nowrap text-xs sm:text-sm px-3">
+                <Route className="w-3 h-3 sm:w-4 sm:h-4" />
+                Jornada
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* REGRAS */}
           <TabsContent value="rules" className="space-y-6">

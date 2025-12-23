@@ -24,24 +24,24 @@ const TeamBadgesDisplay = ({
   team2 = null
 }: TeamBadgesDisplayProps) => {
   const sizeClasses = {
-    sm: "w-20 h-20",
-    md: "w-32 h-32",
-    lg: "w-40 h-40 md:w-48 md:h-48",
-    xl: "w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64",
+    sm: "w-16 h-16 sm:w-20 sm:h-20",
+    md: "w-24 h-24 sm:w-32 sm:h-32",
+    lg: "w-28 h-28 sm:w-40 sm:h-40 md:w-48 md:h-48",
+    xl: "w-24 h-24 sm:w-36 sm:h-36 md:w-48 md:h-48 lg:w-56 lg:h-56",
   };
 
   const textSizes = {
-    sm: "text-sm",
-    md: "text-lg",
-    lg: "text-xl md:text-2xl",
-    xl: "text-2xl md:text-3xl lg:text-4xl",
+    sm: "text-xs sm:text-sm",
+    md: "text-sm sm:text-lg",
+    lg: "text-base sm:text-xl md:text-2xl",
+    xl: "text-base sm:text-xl md:text-2xl lg:text-3xl",
   };
 
   const pointsSizes = {
-    sm: "text-lg",
-    md: "text-2xl",
-    lg: "text-3xl md:text-4xl",
-    xl: "text-4xl md:text-5xl lg:text-6xl",
+    sm: "text-base sm:text-lg",
+    md: "text-lg sm:text-2xl",
+    lg: "text-xl sm:text-3xl md:text-4xl",
+    xl: "text-2xl sm:text-3xl md:text-4xl lg:text-5xl",
   };
 
   const isLionessWinning = winningTeam === "lioness";
@@ -58,12 +58,12 @@ const TeamBadgesDisplay = ({
   // TV-optimized layout for large screens
   if (layout === "tv") {
     return (
-      <div className="flex items-center justify-center gap-6 md:gap-12 lg:gap-20 py-8">
+      <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-12 lg:gap-20 py-4 sm:py-8">
         {/* Lioness Team */}
         <div className="flex flex-col items-center relative">
           {isLionessWinning && (
-            <div className="absolute -top-8 md:-top-10 z-20">
-              <Crown className="w-12 h-12 md:w-16 md:h-16 text-primary animate-float" />
+            <div className="absolute -top-4 sm:-top-8 md:-top-10 z-20">
+              <Crown className="w-6 h-6 sm:w-10 sm:h-10 md:w-14 md:h-14 text-primary animate-float" />
             </div>
           )}
           <div className={`${sizeClasses[size]} relative group`}>
@@ -118,8 +118,8 @@ const TeamBadgesDisplay = ({
               </div>
               
               {/* Revenue */}
-              <div className="mt-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
-                <p className="text-success text-lg md:text-xl lg:text-2xl font-bold">
+              <div className="mt-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-success/10 border border-success/20">
+                <p className="text-success text-xs sm:text-base md:text-lg lg:text-xl font-bold">
                   R$ {lionessData.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </p>
               </div>
@@ -127,15 +127,15 @@ const TeamBadgesDisplay = ({
           )}
           
           {isLionessWinning && (
-            <span className="text-sm md:text-base font-bold text-primary bg-primary/20 px-4 py-2 rounded-full mt-3 animate-pulse">
-              🏆 Liderando
+            <span className="text-[10px] sm:text-sm md:text-base font-bold text-primary bg-primary/20 px-2 sm:px-4 py-1 sm:py-2 rounded-full mt-2 sm:mt-3 animate-pulse">
+              🏆 Líder
             </span>
           )}
         </div>
 
         {/* VS Separator */}
         <div className="flex flex-col items-center justify-center">
-          <span className="text-5xl md:text-7xl lg:text-8xl font-black text-primary animate-pulse">
+          <span className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-primary animate-pulse">
             VS
           </span>
         </div>
@@ -143,8 +143,8 @@ const TeamBadgesDisplay = ({
         {/* Tróia Team */}
         <div className="flex flex-col items-center relative">
           {isTroiaWinning && (
-            <div className="absolute -top-8 md:-top-10 z-20">
-              <Crown className="w-12 h-12 md:w-16 md:h-16 text-primary animate-float" />
+            <div className="absolute -top-4 sm:-top-8 md:-top-10 z-20">
+              <Crown className="w-6 h-6 sm:w-10 sm:h-10 md:w-14 md:h-14 text-primary animate-float" />
             </div>
           )}
           <div className={`${sizeClasses[size]} relative group`}>
@@ -199,8 +199,8 @@ const TeamBadgesDisplay = ({
               </div>
               
               {/* Revenue */}
-              <div className="mt-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
-                <p className="text-success text-lg md:text-xl lg:text-2xl font-bold">
+              <div className="mt-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-success/10 border border-success/20">
+                <p className="text-success text-xs sm:text-base md:text-lg lg:text-xl font-bold">
                   R$ {troiaData.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </p>
               </div>
@@ -208,8 +208,8 @@ const TeamBadgesDisplay = ({
           )}
           
           {isTroiaWinning && (
-            <span className="text-sm md:text-base font-bold text-primary bg-primary/20 px-4 py-2 rounded-full mt-3 animate-pulse">
-              🏆 Liderando
+            <span className="text-[10px] sm:text-sm md:text-base font-bold text-primary bg-primary/20 px-2 sm:px-4 py-1 sm:py-2 rounded-full mt-2 sm:mt-3 animate-pulse">
+              🏆 Líder
             </span>
           )}
         </div>

@@ -55,36 +55,39 @@ const Register = () => {
         </div>
 
         <Tabs defaultValue="revenue" className="max-w-4xl mx-auto">
-          <TabsList className="grid grid-cols-7 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
-            <TabsTrigger value="revenue" className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg">
-              <DollarSign className="w-5 h-5" />
-              <span className="text-xs hidden sm:block">Faturamento</span>
-            </TabsTrigger>
-            <TabsTrigger value="referrals" className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg">
-              <Users className="w-5 h-5" />
-              <span className="text-xs hidden sm:block">Indicações</span>
-            </TabsTrigger>
-            <TabsTrigger value="testimonials" className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg">
-              <Star className="w-5 h-5" />
-              <span className="text-xs hidden sm:block">Depoimentos</span>
-            </TabsTrigger>
-            <TabsTrigger value="nps" className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg">
-              <ThumbsUp className="w-5 h-5" />
-              <span className="text-xs hidden sm:block">NPS</span>
-            </TabsTrigger>
-            <TabsTrigger value="other" className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg">
-              <Heart className="w-5 h-5" />
-              <span className="text-xs hidden sm:block">Outros</span>
-            </TabsTrigger>
-            <TabsTrigger value="cancellation" className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground rounded-lg">
-              <XCircle className="w-5 h-5" />
-              <span className="text-xs hidden sm:block">Cancelar</span>
-            </TabsTrigger>
-            <TabsTrigger value="contestation" className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-warning data-[state=active]:text-warning-foreground rounded-lg">
-              <AlertCircle className="w-5 h-5" />
-              <span className="text-xs hidden sm:block">Contestar</span>
-            </TabsTrigger>
-          </TabsList>
+          {/* Mobile: scrollable horizontal tabs */}
+          <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 mb-6 sm:mb-8">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-7 h-auto bg-secondary/50 p-1 rounded-xl gap-1">
+              <TabsTrigger value="revenue" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-xs">Fat.</span>
+              </TabsTrigger>
+              <TabsTrigger value="referrals" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-xs">Ind.</span>
+              </TabsTrigger>
+              <TabsTrigger value="testimonials" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap">
+                <Star className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-xs">Dep.</span>
+              </TabsTrigger>
+              <TabsTrigger value="nps" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap">
+                <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-xs">NPS</span>
+              </TabsTrigger>
+              <TabsTrigger value="other" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap">
+                <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-xs">Outros</span>
+              </TabsTrigger>
+              <TabsTrigger value="cancellation" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground rounded-lg whitespace-nowrap">
+                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-xs">Cancel.</span>
+              </TabsTrigger>
+              <TabsTrigger value="contestation" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-warning data-[state=active]:text-warning-foreground rounded-lg whitespace-nowrap">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-xs">Contest.</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="revenue" className="animate-scale-in"><RevenueForm /></TabsContent>
           <TabsContent value="referrals" className="animate-scale-in"><ReferralForm /></TabsContent>

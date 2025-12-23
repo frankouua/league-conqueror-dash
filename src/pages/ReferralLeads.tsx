@@ -415,10 +415,11 @@ const ReferralLeads = () => {
         {/* Conversion Report */}
         <ReferralConversionReport leads={leads} />
 
-        {/* Pipeline View */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {/* Pipeline View - Horizontal scroll on mobile */}
+        <div className="overflow-x-auto -mx-4 px-4 pb-4">
+          <div className="inline-grid grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-3 min-w-max">
           {STATUS_ORDER.map((status) => (
-            <Card key={status} className="bg-gradient-card border-border">
+            <Card key={status} className="bg-gradient-card border-border w-[200px] md:w-auto flex-shrink-0">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2">
@@ -464,6 +465,7 @@ const ReferralLeads = () => {
               </CardContent>
             </Card>
           ))}
+          </div>
         </div>
       </main>
 
