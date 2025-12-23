@@ -168,10 +168,12 @@ const NotificationsDropdown = () => {
   };
 
   // Extract progress percentage from goal_near notification message
-  const extractProgress = (message: string): number | null => {
-    const match = message.match(/(\d+)%/);
+  const extractProgress = (message: string): number => {
+    const match = message.match(/\[PROGRESS:(\d+)\]/);
     if (match) return parseInt(match[1]);
-    // For near goal notifications, default to 90%
+    // Fallback: try to extract from title
+    const titleMatch = message.match(/(\d+)%/);
+    if (titleMatch) return parseInt(titleMatch[1]);
     return 90;
   };
 
@@ -278,24 +280,27 @@ const NotificationsDropdown = () => {
                   {notification.title}
                 </p>
                 <p className="text-xs text-muted-foreground line-clamp-2">
-                  {notification.message.replace(/\s*\[ID:.*?\]/, "")}
+                  {notification.message.replace(/\s*\[ID:.*?\]/, "").replace(/\s*\[PROGRESS:\d+\]/, "")}
                 </p>
                 
                 {/* Progress bar for goal_near notifications */}
-                {notification.type === "goal_near" && (
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-orange-500 font-medium">Progresso</span>
-                      <span className="text-orange-500 font-bold">90%</span>
+                {notification.type === "goal_near" && (() => {
+                  const progress = extractProgress(notification.message);
+                  return (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-orange-500 font-medium">Progresso</span>
+                        <span className="text-orange-500 font-bold">{progress}%</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-500 animate-pulse"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-500 animate-pulse"
-                        style={{ width: "90%" }}
-                      />
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
                 
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted-foreground">
