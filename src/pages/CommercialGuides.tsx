@@ -514,9 +514,9 @@ const CommercialGuides = () => {
               {COMMERCIAL_SCRIPTS.map((stage) => (
                 <button
                   key={stage.stageId}
-                  onClick={() => { setSelectedStage(stage.stageId); setShowReactivation(false); setShowEngagement(false); }}
+                  onClick={() => { setSelectedStage(stage.stageId); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); }}
                   className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                    selectedStage === stage.stageId && !showReactivation && !showEngagement
+                    selectedStage === stage.stageId && !showReactivation && !showEngagement && !showInfluencer
                       ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
                       : "border-border hover:border-primary/50 hover:bg-muted/50"
                   }`}
@@ -532,9 +532,9 @@ const CommercialGuides = () => {
               ))}
               {/* Coordinator Button */}
               <button
-                onClick={() => { setSelectedStage("coordinator"); setShowReactivation(false); setShowEngagement(false); }}
+                onClick={() => { setSelectedStage("coordinator"); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                  selectedStage === "coordinator" && !showReactivation && !showEngagement
+                  selectedStage === "coordinator" && !showReactivation && !showEngagement && !showInfluencer
                     ? "border-amber-500 bg-amber-500/10 shadow-lg scale-[1.02]"
                     : "border-border hover:border-amber-500/50 hover:bg-muted/50"
                 }`}
@@ -549,7 +549,7 @@ const CommercialGuides = () => {
               </button>
               {/* Reactivation Button */}
               <button
-                onClick={() => { setShowReactivation(true); setShowEngagement(false); }}
+                onClick={() => { setShowReactivation(true); setShowEngagement(false); setShowInfluencer(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                   showReactivation
                     ? "border-rose-500 bg-rose-500/10 shadow-lg scale-[1.02]"
@@ -566,7 +566,7 @@ const CommercialGuides = () => {
               </button>
               {/* Engagement Button */}
               <button
-                onClick={() => { setShowEngagement(true); setShowReactivation(false); }}
+                onClick={() => { setShowEngagement(true); setShowReactivation(false); setShowInfluencer(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                   showEngagement
                     ? "border-emerald-500 bg-emerald-500/10 shadow-lg scale-[1.02]"
@@ -581,6 +581,23 @@ const CommercialGuides = () => {
                   Indicações & Depoimentos
                 </p>
               </button>
+              {/* Influencer Button */}
+              <button
+                onClick={() => { setShowInfluencer(true); setShowReactivation(false); setShowEngagement(false); }}
+                className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+                  showInfluencer
+                    ? "border-violet-500 bg-violet-500/10 shadow-lg scale-[1.02]"
+                    : "border-border hover:border-violet-500/50 hover:bg-muted/50"
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white mb-2">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-semibold text-left">Influencers</p>
+                <p className="text-xs text-muted-foreground text-left truncate">
+                  UNI Influencers
+                </p>
+              </button>
             </div>
 
             {/* Reactivation Content */}
@@ -589,7 +606,10 @@ const CommercialGuides = () => {
             {/* Engagement Content */}
             {showEngagement && <EngagementStrategies />}
 
-        {currentStage && !showReactivation && !showEngagement && (
+            {/* Influencer Content */}
+            {showInfluencer && <InfluencerStrategies />}
+
+        {currentStage && !showReactivation && !showEngagement && !showInfluencer && (
           <div className="space-y-6">
             {/* Stage Header */}
             <Card className={`bg-gradient-to-br ${stageColors[currentStage.stageId]} text-white border-0`}>
