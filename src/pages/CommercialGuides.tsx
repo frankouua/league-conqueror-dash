@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { COMMERCIAL_SCRIPTS, OBJECTION_HANDLERS, BENEFIT_PROJECTS, PAYMENT_CONDITIONS, COORDINATOR_DATA, StageScripts, ActionScript } from "@/constants/commercialScripts";
 import ReactivationStrategies from "@/components/ReactivationStrategies";
+import EngagementStrategies from "@/components/EngagementStrategies";
 
 interface FavoriteScript {
   id: string;
@@ -143,6 +144,7 @@ const CommercialGuides = () => {
   };
 
   const [showReactivation, setShowReactivation] = useState(false);
+  const [showEngagement, setShowEngagement] = useState(false);
 
   const stageColors: Record<number, string> = {
     1: "from-blue-500 to-cyan-500",
@@ -510,9 +512,9 @@ const CommercialGuides = () => {
               {COMMERCIAL_SCRIPTS.map((stage) => (
                 <button
                   key={stage.stageId}
-                  onClick={() => { setSelectedStage(stage.stageId); setShowReactivation(false); }}
+                  onClick={() => { setSelectedStage(stage.stageId); setShowReactivation(false); setShowEngagement(false); }}
                   className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                    selectedStage === stage.stageId && !showReactivation
+                    selectedStage === stage.stageId && !showReactivation && !showEngagement
                       ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
                       : "border-border hover:border-primary/50 hover:bg-muted/50"
                   }`}
@@ -528,9 +530,9 @@ const CommercialGuides = () => {
               ))}
               {/* Coordinator Button */}
               <button
-                onClick={() => { setSelectedStage("coordinator"); setShowReactivation(false); }}
+                onClick={() => { setSelectedStage("coordinator"); setShowReactivation(false); setShowEngagement(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                  selectedStage === "coordinator" && !showReactivation
+                  selectedStage === "coordinator" && !showReactivation && !showEngagement
                     ? "border-amber-500 bg-amber-500/10 shadow-lg scale-[1.02]"
                     : "border-border hover:border-amber-500/50 hover:bg-muted/50"
                 }`}
@@ -545,7 +547,7 @@ const CommercialGuides = () => {
               </button>
               {/* Reactivation Button */}
               <button
-                onClick={() => setShowReactivation(true)}
+                onClick={() => { setShowReactivation(true); setShowEngagement(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                   showReactivation
                     ? "border-rose-500 bg-rose-500/10 shadow-lg scale-[1.02]"
@@ -560,12 +562,32 @@ const CommercialGuides = () => {
                   Leads & Pacientes
                 </p>
               </button>
+              {/* Engagement Button */}
+              <button
+                onClick={() => { setShowEngagement(true); setShowReactivation(false); }}
+                className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+                  showEngagement
+                    ? "border-emerald-500 bg-emerald-500/10 shadow-lg scale-[1.02]"
+                    : "border-border hover:border-emerald-500/50 hover:bg-muted/50"
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white mb-2">
+                  <Gift className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-semibold text-left">Engajamento</p>
+                <p className="text-xs text-muted-foreground text-left truncate">
+                  Indicações & Depoimentos
+                </p>
+              </button>
             </div>
 
             {/* Reactivation Content */}
             {showReactivation && <ReactivationStrategies />}
 
-        {currentStage && !showReactivation && (
+            {/* Engagement Content */}
+            {showEngagement && <EngagementStrategies />}
+
+        {currentStage && !showReactivation && !showEngagement && (
           <div className="space-y-6">
             {/* Stage Header */}
             <Card className={`bg-gradient-to-br ${stageColors[currentStage.stageId]} text-white border-0`}>
