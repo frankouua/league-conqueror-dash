@@ -158,11 +158,11 @@ const CommercialGuides = () => {
   };
 
   const stageLabels: Record<number, { title: string; subtitle: string }> = {
-    1: { title: "Comercial 1", subtitle: "SDR" },
-    2: { title: "Comercial 1", subtitle: "Social Selling" },
-    3: { title: "Comercial 2", subtitle: "Closer" },
-    4: { title: "Comercial 3", subtitle: "Customer Success" },
-    5: { title: "Comercial 4", subtitle: "Farmer" }
+    1: { title: "SDR", subtitle: "Leads Inbound" },
+    2: { title: "Social Selling", subtitle: "Prospecção" },
+    3: { title: "Closer", subtitle: "Fechamento" },
+    4: { title: "Customer Success", subtitle: "Pós-Venda" },
+    5: { title: "Farmer", subtitle: "Relacionamento" }
   };
 
   // Função de busca
