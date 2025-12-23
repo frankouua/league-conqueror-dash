@@ -712,10 +712,12 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          phone: string | null
           position: Database["public"]["Enums"]["position_type"] | null
           team_id: string | null
           updated_at: string
           user_id: string
+          whatsapp: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -724,10 +726,12 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          phone?: string | null
           position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
           updated_at?: string
           user_id: string
+          whatsapp?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -736,10 +740,12 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          phone?: string | null
           position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp?: string | null
         }
         Relationships: [
           {
