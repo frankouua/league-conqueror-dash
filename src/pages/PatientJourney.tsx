@@ -34,6 +34,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
 import { getActionScript } from "@/constants/commercialScripts";
+import CommercialGoalsBanner from "@/components/CommercialGoalsBanner";
 
 const journeyStages = [
   {
@@ -199,6 +200,9 @@ const PatientJourney = () => {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
+        {/* Goals Banner - First Thing They See */}
+        <CommercialGoalsBanner />
+
         {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-block mb-4">
