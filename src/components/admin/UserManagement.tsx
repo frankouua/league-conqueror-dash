@@ -230,6 +230,78 @@ const UserManagement = () => {
     }
   };
 
+  const handleDepartmentChange = async (userId: string, newDepartment: string) => {
+    setUpdatingId(userId);
+
+    try {
+      const departmentValue = newDepartment === "none" ? null : newDepartment as DepartmentType;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ department: departmentValue })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Departamento atualizado",
+        description: "O departamento do usuário foi alterado com sucesso",
+      });
+
+      // Update local state
+      setUsers(
+        users.map((u) =>
+          u.user_id === userId
+            ? { ...u, department: (newDepartment === "none" ? null : newDepartment) as DepartmentType | null }
+            : u
+        )
+      );
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handlePositionChange = async (userId: string, newPosition: string) => {
+    setUpdatingId(userId);
+
+    try {
+      const positionValue = newPosition === "none" ? null : newPosition as PositionType;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ position: positionValue })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cargo atualizado",
+        description: "O cargo do usuário foi alterado com sucesso",
+      });
+
+      // Update local state
+      setUsers(
+        users.map((u) =>
+          u.user_id === userId
+            ? { ...u, position: (newPosition === "none" ? null : newPosition) as PositionType | null }
+            : u
+        )
+      );
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const handleRemoveAccess = async (userId: string) => {
     setUpdatingId(userId);
 
@@ -400,7 +472,8 @@ const UserManagement = () => {
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground">Nome</TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell">Dept/Cargo</TableHead>
+                <TableHead className="text-muted-foreground">Departamento</TableHead>
+                <TableHead className="text-muted-foreground">Cargo</TableHead>
                 <TableHead className="text-muted-foreground">Função</TableHead>
                 <TableHead className="text-muted-foreground">Equipe</TableHead>
                 <TableHead className="text-muted-foreground text-right">Ações</TableHead>
@@ -434,24 +507,51 @@ const UserManagement = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex flex-col gap-1">
-                        {user.department && (
-                          <Badge variant="outline" className="w-fit text-xs gap-1">
-                            <Briefcase className="w-3 h-3" />
-                            {DEPARTMENT_LABELS[user.department] || user.department}
-                          </Badge>
-                        )}
-                        {user.position && (
-                          <Badge variant="secondary" className="w-fit text-xs gap-1">
-                            <BadgeCheck className="w-3 h-3" />
-                            {POSITION_LABELS[user.position] || user.position}
-                          </Badge>
-                        )}
-                        {!user.department && !user.position && (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
-                      </div>
+                    <TableCell>
+                      <Select
+                        value={user.department || "none"}
+                        onValueChange={(value) => handleDepartmentChange(user.user_id, value)}
+                        disabled={isUpdating}
+                      >
+                        <SelectTrigger className="w-[140px] bg-secondary border-border text-foreground">
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          <SelectItem value="none" className="text-muted-foreground">
+                            Nenhum
+                          </SelectItem>
+                          <SelectItem value="comercial">Comercial</SelectItem>
+                          <SelectItem value="atendimento">Atendimento</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="administrativo">Administrativo</SelectItem>
+                          <SelectItem value="clinico">Clínico</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={user.position || "none"}
+                        onValueChange={(value) => handlePositionChange(user.user_id, value)}
+                        disabled={isUpdating}
+                      >
+                        <SelectTrigger className="w-[180px] bg-secondary border-border text-foreground">
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          <SelectItem value="none" className="text-muted-foreground">
+                            Nenhum
+                          </SelectItem>
+                          <SelectItem value="comercial_1_captacao">Social Selling</SelectItem>
+                          <SelectItem value="comercial_2_closer">Closer</SelectItem>
+                          <SelectItem value="comercial_3_experiencia">Customer Success</SelectItem>
+                          <SelectItem value="comercial_4_farmer">Farmer</SelectItem>
+                          <SelectItem value="sdr">SDR</SelectItem>
+                          <SelectItem value="coordenador">Coordenador</SelectItem>
+                          <SelectItem value="gerente">Gerente</SelectItem>
+                          <SelectItem value="assistente">Assistente</SelectItem>
+                          <SelectItem value="outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <Select
