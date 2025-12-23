@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, RefreshCw, Trophy } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, RefreshCw, Trophy, Megaphone } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import RecordsEditor from "@/components/admin/RecordsEditor";
 import GoalNotifications from "@/components/admin/GoalNotifications";
 import FeegowSync from "@/components/admin/FeegowSync";
 import PrizeForm from "@/components/admin/PrizeForm";
+import AdminAnnouncements from "@/components/admin/AdminAnnouncements";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -62,13 +63,20 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="cards" className="max-w-4xl mx-auto">
-          <TabsList className="grid grid-cols-9 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
+          <TabsList className="grid grid-cols-10 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
             <TabsTrigger
               value="cards"
               className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
             >
               <Award className="w-5 h-5" />
               <span className="hidden sm:block">Cartões</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="announcements"
+              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+            >
+              <Megaphone className="w-5 h-5" />
+              <span className="hidden sm:block">Avisos</span>
             </TabsTrigger>
             <TabsTrigger
               value="prizes"
@@ -130,6 +138,10 @@ const Admin = () => {
 
           <TabsContent value="cards" className="animate-scale-in">
             <CardForm />
+          </TabsContent>
+
+          <TabsContent value="announcements" className="animate-scale-in">
+            <AdminAnnouncements />
           </TabsContent>
 
           <TabsContent value="prizes" className="animate-scale-in">
