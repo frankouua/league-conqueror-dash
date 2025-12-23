@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { ArrowLeft, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter, Star, StarOff } from "lucide-react";
+import { ArrowLeft, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter, Star, StarOff, Crown, BarChart3, Calendar, Wrench, Lightbulb, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { COMMERCIAL_SCRIPTS, OBJECTION_HANDLERS, BENEFIT_PROJECTS, PAYMENT_CONDITIONS, StageScripts, ActionScript } from "@/constants/commercialScripts";
+import { COMMERCIAL_SCRIPTS, OBJECTION_HANDLERS, BENEFIT_PROJECTS, PAYMENT_CONDITIONS, COORDINATOR_DATA, StageScripts, ActionScript } from "@/constants/commercialScripts";
 
 interface FavoriteScript {
   id: string;
@@ -36,7 +36,7 @@ const MAX_HISTORY_ITEMS = 10;
 
 const CommercialGuides = () => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [selectedStage, setSelectedStage] = useState<number>(1);
+  const [selectedStage, setSelectedStage] = useState<number | "coordinator">(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [favorites, setFavorites] = useState<FavoriteScript[]>([]);
@@ -189,7 +189,8 @@ const CommercialGuides = () => {
 
   const isSearchMode = searchQuery.trim().length > 0;
 
-  const currentStage = COMMERCIAL_SCRIPTS.find(s => s.stageId === selectedStage);
+  const currentStage = typeof selectedStage === 'number' ? COMMERCIAL_SCRIPTS.find(s => s.stageId === selectedStage) : null;
+  const isCoordinatorMode = selectedStage === "coordinator";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -492,7 +493,7 @@ const CommercialGuides = () => {
         ) : (
           <>
             {/* Stage Selector */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
               {COMMERCIAL_SCRIPTS.map((stage) => (
                 <button
                   key={stage.stageId}
@@ -515,6 +516,23 @@ const CommercialGuides = () => {
                   </p>
                 </button>
               ))}
+              {/* Coordinator Button */}
+              <button
+                onClick={() => setSelectedStage("coordinator")}
+                className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+                  selectedStage === "coordinator"
+                    ? "border-amber-500 bg-amber-500/10 shadow-lg scale-[1.02]"
+                    : "border-border hover:border-amber-500/50 hover:bg-muted/50"
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center text-white mb-2">
+                  <Crown className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-semibold text-left">Coordenador</p>
+                <p className="text-xs text-muted-foreground text-left truncate">
+                  Gestão Comercial
+                </p>
+              </button>
             </div>
 
         {currentStage && (
@@ -993,6 +1011,287 @@ const CommercialGuides = () => {
             </Tabs>
           </div>
         )}
+
+            {/* Coordinator Content */}
+            {isCoordinatorMode && (
+              <div className="space-y-6">
+                {/* Coordinator Header */}
+                <Card className="bg-gradient-to-br from-amber-500 to-yellow-500 text-white border-0">
+                  <CardHeader>
+                    <CardTitle className="text-2xl flex items-center gap-3">
+                      <Crown className="h-8 w-8" />
+                      {COORDINATOR_DATA.title}
+                    </CardTitle>
+                    <CardDescription className="text-white/90">
+                      {COORDINATOR_DATA.description}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                {/* Coordinator Tabs */}
+                <Tabs defaultValue="attributes" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto gap-1">
+                    <TabsTrigger value="attributes" className="gap-2">
+                      <Users className="h-4 w-4" />
+                      <span className="hidden sm:inline">Atribuições</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="metrics" className="gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Métricas</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="rituals" className="gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span className="hidden sm:inline">Rituais</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="tools" className="gap-2">
+                      <Wrench className="h-4 w-4" />
+                      <span className="hidden sm:inline">Ferramentas</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="tips" className="gap-2">
+                      <Lightbulb className="h-4 w-4" />
+                      <span className="hidden sm:inline">Dicas</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Attributes Tab */}
+                  <TabsContent value="attributes">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {COORDINATOR_DATA.attributes.map((attr, index) => (
+                        <Card key={index}>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                <span className="text-amber-600 dark:text-amber-400 font-bold">{index + 1}</span>
+                              </div>
+                              {attr.title}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {attr.items.map((item, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm">
+                                  <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  {/* Metrics Tab */}
+                  <TabsContent value="metrics">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-blue-500" />
+                          Métricas de Performance
+                        </CardTitle>
+                        <CardDescription>
+                          KPIs que o coordenador deve acompanhar diariamente
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {COORDINATOR_DATA.metrics.map((metric, index) => (
+                            <div
+                              key={index}
+                              className="p-4 border rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="font-semibold text-blue-900 dark:text-blue-100">{metric.name}</h4>
+                                {metric.target && (
+                                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                    Meta: {metric.target}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">{metric.description}</p>
+                              {metric.formula && (
+                                <div className="mt-2 p-2 bg-white/50 dark:bg-white/5 rounded text-xs font-mono text-blue-800 dark:text-blue-200">
+                                  {metric.formula}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Rituals Tab */}
+                  <TabsContent value="rituals">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5 text-purple-500" />
+                          Rituais de Gestão
+                        </CardTitle>
+                        <CardDescription>
+                          Reuniões e rotinas que garantem alinhamento e performance
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Accordion type="single" collapsible className="space-y-2">
+                          {COORDINATOR_DATA.rituals.map((ritual, index) => (
+                            <AccordionItem
+                              key={index}
+                              value={`ritual-${index}`}
+                              className="border rounded-lg px-4"
+                            >
+                              <AccordionTrigger className="hover:no-underline py-4">
+                                <div className="flex items-start gap-3 text-left">
+                                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+                                    <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium">{ritual.name}</p>
+                                    <Badge variant="outline" className="mt-1 text-xs">
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      {ritual.frequency}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="pb-4">
+                                <div className="space-y-4 pl-13">
+                                  <p className="text-sm text-muted-foreground">{ritual.description}</p>
+                                  
+                                  {ritual.participants && ritual.participants.length > 0 && (
+                                    <div>
+                                      <p className="text-sm font-medium mb-2">Participantes:</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {ritual.participants.map((p, i) => (
+                                          <Badge key={i} variant="secondary">{p}</Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {ritual.agenda && ritual.agenda.length > 0 && (
+                                    <div>
+                                      <p className="text-sm font-medium mb-2">Pauta:</p>
+                                      <ul className="space-y-1">
+                                        {ritual.agenda.map((item, i) => (
+                                          <li key={i} className="flex items-center gap-2 text-sm">
+                                            <div className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-400">
+                                              {i + 1}
+                                            </div>
+                                            {item}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                        </Accordion>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Tools Tab */}
+                  <TabsContent value="tools">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Wrench className="h-5 w-5 text-green-500" />
+                          Ferramentas de Gestão
+                        </CardTitle>
+                        <CardDescription>
+                          Sistemas e recursos utilizados no dia a dia
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {COORDINATOR_DATA.tools.map((tool, index) => (
+                            <div
+                              key={index}
+                              className="p-4 border rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30"
+                            >
+                              <h4 className="font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
+                                <Wrench className="h-4 w-4" />
+                                {tool.name}
+                              </h4>
+                              <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                                <strong>Finalidade:</strong> {tool.purpose}
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                <strong>Uso:</strong> {tool.usage}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Escalation Protocol */}
+                    <Card className="mt-4">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <AlertCircle className="h-5 w-5 text-red-500" />
+                          Protocolo de Escalação
+                        </CardTitle>
+                        <CardDescription>
+                          Como agir em situações críticas
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {COORDINATOR_DATA.escalationProtocol.map((protocol, index) => (
+                            <div
+                              key={index}
+                              className="p-4 border rounded-lg bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-red-900 dark:text-red-100">{protocol.situation}</h4>
+                                  <p className="text-sm text-muted-foreground mt-1">{protocol.action}</p>
+                                </div>
+                                <Badge variant="outline" className="flex-shrink-0 border-red-300 text-red-700 dark:border-red-700 dark:text-red-300">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  SLA: {protocol.sla}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Tips Tab */}
+                  <TabsContent value="tips">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {COORDINATOR_DATA.managementTips.map((category, index) => (
+                        <Card key={index}>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Lightbulb className="h-5 w-5 text-yellow-500" />
+                              {category.category}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {category.tips.map((tip, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm">
+                                  <Sparkles className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                                  <span>{tip}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
           </>
         )}
       </main>

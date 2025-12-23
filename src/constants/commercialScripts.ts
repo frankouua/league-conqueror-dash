@@ -603,6 +603,307 @@ export const PAYMENT_CONDITIONS = {
   }
 };
 
+// Dados do Coordenador Comercial
+export interface CoordinatorData {
+  title: string;
+  description: string;
+  attributes: {
+    title: string;
+    items: string[];
+  }[];
+  metrics: {
+    name: string;
+    description: string;
+    formula?: string;
+    target?: string;
+  }[];
+  rituals: {
+    name: string;
+    frequency: string;
+    description: string;
+    participants?: string[];
+    agenda?: string[];
+  }[];
+  tools: {
+    name: string;
+    purpose: string;
+    usage: string;
+  }[];
+  managementTips: {
+    category: string;
+    tips: string[];
+  }[];
+  escalationProtocol: {
+    situation: string;
+    action: string;
+    sla: string;
+  }[];
+}
+
+export const COORDINATOR_DATA: CoordinatorData = {
+  title: "Coordenador Comercial",
+  description: "Responsável por liderar, desenvolver e garantir a performance do time comercial, assegurando o atingimento das metas e a excelência no atendimento ao paciente.",
+  attributes: [
+    {
+      title: "Liderança e Gestão de Pessoas",
+      items: [
+        "Liderar e motivar o time comercial (SDR, Closer, CS, Farmer)",
+        "Realizar feedbacks individuais semanais",
+        "Desenvolver planos de desenvolvimento individual (PDI)",
+        "Resolver conflitos e alinhar expectativas",
+        "Conduzir processos seletivos e onboarding de novos membros",
+        "Garantir clima positivo e engajamento da equipe"
+      ]
+    },
+    {
+      title: "Gestão de Performance",
+      items: [
+        "Acompanhar indicadores de cada membro do time diariamente",
+        "Identificar gaps de performance e criar planos de ação",
+        "Garantir cumprimento de SLAs em todas as etapas",
+        "Realizar análises de funil e propor melhorias",
+        "Acompanhar metas individuais e coletivas",
+        "Gerar relatórios de performance para diretoria"
+      ]
+    },
+    {
+      title: "Processos e Qualidade",
+      items: [
+        "Garantir padronização dos processos comerciais",
+        "Auditar dossiês e passagens de bastão",
+        "Validar qualidade das abordagens e scripts",
+        "Propor e implementar melhorias nos processos",
+        "Manter documentação atualizada",
+        "Treinar equipe em novos processos"
+      ]
+    },
+    {
+      title: "Interface com Outras Áreas",
+      items: [
+        "Alinhar com Marketing sobre qualidade dos leads",
+        "Reportar para Diretoria resultados e projeções",
+        "Integrar com área Clínica sobre agenda e procedimentos",
+        "Comunicar com Financeiro sobre metas e comissões",
+        "Participar de reuniões estratégicas da empresa"
+      ]
+    }
+  ],
+  metrics: [
+    {
+      name: "Taxa de Conversão Geral",
+      description: "Percentual de leads que se tornaram pacientes",
+      formula: "(Pacientes Operados / Leads Recebidos) × 100",
+      target: "≥ 15%"
+    },
+    {
+      name: "Tempo Médio de Resposta",
+      description: "Tempo entre recebimento do lead e primeiro contato",
+      target: "≤ 5 minutos"
+    },
+    {
+      name: "Taxa de Agendamento",
+      description: "Leads que agendaram consulta",
+      formula: "(Consultas Agendadas / Leads Qualificados) × 100",
+      target: "≥ 40%"
+    },
+    {
+      name: "Taxa de Comparecimento",
+      description: "Pacientes que compareceram à consulta agendada",
+      formula: "(Consultas Realizadas / Consultas Agendadas) × 100",
+      target: "≥ 85%"
+    },
+    {
+      name: "Taxa de Fechamento",
+      description: "Consultas que resultaram em cirurgia fechada",
+      formula: "(Cirurgias Fechadas / Consultas Realizadas) × 100",
+      target: "≥ 35%"
+    },
+    {
+      name: "Ticket Médio",
+      description: "Valor médio por procedimento fechado",
+      target: "Acompanhar tendência mensal"
+    },
+    {
+      name: "NPS do Comercial",
+      description: "Satisfação do paciente com atendimento comercial",
+      target: "≥ 70"
+    },
+    {
+      name: "SLA de Passagem de Bastão",
+      description: "Cumprimento dos prazos de transição entre etapas",
+      target: "≥ 95%"
+    }
+  ],
+  rituals: [
+    {
+      name: "Daily Comercial",
+      frequency: "Diário - 9h",
+      description: "Alinhamento rápido do time sobre prioridades do dia",
+      participants: ["Coordenador", "SDRs", "Closers", "CS", "Farmer"],
+      agenda: [
+        "Resultados do dia anterior",
+        "Leads prioritários do dia",
+        "Bloqueios e pendências",
+        "Agenda de cirurgias da semana"
+      ]
+    },
+    {
+      name: "1:1 Individual",
+      frequency: "Semanal",
+      description: "Feedback e desenvolvimento individual de cada membro",
+      participants: ["Coordenador", "Colaborador"],
+      agenda: [
+        "Como você está? (pessoal e profissional)",
+        "Revisão de metas e indicadores",
+        "Feedback de comportamentos",
+        "PDI e próximos passos"
+      ]
+    },
+    {
+      name: "Reunião de Resultados",
+      frequency: "Semanal - Sexta 17h",
+      description: "Análise de performance e planejamento da próxima semana",
+      participants: ["Coordenador", "Time Comercial"],
+      agenda: [
+        "Resultados da semana vs meta",
+        "Top 3 vitórias",
+        "Top 3 aprendizados",
+        "Plano de ação para próxima semana"
+      ]
+    },
+    {
+      name: "Treinamento Comercial",
+      frequency: "Quinzenal",
+      description: "Capacitação em técnicas de vendas e produto",
+      participants: ["Coordenador", "Time Comercial"],
+      agenda: [
+        "Role play de objeções",
+        "Novos procedimentos/produtos",
+        "Cases de sucesso",
+        "Técnicas de negociação"
+      ]
+    },
+    {
+      name: "Reunião com Diretoria",
+      frequency: "Semanal",
+      description: "Report de resultados e alinhamento estratégico",
+      participants: ["Coordenador", "Diretoria"],
+      agenda: [
+        "Dashboard de resultados",
+        "Projeção do mês",
+        "Riscos e oportunidades",
+        "Necessidades do time"
+      ]
+    }
+  ],
+  tools: [
+    {
+      name: "CRM (Feegow/Pipedrive)",
+      purpose: "Gestão de leads e pipeline comercial",
+      usage: "Acompanhar status de cada lead, verificar SLAs, analisar funil"
+    },
+    {
+      name: "Dashboard de Performance",
+      purpose: "Visualização de métricas em tempo real",
+      usage: "Monitorar KPIs diários, identificar desvios, tomar decisões"
+    },
+    {
+      name: "WhatsApp Business",
+      purpose: "Comunicação com pacientes e equipe",
+      usage: "Supervisionar atendimentos, responder escalações"
+    },
+    {
+      name: "Planilha de Metas",
+      purpose: "Controle de metas individuais e coletivas",
+      usage: "Atualizar semanalmente, compartilhar com time"
+    },
+    {
+      name: "Agenda Clínica",
+      purpose: "Verificar disponibilidade de consultas e cirurgias",
+      usage: "Planejar capacidade, evitar overbooking"
+    },
+    {
+      name: "Sistema de Gravação de Ligações",
+      purpose: "Auditoria e treinamento",
+      usage: "Escutar ligações, dar feedback, identificar padrões"
+    }
+  ],
+  managementTips: [
+    {
+      category: "Motivação do Time",
+      tips: [
+        "Celebre todas as vitórias, pequenas e grandes",
+        "Reconheça publicamente os destaques",
+        "Crie competições saudáveis com prêmios",
+        "Mantenha o ambiente leve, mas focado",
+        "Escute as dificuldades e ajude a resolver"
+      ]
+    },
+    {
+      category: "Gestão de Baixa Performance",
+      tips: [
+        "Identifique a causa raiz (falta de skill, vontade ou processo)",
+        "Crie plano de ação com metas claras e prazos",
+        "Acompanhe de perto com 1:1s mais frequentes",
+        "Documente todas as conversas e acordos",
+        "Seja transparente sobre consequências"
+      ]
+    },
+    {
+      category: "Comunicação Efetiva",
+      tips: [
+        "Seja claro e direto nas orientações",
+        "Use dados para embasar feedbacks",
+        "Pratique escuta ativa",
+        "Adapte o estilo de comunicação para cada pessoa",
+        "Mantenha canais abertos para dúvidas"
+      ]
+    },
+    {
+      category: "Priorização",
+      tips: [
+        "Foque no que gera mais impacto nas metas",
+        "Delegue tarefas operacionais quando possível",
+        "Reserve tempo para desenvolvimento do time",
+        "Evite microgerenciamento",
+        "Proteja seu tempo para tarefas estratégicas"
+      ]
+    }
+  ],
+  escalationProtocol: [
+    {
+      situation: "Lead VIP ou indicação importante",
+      action: "Assumir acompanhamento pessoal ou designar membro sênior",
+      sla: "Imediato"
+    },
+    {
+      situation: "Reclamação de paciente sobre atendimento",
+      action: "Investigar, dar feedback ao colaborador, retornar ao paciente",
+      sla: "2 horas"
+    },
+    {
+      situation: "Conflito entre membros do time",
+      action: "Mediar conversa, alinhar expectativas, documentar acordos",
+      sla: "24 horas"
+    },
+    {
+      situation: "Queda significativa de performance",
+      action: "Reunião com colaborador, identificar causas, criar plano de ação",
+      sla: "48 horas"
+    },
+    {
+      situation: "Problema com ferramenta/sistema",
+      action: "Escalar para TI, comunicar time sobre workaround temporário",
+      sla: "30 minutos"
+    },
+    {
+      situation: "Oportunidade de fechamento alto valor",
+      action: "Apoiar Closer na negociação, liberar condições especiais se necessário",
+      sla: "Imediato"
+    }
+  ]
+};
+
 // Helper para buscar script de uma ação específica
 export const getActionScript = (stageId: number, actionText: string): ActionScript | undefined => {
   const stage = COMMERCIAL_SCRIPTS.find(s => s.stageId === stageId);
