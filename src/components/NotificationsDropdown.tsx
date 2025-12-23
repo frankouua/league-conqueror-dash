@@ -127,6 +127,10 @@ const NotificationsDropdown = () => {
         return <Sparkles className="w-4 h-4 text-purple-500" />;
       case "stale_lead":
         return <AlertTriangle className="w-4 h-4 text-orange-500" />;
+      case "seller_critical":
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case "seller_warning":
+        return <AlertTriangle className="w-4 h-4 text-amber-500" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -186,9 +190,9 @@ const NotificationsDropdown = () => {
           notifications.map((notification) => (
             <DropdownMenuItem
               key={notification.id}
-              className={`flex items-start gap-3 p-3 cursor-pointer ${
+            className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""}`}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
