@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Camera, Loader2, Upload, User, Briefcase, BadgeCheck, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Camera, Loader2, Upload, User, Briefcase, BadgeCheck, Mail, Lock, Eye, EyeOff, Phone } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,8 @@ const ProfileEditDialog = ({ children }: ProfileEditDialogProps) => {
   
   // Profile state
   const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [phone, setPhone] = useState(profile?.phone || "");
+  const [whatsapp, setWhatsapp] = useState(profile?.whatsapp || "");
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -150,7 +152,11 @@ const ProfileEditDialog = ({ children }: ProfileEditDialogProps) => {
     setIsSaving(true);
 
     try {
-      const { error } = await updateProfile({ full_name: fullName.trim() });
+      const { error } = await updateProfile({ 
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        whatsapp: whatsapp.trim() || null,
+      });
 
       if (error) throw error;
 
@@ -274,6 +280,8 @@ const ProfileEditDialog = ({ children }: ProfileEditDialogProps) => {
     setIsOpen(open);
     if (open) {
       setFullName(profile?.full_name || "");
+      setPhone(profile?.phone || "");
+      setWhatsapp(profile?.whatsapp || "");
       setPreviewUrl(null);
       setNewEmail("");
       setCurrentPassword("");
@@ -377,6 +385,36 @@ const ProfileEditDialog = ({ children }: ProfileEditDialogProps) => {
                 placeholder="Seu nome"
                 className="bg-background border-border"
               />
+            </div>
+
+            {/* Phone Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-foreground flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Telefone
+                </Label>
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="bg-background border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp" className="text-foreground flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  WhatsApp
+                </Label>
+                <Input
+                  id="whatsapp"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="bg-background border-border"
+                />
+              </div>
             </div>
 
             {/* Email (read-only info) */}

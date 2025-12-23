@@ -14,6 +14,8 @@ interface Profile {
   avatar_url: string | null;
   department: DepartmentType | null;
   position: PositionType | null;
+  phone: string | null;
+  whatsapp: string | null;
 }
 
 interface AuthContextType {
@@ -25,7 +27,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string, teamId: string, role?: "member" | "admin", department?: DepartmentType | null, position?: PositionType | null) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<Pick<Profile, 'full_name' | 'avatar_url'>>) => Promise<{ error: Error | null }>;
+  updateProfile: (updates: Partial<Pick<Profile, 'full_name' | 'avatar_url' | 'phone' | 'whatsapp'>>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -156,7 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRole(null);
   };
 
-  const updateProfile = async (updates: Partial<Pick<Profile, 'full_name' | 'avatar_url'>>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, 'full_name' | 'avatar_url' | 'phone' | 'whatsapp'>>) => {
     if (!user?.id) {
       return { error: new Error("User not authenticated") };
     }
