@@ -923,13 +923,13 @@ export default function LoyaltyStrategies() {
         <TabsContent value="recompensas" className="mt-4">
           <ScrollArea className="h-[600px] pr-4">
             <div className="space-y-4">
-              <Card className="bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-950/30 dark:to-yellow-950/30">
+              <Card className="bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-950/30 dark:to-yellow-950/30 border-amber-200 dark:border-amber-800">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Gift className="h-5 w-5 text-amber-500" />
+                  <h3 className="font-semibold mb-2 flex items-center gap-2 text-amber-900 dark:text-amber-100">
+                    <Gift className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     Painel de Recompensas UniLovers
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
                     Pacientes podem resgatar recompensas ao atingir pontuações necessárias. 
                     Cada item possui estoque limitado e a tabela é atualizada semestralmente.
                   </p>
@@ -956,8 +956,8 @@ export default function LoyaltyStrategies() {
                             {i === 0 ? "🏆" : i === 1 ? "📱" : i === 2 ? "💎" : "🎁"}
                           </span>
                           <div>
-                            <p className={`text-sm ${i < 3 ? "font-semibold" : ""}`}>{reward.name}</p>
-                            <p className="text-xs text-muted-foreground">Estoque: {reward.stock}</p>
+                            <p className={`text-sm ${i < 3 ? "font-semibold text-amber-900 dark:text-amber-100" : ""}`}>{reward.name}</p>
+                            <p className={`text-xs ${i < 3 ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`}>Estoque: {reward.stock}</p>
                           </div>
                         </div>
                         <Badge 
