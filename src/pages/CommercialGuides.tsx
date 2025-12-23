@@ -143,16 +143,18 @@ const CommercialGuides = () => {
 
   const stageColors: Record<number, string> = {
     1: "from-blue-500 to-cyan-500",
-    2: "from-purple-500 to-pink-500",
-    3: "from-green-500 to-emerald-500",
-    4: "from-amber-500 to-orange-500"
+    2: "from-indigo-500 to-purple-500",
+    3: "from-pink-500 to-rose-500",
+    4: "from-green-500 to-emerald-500",
+    5: "from-amber-500 to-orange-500"
   };
 
   const stageIcons: Record<number, React.ReactNode> = {
     1: <Phone className="h-5 w-5" />,
-    2: <Target className="h-5 w-5" />,
-    3: <Users className="h-5 w-5" />,
-    4: <Sparkles className="h-5 w-5" />
+    2: <MessageSquare className="h-5 w-5" />,
+    3: <Target className="h-5 w-5" />,
+    4: <Users className="h-5 w-5" />,
+    5: <Sparkles className="h-5 w-5" />
   };
 
   // Função de busca
