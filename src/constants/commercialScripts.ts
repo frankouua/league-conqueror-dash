@@ -849,86 +849,316 @@ export const COMMERCIAL_SCRIPTS: StageScripts[] = [
     stageId: 5,
     stageKey: "farmer",
     title: "Farmer - Relacionamento e LTV",
-    mission: "Cultivar relacionamento de longo prazo com pacientes, maximizando LTV através de recompras, indicações e embaixadorismo.",
-    objective: "Transformar pacientes em embaixadoras e gerar novas oportunidades de negócio.",
+    mission: "O Farmer é responsável por cultivar relacionamentos de longo prazo com pacientes que já passaram pela jornada Unique, maximizando o Lifetime Value (LTV) através de recompras, indicações e fidelização.",
+    objective: "Transformar pacientes em clientes recorrentes e geradores de indicações.",
     teamGoal: {
-      meta3: "R$ 59.778",
+      meta1: "R$ 49.815 (Equipe) | R$ 24.907 (Individual)",
+      meta2: "R$ 53.800 (Equipe) | R$ 26.900 (Individual)",
+      meta3: "R$ 59.778 (Equipe) | R$ 29.889 (Individual)",
       meta3Individual: "R$ 29.889",
       members: ["Kamila", "Novo Integrante"]
     },
     kpis: [
-      "Taxa de Reativação de Clientes - Meta: ≥ 15%",
-      "LTV (Lifetime Value)",
-      "Vendas Recorrentes (procedimentos e produtos)",
-      "Engajamento em Campanhas de Base"
+      "Taxa de Reativação - Meta: >15%",
+      "Taxa de Indicações - Meta: >20%",
+      "Taxa de Recompra - Meta: >10%",
+      "Contatos de Relacionamento - Meta: 400+/mês",
+      "Leads Reativados para SDR - Meta: 20+/mês",
+      "20+ contatos de relacionamento/dia",
+      "10+ tentativas de reativação/dia",
+      "5+ solicitações de indicação/dia",
+      "3+ ofertas de upsell/dia"
+    ],
+    supervisionChecklist: [
+      "Monitorar: Taxa de reativação, LTV, vendas recorrentes, engajamento",
+      "Se taxa de reativação < 15%: Revisar scripts e ofertas",
+      "Se LTV estagnado: Criar novas campanhas de relacionamento",
+      "Se vendas recorrentes baixas: Treinar venda consultiva",
+      "Checklist semanal: Analisar 10 conversas de reativação",
+      "Verificar se segmentação RFV está sendo usada",
+      "Conferir execução de campanhas de base"
+    ],
+    interventions: [
+      { condition: "Taxa reativação < 15%", action: "Revisar scripts e ofertas" },
+      { condition: "LTV estagnado", action: "Criar novas campanhas de relacionamento" },
+      { condition: "Vendas recorrentes baixas", action: "Treinar venda consultiva" }
     ],
     actions: [
+      // ATRIBUIÇÕES PRINCIPAIS
       {
-        action: "Receber dossiê de Alta do CS",
-        description: "Revisar histórico completo da paciente."
-      },
-      {
-        action: "Adicionar à cadência de relacionamento em 24h",
-        description: "Incluir paciente no fluxo de cultivo.",
-        sla: "24 horas"
-      },
-      {
-        action: "Mapear histórico completo de procedimentos",
-        description: "Conhecer toda a jornada da paciente."
-      },
-      {
-        action: "Manter contato em datas importantes (aniversário)",
-        description: "Enviar mensagens personalizadas em datas especiais.",
-        tips: [
-          "Aniversário da paciente",
-          "Aniversário da cirurgia",
-          "Datas comemorativas",
-          "Natal, Dia das Mães, etc."
-        ]
-      },
-      {
-        action: "Enviar conteúdos exclusivos e novidades",
-        description: "Manter paciente informada e engajada."
-      },
-      {
-        action: "Apresentar novos protocolos e procedimentos",
-        description: "Oferecer novidades relevantes para a paciente."
-      },
-      {
-        action: "Incentivar programa de Embaixadores",
-        description: "Convidar pacientes especiais para o programa."
-      },
-      {
-        action: "Coletar depoimentos Google e Vídeo",
-        description: "Solicitar depoimentos de pacientes satisfeitas."
-      },
-      {
-        action: "Identificar interesse em novo procedimento",
-        description: "Detectar oportunidades de reativação."
-      },
-      {
-        action: "Qualificar interesse antes de reativar",
-        description: "Entender profundidade do interesse."
-      },
-      {
-        action: "Preencher Dossiê de Reativação",
-        description: "Documentar informações para SDR/Closer.",
+        action: "Cultivo de Relacionamento",
+        description: "O Farmer assume o paciente APÓS a alta médica (passagem do CS). Seu trabalho é manter o relacionamento, gerar recompras e indicações.",
         checklist: [
-          "Histórico completo da paciente",
-          "Novo procedimento de interesse",
-          "Objeções e dúvidas levantadas"
+          "Manter contato regular com base de pacientes",
+          "Criar conexões genuínas e duradouras",
+          "Ser o 'amigo' da paciente na Unique"
         ]
       },
       {
-        action: "Enviar mensagem de transição para paciente",
-        description: "Preparar paciente para nova jornada.",
-        script: "[NOME], que ótimo saber que você está pensando em [NOVO PROCEDIMENTO]! ✨\n\nPara te dar a melhor orientação, vou pedir para a [NOME DA SDR/CLOSER], nossa especialista nesse procedimento, entrar em contato com você.\n\nEla vai te explicar tudo em detalhes e montar um plano especial para você, que já é da casa!\n\nPode aguardar o contato dela?"
+        action: "Maximização de LTV",
+        description: "Identificar e converter oportunidades de novos procedimentos.",
+        checklist: [
+          "Identificar oportunidades de novos procedimentos",
+          "Oferecer tratamentos complementares",
+          "Gerar recompras recorrentes"
+        ]
       },
       {
-        action: "Notificar SDR/Closer em até 1h para reativação",
-        description: "SLA de passagem de bastão para reativação.",
-        sla: "1 hora",
-        script: "🔥 OPORTUNIDADE DE REATIVAÇÃO!\n\nPaciente: [NOME]\nWhatsApp: [NÚMERO]\nInteresse: [NOVO PROCEDIMENTO]\n\nPaciente da base, cultivada pelo Farmer. Dossiê completo no CRM.\n\nPor favor, entrar em contato em até 1 hora."
+        action: "Geração de Indicações",
+        description: "Ativar programa de indicações e acompanhar conversões.",
+        checklist: [
+          "Ativar programa Indica & Transforma",
+          "Solicitar indicações de forma estratégica",
+          "Acompanhar indicações geradas"
+        ]
+      },
+      {
+        action: "Reativação de Leads Frios",
+        description: "Recuperar pacientes inativos e leads antigos.",
+        checklist: [
+          "Recuperar pacientes inativos",
+          "Reconectar com leads antigos",
+          "Reaquecer base de dados"
+        ]
+      },
+      // AGENDA DE SUCESSO
+      {
+        action: "Check-in Matinal (08:00 - 08:30)",
+        description: "Verificar aniversariantes, datas especiais do dia."
+      },
+      {
+        action: "Mensagens de Relacionamento (08:30 - 09:30)",
+        description: "Contato com pacientes ativos da base."
+      },
+      {
+        action: "Reativação de Leads (09:30 - 10:30)",
+        description: "Trabalhar lista de pacientes inativos."
+      },
+      {
+        action: "Ligações de Relacionamento (10:30 - 11:30)",
+        description: "Contato telefônico com pacientes VIP."
+      },
+      {
+        action: "Atualização CRM (11:30 - 12:00)",
+        description: "Registrar todas as interações do período matinal."
+      },
+      {
+        action: "Ofertas de Upsell (13:00 - 14:00)",
+        description: "Apresentar novos procedimentos e tratamentos."
+      },
+      {
+        action: "Solicitação de Indicações (14:00 - 15:00)",
+        description: "Ativar programa Indica & Transforma."
+      },
+      {
+        action: "Campanhas Segmentadas (15:00 - 16:00)",
+        description: "Enviar comunicações por segmento RFV."
+      },
+      {
+        action: "Acompanhamento de Indicações (16:00 - 17:00)",
+        description: "Verificar status das indicações geradas."
+      },
+      {
+        action: "Passagem para SDR (17:00 - 17:30)",
+        description: "Encaminhar leads reativados prontos para agendamento."
+      },
+      {
+        action: "Check-out (17:30 - 18:00)",
+        description: "Atualizar CRM e planejar próximo dia."
+      },
+      // MATRIZ RFV - SEGMENTAÇÃO
+      {
+        action: "🏆 Campeões - Tratamento VIP",
+        description: "Compraram recentemente, compram frequentemente e gastam muito.",
+        script: "Oi, [Nome]! Tudo bem? 💖\n\nPassando para te agradecer por ser uma paciente tão especial para nós!\n\nVocê faz parte do nosso grupo VIP de pacientes e quero te convidar para um evento exclusivo que estamos preparando.\n\nTambém queria te perguntar: você tem alguma amiga que gostaria de viver a experiência Unique? Temos condições especiais para indicações de pacientes VIP como você! ✨",
+        checklist: [
+          "Tratamento VIP e exclusivo",
+          "Acesso antecipado a novidades",
+          "Convites para eventos exclusivos",
+          "Pedir indicações ativamente",
+          "Oferecer participação em projetos especiais"
+        ],
+        tips: ["Cadência: 2x/mês", "Canais: WhatsApp + Ligação"]
+      },
+      {
+        action: "💎 Clientes Fiéis - Upgrades Premium",
+        description: "Gastam bem e compram frequentemente.",
+        script: "Oi, [Nome]! Como você está? 💖\n\nLembrei de você e queria te contar sobre uma novidade que acabou de chegar!\n\nTemos um novo protocolo de [TRATAMENTO] que é perfeito para complementar o que você já fez conosco.\n\nComo paciente fiel, você tem acesso a condições especiais. Quer saber mais?",
+        checklist: [
+          "Oferecer upgrades e pacotes premium",
+          "Programa de fidelidade com benefícios",
+          "Comunicação personalizada",
+          "Antecipar necessidades"
+        ],
+        tips: ["Cadência: 2x/mês", "Canal: WhatsApp"]
+      },
+      {
+        action: "⭐ Potenciais Fiéis - Nutrir",
+        description: "Clientes recentes com bom potencial.",
+        script: "Oi, [Nome]! Tudo bem? 💖\n\nComo você está se sentindo depois do seu procedimento?\n\nPassando para te contar que temos várias opções de tratamentos que podem complementar e potencializar seus resultados.\n\nVocê já conhece nosso portfólio completo? Posso te apresentar!",
+        checklist: [
+          "Nutrir relacionamento",
+          "Oferecer benefícios para segunda compra",
+          "Criar conexão emocional",
+          "Apresentar portfólio completo"
+        ],
+        tips: ["Cadência: 1x/mês", "Canal: WhatsApp"]
+      },
+      {
+        action: "💤 Precisam de Atenção - Reativar",
+        description: "Recência e frequência médias.",
+        script: "Oi, [Nome]! Quanto tempo! 💖\n\nPassando para saber como você está e se está tudo bem!\n\nSentimos sua falta por aqui! Temos algumas novidades incríveis que acho que você vai adorar.\n\nQue tal marcarmos uma conversa para eu te contar tudo?",
+        checklist: [
+          "Reativar com ofertas especiais",
+          "Lembrar dos benefícios da Unique",
+          "Criar urgência moderada"
+        ],
+        tips: ["Cadência: 1x/mês", "Canais: WhatsApp + E-mail"]
+      },
+      {
+        action: "😴 Prestes a Dormir - Urgente",
+        description: "Recência baixa, costumavam comprar.",
+        script: "Oi, [Nome]! Tudo bem? 💖\n\nFaz um tempinho que não conversamos e queria saber como você está!\n\nAconteceu alguma coisa? Tem algo que possamos fazer para te ajudar?\n\nEstamos com saudades e preparamos algo especial para você voltar! ✨",
+        checklist: [
+          "Reativar urgentemente",
+          "Oferta especial de reconexão",
+          "Entender motivo do afastamento"
+        ],
+        tips: ["Cadência: 2x/mês", "Canais: WhatsApp + Ligação"]
+      },
+      {
+        action: "⚠️ Em Risco - Recuperar",
+        description: "Gastaram muito mas não compram há tempo.",
+        script: "Oi, [Nome]! Aqui é [Seu Nome] da Unique. 💖\n\nVocê é uma paciente muito especial para nós e percebemos que faz um tempo que não nos vemos.\n\nQueria muito entender: aconteceu alguma coisa? Tem algo que possamos fazer diferente?\n\nPreparamos uma condição exclusiva para você, como forma de agradecer por tudo que já vivemos juntas. Posso te contar?",
+        checklist: [
+          "Recuperar com atenção especial",
+          "Ligação personalizada",
+          "Oferta exclusiva de alto valor"
+        ],
+        tips: ["Cadência: 2x/mês", "Canais: Ligação + WhatsApp"]
+      },
+      {
+        action: "🚨 Não Posso Perder - Prioritário",
+        description: "Eram os melhores clientes, estão inativos.",
+        script: "Oi, [Nome]! Aqui é [Nome do Coordenador], Coordenador Comercial da Unique. 💖\n\nVocê é uma das nossas pacientes mais especiais e percebemos que faz muito tempo que não nos vemos.\n\nQueria pessoalmente entender o que aconteceu e como podemos reconquistar sua confiança.\n\nPosso te ligar para conversarmos? É muito importante para nós.",
+        checklist: [
+          "Recuperação prioritária",
+          "Contato do gestor/coordenador",
+          "Oferta irrecusável",
+          "Entender profundamente o motivo"
+        ],
+        tips: ["Cadência: Semanal", "Canais: Ligação + WhatsApp + E-mail"]
+      },
+      {
+        action: "💀 Hibernando - Reativação Forte",
+        description: "Última compra há muito tempo.",
+        script: "Oi, [Nome]! Tudo bem? 💖\n\nFaz um tempinho que não conversamos e muita coisa mudou por aqui!\n\nTemos novos procedimentos, novos protocolos e muitas novidades que acho que você vai adorar conhecer.\n\nQue tal uma visita para ver tudo de novo? Preparamos algo especial para pacientes que estão voltando! ✨",
+        checklist: [
+          "Reativação com oferta forte",
+          "Campanha de reconexão",
+          "Mostrar novidades desde a última visita"
+        ],
+        tips: ["Cadência: 1x/mês", "Canais: E-mail + WhatsApp"]
+      },
+      {
+        action: "👋 Perdidos - Última Tentativa",
+        description: "Inativos há muito tempo.",
+        script: "Oi, [Nome]! 💖\n\nPassando para dizer que sentimos muito sua falta!\n\nSei que faz muito tempo que não nos falamos, mas queria que você soubesse que as portas da Unique estão sempre abertas para você.\n\nSe um dia quiser voltar, estaremos aqui de braços abertos! ✨\n\nUm abraço carinhoso!",
+        checklist: [
+          "Última tentativa de reconexão",
+          "Mensagem de despedida com porta aberta",
+          "Oferta final"
+        ],
+        tips: ["Cadência: 1x/trimestre", "Canal: E-mail"]
+      },
+      // REATIVAÇÃO DE LEADS FRIOS
+      {
+        action: "Fase 1: Reconexão e Curiosidade",
+        description: "Reestabelecer contato de forma leve com leads frios.",
+        script: "Olá, [Nome]! Aqui é [Seu Nome] da Unique Medic & SPA.\n\nEstávamos revisando nosso histórico e vimos que você realizou uma consulta conosco no passado.\n\nGostaríamos de saber: você ainda tem interesse em realizar sua cirurgia plástica?\n\nEstamos prontos para te ajudar a realizar esse sonho!",
+        tips: [
+          "Categoria A: Consultas há 1 ano - Prioridade Alta",
+          "Categoria B: Consultas 1-2 anos - Prioridade Média",
+          "Categoria C: Consultas +2 anos - Prioridade Baixa"
+        ]
+      },
+      {
+        action: "Fase 2: Reengajamento por Conteúdo",
+        description: "Demonstrar valor e autoridade com histórias inspiradoras.",
+        script: "Oi, [Nome]! 💖\n\nGostaríamos de enviar para você um guia atualizado com as informações completas sobre [procedimento].\n\nGostaria de receber?"
+      },
+      {
+        action: "Fase 3: Oferta e Benefício Exclusivo",
+        description: "Criar senso de urgência e oportunidade.",
+        script: "Olá, [Nome]! 💖\n\nEstamos com uma condição especial para pacientes que realizaram consultas no passado e desejam retomar o sonho da cirurgia plástica.\n\nGostaria de saber mais detalhes?"
+      },
+      {
+        action: "Fase 4: Reunião ou Nova Consulta",
+        description: "Trazer o paciente de volta.",
+        script: "Oi, [Nome]! 💖\n\nQue tal agendarmos um momento para conversarmos sobre o [procedimento]?\n\nPodemos ajustar o plano para que ele atenda exatamente às suas necessidades hoje.\n\nQual o melhor horário para você?"
+      },
+      // SCRIPTS ESPECIAIS
+      {
+        action: "Script - Aniversário",
+        description: "Mensagem de aniversário com presente exclusivo.",
+        script: "Oi, [Nome]! 🎂💖\n\nFELIZ ANIVERSÁRIO!\n\nQue esse novo ciclo seja repleto de realizações, saúde e muita felicidade!\n\nVocê é muito especial para nós e queremos te presentear com algo exclusivo.\n\nEntre em contato para descobrir seu presente de aniversário! 🎁✨\n\nUm abraço carinhoso de toda a equipe Unique!"
+      },
+      {
+        action: "Script - Aniversário de Cirurgia",
+        description: "Comemorar data importante da transformação.",
+        script: "Oi, [Nome]! 💖\n\nHoje faz [X] ano(s) da sua transformação! 🎉\n\nLembra como você se sentia antes? E agora?\n\nEstamos muito felizes por ter feito parte dessa jornada com você!\n\nComo você está se sentindo? Adoraríamos saber! ✨"
+      },
+      {
+        action: "Script - Solicitação de Indicação",
+        description: "Pedir indicações através do programa Indica & Transforma.",
+        script: "Oi, [Nome]! Tudo bem? 💖\n\nPassando para saber como você está!\n\nE queria te fazer uma pergunta: você tem alguma amiga ou conhecida que também gostaria de viver a experiência Unique?\n\nTemos o programa Indica & Transforma, onde você ganha benefícios exclusivos a cada indicação que agenda consulta!\n\nSe tiver alguém em mente, é só me passar o contato que eu entro em contato com todo carinho! ✨"
+      },
+      {
+        action: "Script - Oferta de Novo Procedimento",
+        description: "Apresentar novidades relevantes para a paciente.",
+        script: "Oi, [Nome]! Tudo bem? 💖\n\nLembrei de você porque acabou de chegar uma novidade que é a sua cara!\n\nTemos um novo protocolo de [TRATAMENTO] que é perfeito para complementar o que você já fez.\n\nMuitas pacientes que fizeram [PROCEDIMENTO ANTERIOR] estão amando os resultados!\n\nQuer que eu te conte mais? Posso te mandar um vídeo explicando!"
+      },
+      {
+        action: "Script - Pesquisa de Qualidade",
+        description: "Entender o que faltou para a paciente avançar.",
+        script: "Oi, [Nome]! 💖\n\nAqui é [Seu Nome] da Unique, do nosso setor de qualidade.\n\nComo estamos sempre focados em proporcionar a melhor experiência, queremos saber: o que faltou para que você se sentisse totalmente segura para realizar seu procedimento conosco?\n\nSuas respostas nos ajudam a melhorar cada vez mais nossos serviços! 🙏"
+      },
+      // OFERTAS E UPSELL
+      {
+        action: "Estratégia de Upsell por Procedimento",
+        description: "Recomendar tratamentos complementares baseado no histórico.",
+        checklist: [
+          "Mamoplastia → Harmonização corporal, Luxskin",
+          "Abdominoplastia → Lipo complementar, Soroterapia",
+          "Lipo → Harmonização, Protocolos nutricionais",
+          "Rinoplastia → Harmonização facial",
+          "Blefaroplastia → Botox, Preenchimento"
+        ],
+        tips: [
+          "Cirurgia: R$ 60.000+",
+          "Harmonização: R$ 5.000 - R$ 15.000",
+          "Soroterapia: R$ 500 - R$ 2.000",
+          "SPA: R$ 200 - R$ 1.000",
+          "Luxskin: R$ 300 - R$ 3.000"
+        ]
+      },
+      // PASSAGEM DE BASTÃO
+      {
+        action: "Passagem para SDR - Lead Reativado",
+        description: "Lead reativado demonstra interesse em NOVO PROCEDIMENTO.",
+        script: "🔄 LEAD REATIVADO - PRONTO PARA AGENDAMENTO!\n\n📋 DADOS DO PACIENTE:\n- Nome: [NOME]\n- WhatsApp: [NÚMERO]\n- Histórico: Paciente desde [ANO]\n- Último procedimento: [PROCEDIMENTO] em [DATA]\n\n🎯 INTERESSE ATUAL:\n- Procedimento de interesse: [PROCEDIMENTO]\n- Nível de interesse: [ALTO/MÉDIO]\n- Urgência: [IMEDIATA/1-3 MESES/+3 MESES]\n\n💡 OBSERVAÇÕES:\n- [PONTOS IMPORTANTES DA CONVERSA]\n\n📎 Histórico completo no CRM.\n\nPor favor, entrar em contato em até 2 horas!",
+        sla: "2 horas",
+        checklist: [
+          "Lead confirmou interesse em novo procedimento",
+          "Lead está qualificado (tem condições de investir)",
+          "Conversa registrada no CRM",
+          "Dossiê atualizado"
+        ]
+      },
+      {
+        action: "Passagem para Coordenador - Atenção Especial",
+        description: "Lead importante que não está respondendo ou precisa de abordagem especial.",
+        script: "⚠️ LEAD IMPORTANTE - PRECISA DE ATENÇÃO ESPECIAL\n\n📋 DADOS DO PACIENTE:\n- Nome: [NOME]\n- WhatsApp: [NÚMERO]\n- Segmento RFV: [SEGMENTO]\n- Histórico: [RESUMO]\n\n📊 TENTATIVAS REALIZADAS:\n- [DATA] | [CANAL] | [RESULTADO]\n\n❓ MOTIVO DO ENCAMINHAMENTO:\n[EXPLICAR SITUAÇÃO]\n\n💡 SUGESTÃO:\n[SUA SUGESTÃO DE ABORDAGEM]"
       }
     ],
     dossier: {
@@ -937,12 +1167,13 @@ export const COMMERCIAL_SCRIPTS: StageScripts[] = [
         "Histórico completo da paciente",
         "Procedimentos anteriores",
         "Novo procedimento de interesse",
+        "Segmento RFV",
         "Objeções e dúvidas levantadas",
         "Potencial de fechamento"
       ]
     },
     transitionScript: "[NOME], que ótimo saber que você está pensando em [NOVO PROCEDIMENTO]! ✨\n\nPara te dar a melhor orientação, vou pedir para a [NOME DA SDR/CLOSER], nossa especialista nesse procedimento, entrar em contato com você.\n\nEla vai te explicar tudo em detalhes e montar um plano especial para você, que já é da casa!\n\nPode aguardar o contato dela?",
-    notificationTemplate: "🔥 OPORTUNIDADE DE REATIVAÇÃO!\n\nPaciente: [NOME]\nWhatsApp: [NÚMERO]\nInteresse: [NOVO PROCEDIMENTO]\n\nPaciente da base, cultivada pelo Farmer. Dossiê completo no CRM.\n\nPor favor, entrar em contato em até 1 hora."
+    notificationTemplate: "🔄 LEAD REATIVADO - PRONTO PARA AGENDAMENTO!\n\n📋 DADOS DO PACIENTE:\n- Nome: [NOME]\n- WhatsApp: [NÚMERO]\n- Histórico: Paciente desde [ANO]\n- Último procedimento: [PROCEDIMENTO] em [DATA]\n\n🎯 INTERESSE ATUAL:\n- Procedimento de interesse: [PROCEDIMENTO]\n- Nível de interesse: [ALTO/MÉDIO]\n- Urgência: [IMEDIATA/1-3 MESES/+3 MESES]\n\n📎 Histórico completo no CRM.\n\nPor favor, entrar em contato em até 2 horas!"
   }
 ];
 
