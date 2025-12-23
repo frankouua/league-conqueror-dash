@@ -1,7 +1,7 @@
 import { 
   LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
-  ChevronDown, Settings, AlertCircle, Route, UserPlus
+  ChevronDown, Settings, AlertCircle, Route, UserPlus, MessageSquareText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -79,6 +79,7 @@ const Header = () => {
     { path: "/data-reports", label: "Relatórios", icon: FileText },
     { path: "/performance", label: "Desempenho", icon: Target },
     { path: "/guides", label: "Guias", icon: BookOpen },
+    { path: "/guias-comerciais", label: "Scripts", icon: MessageSquareText },
   ];
 
   const NavItem = ({ path, label, icon: Icon, onClick }: { path: string; label: string; icon: any; onClick?: () => void }) => (
