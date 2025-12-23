@@ -2458,6 +2458,275 @@ export const COORDINATOR_DATA: CoordinatorData = {
   ]
 };
 
+// ============================================
+// SCRIPTS DE ENGAJAMENTO E FEEDBACK (Manual 2026)
+// ============================================
+export interface EngagementScript {
+  id: string;
+  title: string;
+  objective: string;
+  responsible: string;
+  idealMoment: string;
+  channel: string;
+  scenarios?: { scenario: string; script: string }[];
+  script?: string;
+  benefits?: string[];
+}
+
+export const ENGAGEMENT_SCRIPTS: EngagementScript[] = [
+  {
+    id: "review_google",
+    title: "Solicitação de Depoimento / Review no Google",
+    objective: "Aumentar a prova social e a reputação online da clínica.",
+    responsible: "CS (Comercial 3) ou Farmer (Comercial 4)",
+    idealMoment: "No retorno de 1 mês ou quando o paciente elogia espontaneamente o resultado/atendimento.",
+    channel: "WhatsApp",
+    scenarios: [
+      {
+        scenario: "Paciente elogia o resultado",
+        script: "[Nome do Paciente], que alegria imensa ler isso! Nossa maior recompensa é ver você feliz e realizada com o resultado. Saber que fizemos parte desse sonho é o que nos move! ✨\n\nMuitas mulheres que estão pesquisando sobre cirurgia plástica se sentem inseguras e com medo. O seu depoimento pode ser a luz que elas precisam para dar o próximo passo com mais confiança.\n\nVocê se sentiria confortável em compartilhar um pouco da sua experiência no nosso perfil do Google? Leva só 2 minutinhos e ajuda muito outras mulheres.\n\n[LINK PARA AVALIAÇÃO NO GOOGLE]\n\nSeremos eternamente gratos! 🙏"
+      },
+      {
+        scenario: "Abordagem ativa no retorno de 1 mês",
+        script: "Oi [Nome do Paciente], tudo bem? Passando para saber como você está se sentindo e se recuperando! Estamos amando acompanhar sua evolução! 😍\n\nSua jornada aqui na Unique tem sido muito especial para nós. Se você estiver feliz com o seu resultado e com o nosso cuidado, gostaríamos de te convidar a deixar um depoimento no nosso Google. Sua história pode inspirar e encorajar outras mulheres que sonham com essa transformação.\n\nSeria um presente para nós e para elas! Você nos ajuda?\n\n[LINK PARA AVALIAÇÃO NO GOOGLE]"
+      }
+    ]
+  },
+  {
+    id: "nps_survey",
+    title: "Solicitação para Responder a Pesquisa NPS",
+    objective: "Medir a satisfação do cliente e identificar pontos de melhoria.",
+    responsible: "CS (Comercial 3)",
+    idealMoment: "7 dias após a cirurgia (NPS de Processo) e 3 meses após a cirurgia (NPS de Resultado).",
+    channel: "WhatsApp (automatizado ou manual)",
+    scenarios: [
+      {
+        scenario: "NPS de Processo - 7 dias",
+        script: "Oi [Nome do Paciente], como está sua primeira semana de recuperação? Esperamos que esteja tudo correndo bem!\n\nPara continuarmos melhorando sempre a experiência das nossas pacientes, sua opinião é fundamental. Você poderia nos dar 30 segundos do seu tempo para responder a uma única pergunta sobre sua experiência conosco até agora?\n\n[LINK PARA PESQUISA NPS]\n\nSua ajuda é muito importante para nós!"
+      },
+      {
+        scenario: "NPS de Resultado - 3 meses",
+        script: "[Nome do Paciente], já se passaram 3 meses da sua transformação! 🎉 Estamos muito felizes em ver seu resultado incrível!\n\nAgora que você já pode ver uma prévia do resultado final, gostaríamos de saber: o quão satisfeita você está? Sua opinião nos ajuda a garantir que estamos sempre entregando o nosso melhor.\n\n[LINK PARA PESQUISA NPS]\n\nÉ super rápido e nos ajuda demais! Contamos com você!"
+      }
+    ]
+  },
+  {
+    id: "video_testimonial",
+    title: "Solicitação de Depoimento em Vídeo",
+    objective: "Obter prova social de alto impacto para uso em redes sociais e site.",
+    responsible: "Farmer (Comercial 4) ou Social Media",
+    idealMoment: "A partir de 3-6 meses de pós-operatório, quando a paciente é promotora (NPS 9 ou 10) e já deixou um depoimento positivo por escrito.",
+    channel: "WhatsApp ou contato telefônico",
+    script: "[Nome do Paciente], tudo bem? Aqui é o [Seu Nome] da Unique. Estou passando porque lemos (de novo) aquele depoimento incrível que você deixou para nós e ficamos emocionados! 😍\n\nSua história é tão inspiradora que acreditamos que ela poderia ser contada de uma forma ainda mais poderosa: em vídeo. Um vídeo seu, mesmo que simples e gravado pelo celular, contando como você se sentia antes e como se sente agora, teria um poder imenso de encorajar outras mulheres.\n\nComo forma de agradecimento por seu tempo e por compartilhar sua história, gostaríamos de te presentear com [OFERECER BENEFÍCIO: Ex: um voucher de R$300 para usar em procedimentos no SPA, ou uma sessão de algum protocolo].\n\nO que você acha da ideia? Se topar, posso te mandar umas diquinhas de como gravar. Seria um presente para nós!",
+    benefits: ["Voucher de R$300 para procedimentos no SPA", "Sessão gratuita de protocolo"]
+  },
+  {
+    id: "referral_request",
+    title: "Solicitação de Indicações",
+    objective: "Transformar pacientes satisfeitos em promotores ativos da marca.",
+    responsible: "CS (Comercial 3) e Farmer (Comercial 4)",
+    idealMoment: "No pico da satisfação: após um elogio espontâneo, no retorno de 3 meses com resultado visível, ou ao final de um protocolo bem-sucedido.",
+    channel: "WhatsApp ou durante uma consulta presencial",
+    script: "[Nome do Paciente], sua felicidade com o resultado é a nossa maior alegria! E nós acreditamos que amigas de pessoas especiais como você também merecem se sentir assim, realizadas.\n\nPor isso, criamos o Programa de Embaixadoras Unique. Funciona assim: a cada amiga que você indicar e que fechar uma cirurgia conosco, você ganha R$ 500,00 em créditos para usar em qualquer procedimento na clínica (SPA, Botox, etc.), e sua amiga ganha um presente especial no dia da cirurgia dela.\n\nVocê se lembra de alguma amiga que, assim como você, também sonha em realizar uma transformação? Se sim, é só me passar o contato dela que eu explico tudo com o mesmo carinho que cuidamos de você.",
+    benefits: ["R$ 500,00 em créditos por indicação convertida", "Presente especial para a amiga indicada"]
+  },
+  {
+    id: "referral_approach",
+    title: "Abordagem de Referidos (Leads Indicados)",
+    objective: "Realizar o primeiro contato com o lead indicado de forma pessoal, gerando confiança imediata.",
+    responsible: "SDR (Comercial 1)",
+    idealMoment: "Em até 24 horas após o recebimento da indicação.",
+    channel: "WhatsApp",
+    scenarios: [
+      {
+        scenario: "Com contexto da indicação",
+        script: "Olá, [Nome do Indicado], tudo bem? Meu nome é [Seu Nome] e sou especialista aqui na Unique, a clínica da Dra. Bruna.\n\nEstou te escrevendo com muito carinho a pedido da [Nome de quem indicou]. Ela é uma paciente muito querida nossa e, durante uma conversa, ela comentou que talvez você também tivesse o sonho de [se sentir mais confiante, mudar algo no corpo, etc.] e me passou seu contato.\n\nEla acreditou que poderíamos te ajudar a realizar esse sonho também. Faz sentido para você se eu te apresentar um pouco do nosso trabalho, sem compromisso algum?"
+      },
+      {
+        scenario: "Sem contexto específico",
+        script: "Olá, [Nome do Indicado], tudo bem? Meu nome é [Seu Nome] e sou especialista aqui na Unique, a clínica da Dra. Bruna.\n\nEstou te escrevendo com muito carinho a pedido da [Nome de quem indicou]. Ela é uma paciente muito querida nossa e me passou seu contato, pois acredita que nosso trabalho pode te interessar. Ela viu a transformação que a cirurgia plástica pode fazer e pensou em você.\n\nGostaria de conhecer um pouco mais sobre como podemos te ajudar a alcançar seus objetivos? Sem compromisso."
+      }
+    ]
+  },
+  {
+    id: "ambassador_invite",
+    title: "Convite para o Programa de Embaixadoras",
+    objective: "Converter as pacientes mais satisfeitas e engajadas em defensoras ativas da marca, gerando um fluxo contínuo de indicações qualificadas.",
+    responsible: "Farmer (Comercial 4)",
+    idealMoment: "A partir de 6 meses de pós-operatório, para pacientes que são promotoras (NPS 9 ou 10), já deram depoimentos e interagiram positivamente com a clínica.",
+    channel: "Contato telefônico ou convite para um café na clínica",
+    script: "Olá, [Nome do Paciente], tudo bem? Aqui é o [Seu Nome], da Unique. Como você está?\n\nEstou te ligando por um motivo muito especial. Nós acompanhamos sua jornada aqui na clínica e ficamos imensamente felizes não só com o seu resultado espetacular, mas também com o carinho que você sempre demonstrou pela nossa equipe. Pacientes como você são a verdadeira alma da Unique.\n\nPor esse motivo, a Dra. Bruna e toda a diretoria gostariam de te fazer um convite exclusivo: queremos que você se torne uma Embaixadora Oficial da Unique.\n\nO que significa ser uma Embaixadora? Significa que você fará parte de um grupo seleto de pacientes que representam a nossa marca. Como Embaixadora, você terá acesso a benefícios exclusivos, como:\n\n- Créditos de R$ 500,00 a cada indicação que fechar cirurgia;\n- Acesso antecipado a novos protocolos e tecnologias;\n- Convites para eventos exclusivos da Unique;\n- Um presente de boas-vindas super especial.\n\nEm troca, pedimos apenas que você continue sendo essa pessoa incrível que já é, e que, quando surgir a oportunidade, compartilhe sua experiência positiva com suas amigas.\n\nNão há nenhum custo ou obrigação. É apenas a nossa forma de reconhecer e agradecer por você ser uma paciente tão especial. Você aceita fazer parte do nosso clube de Embaixadoras?",
+    benefits: [
+      "Créditos de R$ 500,00 a cada indicação que fechar cirurgia",
+      "Acesso antecipado a novos protocolos e tecnologias",
+      "Convites para eventos exclusivos da Unique",
+      "Presente de boas-vindas super especial"
+    ]
+  }
+];
+
+// ============================================
+// ESTRATÉGIAS PARA LEADS QUE NUNCA FECHARAM
+// ============================================
+export interface LeadRecoveryStrategy {
+  segment: string;
+  description: string;
+  responsible: string;
+  trigger: string;
+  cadence: { day: string; action: string; channel: string; script: string }[];
+  offers?: string[];
+}
+
+export const LEADS_RECOVERY_STRATEGIES: LeadRecoveryStrategy[] = [
+  {
+    segment: "Hesitantes (pós-consulta, não fechou)",
+    description: "Leads que fizeram consulta, receberam proposta, mas não fecharam.",
+    responsible: "Coordenador Comercial",
+    trigger: "15 dias após a consulta, sem fechamento.",
+    cadence: [
+      { day: "D+15", action: "Contato do Coordenador", channel: "WhatsApp", script: "Script de Resgate (Guia do Coordenador)" },
+      { day: "D+17", action: "Ligação do Coordenador", channel: "Telefone", script: "Script de Ligação de Resgate" },
+      { day: "D+20", action: "E-mail com proposta especial", channel: "E-mail", script: "Template de E-mail de Resgate" }
+    ],
+    offers: [
+      "Condição de pagamento especial",
+      "Participação em projeto com desconto",
+      "Nova conversa com outro especialista",
+      "Apresentação de casos de sucesso similares"
+    ]
+  },
+  {
+    segment: "Curiosos e Abandonos",
+    description: "Leads que entraram em contato mas nunca agendaram consulta, ou iniciaram o processo mas desistiram.",
+    responsible: "Farmer",
+    trigger: "30 dias após o último contato, sem avanço.",
+    cadence: [
+      { day: "Mês 1", action: "E-mail com Depoimento", channel: "E-mail", script: "História de uma paciente com transformação impactante" },
+      { day: "Mês 2", action: "Convite para Live/Webinar", channel: "E-mail/WhatsApp", script: "Tema relevante (ex: 'Os 5 mitos da cirurgia plástica')" },
+      { day: "Mês 3", action: "E-mail com Novidade", channel: "E-mail", script: "Lançamento de novo procedimento ou tecnologia" },
+      { day: "Mês 4", action: "Oferta de Consulta com Desconto", channel: "E-mail/WhatsApp", script: "Pensamos em você! Agende sua consulta com 20% de desconto este mês." }
+    ]
+  }
+];
+
+export const LEADS_RECOVERY_SCRIPTS = {
+  reactivationCurious: {
+    title: "Reativação para Curiosos (WhatsApp)",
+    responsible: "Farmer",
+    script: "Olá, [Nome do Lead]! Tudo bem? 😊\n\nAqui é a [Nome do Farmer], da equipe de relacionamento da Unique.\n\nVi que há um tempo você conversou conosco sobre [procedimento de interesse]. Como está seu planejamento para realizar esse sonho?\n\nQueria te contar que estamos com uma novidade incrível, o [Nome do Novo Procedimento/Tecnologia], que pode ser exatamente o que você procura.\n\nGostaria de saber mais?"
+  },
+  rescueEmailHesitant: {
+    title: "E-mail de Resgate para Hesitantes",
+    responsible: "Coordenador Comercial",
+    script: "Assunto: Uma oportunidade única para você, [Nome do Lead]\n\nOlá, [Nome do Lead],\n\nSou o [Nome do Coordenador], Coordenador Comercial da Unique.\n\nAnalisando seu caso com carinho, vi que você realizou sua consulta conosco, mas não deu o próximo passo. Gostaria de entender se ficou alguma dúvida ou se há algo que possamos fazer para te ajudar a realizar seu sonho com total segurança.\n\nPara te ajudar, consegui uma condição especial de pagamento que acredito ser irrecusável. Além disso, gostaria de te convidar para uma breve conversa de 15 minutos para te apresentar essa oportunidade.\n\n[Link para Agendar Conversa]\n\nSerá um prazer te ajudar a realizar essa transformação.\n\nAtenciosamente,\n[Nome do Coordenador]"
+  },
+  kpis: {
+    taxaReativacao: "10%",
+    leadsResgatados: 15,
+    faturamentoResgatados: "R$ 150.000",
+    taxaConversao: "30%"
+  }
+};
+
+// ============================================
+// ESTRATÉGIAS PARA PACIENTES INATIVOS
+// ============================================
+export interface InactivePatientStrategy {
+  segment: string;
+  inactivityPeriod: string;
+  description: string;
+  responsible: string;
+  cadence: { month: string; action: string; channel: string; script: string }[];
+}
+
+export const INACTIVE_PATIENTS_STRATEGIES: InactivePatientStrategy[] = [
+  {
+    segment: "Reaquecimento",
+    inactivityPeriod: "3-6 meses sem comprar",
+    description: "Contato sutil e focado em relacionamento para entender as necessidades atuais do paciente.",
+    responsible: "Farmer",
+    cadence: [
+      { month: "Mês 3", action: "Mensagem de 'Como você está?'", channel: "WhatsApp", script: "Script de Reaquecimento Leve" },
+      { month: "Mês 4", action: "E-mail com conteúdo de valor", channel: "E-mail", script: "5 dicas para manter os resultados da sua cirurgia" },
+      { month: "Mês 5", action: "Convite para evento exclusivo", channel: "WhatsApp", script: "Olá, [Nome]! Teremos um Botox Day na próxima semana com condições especiais. Pensei em você!" }
+    ]
+  },
+  {
+    segment: "Reativação Média",
+    inactivityPeriod: "6-12 meses sem comprar",
+    description: "Abordagem mais direta com uma oferta de retorno para incentivar a recompra.",
+    responsible: "Farmer",
+    cadence: [
+      { month: "Mês 6", action: "Mensagem com oferta de avaliação", channel: "WhatsApp", script: "Script de Reativação Média" },
+      { month: "Mês 7", action: "Ligação de relacionamento", channel: "Telefone", script: "Script de Ligação de Reativação" },
+      { month: "Mês 9", action: "E-mail com voucher de desconto", channel: "E-mail", script: "Sentimos sua falta! Use o cupom VOLTA20 para 20% de desconto em qualquer procedimento." }
+    ]
+  },
+  {
+    segment: "Reativação Intensiva",
+    inactivityPeriod: "1 ano+ sem comprar",
+    description: "Campanha de 'última chamada' com uma oferta irresistível para trazer o paciente de volta.",
+    responsible: "Farmer (com apoio do Coordenador)",
+    cadence: [
+      { month: "Mês 12", action: "Mensagem com oferta", channel: "WhatsApp", script: "Script de Reativação Intensiva" },
+      { month: "Mês 13", action: "Ligação do Coordenador", channel: "Telefone", script: "Script de Ligação de Última Chamada" },
+      { month: "Mês 14", action: "E-mail de despedida com última oferta", channel: "E-mail", script: "Esta é nossa última tentativa de te ter de volta. Aproveite 30% de desconto..." }
+    ]
+  }
+];
+
+export const INACTIVE_PATIENTS_SCRIPTS = {
+  warmingLight: {
+    title: "Reaquecimento Leve (WhatsApp)",
+    script: "Olá, [Nome do Paciente]! Tudo bem por aí? 😊\n\nAqui é a [Nome do Farmer], da equipe de relacionamento da Unique.\n\nEstou passando para saber como você está e como estão os resultados do seu procedimento. Há algo em que possamos te ajudar?\n\nEstamos sempre à disposição para cuidar de você!"
+  },
+  reactivationMedium: {
+    title: "Reativação Média (WhatsApp)",
+    script: "Olá, [Nome do Paciente]! Como vai?\n\nSou a [Nome do Farmer], da Unique. Vi que já faz um tempinho desde sua última visita e sentimos sua falta!\n\nGostaria de te oferecer uma avaliação de cortesia para entendermos suas necessidades atuais e te apresentar as novidades que temos para realçar ainda mais sua beleza.\n\nQue tal agendarmos um café? ☕"
+  },
+  reactivationIntensive: {
+    title: "Reativação Intensiva (WhatsApp)",
+    script: "[Nome do Paciente], uma oportunidade única para você! ✨\n\nAqui é a [Nome do Farmer], da Unique. Sabemos que faz tempo que não nos vemos, e preparamos algo muito especial para celebrar seu retorno.\n\nEste mês, estamos oferecendo [Oferta Irresistível, ex: 30% de desconto em qualquer procedimento ou um procedimento de cortesia na compra de outro] exclusivamente para pacientes especiais como você.\n\nVamos conversar?"
+  },
+  kpis: {
+    taxaReativacao: "20%",
+    pacientesReativados: 25,
+    faturamentoReativados: "R$ 250.000",
+    aumentoLTV: "15%"
+  }
+};
+
+// ============================================
+// PROCESSO DE GESTÃO DE INDICAÇÕES
+// ============================================
+export const REFERRAL_MANAGEMENT_PROCESS = {
+  title: "Processo de Gestão de Indicações",
+  description: "Para garantir que nenhuma indicação seja perdida, o seguinte fluxo deve ser seguido:",
+  steps: [
+    {
+      step: 1,
+      title: "COLETA (CS/Farmer)",
+      description: "Ao receber uma indicação, o responsável preenche imediatamente o Formulário de Indicação (Trello/Slack/Google Forms).",
+      fields: ["Nome do Paciente que Indicou", "Nome do Indicado", "Contato do Indicado", "Contexto da Indicação"]
+    },
+    {
+      step: 2,
+      title: "ARMAZENAMENTO",
+      description: "O formulário cria um card automaticamente na coluna 'Novas Indicações' no Trello do SDR."
+    },
+    {
+      step: 3,
+      title: "ABORDAGEM (SDR)",
+      description: "O SDR é notificado, move o card para 'Em Contato' e realiza a abordagem em até 24 horas, utilizando o script de abordagem de referidos."
+    },
+    {
+      step: 4,
+      title: "FEEDBACK",
+      description: "O SDR atualiza o card no Trello com o status (Agendado, Sem Interesse, Tentar Novamente) e informa ao CS/Farmer que fez a indicação, fechando o ciclo."
+    }
+  ]
+};
+
 // Helper para buscar script de uma ação específica
 export const getActionScript = (stageId: number, actionText: string): ActionScript | undefined => {
   const stage = COMMERCIAL_SCRIPTS.find(s => s.stageId === stageId);
