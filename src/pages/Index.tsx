@@ -13,6 +13,7 @@ import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
 import TeamComparisonCard from "@/components/TeamComparisonCard";
 import TeamBadgesDisplay from "@/components/TeamBadgesDisplay";
 import TeamPrizesDisplay from "@/components/TeamPrizesDisplay";
+import QuickInsightsPanel from "@/components/QuickInsightsPanel";
 import { GoalConfirmationDialog } from "@/components/GoalConfirmationDialog";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
@@ -199,9 +200,14 @@ const Index = () => {
           </div>
         )}
 
-        {/* Team Comparison */}
-        <div className="mb-8 animate-slide-up" style={{ animationDelay: "350ms" }}>
-          <TeamComparisonCard />
+        {/* Quick Insights & Team Comparison */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="animate-slide-up" style={{ animationDelay: "350ms" }}>
+            <QuickInsightsPanel month={now.getMonth() + 1} year={now.getFullYear()} />
+          </div>
+          <div className="animate-slide-up" style={{ animationDelay: "375ms" }}>
+            <TeamComparisonCard />
+          </div>
         </div>
 
         {/* Champions & Streak Records */}
