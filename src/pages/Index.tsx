@@ -13,7 +13,9 @@ import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
 import TeamComparisonCard from "@/components/TeamComparisonCard";
 import TeamBadgesDisplay from "@/components/TeamBadgesDisplay";
 import TeamPrizesDisplay from "@/components/TeamPrizesDisplay";
+import { GoalConfirmationDialog } from "@/components/GoalConfirmationDialog";
 import { useTeamScores } from "@/hooks/useTeamScores";
+import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
@@ -33,6 +35,7 @@ const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (100
 const Index = () => {
   const { role, profile } = useAuth();
   const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores(profile?.team_id);
+  const { pendingGoal } = usePredefinedGoals();
 
   // Get top 2 teams
   const team1 = teams[0];
@@ -54,6 +57,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+
+      {/* Goal Confirmation Dialog */}
+      {pendingGoal && (
+        <GoalConfirmationDialog 
+          goal={pendingGoal} 
+          onClose={() => window.location.reload()} 
+        />
+      )}
 
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}

@@ -496,6 +496,63 @@ export type Database = {
           },
         ]
       }
+      predefined_goals: {
+        Row: {
+          confirmed: boolean
+          confirmed_at: string | null
+          contest_reason: string | null
+          contested: boolean
+          created_at: string
+          department: string
+          first_name: string
+          id: string
+          matched_user_id: string | null
+          meta1_goal: number
+          meta2_goal: number
+          meta3_goal: number
+          month: number
+          position: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          confirmed?: boolean
+          confirmed_at?: string | null
+          contest_reason?: string | null
+          contested?: boolean
+          created_at?: string
+          department: string
+          first_name: string
+          id?: string
+          matched_user_id?: string | null
+          meta1_goal?: number
+          meta2_goal?: number
+          meta3_goal?: number
+          month: number
+          position: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          confirmed?: boolean
+          confirmed_at?: string | null
+          contest_reason?: string | null
+          contested?: boolean
+          created_at?: string
+          department?: string
+          first_name?: string
+          id?: string
+          matched_user_id?: string | null
+          meta1_goal?: number
+          meta2_goal?: number
+          meta3_goal?: number
+          month?: number
+          position?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
