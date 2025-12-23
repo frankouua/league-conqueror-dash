@@ -38,217 +38,344 @@ export interface StageScripts {
 
 export const COMMERCIAL_SCRIPTS: StageScripts[] = [
   // ============================================
-  // SDR - Atendimento de Leads Inbound
+  // SDR - Atendimento de Leads Inbound (Concierge Comercial)
   // ============================================
   {
     stageId: 1,
     stageKey: "sdr",
     title: "SDR - Atendimento de Leads Inbound",
-    mission: "Atender leads que chegam através de tráfego pago, orgânico e indicações, qualificando-os e convertendo em consultas agendadas.",
-    objective: "Transformar leads inbound em consultas pagas e agendadas.",
+    mission: "O SDR (Sales Development Representative) + Concierge Comercial desempenha um papel estratégico na jornada do lead, oferecendo um atendimento ágil, acolhedor e altamente personalizado. Sua missão é garantir que cada potencial paciente seja qualificado com precisão e conduzido de forma natural ao próximo estágio do processo de vendas.",
+    objective: "Transformar leads em consultas agendadas e qualificadas. IMPORTANTE: Você NÃO vende a cirurgia. Você vende a CONSULTA (Unique Day). A cirurgia é responsabilidade do Closer (Comercial 2).",
     teamGoal: {
-      meta3: "R$ 52.206 (Equipe SDR + Social Selling)",
-      meta3Individual: "R$ 26.103",
+      meta1: "R$ 39.155 (Equipe) | R$ 19.577 (Individual) - 59 consultas",
+      meta2: "R$ 42.287 (Equipe) | R$ 21.144 (Individual) - 63 consultas",
+      meta3: "R$ 52.206 (Equipe) | R$ 26.103 (Individual) - 70 consultas",
+      meta3Individual: "R$ 26.103 - ~35 consultas",
       members: ["Ana Paula", "Ketley"]
     },
     kpis: [
-      "Nº de Leads Atendidos (inbound)",
-      "Taxa de Conversão (Lead → Consulta Agendada)",
-      "Tempo de Primeira Resposta (meta: < 5 minutos)",
-      "Nº de Follow-ups por Lead"
+      "Tentativas de contato: 50+/dia",
+      "Conversas iniciadas: 15+/dia",
+      "Consultas agendadas: 3+/dia",
+      "Taxa de resposta: >40%",
+      "Taxa de agendamento: >20%",
+      "Tempo de Primeira Resposta: < 5 minutos",
+      "100% dos leads no CRM atualizados"
     ],
-    actions: [
-      {
-        action: "Receber leads de tráfego pago, orgânico e indicações",
-        description: "Leads que chegam através de anúncios, buscas ou indicações de pacientes.",
-        tips: [
-          "Leads de tráfego pago: resposta imediata é crucial",
-          "Leads de indicação: mencionar quem indicou",
-          "Leads orgânicos: entender como encontraram a clínica"
-        ]
-      },
-      {
-        action: "Responder lead em até 5 minutos",
-        description: "A velocidade de resposta é o principal fator de conversão. Lead que espera, esfria.",
-        sla: "5 minutos",
-        script: "Olá, [NOME]! Tudo bem? 😊\n\nSou [SEU NOME] da Unique Plástica Avançada!\n\nVi que você tem interesse em [PROCEDIMENTO]. Que maravilha! Esse é o primeiro passo para realizar seu sonho de transformação.\n\nPosso te fazer algumas perguntinhas rápidas para entender melhor o que você busca?",
-        tips: [
-          "Configurar notificações do CRM no celular",
-          "Manter WhatsApp Web sempre aberto",
-          "Usar templates de resposta rápida",
-          "Nunca deixar lead sem resposta"
-        ]
-      },
-      {
-        action: "Qualificação BANT: Budget, Authority, Need, Timeline",
-        description: "Entender se o lead tem potencial real de fechamento.",
-        checklist: [
-          "B - Budget: Tem condições de investir? Já pesquisou valores?",
-          "A - Authority: Decide sozinha ou precisa consultar alguém?",
-          "N - Need: Qual a dor/sonho principal? O que quer mudar?",
-          "T - Timeline: Tem urgência? Quando pretende realizar?"
-        ],
-        tips: [
-          "Não perguntar diretamente sobre dinheiro",
-          "Identificar se há influenciadores na decisão",
-          "Entender a profundidade da dor/sonho",
-          "Criar urgência se não houver timeline definida"
-        ]
-      },
-      {
-        action: "Identificar procedimento de interesse e expectativas",
-        description: "Mapear exatamente o que a paciente busca.",
-        script: "Me conta mais sobre o que você gostaria de mudar? Qual é o resultado que você sonha alcançar?",
-        checklist: [
-          "Procedimento principal de interesse",
-          "Procedimentos secundários (combo)",
-          "Expectativa de resultado",
-          "Referências visuais (se tiver)"
-        ]
-      },
-      {
-        action: "Aplicar técnica de espelhamento emocional",
-        description: "Conectar com as emoções da paciente para criar rapport.",
-        script: "Entendo perfeitamente como você se sente, [NOME]. Muitas das nossas pacientes também tinham essa mesma insegurança antes de realizarem a transformação. E sabe o que elas dizem depois? Que o único arrependimento foi não ter feito antes!",
-        tips: [
-          "Repetir palavras-chave que a paciente usa",
-          "Validar sentimentos antes de apresentar soluções",
-          "Usar histórias de pacientes similares",
-          "Criar conexão genuína, não apenas vender"
-        ]
-      },
-      {
-        action: "Apresentar diferenciais Unique (Método CPI)",
-        description: "Destacar os métodos exclusivos que justificam o investimento.",
-        script: "Aqui na Unique, desenvolvemos o Método CPI - Cirurgia Plástica Integrativa. São 7 pilares que preparam seu corpo e mente para resultados muito superiores:\n\n1. Avaliação nutricional personalizada\n2. Preparação psicológica\n3. Fisioterapia pré-operatória\n4. Cirurgia com técnicas avançadas\n5. Recuperação otimizada (Método 3R)\n6. Acompanhamento pós-op intensivo\n7. Resultados naturais e duradouros\n\nIsso garante mais segurança, menos inchaço, recuperação mais rápida e resultados que você vai amar!",
-        tips: [
-          "Adaptar os pilares ao procedimento de interesse",
-          "Enfatizar segurança e resultados",
-          "Diferenciar da concorrência sem criticar"
-        ]
-      },
-      {
-        action: "Apresentar Unique Travel (pacientes de fora)",
-        description: "Suporte completo para pacientes que vêm de outras cidades.",
-        script: "Você é de [CIDADE]? Temos o programa Unique Travel, que cuida de tudo para você: indicação de hospedagem parceira, transfers, acompanhamento especial no pós-operatório. Tudo para que você realize seu sonho com tranquilidade, mesmo estando longe de casa!",
-        checklist: [
-          "Identificar cidade/estado de origem",
-          "Explicar suporte de hospedagem",
-          "Mencionar acompanhamento diferenciado",
-          "Oferecer orientações de viagem"
-        ]
-      },
-      {
-        action: "Quebrar objeções de agendamento",
-        description: "Superar barreiras para o agendamento da consulta.",
-        tips: [
-          "'Está caro a consulta' → 'A consulta é um investimento. Nela você terá uma avaliação completa com o Dr. André, projeto personalizado da sua cirurgia, e todas as informações para tomar a melhor decisão. É o primeiro passo para realizar seu sonho com segurança.'",
-          "'Vou pensar' → 'Entendo, é uma decisão importante. Mas preciso te avisar que a agenda do Dr. André está muito concorrida. Hoje tenho um horário especial disponível para você. Posso reservar sem compromisso?'",
-          "'Preciso ver com meu marido' → 'Que ótimo que você quer compartilhar com ele! Inclusive, ele pode vir junto na consulta. Assim vocês tiram todas as dúvidas juntos.'"
-        ]
-      },
-      {
-        action: "Criar urgência genuína para agendamento",
-        description: "Motivar a ação imediata sem pressão agressiva.",
-        script: "Olha, [NOME], a agenda do Dr. André está bem concorrida para os próximos meses. Mas consegui ver aqui um horário especial disponível para [DATA]. Esse horário costuma ser disputado. Posso reservar para você?",
-        tips: [
-          "Usar escassez real (agenda limitada)",
-          "Oferecer horários específicos",
-          "Não pressionar, mas criar senso de oportunidade"
-        ]
-      },
-      {
-        action: "Agendar consulta e enviar link de pagamento",
-        description: "Fechar o agendamento e garantir confirmação financeira.",
-        script: "Perfeito, [NOME]! Sua consulta está agendada para [DATA] às [HORA].\n\nVou te enviar agora o link para confirmar sua reserva. Assim que o pagamento for confirmado, sua vaga fica garantida e você receberá todas as orientações para o dia da consulta.\n\nQualquer dúvida, estou por aqui!",
-        checklist: [
-          "Verificar disponibilidade na agenda",
-          "Confirmar data e horário com paciente",
-          "Gerar link de pagamento (Asaas)",
-          "Enviar confirmação por WhatsApp"
-        ],
-        sla: "Enviar link em até 2 minutos após confirmação verbal"
-      },
-      {
-        action: "Follow-up se pagamento não confirmado em 30 min",
-        description: "Garantir que o lead não esfrie após manifestar interesse.",
-        script: "Oi, [NOME]! Tudo bem? 😊\n\nVi que você ainda não conseguiu confirmar sua consulta. Aconteceu alguma coisa? Posso te ajudar com alguma dúvida?\n\nSeu horário ainda está reservado, mas preciso de uma confirmação para garantir sua vaga!",
-        sla: "30 minutos após envio do link"
-      },
-      {
-        action: "Preencher Dossiê de Qualificação completo",
-        description: "Documentar todas as informações do lead para passagem de bastão.",
-        checklist: [
-          "Nome completo",
-          "WhatsApp (com DDD)",
-          "Instagram",
-          "Cidade/Estado",
-          "Origem do lead (anúncio, orgânico, indicação)",
-          "Se indicação: nome de quem indicou",
-          "Dor principal (o que incomoda)",
-          "Sonho (resultado esperado)",
-          "Procedimento(s) de interesse",
-          "Nível de urgência (alto/médio/baixo)",
-          "Influenciadores na decisão (marido, família)",
-          "Condição financeira percebida",
-          "Observações relevantes",
-          "Data e horário da consulta"
-        ]
-      },
-      {
-        action: "Confirmar pagamento no Asaas",
-        description: "Verificar que o pagamento foi processado antes de passar o lead.",
-        sla: "Antes de passar para Closer",
-        tips: [
-          "Não passar lead sem pagamento confirmado",
-          "Se demorar, entrar em contato para verificar"
-        ]
-      },
-      {
-        action: "Enviar mensagem de transição para paciente",
-        description: "Preparar o paciente para o próximo atendimento.",
-        script: "Parabéns, [NOME]! 🎉 Sua consulta está CONFIRMADA!\n\nVocê deu o passo mais importante na sua jornada de transformação. Estamos muito felizes em te receber!\n\nAgora, a [NOME DA CLOSER], nossa especialista em planejamento cirúrgico, vai entrar em contato para te dar as boas-vindas e te acompanhar até o dia da sua consulta.\n\nEla já tem todas as informações da nossa conversa e vai te chamar em breve!\n\nSeja muito bem-vinda à família Unique! 💛"
-      },
-      {
-        action: "Notificar Closer com dossiê completo",
-        description: "Enviar todas as informações para o Closer assumir.",
-        script: "🚀 NOVA CONSULTA AGENDADA!\n📍 Origem: SDR (Lead Inbound)\n\n👤 Paciente: [NOME]\n📱 WhatsApp: [NÚMERO]\n📸 Instagram: [@INSTAGRAM]\n📍 Cidade: [CIDADE/ESTADO]\n📅 Data da Consulta: [DATA E HORA]\n\n📋 DOSSIÊ DE QUALIFICAÇÃO:\n• Origem: [Anúncio/Orgânico/Indicação de NOME]\n• Dor Principal: [DOR]\n• Sonho: [SONHO]\n• Procedimento(s): [PROCEDIMENTO]\n• Urgência: [ALTO/MÉDIO/BAIXO]\n• Influenciadores: [Se houver]\n• Observações: [PONTOS RELEVANTES]\n\n⏰ SLA: Entrar em contato para boas-vindas em até 2 horas.",
-        sla: "Passar lead em até 2 horas após confirmação de pagamento"
-      }
-    ],
-    dossier: {
-      title: "Dossiê de Qualificação SDR",
-      fields: [
-        "Nome completo",
-        "WhatsApp (com DDD)",
-        "Instagram",
-        "Cidade/Estado",
-        "Origem do lead",
-        "Se indicação: nome de quem indicou",
-        "Dor principal",
-        "Sonho/resultado esperado",
-        "Procedimento(s) de interesse",
-        "Nível de urgência",
-        "Influenciadores na decisão",
-        "Condição financeira percebida",
-        "Observações relevantes",
-        "Data e horário da consulta"
-      ]
-    },
-    transitionScript: "Parabéns, [NOME]! 🎉 Sua consulta está CONFIRMADA!\n\nVocê deu o passo mais importante na sua jornada de transformação. Estamos muito felizes em te receber!\n\nAgora, a [NOME DA CLOSER], nossa especialista em planejamento cirúrgico, vai entrar em contato para te dar as boas-vindas e te acompanhar até o dia da sua consulta.\n\nEla já tem todas as informações da nossa conversa e vai te chamar em breve!\n\nSeja muito bem-vinda à família Unique! 💛",
-    notificationTemplate: "🚀 NOVA CONSULTA AGENDADA!\n📍 Origem: SDR (Lead Inbound)\n\n👤 Paciente: [NOME]\n📱 WhatsApp: [NÚMERO]\n📅 Data da Consulta: [DATA E HORA]\n\n📋 DOSSIÊ:\n• Dor: [DOR]\n• Sonho: [SONHO]\n• Procedimento: [PROCEDIMENTO]\n• Urgência: [NÍVEL]\n\n⏰ SLA: Boas-vindas em até 2 horas.",
     supervisionChecklist: [
-      "Ouvir 5 ligações de qualificação",
-      "Verificar tempo de primeira resposta de cada lead",
-      "Analisar taxa de conversão lead → consulta",
-      "Conferir qualidade dos dossiês preenchidos",
-      "Verificar se follow-ups estão sendo feitos"
+      "Monitorar: Tempo de primeira resposta (meta: < 5 min)",
+      "Se tempo de resposta > 5 min: Verificar carga de trabalho e redistribuir leads",
+      "Se taxa de qualificação baixa: Revisar critérios e scripts",
+      "Se taxa de agendamento baixa: Treinar técnicas de fechamento",
+      "Checklist semanal: Ouvir 5 ligações de qualificação",
+      "Verificar qualidade das mensagens",
+      "Analisar taxa de follow-up"
     ],
     interventions: [
       { condition: "Tempo de resposta > 5 min", action: "Verificar carga de trabalho e redistribuir leads" },
       { condition: "Taxa de qualificação baixa", action: "Revisar critérios de qualificação e scripts" },
       { condition: "Taxa de agendamento baixa", action: "Treinar técnicas de fechamento de agendamento" }
-    ]
+    ],
+    actions: [
+      // VALORES E CULTURA
+      {
+        action: "Valores e Cultura SDR",
+        description: "Princípios fundamentais para o atendimento de excelência.",
+        checklist: [
+          "⚡ Proatividade: Não dê desculpas, faça acontecer",
+          "🤝 Conexão: Trate cada cliente como um membro da família",
+          "😊 Energia e Positividade: Sorrir com a voz é pré-requisito",
+          "📂 Organização: Uma boa gestão da carteira garante mais conversões",
+          "💪 Trabalho em Equipe: Juntos somos mais fortes",
+          "🎯 Resolutividade: Para cada desafio, apresente soluções",
+          "🗣 Objetividade: Seja claro e transparente"
+        ]
+      },
+      // RESPONSABILIDADES PRINCIPAIS
+      {
+        action: "Recepção e Qualificação Premium",
+        description: "Atender o lead de forma humanizada e empática, criar conexão emocional desde o primeiro contato.",
+        checklist: [
+          "Atender o lead de forma humanizada e empática",
+          "Sondar necessidades através de perguntas estratégicas",
+          "Criar conexão emocional desde o primeiro contato"
+        ]
+      },
+      {
+        action: "Curadoria e Recomendação Personalizada",
+        description: "Analisar perfil do lead e destacar diferenciais da Unique.",
+        checklist: [
+          "Analisar o perfil do lead e qualificá-lo",
+          "Destacar os diferenciais da Unique de forma persuasiva",
+          "Aplicar gatilhos emocionais e provas sociais"
+        ]
+      },
+      {
+        action: "Facilitação da Jornada",
+        description: "Remover barreiras e direcionar para conversão.",
+        checklist: [
+          "Remover barreiras para conversão",
+          "Direcionar para a melhor abordagem de atendimento"
+        ]
+      },
+      {
+        action: "Gestão de Sistemas",
+        description: "Manter CRM e Feegow atualizados.",
+        checklist: [
+          "CRM (Kommo): Manter todas as interações atualizadas",
+          "Feegow: Inserir cadastro, agendamentos, anexos e documentação"
+        ]
+      },
+      // AGENDA DE SUCESSO
+      {
+        action: "Check-in Matinal (08:00 - 08:30)",
+        description: "Verificar novos leads da noite, priorizar por temperatura."
+      },
+      {
+        action: "Ligações Urgentes (08:30 - 09:00)",
+        description: "Contatar leads que entraram nas últimas 12h."
+      },
+      {
+        action: "Bloco de Prospecção (09:00 - 10:30)",
+        description: "Ligações e WhatsApp para leads novos."
+      },
+      {
+        action: "Follow-up D+1 (10:30 - 11:00)",
+        description: "Leads que não responderam ontem."
+      },
+      {
+        action: "Qualificação (11:00 - 12:00)",
+        description: "Aprofundar conversas em andamento."
+      },
+      {
+        action: "Atualização CRM (13:00 - 13:30)",
+        description: "Registrar todas as interações da manhã."
+      },
+      {
+        action: "Bloco de Ligações (13:30 - 15:00)",
+        description: "Horário nobre para contatos."
+      },
+      {
+        action: "Follow-up D+3 e D+5 (15:00 - 16:00)",
+        description: "Cadência de nutrição."
+      },
+      {
+        action: "Agendamentos (16:00 - 17:00)",
+        description: "Confirmar e agendar consultas."
+      },
+      {
+        action: "Preparação Passagem de Bastão (17:00 - 17:30)",
+        description: "Preparar dossiês para Closers."
+      },
+      {
+        action: "Check-out (17:30 - 18:00)",
+        description: "Atualizar CRM, planejar próximo dia."
+      },
+      // PROCESSO DE VENDAS
+      {
+        action: "Etapa 1: Preparação Pré-Chamada",
+        description: "Antes de ligar, SEMPRE faça a preparação completa.",
+        checklist: [
+          "Verificar origem do lead: Instagram? Google? Indicação? Formulário?",
+          "Analisar respostas do formulário: Qual procedimento? Qual dor/motivação?",
+          "Pesquisar o lead: Ver Instagram, identificar pontos de rapport",
+          "Preparar abordagem personalizada: Adaptar script conforme perfil"
+        ]
+      },
+      {
+        action: "Etapa 2: Primeiro Contato - Ligação",
+        description: "Leads respondidos em até 5 minutos têm 9x mais chances de conversão. LIGUE PRIMEIRO!",
+        sla: "5 minutos",
+        script: "Oi, [Nome]! Tudo bem?\n\nQuem está falando aqui é [Seu Nome], da Unique Plástica Avançada.\n\nPrimeiro, quero te agradecer por confiar em nós nesse momento tão especial da sua jornada.\n\nFique tranquila, é um bate papo rápido para entender um pouquinho melhor sobre você, para podermos te direcionar para o profissional e o plano que mais combinam com seus sonhos e necessidades, combinado?"
+      },
+      {
+        action: "Quebra-gelo + Perguntas de Qualificação",
+        description: "Sequência de perguntas para qualificar o lead.",
+        script: "[QUEBRA-GELO]\nVi que você é de [Cidade X], que bacana! Temos muitos pacientes da sua região que buscam aqui na Unique essa transformação especial.\n\n[PERGUNTA 1 - ORIGEM]\nE me conta: como você conheceu a Unique?\n\n[PERGUNTA 2 - PROCEDIMENTO]\nVi que você tem interesse em [Procedimento]. O que te motivou a buscar esse procedimento? Foi algum incômodo, vontade antiga, ou outro motivo especial?\n\n[PERGUNTA 3 - IMPACTO EMOCIONAL]\nE isso te impacta de alguma forma no dia a dia? (deixou de usar alguma roupa, evitou praia?)\n\n[VALIDAR] \"Entendo muito... isso é mais comum do que você imagina.\"\n\n[PERGUNTA 4 - HISTÓRICO]\nVocê já chegou a buscar outras informações ou conversar com algum profissional sobre esse sonho?\n\n[PERGUNTA 5 - PLANEJAMENTO]\nA cirurgia plástica é um momento muito especial — e diferente de outras cirurgias, conseguimos planejar tudo. Você já chegou a pensar ou começou algum tipo de planejamento para esse sonho?\n\n[PERGUNTA 6 - IMAGINAÇÃO DO FUTURO]\nSe pudesse se ver daqui a alguns meses, vivendo essa transformação, como você se imagina?"
+      },
+      {
+        action: "Etapa 3: Apresentação do Unique Day",
+        description: "Após qualificar o lead, apresente a consulta.",
+        script: "Perfeito, entendi perfeitamente tudo [Nome],\n\nPelo que você me contou, você tem uma história linda e um sonho verdadeiro.\n\nAqui na Unique, a gente leva isso muito a sério, e por isso estamos aqui para te acompanhar...\n\nSomos referência nacional em Cirurgia Plástica Integrativa, com um método exclusivo criado por nós: o Método CPI, que considera não só o estético, mas também seu histórico, sua saúde, sua rotina e sua essência.\n\nPor isso, antes de tudo, nós criamos o UNIQUE DAY – nossa consulta completa de cirurgia plástica.\n\nFaz sentido para você viver essa jornada de transformação?\n\n[ESPERAR RESPOSTA]\n\nNo Unique Day, é uma consulta completa com o nosso time de especialistas, onde você vai:\n✅ Passar por uma análise estética e funcional\n✅ Receber orientações personalizadas com base nos 7 pilares do Método CPI\n✅ Conhecer os caminhos reais e seguros para alcançar seu resultado dos sonhos\n✅ Receber um diagnóstico completo e o plano ideal de procedimento"
+      },
+      {
+        action: "Etapa 4: Apresentação de Valores",
+        description: "Apresentar valores do Unique Day.",
+        script: "Perfeito, vou te apresentar agora o valor do nosso Unique Day.\n\nOs valores do Unique Day:\n💎 Consulta com o nosso time de cirurgiões plásticos Unique: R$ 750,00\n💎 Consulta com indicação de influenciadora: R$ 600,00\n👑 Com o Dr. André Oliveira (Diretor Unique e criador do Método CPI): R$ 1.270,00\n\nQual opção faz mais sentido para você?"
+      },
+      {
+        action: "Etapa 5: Fechamento do Agendamento",
+        description: "Garantir o agendamento e pagamento.",
+        script: "Nossa agenda é bastante disputada e temos uma fila de espera ativa.\n\nPosso verificar um horário exclusivo para você agora?\n\nVocê prefere presencial na clínica ou online?\n\n[SE ONLINE] \"Tenho horário [DATA PRÓXIMA] às 10h ou [DATA MAIS DISTANTE] às 11h. Qual fica melhor para você?\"\n\n[SE PRESENCIAL] \"Tenho horário [DATA PRÓXIMA] às 14h ou [DATA MAIS DISTANTE] às 15h. Qual fica melhor para você?\"\n\n[APÓS ESCOLHA]\nPerfeito! Para garantir sua vaga:\n💳 PIX: R$ [VALOR] - CNPJ: 17251106000160\n💳 OU Cartão: até 3x sem juros\n\nQual forma prefere? Vou te passar o link agora mesmo!\n\n🔗 https://www.asaas.com/c/icexf11gibg923b8"
+      },
+      // SCRIPTS WHATSAPP
+      {
+        action: "Script - Lead Não Atendeu (WhatsApp)",
+        description: "Sequência de mensagens para leads que não atenderam ligação.",
+        script: "Mensagem 1 - Quebra-gelo + Procedimento:\nTranquilo, podemos continuar por aqui.. 😊\n\nVi que você é de [Cidade X]… que bacana!\n\nE vi também que você demonstrou interesse em [Procedimento].\n\nMe conta rapidinho: o que te motivou a buscar essa transformação? Algum incômodo, sonho antigo?\n\nMensagem 2 - Planejamento:\nA cirurgia plástica é um momento muito especial — e diferente de outras cirurgias, conseguimos planejar tudo.\n\nVocê já chegou a pensar ou começou algum tipo de planejamento para esse sonho?\n\nMensagem 3 - Impacto + Imaginação:\nE como você se imagina depois de viver essa mudança? ✨\n\n(Às vezes é voltar a usar uma roupa, viajar sem insegurança, se sentir ainda melhor no espelho…)\n\nMensagem 4 - Transição para Unique Day:\nQue lindo, [Nome]!\n\nAqui na Unique, cuidamos de cada paciente de forma única. 🌟\n\nCriamos o Método CPI, que considera não só o estético, mas também sua saúde, sua rotina e sua essência.\n\nPara te guiar nesse processo, oferecemos o Unique Day, nossa consulta premium de avaliação integrativa.\n\nFaz sentido pra você darmos esse primeiro passo juntas?"
+      },
+      {
+        action: "Script - Mensagem Automática (Bot)",
+        description: "Primeira mensagem automática para novos leads.",
+        script: "Bem-vinda(o) à Unique Plástica Avançada!\n\nRecebemos seu interesse em [Procedimentos Corporais] e estamos felizes em acompanhá-la nessa jornada.\n\nMe conta: o que te motivou a procurar esse procedimento?"
+      },
+      {
+        action: "Script - Após Resposta do Lead",
+        description: "Resposta empática e proposta de ligação.",
+        script: "Entendo perfeitamente... e saiba que aqui você não está sozinha, recebemos muitas pacientes que chegam até nós [mesma dor citada] e juntos fazemos um plano personalizado baseado nas suas necessidades.\n\nPosso te ligar para verificar o melhor profissional para o seu caso?"
+      },
+      {
+        action: "Script - Passando Média de Valores",
+        description: "Como informar valores de procedimentos.",
+        script: "Inspiração 1 - Por escrito:\nOi, [Nome]! ✨\n\nPara te deixar ainda mais por dentro, a média dos nossos procedimentos gira em torno de R$ X a R$ Y, dependendo da avaliação personalizada de cada caso.\n\nTrabalhamos com técnicas exclusivas pelo nosso Método CPI, focado em segurança, naturalidade e resultados de alta performance. 🌟\n\nEsse valor era o que você esperava investir?\n\nInspiração 2 - Após ligação:\nOi, [Nome]! 💬\n\nFoi um prazer conversar com você! ✨\n\nSó reforçando o que falamos: a média dos nossos procedimentos fica entre R$ X e R$ Y, variando conforme a necessidade e personalização para cada caso. 💖\n\nNosso foco é garantir segurança, naturalidade e resultados incríveis através do Método CPI. 🌟\n\nO que você achou desse valor?"
+      },
+      // QUALIFICAÇÃO BANT
+      {
+        action: "Qualificação BANT",
+        description: "Método de qualificação de leads.",
+        checklist: [
+          "N - Need (Necessidade): Qual procedimento te interessa? Há quanto tempo você pensa nisso? → Avaliar clareza do desejo",
+          "A - Authority (Decisão): Você toma as decisões sozinha ou precisa conversar com alguém? → Avaliar autonomia",
+          "T - Timeline (Prazo): Para quando você gostaria de fazer? Tem alguma data específica? → Avaliar urgência",
+          "B - Budget (Orçamento): Você já pesquisou sobre valores ou é a primeira vez? → Avaliar capacidade de investimento"
+        ],
+        tips: [
+          "🔥 QUENTE: Tem urgência, já pesquisou, tem budget → Agendar HOJE",
+          "🟡 MORNO: Interesse real, mas sem urgência definida → Follow-up intensivo",
+          "🔵 FRIO: Apenas curiosidade, sem planejamento → Nutrir com conteúdo"
+        ]
+      },
+      // FOLLOW-UP
+      {
+        action: "Follow-up Cadência 7 Dias",
+        description: "Sequência estratégica de follow-up.",
+        tips: [
+          "D+1 WhatsApp - Retomada: Oi, [Nome]! Passando só para saber se ficou alguma dúvida da nossa conversa de ontem. Lembre-se que a consulta é o passo mais importante para você entender o melhor caminho para o seu sonho! 😊",
+          "D+3 WhatsApp - Prova Social: [Nome], lembrei de você! Vi esse depoimento da [Paciente] que tinha a mesma dúvida que você e hoje está super realizada. Dá uma olhada! [LINK]. Quando quiser conversar, estou aqui!",
+          "D+5 Ligação - Contato direto: Ligar e retomar conversa",
+          "D+7 WhatsApp - Última tentativa: [Nome], essa é minha última tentativa! 😊 Respeito seu tempo, mas não quero que você perca a chance de ter um diagnóstico completo. Se mudar de ideia, é só me chamar. Vou arquivar nossa conversa por enquanto, ok? Um abraço!"
+        ]
+      },
+      // QUEBRA DE OBJEÇÕES
+      {
+        action: "Quebra de Objeções - Vou Pensar",
+        description: "Superar objeção de adiamento.",
+        script: "Claro, respeito seu tempo. Mas preciso te avisar com carinho:\n\nO Unique Day tem uma agenda rotativa e filas em algumas agendas, especialmente do Dr. André.\n\nPosso segurar seu horário por 1 hora sem compromisso, apenas para você não perder essa chance. Te reservo?"
+      },
+      {
+        action: "Quebra de Objeções - Está Caro",
+        description: "Superar objeção de preço.",
+        script: "Entendo sua preocupação com o investimento.\n\nMas me conta: o que é mais importante para você, preço ou segurança na sua vida?\n\nNosso Unique Day é a consulta mais completa do Brasil, com avaliação pelos 7 pilares do Método CPI. É um investimento na sua transformação com segurança.\n\nE lembre-se: se você decidir fazer a cirurgia conosco, o valor da consulta é 100% abatido!"
+      },
+      {
+        action: "Quebra de Objeções - Preciso Falar com Marido/Família",
+        description: "Superar objeção de decisão compartilhada.",
+        script: "Claro, entendo perfeitamente! É uma decisão importante.\n\nInclusive, você pode trazer seu marido/família na consulta para que ele também conheça nosso método e tire todas as dúvidas.\n\nQue tal agendarmos já pensando nisso? Assim vocês podem vir juntos!"
+      },
+      {
+        action: "Quebra de Objeções - Não Tenho Tempo",
+        description: "Superar objeção de falta de tempo.",
+        script: "Entendo que a rotina pode ser corrida!\n\nPor isso oferecemos consultas online, que você pode fazer do conforto da sua casa, em apenas 1 hora.\n\nTenho horários no início da manhã ou no final da tarde. Qual período seria melhor para você?"
+      },
+      // PASSAGEM DE BASTÃO
+      {
+        action: "Passagem de Bastão para Closer",
+        description: "A consulta foi AGENDADA e PAGA. Você NÃO passa o lead antes da consulta. O Closer assume APÓS a consulta médica.",
+        sla: "Notificar Closer em até 2 horas após a consulta médica",
+        checklist: [
+          "Consulta cadastrada na agenda Feegow",
+          "Link gerado no Feegow (para online)",
+          "Formulário enviado ao paciente",
+          "Formulário preenchido e anexado ao Feegow",
+          "Ficha do paciente iniciada",
+          "Conta criada no sistema",
+          "Lead adicionado ao CRM com tags corretas",
+          "Conversa registrada com status atualizado"
+        ]
+      },
+      {
+        action: "Mensagem de Confirmação para Paciente",
+        description: "Enviar após agendamento confirmado.",
+        script: "Consulta agendada! 🎉\n\nSerá um prazer te receber em nosso complexo e realizar o seu sonho!\n\nVocê estará no melhor lugar e com os melhores Cirurgiões Plásticos do Brasil!\n\n📅 Data: [DATA]\n⏰ Horário: [HORÁRIO]\nProfissional: [NOME DO MÉDICO]\n📍 Local: [ENDEREÇO ou LINK DA CHAMADA]\n\nQualquer dúvida, estou à disposição! 💖"
+      },
+      {
+        action: "Notificação para Closer",
+        description: "Enviar após consulta médica realizada.",
+        script: "🚀 NOVA CONSULTA REALIZADA!\n\nPaciente: [NOME]\nData da consulta: [DATA]\nCirurgião: [NOME DO MÉDICO]\nProcedimento de interesse: [PROCEDIMENTO]\n\n📋 Dossiê completo no Feegow e CRM.\n\nObservações importantes:\n- [PONTOS RELEVANTES DA QUALIFICAÇÃO]\n- [DOR PRINCIPAL]\n- [NÍVEL DE URGÊNCIA]\n\nPor favor, entrar em contato em até 2 horas após a consulta."
+      },
+      // CHECKLISTS DIÁRIOS
+      {
+        action: "Check-in Matinal (08:00)",
+        description: "Checklist de início do dia.",
+        checklist: [
+          "Verificar novos leads da noite",
+          "Priorizar leads por temperatura (quente > morno > frio)",
+          "Revisar agenda de follow-ups do dia",
+          "Verificar consultas agendadas para hoje",
+          "Preparar lista de ligações"
+        ]
+      },
+      {
+        action: "Check-out (17:30)",
+        description: "Checklist de fim do dia.",
+        checklist: [
+          "Atualizar TODOS os leads no CRM",
+          "Registrar todas as interações do dia",
+          "Preparar dossiês de consultas agendadas",
+          "Enviar notificações para Closers (se aplicável)",
+          "Planejar prioridades do próximo dia",
+          "Verificar metas diárias atingidas"
+        ]
+      },
+      // O QUE NÃO FAZER
+      {
+        action: "O Que NÃO Fazer",
+        description: "Erros a evitar no atendimento.",
+        checklist: [
+          "NÃO passar valores detalhados de procedimentos cirúrgicos antes da consulta",
+          "NÃO explicar técnicas médicas – não somos médicos!",
+          "NÃO entregar todas as informações sem garantir que o lead avance",
+          "NÃO utilizar palavras que desvalorizem a Unique (ex: 'promoção')",
+          "NÃO oferecer desconto de primeira sem que o lead demonstre precisar",
+          "NÃO se desculpar por ligar – o lead buscou por sua ajuda!"
+        ],
+        tips: [
+          "Se o lead já souber tudo, ele não verá valor na consulta!",
+          "Quem chega primeiro, fecha a venda.",
+          "Diga o necessário para avançar, não para confundir.",
+          "Venda é condução. Seja o guia que o lead precisa!"
+        ]
+      }
+    ],
+    dossier: {
+      title: "Dossiê Comercial 1 - Venda da Consulta",
+      fields: [
+        "1. IDENTIFICAÇÃO DO LEAD:",
+        "Nome completo",
+        "Contato (WhatsApp)",
+        "Cidade e Estado",
+        "Origem do lead: Instagram / Google / Indicação / Outro",
+        "Data do primeiro contato",
+        "Status: Agendado",
+        "2. AGENDAMENTO DA CONSULTA:",
+        "Tipo de consulta: Presencial / Online",
+        "Data e horário agendado",
+        "Profissional escolhido",
+        "Link de consulta online enviado: Sim / Não",
+        "3. QUALIFICAÇÃO DO LEAD:",
+        "Procedimento de interesse",
+        "Dor/motivação principal",
+        "Impacto emocional identificado",
+        "Histórico (já consultou outros?)",
+        "Planejamento financeiro",
+        "Sonho/imaginação do futuro",
+        "4. CLASSIFICAÇÃO:",
+        "Lead quente / morno / frio",
+        "5. OBSERVAÇÕES IMPORTANTES"
+      ]
+    },
+    transitionScript: "Consulta agendada! 🎉\n\nSerá um prazer te receber em nosso complexo e realizar o seu sonho!\n\nVocê estará no melhor lugar e com os melhores Cirurgiões Plásticos do Brasil!\n\n📅 Data: [DATA]\n⏰ Horário: [HORÁRIO]\nProfissional: [NOME DO MÉDICO]\n📍 Local: [ENDEREÇO ou LINK DA CHAMADA]\n\nQualquer dúvida, estou à disposição! 💖",
+    notificationTemplate: "🚀 NOVA CONSULTA REALIZADA!\n\nPaciente: [NOME]\nData da consulta: [DATA]\nCirurgião: [NOME DO MÉDICO]\nProcedimento de interesse: [PROCEDIMENTO]\n\n📋 Dossiê completo no Feegow e CRM.\n\nObservações importantes:\n- [DOR PRINCIPAL]\n- [NÍVEL DE URGÊNCIA]\n\nPor favor, entrar em contato em até 2 horas após a consulta."
   },
   // ============================================
   // SOCIAL SELLING - Prospecção e Fechamento de Consulta
