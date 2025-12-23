@@ -77,6 +77,7 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         { data: allIndicators },
         { data: allCards },
         { data: allSpecialEvents },
+        { data: allCancellations },
       ] = await Promise.all([
         supabase.from("revenue_records").select("*").gte("date", startStr).lte("date", endStr),
         supabase.from("nps_records").select("*").gte("date", startStr).lte("date", endStr),
@@ -85,6 +86,7 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         supabase.from("other_indicators").select("*").gte("date", startStr).lte("date", endStr),
         supabase.from("cards").select("*").gte("date", startStr).lte("date", endStr),
         supabase.from("special_events").select("*").gte("date", startStr).lte("date", endStr),
+        supabase.from("cancellations").select("*").gte("cancellation_request_date", startStr).lte("cancellation_request_date", endStr).in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]),
       ]);
 
       const teamScores: FilteredTeamScore[] = [];
@@ -97,8 +99,14 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
 
         // Revenue
         const teamRevenueRecords = allRevenue?.filter(r => r.team_id === team.id) || [];
-        teamRevenue = teamRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
-        revenuePoints = Math.floor(teamRevenue / 1000) * SCORING.revenue.perThousand;
+        const grossRevenue = teamRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
+        
+        // Subtract confirmed cancellations from revenue
+        const teamCancellations = allCancellations?.filter(c => c.team_id === team.id) || [];
+        const cancelledAmount = teamCancellations.reduce((sum, c) => sum + Number(c.contract_value), 0);
+        
+        teamRevenue = grossRevenue - cancelledAmount;
+        revenuePoints = Math.floor(Math.max(0, teamRevenue) / 1000) * SCORING.revenue.perThousand;
 
         // NPS - Updated scoring: NPS 9=3pts, NPS 10=5pts, +10 bonus for citation
         const teamNps = allNps?.filter(r => r.team_id === team.id) || [];
