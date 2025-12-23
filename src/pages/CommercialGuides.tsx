@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { ArrowLeft, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { ArrowLeft, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter, Star, StarOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,11 +13,62 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { COMMERCIAL_SCRIPTS, OBJECTION_HANDLERS, BENEFIT_PROJECTS, PAYMENT_CONDITIONS, StageScripts, ActionScript } from "@/constants/commercialScripts";
 
+interface FavoriteScript {
+  id: string;
+  type: string;
+  stageId: number;
+  title: string;
+  content: string;
+  addedAt: string;
+}
+
+const FAVORITES_KEY = "commercial-guides-favorites";
+
 const CommercialGuides = () => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [selectedStage, setSelectedStage] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [favorites, setFavorites] = useState<FavoriteScript[]>([]);
+  const [showFavorites, setShowFavorites] = useState(false);
+
+  // Carregar favoritos do localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored) {
+      try {
+        setFavorites(JSON.parse(stored));
+      } catch (e) {
+        console.error("Erro ao carregar favoritos:", e);
+      }
+    }
+  }, []);
+
+  const saveFavorites = (newFavorites: FavoriteScript[]) => {
+    setFavorites(newFavorites);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
+  };
+
+  const generateScriptId = (type: string, stageId: number, title: string) => {
+    return `${type}-${stageId}-${title.replace(/\s+/g, '-').toLowerCase()}`;
+  };
+
+  const isFavorite = (type: string, stageId: number, title: string) => {
+    const id = generateScriptId(type, stageId, title);
+    return favorites.some(f => f.id === id);
+  };
+
+  const toggleFavorite = (type: string, stageId: number, title: string, content: string) => {
+    const id = generateScriptId(type, stageId, title);
+    const exists = favorites.find(f => f.id === id);
+    if (exists) {
+      saveFavorites(favorites.filter(f => f.id !== id));
+      toast.success("Removido dos favoritos");
+    } else {
+      saveFavorites([...favorites, { id, type, stageId, title, content, addedAt: new Date().toISOString() }]);
+      toast.success("Adicionado aos favoritos!");
+    }
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -90,9 +141,21 @@ const CommercialGuides = () => {
             <Book className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold">Guias Comerciais</h1>
           </div>
-          <Badge variant="secondary" className="ml-auto">
-            Unique Plástica Avançada
-          </Badge>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant={showFavorites ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFavorites(!showFavorites)}
+              className="gap-2"
+            >
+              <Star className={`h-4 w-4 ${showFavorites ? 'fill-current' : ''}`} />
+              <span className="hidden sm:inline">Favoritos</span>
+              {favorites.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5">{favorites.length}</Badge>
+              )}
+            </Button>
+            <Badge variant="secondary">Unique Plástica Avançada</Badge>
+          </div>
         </div>
       </header>
 
@@ -143,6 +206,76 @@ const CommercialGuides = () => {
           </CardContent>
         </Card>
 
+        {/* Favorites Section */}
+        {showFavorites && (
+          <Card className="mb-6 border-yellow-500/30 bg-yellow-500/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                  Meus Favoritos
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowFavorites(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <CardDescription>Scripts salvos para acesso rápido</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {favorites.length > 0 ? (
+                <div className="space-y-3">
+                  {favorites.map((fav) => (
+                    <Card key={fav.id} className="border-border/50">
+                      <CardHeader className="pb-2 pt-3 px-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs">
+                              Comercial {fav.stageId}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs capitalize">
+                              {fav.type === 'action' ? 'Ação' : fav.type === 'script' ? 'Script' : fav.type === 'objection' ? 'Objeção' : 'Projeto'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => copyToClipboard(fav.content, fav.id)}
+                            >
+                              {copiedText === fav.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-yellow-500 hover:text-red-500"
+                              onClick={() => toggleFavorite(fav.type, fav.stageId, fav.title, fav.content)}
+                            >
+                              <StarOff className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="font-medium text-sm">{fav.title}</p>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-3">
+                        <div className="bg-muted/30 rounded-lg p-2 text-xs whitespace-pre-wrap max-h-[100px] overflow-y-auto">
+                          {fav.content.slice(0, 200)}{fav.content.length > 200 ? '...' : ''}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Star className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>Nenhum favorito salvo ainda</p>
+                  <p className="text-sm">Clique na estrela ao lado dos scripts para salvá-los</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Search Results */}
         {isSearchMode ? (
           <div className="space-y-4">
@@ -173,7 +306,16 @@ const CommercialGuides = () => {
                     <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-wrap max-h-[200px] overflow-y-auto">
                       {result.content}
                     </div>
-                    <div className="flex justify-end mt-3">
+                    <div className="flex justify-end mt-3 gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleFavorite(result.type, result.stageId, result.title, result.content)}
+                        className={isFavorite(result.type, result.stageId, result.title) ? 'text-yellow-500' : ''}
+                      >
+                        <Star className={`h-4 w-4 mr-1 ${isFavorite(result.type, result.stageId, result.title) ? 'fill-current' : ''}`} />
+                        {isFavorite(result.type, result.stageId, result.title) ? 'Favoritado' : 'Favoritar'}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -349,18 +491,28 @@ const CommercialGuides = () => {
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between">
                                     <p className="text-sm font-semibold text-green-600">Script:</p>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => copyToClipboard(action.script!, `action-${index}`)}
-                                      className="h-7 px-2"
-                                    >
-                                      {copiedText === `action-${index}` ? (
-                                        <Check className="h-3 w-3 text-green-500" />
-                                      ) : (
-                                        <Copy className="h-3 w-3" />
-                                      )}
-                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => toggleFavorite('action', currentStage.stageId, action.action, action.script!)}
+                                        className={`h-7 px-2 ${isFavorite('action', currentStage.stageId, action.action) ? 'text-yellow-500' : ''}`}
+                                      >
+                                        <Star className={`h-3 w-3 ${isFavorite('action', currentStage.stageId, action.action) ? 'fill-current' : ''}`} />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => copyToClipboard(action.script!, `action-${index}`)}
+                                        className="h-7 px-2"
+                                      >
+                                        {copiedText === `action-${index}` ? (
+                                          <Check className="h-3 w-3 text-green-500" />
+                                        ) : (
+                                          <Copy className="h-3 w-3" />
+                                        )}
+                                      </Button>
+                                    </div>
                                   </div>
                                   <div className="bg-muted/50 rounded-lg p-3 text-sm whitespace-pre-wrap border-l-4 border-green-500">
                                     {action.script}
