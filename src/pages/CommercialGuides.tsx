@@ -97,31 +97,140 @@ const CommercialGuides = () => {
       </header>
 
       <main className="container px-4 py-6">
-        {/* Stage Selector */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {COMMERCIAL_SCRIPTS.map((stage) => (
-            <button
-              key={stage.stageId}
-              onClick={() => setSelectedStage(stage.stageId)}
-              className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                selectedStage === stage.stageId
-                  ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
-                  : "border-border hover:border-primary/50 hover:bg-muted/50"
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stageColors[stage.stageId]} flex items-center justify-center text-white mb-2`}>
-                {stageIcons[stage.stageId]}
+        {/* Search Bar */}
+        <Card className="mb-6 border-primary/20 bg-card/50 backdrop-blur">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar scripts, objeções, dossiês..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-background/50"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
-              <p className="text-sm font-semibold text-left">Comercial {stage.stageId}</p>
-              <p className="text-xs text-muted-foreground text-left truncate">
-                {stage.stageId === 1 && "SDR / Social Selling"}
-                {stage.stageId === 2 && "Closer"}
-                {stage.stageId === 3 && "Customer Success"}
-                {stage.stageId === 4 && "Farmer"}
-              </p>
-            </button>
-          ))}
-        </div>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-full sm:w-[180px] bg-background/50">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filtrar por tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="action">Ações</SelectItem>
+                  <SelectItem value="script">Scripts</SelectItem>
+                  <SelectItem value="objection">Objeções</SelectItem>
+                  <SelectItem value="project">Projetos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {isSearchMode && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <Badge variant="secondary">{searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''}</Badge>
+                <span>encontrado{searchResults.length !== 1 ? 's' : ''} para "{searchQuery}"</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Search Results */}
+        {isSearchMode ? (
+          <div className="space-y-4">
+            {searchResults.length > 0 ? (
+              searchResults.map((result, index) => (
+                <Card key={index} className="border-border/50 hover:border-primary/50 transition-colors">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className={
+                        result.type === 'action' ? 'border-blue-500 text-blue-500' :
+                        result.type === 'script' ? 'border-green-500 text-green-500' :
+                        result.type === 'objection' ? 'border-orange-500 text-orange-500' :
+                        'border-purple-500 text-purple-500'
+                      }>
+                        {result.type === 'action' && <FileText className="h-3 w-3 mr-1" />}
+                        {result.type === 'script' && <MessageSquare className="h-3 w-3 mr-1" />}
+                        {result.type === 'objection' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                        {result.type === 'project' && <Gift className="h-3 w-3 mr-1" />}
+                        {result.type === 'action' ? 'Ação' : result.type === 'script' ? 'Script' : result.type === 'objection' ? 'Objeção' : 'Projeto'}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        Comercial {result.stageId}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-base">{result.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                      {result.content}
+                    </div>
+                    <div className="flex justify-end mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(result.content, `result-${index}`)}
+                      >
+                        {copiedText === `result-${index}` ? (
+                          <><Check className="h-4 w-4 mr-1 text-green-500" /> Copiado</>
+                        ) : (
+                          <><Copy className="h-4 w-4 mr-1" /> Copiar</>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Nenhum resultado encontrado</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Tente buscar por outros termos ou altere o filtro
+                  </p>
+                  <Button variant="outline" onClick={() => { setSearchQuery(""); setFilterType("all"); }}>
+                    Limpar busca
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Stage Selector */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              {COMMERCIAL_SCRIPTS.map((stage) => (
+                <button
+                  key={stage.stageId}
+                  onClick={() => setSelectedStage(stage.stageId)}
+                  className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+                    selectedStage === stage.stageId
+                      ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
+                      : "border-border hover:border-primary/50 hover:bg-muted/50"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stageColors[stage.stageId]} flex items-center justify-center text-white mb-2`}>
+                    {stageIcons[stage.stageId]}
+                  </div>
+                  <p className="text-sm font-semibold text-left">Comercial {stage.stageId}</p>
+                  <p className="text-xs text-muted-foreground text-left truncate">
+                    {stage.stageId === 1 && "SDR / Social Selling"}
+                    {stage.stageId === 2 && "Closer"}
+                    {stage.stageId === 3 && "Customer Success"}
+                    {stage.stageId === 4 && "Farmer"}
+                  </p>
+                </button>
+              ))}
+            </div>
 
         {currentStage && (
           <div className="space-y-6">
@@ -588,6 +697,8 @@ const CommercialGuides = () => {
               </TabsContent>
             </Tabs>
           </div>
+        )}
+          </>
         )}
       </main>
     </div>
