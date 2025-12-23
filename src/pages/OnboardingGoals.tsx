@@ -86,12 +86,7 @@ const OnboardingGoals = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Redirecionar admin para home (admins não precisam definir metas)
-  useEffect(() => {
-    if (!authLoading && profile && !profile.team_id) {
-      navigate("/");
-    }
-  }, [profile, authLoading, navigate]);
+  // Não redirecionar mais - permitir que todos vejam a página de metas
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
