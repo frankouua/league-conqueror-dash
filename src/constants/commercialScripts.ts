@@ -7,6 +7,21 @@ export interface ActionScript {
   checklist?: string[];
   tips?: string[];
   sla?: string;
+  schedule?: {
+    manha?: { horario: string; atividade: string; detalhes: string }[];
+    tarde?: { horario: string; atividade: string; detalhes: string }[];
+  };
+  metricasDiarias?: string[];
+  etapas?: { etapa: number; momento: string; acaoPrincipal: string; responsavel: string }[];
+  scripts?: Record<string, string>;
+  checklistSemanal?: Record<string, string[]>;
+  cadencia?: { dia: string; tipo: string; foco: string }[];
+  template?: string;
+  pontuacao?: { acao: string; pontos: number }[];
+  programasDisponiveis?: string[];
+  campos?: string[];
+  lembretes?: string[];
+  script1Mes?: string;
 }
 
 export interface TeamGoal {
@@ -15,6 +30,20 @@ export interface TeamGoal {
   meta3: string;
   meta3Individual?: string;
   members?: string[];
+  detalhamento?: {
+    faturamentoMensal?: string;
+    faturamentoSemanal?: string;
+    faturamentoDiario?: string;
+    porVendedoraMensal?: string;
+    porVendedoraSemanal?: string;
+    porVendedoraDiario?: string;
+    pacientesAtendidosMes?: number;
+    pacientesAtendidosSemana?: number;
+    pacientesAtendidosDia?: string;
+  };
+  conversaoPorMeta?: {
+    meta3?: { produto: string; valorMensal: string; pacientesMes: number; porVendedora: string }[];
+  };
 }
 
 export interface StageScripts {
@@ -990,140 +1019,448 @@ export const COMMERCIAL_SCRIPTS: StageScripts[] = [
     stageId: 4,
     stageKey: "cs",
     title: "Customer Success - Pós-Venda",
-    mission: "Garantir a melhor experiência do paciente desde o fechamento até a alta, maximizando satisfação, NPS e indicações.",
-    objective: "Transformar pacientes cirúrgicos em promotores da marca através de experiência excepcional.",
+    mission: "O Customer Success (CS) é responsável por garantir que cada paciente tenha uma experiência excepcional desde o fechamento da venda até a alta médica, maximizando a satisfação, fidelização e geração de indicações.",
+    objective: "Transformar pacientes em fãs da marca através de uma experiência inesquecível. O CS assume o paciente APÓS o fechamento da venda pelo Closer. Seu trabalho é acompanhar toda a jornada até a alta médica.",
     teamGoal: {
-      meta3: "R$ 754.462",
+      meta1: "R$ 628.718 (Equipe) | R$ 314.359 (Individual)",
+      meta2: "R$ 679.016 (Equipe) | R$ 339.508 (Individual)",
+      meta3: "R$ 754.462 (Equipe) | R$ 377.231 (Individual)",
       meta3Individual: "R$ 377.231",
-      members: ["Paula", "Viviane"]
+      members: ["Paula", "Viviane"],
+      detalhamento: {
+        faturamentoMensal: "R$ 754.462",
+        faturamentoSemanal: "R$ 188.615",
+        faturamentoDiario: "R$ 37.723",
+        porVendedoraMensal: "R$ 377.231",
+        porVendedoraSemanal: "R$ 94.308",
+        porVendedoraDiario: "R$ 18.862",
+        pacientesAtendidosMes: 170,
+        pacientesAtendidosSemana: 43,
+        pacientesAtendidosDia: "8-9"
+      },
+      conversaoPorMeta: {
+        meta3: [
+          { produto: "Pós-Operatório", valorMensal: "R$ 91.361", pacientesMes: 40, porVendedora: "~20" },
+          { produto: "Soroterapia/Protocolos", valorMensal: "R$ 377.300", pacientesMes: 48, porVendedora: "~24" },
+          { produto: "Harmonização", valorMensal: "R$ 210.888", pacientesMes: 47, porVendedora: "~24" },
+          { produto: "SPA e Estética", valorMensal: "R$ 4.795", pacientesMes: 35, porVendedora: "~18" }
+        ]
+      }
     },
     kpis: [
-      "Taxa de Upsell/Cross-sell (pré e pós-operatório)",
-      "NPS (Net Promoter Score) - Meta: ≥ 9",
-      "Aderência ao Cronograma Pós-Venda - Meta: ≥ 90%",
-      "Taxa de Conclusão do Programa UniLovers"
+      "NPS médio > 9",
+      "Taxa de depoimentos > 50%",
+      "Taxa de indicações > 30%",
+      "Taxa de upsell > 40%",
+      "Retenção (compra adicional em 90 dias) > 25%",
+      "100% dos novos pacientes contatados em 24h",
+      "Todas as mensagens de pós-op enviadas",
+      "3+ solicitações de depoimento por dia",
+      "2+ ofertas de upgrade por dia"
+    ],
+    supervisionChecklist: [
+      "Monitorar: NPS, taxa de depoimentos, indicações, upsell, retenção",
+      "Se NPS < 9: Revisar qualidade do atendimento e scripts",
+      "Se taxa de depoimentos < 50%: Melhorar abordagem de solicitação",
+      "Se taxa de indicações < 30%: Intensificar programa Indica & Transforma",
+      "Verificar cumprimento da cadência de mensagens pós-op",
+      "Conferir passagens de bastão para Farmer"
+    ],
+    interventions: [
+      { condition: "NPS < 9", action: "Revisar qualidade do atendimento e scripts" },
+      { condition: "Taxa de depoimentos < 50%", action: "Melhorar abordagem de solicitação" },
+      { condition: "Taxa de indicações < 30%", action: "Intensificar programa Indica & Transforma" },
+      { condition: "Taxa de upsell < 40%", action: "Treinar apresentação de upgrades e Clube Integrativo" }
     ],
     actions: [
+      // PRINCIPAIS ATRIBUIÇÕES
       {
-        action: "Receber dossiê do Closer",
-        description: "Revisar informações antes do primeiro contato."
-      },
-      {
-        action: "Boas-vindas em até 1 hora após fechamento",
-        description: "Primeiro contato do CS com a paciente.",
-        sla: "1 hora",
-        script: "Olá [NOME]! Sou [SEU NOME], sua anja da guarda aqui na Unique! 😇\n\nVou cuidar de você em cada detalhe até o dia da sua cirurgia e depois dela.\n\nEstou aqui para qualquer dúvida, ansiedade ou necessidade. Vamos juntas nessa jornada!"
-      },
-      {
-        action: "Adicionar paciente ao grupo exclusivo WhatsApp",
-        description: "Criar grupo de acompanhamento da paciente."
-      },
-      {
-        action: "Orientar sobre exames e preparativos",
-        description: "Enviar checklist de pré-operatório.",
+        action: "Principais Atribuições",
+        description: "Responsabilidades do Customer Success",
         checklist: [
-          "Lista de exames necessários",
-          "Prazos para entrega",
-          "Orientações de jejum",
-          "O que levar no dia",
-          "Roupas adequadas pós-op"
+          "Onboarding e Acolhimento: Dar boas-vindas ao paciente",
+          "Apresentar o Método CPI e os 7 Pilares",
+          "Criar grupo de WhatsApp personalizado",
+          "Preparação Pré-Operatória: Acompanhar exames e preparação",
+          "Garantir cumprimento dos protocolos",
+          "Coordenar logística (hospedagem, transporte)",
+          "Acompanhamento Pós-Operatório: Mensagens de cuidado e motivação",
+          "Acompanhar recuperação",
+          "Solicitar depoimentos e indicações",
+          "Fidelização e Encantamento: Apresentar programas especiais (UniLovers, Embaixadora)",
+          "Oferecer upgrades e serviços complementares",
+          "Garantir NPS alto"
         ]
       },
+      // AGENDA DE SUCESSO
       {
-        action: "Explicar Método CPI e 7 pilares",
-        description: "Garantir que paciente entenda o diferencial."
-      },
-      {
-        action: "Acompanhar necessidades especiais (Unique Travel)",
-        description: "Suporte para pacientes de fora."
-      },
-      {
-        action: "Acompanhar retornos médicos",
-        description: "Monitorar agenda de retornos pós-op."
-      },
-      {
-        action: "Monitorar recuperação (perfil emocional)",
-        description: "Acompanhar estado emocional da paciente.",
-        tips: [
-          "Identificar pacientes ansiosas",
-          "Dar suporte extra quando necessário",
-          "Celebrar cada conquista da recuperação"
+        action: "Agenda de Sucesso - Rotina Diária",
+        description: "Estrutura do dia do Customer Success",
+        schedule: {
+          manha: [
+            { horario: "08:00 - 08:30", atividade: "Check-in Matinal", detalhes: "Verificar cirurgias do dia, pacientes em recuperação" },
+            { horario: "08:30 - 09:30", atividade: "Mensagens de Bom Dia", detalhes: "Enviar mensagens para pacientes em pós-op" },
+            { horario: "09:30 - 10:30", atividade: "Onboarding Novos Pacientes", detalhes: "Ligar para pacientes que fecharam ontem" },
+            { horario: "10:30 - 11:30", atividade: "Acompanhamento Pré-Op", detalhes: "Verificar exames, preparação, dúvidas" },
+            { horario: "11:30 - 12:00", atividade: "Atualização CRM", detalhes: "Registrar todas as interações" }
+          ],
+          tarde: [
+            { horario: "13:00 - 14:00", atividade: "Acompanhamento Pós-Op", detalhes: "Ligar para pacientes em recuperação" },
+            { horario: "14:00 - 15:00", atividade: "Solicitação de Depoimentos", detalhes: "Pacientes com 20-30 dias de pós-op" },
+            { horario: "15:00 - 16:00", atividade: "Apresentação de Upgrades", detalhes: "Oferecer serviços complementares" },
+            { horario: "16:00 - 17:00", atividade: "Preparação de Altas", detalhes: "Pacientes próximos da alta médica" },
+            { horario: "17:00 - 17:30", atividade: "Passagem para Farmer", detalhes: "Preparar dossiês de pacientes com alta" },
+            { horario: "17:30 - 18:00", atividade: "Check-out", detalhes: "Atualizar CRM, planejar próximo dia" }
+          ]
+        },
+        metricasDiarias: [
+          "100% dos novos pacientes contatados em 24h",
+          "Todas as mensagens de pós-op enviadas",
+          "3+ solicitações de depoimento",
+          "2+ ofertas de upgrade"
         ]
       },
+      // CRONOGRAMA COMPLETO PÓS-VENDA
       {
-        action: "Identificar oportunidades de upsell",
-        description: "Oferecer procedimentos complementares quando apropriado."
-      },
-      {
-        action: "Coletar NPS com citação de nome",
-        description: "Solicitar avaliação mencionando o profissional.",
-        script: "Oi [NOME]! Como está se sentindo com sua recuperação? 💕\n\nPoderia me ajudar com uma avaliação rápida? Se puder mencionar meu nome ou da equipe que te atendeu, ajuda muito! 🙏"
-      },
-      {
-        action: "Solicitar depoimentos (Google, vídeo, gold)",
-        description: "Coletar diferentes tipos de depoimentos.",
-        tips: [
-          "Google: mais fácil, pedir primeiro",
-          "Vídeo: maior valor, pedir quando satisfeita",
-          "Gold: pacientes especiais, embaixadoras"
+        action: "Cronograma Completo Pós-Venda - Visão Geral",
+        description: "Jornada do paciente desde a assinatura até a alta",
+        etapas: [
+          { etapa: 1, momento: "D0 (Assinatura)", acaoPrincipal: "Boas-vindas e agendamento de onboarding", responsavel: "CS" },
+          { etapa: 2, momento: "D+1 a D+2", acaoPrincipal: "Onboarding com Método CPI", responsavel: "CS" },
+          { etapa: 3, momento: "D+3 a D+7", acaoPrincipal: "Ativação estratégica (upgrades, projetos)", responsavel: "CS" },
+          { etapa: 4, momento: "Semanas 2-4", acaoPrincipal: "Acompanhamento pré-op", responsavel: "CS" },
+          { etapa: 5, momento: "D Cirurgia", acaoPrincipal: "Mensagem emocional e verificação", responsavel: "CS" },
+          { etapa: 6, momento: "D+1 a D+7", acaoPrincipal: "Pós-op imediato", responsavel: "CS" },
+          { etapa: 7, momento: "D+8 a D+30", acaoPrincipal: "Encantamento pós-op", responsavel: "CS" },
+          { etapa: 8, momento: "D+30 a D+90", acaoPrincipal: "Conclusão da jornada", responsavel: "CS" }
         ]
       },
+      // ETAPA 1: BOAS-VINDAS
       {
-        action: "Incentivar indicações durante acompanhamento",
-        description: "Aproveitar momento de satisfação para pedir indicações.",
-        script: "Você conhece alguém que também tem esse sonho de transformação? Adoraria ajudar uma amiga sua também! 💕"
-      },
-      {
-        action: "Registrar UniLovers ativos",
-        description: "Documentar pacientes engajadas."
-      },
-      {
-        action: "Confirmar alta após 6 meses",
-        description: "Verificar liberação médica para alta."
-      },
-      {
-        action: "Preencher Dossiê de Pós-Venda e Alta",
-        description: "Documentar informações para o Farmer.",
+        action: "Etapa 1: Boas-Vindas (D0 - Dia da Assinatura)",
+        description: "Primeiro contato após fechamento da venda",
         checklist: [
-          "Histórico de procedimentos",
-          "Nível de satisfação (NPS)",
-          "Interesses futuros (outros procedimentos, LuxSkin)",
-          "Aniversário e datas importantes"
+          "Enviar mensagem de boas-vindas",
+          "Agendar onboarding",
+          "Registrar paciente no CRM",
+          "Taggear como 'em onboarding'"
+        ],
+        script: "🎉 Parabéns, [Nome]!\n\nSeja muito bem-vinda à família Unique! 💖\n\nMeu nome é [Seu Nome] e serei sua Customer Success durante toda a sua jornada.\n\nEstarei com você em cada etapa, desde a preparação até a sua recuperação completa.\n\nAmanhã vou te ligar para fazermos seu onboarding e te apresentar o Método CPI e a Caixa dos 7 Pilares. Você vai amar! ✨\n\nQual o melhor horário para conversarmos?\n\nEstou aqui para o que precisar! 💕"
+      },
+      // ETAPA 2: ONBOARDING
+      {
+        action: "Etapa 2: Onboarding (D+1 a D+2)",
+        description: "Apresentação completa do método e preparação",
+        checklist: [
+          "Realizar onboarding (online ou presencial)",
+          "Apresentar Método CPI e Caixa dos 7 Pilares",
+          "Inserir paciente no grupo de WhatsApp",
+          "Enviar cronograma digital",
+          "Convidar para UniLovers"
+        ],
+        script: "Oi, [Nome]! Tudo bem? Aqui é [Seu Nome], sua Customer Success da Unique.\n\nEstou ligando para fazermos seu onboarding e te apresentar tudo sobre a sua jornada de transformação!\n\nPrimeiro, quero te explicar sobre o nosso Método CPI - Cirurgia Plástica Integrativa. Ele é baseado em 7 pilares que vão preparar seu corpo e mente para ter o melhor resultado possível.\n\nOs 7 Pilares são:\n• Nutricional - alimentação que prepara seu corpo\n• Físico - exercícios adequados para o momento\n• Emocional - preparação mental para a transformação\n• Hormonal - equilíbrio do seu organismo\n• Estético - cuidados com a pele e corpo\n• Suplementação - vitaminas e minerais essenciais\n• Recuperação - protocolo de pós-operatório otimizado\n\nVocê vai receber a Caixa dos 7 Pilares com todos os materiais e orientações.\n\nAgora vou te adicionar no seu grupo exclusivo de WhatsApp, onde você terá acesso a todas as informações, cronogramas e contatos de emergência.\n\nFicou alguma dúvida?"
+      },
+      // ETAPA 3: ATIVAÇÃO ESTRATÉGICA
+      {
+        action: "Etapa 3: Ativação Estratégica (D+3 a D+7)",
+        description: "Ofertas de upgrades e programas especiais",
+        checklist: [
+          "Oferecer upgrades (linfoplastia, exame genético, soroterapia)",
+          "Convidar para se tornar Embaixadora Unique",
+          "Incentivar envio de história para 'Por Trás da Transformação'",
+          "Confirmar exames, bioimpedância e autorizações"
+        ],
+        scripts: {
+          upgrade: "Oi, [Nome]! Tudo bem? 💖\n\nPassando para te contar sobre algumas opções que podem potencializar ainda mais seus resultados!\n\nTemos o pacote de Linfoplastia, que acelera sua recuperação e melhora o resultado final. Muitas pacientes amam!\n\nTambém temos o Exame Genético, que identifica como seu corpo responde aos tratamentos e personaliza ainda mais seu protocolo.\n\nE a Soroterapia, que prepara seu organismo para a cirurgia com vitaminas e minerais essenciais.\n\nQuer que eu te explique mais sobre algum deles?",
+          embaixadora: "[Nome], tenho um convite especial para você! 💎\n\nAqui na Unique, temos o programa de Embaixadoras para pacientes especiais como você.\n\nComo Embaixadora, você participa de ações exclusivas, ganha benefícios especiais e ainda ajuda outras mulheres a realizarem seus sonhos.\n\nVocê teria interesse em fazer parte?\n\nSe sim, é só preencher esse formulário: https://uniquemedicespa.typeform.com/programasunique"
+        }
+      },
+      // ETAPA 4: ACOMPANHAMENTO PRÉ-OP
+      {
+        action: "Etapa 4: Acompanhamento Pré-Op (Semanas 2-4)",
+        description: "Acompanhar preparação e confirmar logística",
+        checklist: [
+          "Acompanhar preparo: protocolos, desafios, SPA",
+          "Confirmar motorista, hospedagem, acompanhante (3 dias antes)",
+          "Reforçar UniLovers e missões com pontos",
+          "Verificar cumprimento dos protocolos"
+        ],
+        scripts: {
+          acompanhamento: "Oi, [Nome]! Como você está? 💖\n\nPassando para saber como está sua preparação para a cirurgia!\n\nVocê está conseguindo seguir o protocolo nutricional?\n\nEstá fazendo os exercícios recomendados?\n\nComo está se sentindo emocionalmente?\n\nLembre-se: quanto melhor sua preparação, melhor será seu resultado! ✨\n\nSe tiver qualquer dúvida ou dificuldade, estou aqui para te ajudar!",
+          confirmacao3Dias: "Oi, [Nome]! Sua cirurgia está chegando! 🎉\n\nVou confirmar alguns detalhes importantes:\n\n📅 Data: [DATA]\n⏰ Horário: [HORÁRIO]\n📍 Hospital: [HOSPITAL]\n📍 Endereço: [ENDEREÇO]\n\n✅ Checklist:\n• Jejum de 12 horas antes da cirurgia\n• Levar todos os exames\n• Acompanhante confirmado: [NOME]\n• Transporte confirmado: [SIM/NÃO]\n• Hospedagem confirmada: [SIM/NÃO]\n\nEstá tudo certo? Alguma dúvida?"
+        },
+        checklistSemanal: {
+          semana1: [
+            "Onboarding realizado",
+            "Exames solicitados",
+            "Protocolo nutricional iniciado",
+            "Grupo de WhatsApp ativo"
+          ],
+          semana2: [
+            "Exames recebidos e verificados",
+            "Check de Nutrição",
+            "Check de Emocional",
+            "Upgrades oferecidos"
+          ],
+          semana3: [
+            "Consulta com equipe de apoio agendada",
+            "Material e orientações entregues",
+            "Hospedagem/transporte confirmados (se aplicável)"
+          ],
+          semana4: [
+            "Confirmação final 3 dias antes",
+            "Checklist completo verificado",
+            "Mensagem de incentivo enviada"
+          ]
+        }
+      },
+      // ETAPA 5: DIA DA CIRURGIA
+      {
+        action: "Etapa 5: Dia da Cirurgia (D Cirurgia)",
+        description: "Acompanhamento no dia mais importante",
+        checklist: [
+          "Enviar mensagem de incentivo emocional (manhã)",
+          "Verificar chegada do paciente ao hospital",
+          "Confirmar acompanhante presente",
+          "Registrar bastidores (se autorizado)",
+          "Aguardar notificação de término da cirurgia",
+          "Enviar mensagem de 'cirurgia concluída com sucesso'"
+        ],
+        script: "Bom dia, [Nome]! 💖\n\nHOJE É O SEU DIA! ✨\n\nO dia que você tanto sonhou finalmente chegou!\n\nEstamos todos aqui torcendo por você e preparados para te receber com todo carinho e cuidado.\n\nVocê está em excelentes mãos com o Dr. [Nome] e toda nossa equipe.\n\nRelaxa, respira fundo e se entrega para essa transformação!\n\nDaqui a pouco você vai estar acordando para uma nova versão de você mesma! 🦋\n\nTe vejo do outro lado! 💕"
+      },
+      // ETAPA 6: PÓS-OP IMEDIATO
+      {
+        action: "Etapa 6: Pós-Op Imediato (D+1 a D+7)",
+        description: "Acolhimento e orientações iniciais",
+        checklist: [
+          "Enviar mensagem de acolhimento",
+          "Agendar primeira linfoplastia",
+          "Orientar cuidados",
+          "Atualizar sensações no CRM"
+        ],
+        scripts: {
+          d1: "Bom dia, [Nome]! 💖\n\nComo você está se sentindo hoje?\n\nSei que os primeiros dias podem ser desconfortáveis, mas isso é completamente normal e faz parte do processo.\n\nLembre-se:\n✅ Tomar a medicação nos horários certos\n✅ Manter repouso absoluto\n✅ Beber bastante água\n✅ Comer alimentos leves\n\nSua primeira sessão de linfoplastia está agendada para [DATA/HORÁRIO].\n\nQualquer dúvida ou desconforto, me avisa! Estou aqui 24h para você! 💕",
+          d3: "Oi, [Nome]! Como você está hoje? 💖\n\nJá estamos no terceiro dia e você está indo super bem!\n\nNessa fase, é normal sentir:\n• Inchaço (vai diminuir aos poucos)\n• Roxos (vão sumir em algumas semanas)\n• Desconforto (vai melhorando a cada dia)\n\nContinue seguindo todas as orientações e confiando no processo.\n\nVocê está se transformando! 🦋\n\nComo está se sentindo emocionalmente?",
+          d7: "Oi, [Nome]! Uma semana de pós-op! 🎉\n\nParabéns por ter chegado até aqui! Você está indo maravilhosamente bem!\n\nNessa fase, você já deve estar se sentindo um pouco melhor e começando a ver os primeiros resultados.\n\nLembre-se: o resultado final leva alguns meses, então tenha paciência e continue seguindo todas as orientações.\n\nComo você está se sentindo? Me conta tudo! 💖"
+        }
+      },
+      // ETAPA 7: ENCANTAMENTO PÓS-OP
+      {
+        action: "Etapa 7: Encantamento Pós-Op (D+8 a D+30)",
+        description: "Solicitar depoimentos e apresentar Clube Integrativo",
+        checklist: [
+          "Solicitar depoimento (Google, vídeo, indicar para Podcast)",
+          "Apresentar Clube Integrativo (Luxskin, nutri, hormonais)",
+          "Acompanhar NPS",
+          "Disparar pesquisa de satisfação"
+        ],
+        scripts: {
+          depoimentoD20: "Oi, [Nome]! Como você está? 💖\n\nJá estamos há 20 dias da sua cirurgia e você está linda! ✨\n\nQuero te fazer um pedido especial: você poderia deixar um depoimento sobre sua experiência com a Unique?\n\nSua história pode inspirar outras mulheres a realizarem seus sonhos também!\n\nVocê pode:\n📝 Deixar uma avaliação no Google\n📹 Gravar um vídeo curto contando sua experiência\n🎙️ Participar do nosso Podcast\n\nQual dessas opções você prefere?",
+          clubeIntegrativo: "[Nome], agora que você está se recuperando, quero te apresentar o Clube Integrativo Unique! 💎\n\nSão tratamentos complementares que vão potencializar e manter seus resultados:\n\n💆 Luxskin - tratamentos estéticos de alta performance\n🥗 Acompanhamento Nutricional - para manter seu corpo saudável\n💊 Protocolos Hormonais - equilíbrio e bem-estar\n\nMuitas pacientes continuam conosco após a cirurgia para manter os resultados incríveis!\n\nQuer que eu te explique mais sobre algum deles?"
+        }
+      },
+      // ETAPA 8: CONCLUSÃO DA JORNADA
+      {
+        action: "Etapa 8: Conclusão da Jornada (D+30 a D+90)",
+        description: "Finalização e passagem para Farmer",
+        checklist: [
+          "Enviar mensagem de 1 mês de cirurgia",
+          "Estimular continuidade de tratamento",
+          "Marcar jornada como 'concluída' no CRM",
+          "Passar para o Farmer"
+        ],
+        script1Mes: "[Nome]! 🎉\n\n1 MÊS DA SUA TRANSFORMAÇÃO! 💖\n\nParabéns por ter chegado até aqui! Você foi incrível durante todo o processo e estamos muito orgulhosos de você!\n\nComo você está se sentindo? Já está vendo os resultados?\n\nLembre-se: o resultado final ainda está por vir. Nos próximos meses, seu corpo vai continuar se ajustando e o resultado vai ficar ainda mais lindo!\n\nContinue cuidando de você e seguindo as orientações.\n\nEstou aqui para o que precisar! 💕"
+      },
+      // CADÊNCIA DE MENSAGENS PÓS-OP
+      {
+        action: "Cadência de Mensagens Pós-Operatório",
+        description: "Sequência obrigatória de acompanhamento",
+        cadencia: [
+          { dia: "D+1", tipo: "WhatsApp + Ligação", foco: "Acolhimento, verificar estado" },
+          { dia: "D+3", tipo: "WhatsApp", foco: "Motivação, normalizar desconfortos" },
+          { dia: "D+5", tipo: "WhatsApp", foco: "Verificar recuperação" },
+          { dia: "D+7", tipo: "WhatsApp + Ligação", foco: "Comemorar 1 semana" },
+          { dia: "D+10", tipo: "WhatsApp", foco: "Motivação contínua" },
+          { dia: "D+14", tipo: "WhatsApp", foco: "Verificar evolução" },
+          { dia: "D+20", tipo: "WhatsApp", foco: "Solicitar depoimento" },
+          { dia: "D+30", tipo: "WhatsApp + Ligação", foco: "Comemorar 1 mês" }
         ]
       },
+      // ONBOARDING CHECKLIST
       {
-        action: "Registrar NPS e nível de satisfação",
-        description: "Documentar feedback final."
+        action: "Checklist de Onboarding",
+        description: "Itens obrigatórios do onboarding",
+        checklist: [
+          "Ligação de boas-vindas realizada",
+          "Método CPI explicado",
+          "Caixa dos 7 Pilares entregue/explicada",
+          "Grupo de WhatsApp criado",
+          "Cronograma digital enviado",
+          "Convite UniLovers enviado",
+          "Projeto Unique confirmado",
+          "Termo de projeto assinado"
+        ]
       },
+      // DESCRIÇÃO DO GRUPO WHATSAPP
       {
-        action: "Identificar interesses futuros (procedimentos, LuxSkin)",
-        description: "Mapear oportunidades de reativação."
+        action: "Descrição do Grupo de WhatsApp",
+        description: "Modelo de descrição para grupo exclusivo da paciente",
+        template: "📌 *Sua Nova Era Começa Agora! - Acompanhamento Unique*\n\n📆 *Informações da Sua Cirurgia:*\n• 🌟 Cirurgia: [PROCEDIMENTO]\n• 📍 Hospital: [HOSPITAL]\n• 📍 Endereço: [ENDEREÇO]\n• 📅 Data e Horário: [DATA E HORA]\n\n❗Importante:\n• ✅ Jejum de 12 horas antes da cirurgia e leve todos os exames\n• ✅ Siga todas as orientações do pré e pós-operatório\n\n🔗 Links Úteis:\n• 📢 Participe dos Programas Exclusivos: https://uniquemedicespa.typeform.com/programasunique\n• 📊 Avalie sua experiência: https://uniquemedicespa.typeform.com/to/bq1quA0I\n• 📖 Guia Completo do Seu Pré e Pós-Operatório (Cupom: Pacienteunique): https://pay.hotmart.com/W85049755Q?bid=1726156816152\n\n📞 Contatos de Emergência:\n• Dr. André: (34) 99162-0409\n• Dr. Alexandre: (34) 99199-5110\n• Enf. Keila: (34) 99843-7367\n• Enf. Daniela: (34) 9 9815-0187\n\n🌟 Método CPI - Cirurgia Plástica Integrativa\nSeu corpo precisa estar preparado para essa transformação!\n\n💖 Nossa Missão: Cuidar de Você!\nEquipe Unique 💖"
       },
+      // SCRIPTS PARA PROGRAMAS ESPECIAIS
       {
-        action: "Enviar mensagem de transição para paciente",
-        description: "Preparar paciente para o Farmer.",
-        script: "[NOME], que alegria ver sua jornada de transformação completa! Você está maravilhosa! 😍\n\nMesmo com a alta, nosso cuidado com você não termina. Agora você faz parte do nosso clube exclusivo de pacientes Unique.\n\nA [NOME DA FARMER], nossa especialista em relacionamento, vai manter contato com você para garantir que seus resultados continuem incríveis e te apresentar novidades e benefícios exclusivos.\n\nVocê é e sempre será parte da família Unique!"
+        action: "Script - Convite Geral para Programas",
+        description: "Convite para todos os programas especiais",
+        script: "Oi, [Nome]! 💖\n\nAqui na Unique, sempre buscamos proporcionar experiências inesquecíveis para nossas pacientes. E agora, chegou a sua vez de ir além! ✨\n\nQuer ser uma Embaixadora Unique, participar do UniLovers, Ensaios Fotográficos, Podcast, Projeto Espelho ou ter benefícios exclusivos?\n\n🚀 As inscrições estão abertas e queremos você com a gente!\n\n🔗 Clique aqui e inscreva-se agora: https://uniquemedicespa.typeform.com/programasunique\n\nSe tiver dúvidas, é só me chamar! 💕"
       },
+      // SCRIPTS PARA NPS
       {
-        action: "Notificar Farmer em até 24h após alta",
-        description: "SLA de passagem de bastão.",
-        sla: "24 horas",
-        script: "🌱 NOVA PACIENTE PARA CULTIVO (LTV)!\n\nPaciente: [NOME]\nWhatsApp: [NÚMERO]\nÚltima Cirurgia: [NOME DA CIRURGIA]\nData da Alta: [DATA]\n\nDossiê de Alta completo no CRM. Paciente com alto potencial para [procedimento de interesse].\n\nPor favor, adicionar à cadência de relacionamento em até 24 horas."
+        action: "Scripts para NPS",
+        description: "Abordagens para coleta de NPS",
+        scripts: {
+          humanizada: "Olá, [Nome]! 😊\n\nEsperamos que você esteja se sentindo bem!\n\nAqui na Unique, buscamos sempre evoluir para oferecer a melhor experiência.\n\nCriamos uma pesquisa super rápida para entender como foi sua jornada com a gente e como podemos melhorar ainda mais! 💖\n\n✨ Leva menos de 2 minutos para responder!\n\n🔗 https://uniquemedicespa.typeform.com/to/bq1quA0I\n\nA sua opinião é fundamental! Contamos com você! 🙏💛",
+          gamificada: "💥 Missão Rápida para Ganhar Pontos! 💥\n\nOi, [Nome]! Quer ganhar pontos no UniLovers e desbloquear benefícios exclusivos? 🎁\n\n💡 Desafio do Dia: Responder nossa pesquisa de satisfação!\n\n📲 Leva menos de 2 minutos!\n\n🔗 https://uniquemedicespa.typeform.com/to/bq1quA0I\n\n🔥 Mais pontos = mais benefícios! Não perca essa chance! 😉"
+        }
+      },
+      // UNILOVERS - SISTEMA DE PONTOS
+      {
+        action: "UniLovers - Sistema de Pontos",
+        description: "Tabela de pontuação do programa de fidelidade",
+        pontuacao: [
+          { acao: "Responder NPS", pontos: 50 },
+          { acao: "Deixar avaliação no Google", pontos: 100 },
+          { acao: "Gravar depoimento em vídeo", pontos: 200 },
+          { acao: "Participar do Podcast", pontos: 300 },
+          { acao: "Indicar amiga que agenda consulta", pontos: 500 },
+          { acao: "Indicar amiga que fecha cirurgia", pontos: 1000 }
+        ],
+        programasDisponiveis: [
+          "Embaixadora Unique - Pacientes que representam a marca",
+          "UniLovers - Programa de fidelidade com pontos",
+          "Projeto Espelho - Antes e depois autorizados",
+          "Minha Jornada Unique - Minidocumentário",
+          "Por Trás da Transformação - Histórias reais",
+          "Voz Unique - Participação no Podcast",
+          "Indica & Transforma - Programa de indicações"
+        ]
+      },
+      // PASSAGEM DE BASTÃO PARA FARMER
+      {
+        action: "Passagem de Bastão para o Farmer - Checklist",
+        description: "GATILHO: O paciente recebeu ALTA MÉDICA (geralmente entre D+30 e D+90)",
+        checklist: [
+          "Alta médica confirmada",
+          "Registro do pós final com fotos",
+          "Depoimento solicitado (vídeo, texto ou reels)",
+          "Encaminhado para marketing (se participou de projeto)",
+          "Convite para novos projetos enviado",
+          "Solicitação de indicação realizada",
+          "Inclusão em lista de pacientes para eventos futuros",
+          "Feedback final do paciente registrado",
+          "NPS coletado"
+        ]
+      },
+      // DOSSIÊ DE PASSAGEM
+      {
+        action: "Dossiê de Passagem - Pós-Venda",
+        description: "Documento obrigatório para passagem ao Farmer",
+        campos: [
+          "1. IDENTIFICAÇÃO:",
+          "Nome completo",
+          "Data da assinatura do contrato",
+          "Data da cirurgia",
+          "Cirurgião responsável",
+          "Protocolo CPI contratado",
+          "Tipo de cirurgia e anestesia",
+          "2. BOAS-VINDAS E ACOLHIMENTO:",
+          "Mensagem de boas-vindas enviada",
+          "Grupo de WhatsApp criado e paciente adicionada",
+          "Vídeo de orientação enviado",
+          "Caixa dos 7 Pilares explicada/entregue",
+          "Projeto Unique confirmado e formulário preenchido",
+          "Termo de projeto assinado",
+          "3. PREPARAÇÃO PRÉ-OPERATÓRIA:",
+          "Exames laboratoriais recebidos",
+          "4. CIRURGIA E PÓS-OPERATÓRIO INICIAL:",
+          "Presença no dia da cirurgia confirmada",
+          "Entrega de presente LuxSkin/roupão/vela (se aplicável)",
+          "Acompanhamento no 1º dia de pós-operatório",
+          "Registro de fotos do pós imediato",
+          "Inclusão em rotina de acompanhamento da enfermagem",
+          "5. ACOMPANHAMENTO ATÉ A ALTA:",
+          "Envio de mensagens motivacionais (mín. 3)",
+          "Participação ativa no grupo: Sim/Não",
+          "Realização das sessões (SPA, liberação emocional, etc)",
+          "Solicitação de depoimento (vídeo, texto ou reels)",
+          "Encaminhado para marketing (se participou de projeto)",
+          "Confirmação de alta médica",
+          "6. ENCERRAMENTO E FIDELIZAÇÃO:",
+          "Registro do pós final com fotos",
+          "Convite para novos projetos (podcast, campanha, etc)",
+          "Solicitação de indicação (Indica & Transforma)",
+          "Inclusão em lista de pacientes para eventos futuros",
+          "Feedback final do paciente registrado",
+          "NPS coletado: ___/10",
+          "7. OBSERVAÇÕES FINAIS:",
+          "Nível de engajamento: Alto/Médio/Baixo",
+          "Paciente indicada para futuros projetos: Sim/Não",
+          "Observações importantes"
+        ]
+      },
+      // MENSAGEM DE TRANSIÇÃO
+      {
+        action: "Mensagem de Transição para Paciente",
+        description: "Mensagem de despedida do CS e introdução ao Farmer",
+        script: "[Nome]! 💖\n\nQue alegria poder te acompanhar durante toda essa jornada de transformação!\n\nVocê foi incrível e estamos muito felizes com seus resultados! ✨\n\nA partir de agora, você receberá um acompanhamento especial da nossa equipe de relacionamento, que vai te manter informada sobre novidades, eventos exclusivos e oportunidades especiais.\n\nMas lembre-se: estou sempre aqui se precisar de qualquer coisa!\n\nFoi uma honra fazer parte da sua transformação! 💕\n\nAbraços,\n[Seu Nome]"
+      },
+      // NOTIFICAÇÃO PARA FARMER
+      {
+        action: "Notificação para o Farmer",
+        description: "Mensagem de passagem de bastão",
+        sla: "Notificar em até 24h após alta",
+        script: "🌱 PACIENTE COM ALTA - PRONTA PARA FARMER!\n\n📋 DADOS DO PACIENTE:\n• Nome: [NOME]\n• WhatsApp: [NÚMERO]\n• Cirurgião: [NOME DO MÉDICO]\n• Procedimento realizado: [PROCEDIMENTO]\n• Data da cirurgia: [DATA]\n• Data da alta: [DATA]\n\n📊 PERFIL DO PACIENTE:\n• Nível de engajamento: [ALTO/MÉDIO/BAIXO]\n• NPS: [NOTA]/10\n• Participou de projeto: [SIM/NÃO] - Qual: [PROJETO]\n• Deixou depoimento: [SIM/NÃO]\n• Indicou amigas: [SIM/NÃO] - Quantas: [NÚMERO]\n\n📈 OPORTUNIDADES IDENTIFICADAS:\n• Interesse em novos procedimentos: [SIM/NÃO] - Quais: ___\n• Interesse em tratamentos estéticos: [SIM/NÃO]\n• Interesse em protocolos nutricionais: [SIM/NÃO]\n• Potencial para indicações: [ALTO/MÉDIO/BAIXO]\n\n📝 OBSERVAÇÕES:\n_______________________________________________\n\n📎 Dossiê completo no CRM."
+      },
+      // O QUE NÃO FAZER
+      {
+        action: "O Que NÃO Fazer",
+        description: "Erros a evitar no trabalho de CS",
+        checklist: [
+          "NÃO deixar paciente sem contato por mais de 3 dias no pós-op",
+          "NÃO ignorar reclamações - resolva imediatamente",
+          "NÃO pressionar para depoimento - seja genuíno",
+          "NÃO esquecer de atualizar o CRM - registro é fundamental",
+          "NÃO passar para Farmer antes da alta médica"
+        ],
+        lembretes: [
+          "Paciente satisfeito indica. Paciente encantado vira fã.",
+          "Seu trabalho não é só acompanhar, é ENCANTAR.",
+          "Cada mensagem é uma oportunidade de criar conexão.",
+          "O pós-venda é onde se constrói a fidelização."
+        ]
       }
     ],
     dossier: {
-      title: "Dossiê de Pós-Venda e Alta",
+      title: "Dossiê Comercial 3 - Pós-Venda (Assinatura até Alta)",
       fields: [
-        "Histórico de procedimentos",
-        "Nível de satisfação (NPS)",
-        "Interesses futuros",
-        "Aniversário",
-        "Datas importantes",
-        "Observações de relacionamento"
+        "1. IDENTIFICAÇÃO:",
+        "Nome completo",
+        "Data da assinatura do contrato",
+        "Data da cirurgia",
+        "Cirurgião responsável",
+        "Protocolo CPI contratado",
+        "Tipo de cirurgia e anestesia",
+        "2. BOAS-VINDAS E ACOLHIMENTO",
+        "3. PREPARAÇÃO PRÉ-OPERATÓRIA",
+        "4. CIRURGIA E PÓS-OPERATÓRIO INICIAL",
+        "5. ACOMPANHAMENTO ATÉ A ALTA",
+        "6. ENCERRAMENTO E FIDELIZAÇÃO",
+        "7. OBSERVAÇÕES FINAIS",
+        "Nível de engajamento: Alto/Médio/Baixo",
+        "NPS coletado"
       ]
     },
-    transitionScript: "[NOME], que alegria ver sua jornada de transformação completa! Você está maravilhosa! 😍\n\nMesmo com a alta, nosso cuidado com você não termina. Agora você faz parte do nosso clube exclusivo de pacientes Unique.\n\nA [NOME DA FARMER], nossa especialista em relacionamento, vai manter contato com você para garantir que seus resultados continuem incríveis e te apresentar novidades e benefícios exclusivos.\n\nVocê é e sempre será parte da família Unique!",
-    notificationTemplate: "🌱 NOVA PACIENTE PARA CULTIVO (LTV)!\n\nPaciente: [NOME]\nWhatsApp: [NÚMERO]\nÚltima Cirurgia: [NOME DA CIRURGIA]\nData da Alta: [DATA]\n\nDossiê de Alta completo no CRM. Paciente com alto potencial para [procedimento de interesse].\n\nPor favor, adicionar à cadência de relacionamento em até 24 horas."
+    transitionScript: "[Nome]! 💖\n\nQue alegria poder te acompanhar durante toda essa jornada de transformação!\n\nVocê foi incrível e estamos muito felizes com seus resultados! ✨\n\nA partir de agora, você receberá um acompanhamento especial da nossa equipe de relacionamento, que vai te manter informada sobre novidades, eventos exclusivos e oportunidades especiais.\n\nMas lembre-se: estou sempre aqui se precisar de qualquer coisa!\n\nFoi uma honra fazer parte da sua transformação! 💕\n\nAbraços,\n[Seu Nome]",
+    notificationTemplate: "🌱 PACIENTE COM ALTA - PRONTA PARA FARMER!\n\n📋 DADOS DO PACIENTE:\n• Nome: [NOME]\n• WhatsApp: [NÚMERO]\n• Cirurgião: [NOME DO MÉDICO]\n• Procedimento realizado: [PROCEDIMENTO]\n• Data da cirurgia: [DATA]\n• Data da alta: [DATA]\n\n📊 PERFIL DO PACIENTE:\n• Nível de engajamento: [ALTO/MÉDIO/BAIXO]\n• NPS: [NOTA]/10\n• Participou de projeto: [SIM/NÃO]\n• Deixou depoimento: [SIM/NÃO]\n• Indicou amigas: [SIM/NÃO]\n\n📎 Dossiê completo no CRM."
   },
   // ============================================
   // FARMER - Relacionamento e LTV
