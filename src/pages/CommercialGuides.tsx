@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { COMMERCIAL_SCRIPTS, OBJECTION_HANDLERS, BENEFIT_PROJECTS, PAYMENT_CONDITIONS, COORDINATOR_DATA, StageScripts, ActionScript } from "@/constants/commercialScripts";
+import ReactivationStrategies from "@/components/ReactivationStrategies";
 
 interface FavoriteScript {
   id: string;
@@ -140,6 +141,8 @@ const CommercialGuides = () => {
     if (diffHours < 24) return `${diffHours}h atrás`;
     return `${diffDays}d atrás`;
   };
+
+  const [showReactivation, setShowReactivation] = useState(false);
 
   const stageColors: Record<number, string> = {
     1: "from-blue-500 to-cyan-500",
@@ -507,9 +510,9 @@ const CommercialGuides = () => {
               {COMMERCIAL_SCRIPTS.map((stage) => (
                 <button
                   key={stage.stageId}
-                  onClick={() => setSelectedStage(stage.stageId)}
+                  onClick={() => { setSelectedStage(stage.stageId); setShowReactivation(false); }}
                   className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                    selectedStage === stage.stageId
+                    selectedStage === stage.stageId && !showReactivation
                       ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
                       : "border-border hover:border-primary/50 hover:bg-muted/50"
                   }`}
@@ -525,9 +528,9 @@ const CommercialGuides = () => {
               ))}
               {/* Coordinator Button */}
               <button
-                onClick={() => setSelectedStage("coordinator")}
+                onClick={() => { setSelectedStage("coordinator"); setShowReactivation(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                  selectedStage === "coordinator"
+                  selectedStage === "coordinator" && !showReactivation
                     ? "border-amber-500 bg-amber-500/10 shadow-lg scale-[1.02]"
                     : "border-border hover:border-amber-500/50 hover:bg-muted/50"
                 }`}
@@ -540,9 +543,29 @@ const CommercialGuides = () => {
                   Gestão Comercial
                 </p>
               </button>
+              {/* Reactivation Button */}
+              <button
+                onClick={() => setShowReactivation(true)}
+                className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+                  showReactivation
+                    ? "border-rose-500 bg-rose-500/10 shadow-lg scale-[1.02]"
+                    : "border-border hover:border-rose-500/50 hover:bg-muted/50"
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white mb-2">
+                  <Wrench className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-semibold text-left">Reativação</p>
+                <p className="text-xs text-muted-foreground text-left truncate">
+                  Leads & Pacientes
+                </p>
+              </button>
             </div>
 
-        {currentStage && (
+            {/* Reactivation Content */}
+            {showReactivation && <ReactivationStrategies />}
+
+        {currentStage && !showReactivation && (
           <div className="space-y-6">
             {/* Stage Header */}
             <Card className={`bg-gradient-to-br ${stageColors[currentStage.stageId]} text-white border-0`}>
