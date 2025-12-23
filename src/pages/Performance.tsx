@@ -42,6 +42,7 @@ import {
 import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
 import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 import IndividualGoalsForm from "@/components/IndividualGoalsForm";
+import SellerDashboard from "@/components/SellerDashboard";
 import {
   LineChart,
   Line,
@@ -379,9 +380,12 @@ const Performance = () => {
         <Tabs defaultValue="tracking" className="space-y-6">
           {/* Mobile: scrollable horizontal tabs */}
           <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-2xl md:mx-auto md:grid-cols-6 gap-1">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-2xl md:mx-auto md:grid-cols-7 gap-1">
               <TabsTrigger value="tracking" className="whitespace-nowrap text-xs sm:text-sm px-3">
                 Acompanhar
+              </TabsTrigger>
+              <TabsTrigger value="sellers" className="whitespace-nowrap text-xs sm:text-sm px-3">
+                Vendedoras
               </TabsTrigger>
               <TabsTrigger value="ranking" className="whitespace-nowrap text-xs sm:text-sm px-3">
                 Ranking
@@ -404,6 +408,11 @@ const Performance = () => {
           {/* GOAL TRACKING - Meta vs Realizado */}
           <TabsContent value="tracking" className="space-y-6">
             <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
+          </TabsContent>
+
+          {/* SELLERS DASHBOARD */}
+          <TabsContent value="sellers" className="space-y-6">
+            <SellerDashboard month={selectedMonth} year={selectedYear} />
           </TabsContent>
 
           {/* DEPARTMENT GOALS */}
