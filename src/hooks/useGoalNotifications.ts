@@ -192,20 +192,21 @@ export const useGoalNotifications = () => {
             const remainingFormatted = type === "revenue" 
               ? `R$ ${remaining.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
               : `${remaining}`;
+            const progressFormatted = Math.round(progress);
             
             createNotification.mutate({
               user_id: goal.user_id,
               team_id: goal.team_id,
               type: "goal_near",
-              title: `🔥 Falta pouco! ${label} a 90%`,
-              message: `Você está quase lá! Faltam apenas ${remainingFormatted} para bater sua meta de ${label}!`,
+              title: `🔥 Falta pouco! ${label} a ${progressFormatted}%`,
+              message: `Você está quase lá! Faltam apenas ${remainingFormatted} para bater sua meta de ${label}! [PROGRESS:${progressFormatted}]`,
             });
 
             // Show toast if it's the current user
             if (goal.user_id === user?.id) {
               toast({
                 title: `🔥 Falta pouco para sua meta de ${label}!`,
-                description: `Você está a 90%! Faltam apenas ${remainingFormatted}.`,
+                description: `Você está a ${progressFormatted}%! Faltam apenas ${remainingFormatted}.`,
               });
             }
           }
