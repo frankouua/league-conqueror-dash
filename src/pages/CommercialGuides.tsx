@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { ArrowLeft, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter, Star, StarOff, Crown, BarChart3, Calendar, Wrench, Lightbulb, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter, Star, StarOff, Crown, BarChart3, Calendar, Wrench, Lightbulb, AlertCircle, ClipboardCheck, UserCheck, PhoneCall } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1020,20 +1020,20 @@ const CommercialGuides = () => {
                   <CardHeader>
                     <CardTitle className="text-2xl flex items-center gap-3">
                       <Crown className="h-8 w-8" />
-                      {COORDINATOR_DATA.title}
+                      Coordenador Comercial
                     </CardTitle>
                     <CardDescription className="text-white/90">
-                      {COORDINATOR_DATA.description}
+                      {COORDINATOR_DATA.mission}
                     </CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Coordinator Tabs */}
                 <Tabs defaultValue="attributes" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto gap-1">
+                  <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 h-auto gap-1">
                     <TabsTrigger value="attributes" className="gap-2">
                       <Users className="h-4 w-4" />
-                      <span className="hidden sm:inline">Atribuições</span>
+                      <span className="hidden sm:inline">Perfil</span>
                     </TabsTrigger>
                     <TabsTrigger value="metrics" className="gap-2">
                       <BarChart3 className="h-4 w-4" />
@@ -1043,41 +1043,106 @@ const CommercialGuides = () => {
                       <Calendar className="h-4 w-4" />
                       <span className="hidden sm:inline">Rituais</span>
                     </TabsTrigger>
+                    <TabsTrigger value="scripts" className="gap-2">
+                      <FileText className="h-4 w-4" />
+                      <span className="hidden sm:inline">Scripts</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="checklists" className="gap-2">
+                      <ClipboardCheck className="h-4 w-4" />
+                      <span className="hidden sm:inline">Checklists</span>
+                    </TabsTrigger>
                     <TabsTrigger value="tools" className="gap-2">
                       <Wrench className="h-4 w-4" />
                       <span className="hidden sm:inline">Ferramentas</span>
                     </TabsTrigger>
                     <TabsTrigger value="tips" className="gap-2">
                       <Lightbulb className="h-4 w-4" />
-                      <span className="hidden sm:inline">Dicas</span>
+                      <span className="hidden sm:inline">Supervisão</span>
                     </TabsTrigger>
                   </TabsList>
 
                   {/* Attributes Tab */}
                   <TabsContent value="attributes">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {COORDINATOR_DATA.attributes.map((attr, index) => (
-                        <Card key={index}>
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                                <span className="text-amber-600 dark:text-amber-400 font-bold">{index + 1}</span>
+                    <div className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Crown className="h-5 w-5 text-amber-500" />
+                            Atribuições do Coordenador
+                          </CardTitle>
+                          <CardDescription>
+                            O Coordenador é o maestro da orquestra comercial
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {COORDINATOR_DATA.attributes.map((attr, index) => (
+                              <div key={index} className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">{index + 1}</span>
+                                </div>
+                                <span className="text-sm text-amber-900 dark:text-amber-100">{attr}</span>
                               </div>
-                              {attr.title}
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* KPIs by Team */}
+                      {COORDINATOR_DATA.kpisByTeam && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <BarChart3 className="h-5 w-5 text-blue-500" />
+                              KPIs por Equipe
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <ul className="space-y-2">
-                              {attr.items.map((item, i) => (
-                                <li key={i} className="flex items-start gap-2 text-sm">
-                                  <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                                  <span>{item}</span>
-                                </li>
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                              {COORDINATOR_DATA.kpisByTeam.map((team, index) => (
+                                <div key={index} className="p-4 border rounded-lg">
+                                  <h4 className="font-semibold text-primary mb-3">{team.team}</h4>
+                                  <ul className="space-y-2">
+                                    {team.kpis.map((kpi, i) => (
+                                      <li key={i} className="flex items-start gap-2 text-sm">
+                                        <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                        <span className="text-muted-foreground">{kpi}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
                               ))}
-                            </ul>
+                            </div>
                           </CardContent>
                         </Card>
-                      ))}
+                      )}
+
+                      {/* Handoff Flow */}
+                      {COORDINATOR_DATA.handoffFlow && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <ArrowRight className="h-5 w-5 text-purple-500" />
+                              Fluxo de Passagem de Bastão
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              {COORDINATOR_DATA.handoffFlow.map((flow, index) => (
+                                <div key={index} className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                                  <Badge variant="outline" className="font-semibold">{flow.from}</Badge>
+                                  <ArrowRight className="h-4 w-4 text-purple-500" />
+                                  <Badge variant="outline" className="font-semibold">{flow.to}</Badge>
+                                  <span className="text-sm text-muted-foreground flex-1">{flow.trigger}</span>
+                                  <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                                    {flow.maxTime}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
                   </TabsContent>
 
@@ -1192,6 +1257,127 @@ const CommercialGuides = () => {
                         </Accordion>
                       </CardContent>
                     </Card>
+                  </TabsContent>
+
+                  {/* Scripts Tab */}
+                  <TabsContent value="scripts">
+                    <div className="space-y-4">
+                      {/* Rescue Process */}
+                      {COORDINATOR_DATA.rescueProcess && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <PhoneCall className="h-5 w-5 text-red-500" />
+                              {COORDINATOR_DATA.rescueProcess.title}
+                            </CardTitle>
+                            <CardDescription>{COORDINATOR_DATA.rescueProcess.description}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="p-4 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                              <h4 className="font-semibold text-red-900 dark:text-red-100 mb-3">Passo a Passo:</h4>
+                              <ul className="space-y-2">
+                                {COORDINATOR_DATA.rescueProcess.steps.map((step, i) => (
+                                  <li key={i} className="text-sm text-red-800 dark:text-red-200">{step}</li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Script WhatsApp de Resgate:</h4>
+                              <p className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-line">{COORDINATOR_DATA.rescueProcess.whatsappScript}</p>
+                              <Button size="sm" variant="outline" className="mt-2" onClick={() => { navigator.clipboard.writeText(COORDINATOR_DATA.rescueProcess!.whatsappScript); toast.success("Script copiado!"); }}>
+                                <Copy className="h-3 w-3 mr-1" /> Copiar
+                              </Button>
+                            </div>
+                            <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                              <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">Script de Ligação:</h4>
+                              <div className="space-y-3 text-sm text-green-800 dark:text-green-200">
+                                <div><strong>Abertura:</strong> {COORDINATOR_DATA.rescueProcess.callScript.abertura}</div>
+                                <div><strong>Diagnóstico:</strong> {COORDINATOR_DATA.rescueProcess.callScript.diagnostico}</div>
+                                <div><strong>Fechamento:</strong> {COORDINATOR_DATA.rescueProcess.callScript.fechamento}</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Feedback Script */}
+                      {COORDINATOR_DATA.feedbackScript && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <UserCheck className="h-5 w-5 text-purple-500" />
+                              {COORDINATOR_DATA.feedbackScript.title}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-sm text-purple-800 dark:text-purple-200">
+                              <div><strong>Abertura:</strong> {COORDINATOR_DATA.feedbackScript.abertura}</div>
+                              <div><strong>Análise de Performance:</strong> {COORDINATOR_DATA.feedbackScript.analisePerformance}</div>
+                              <div><strong>Feedback Específico:</strong> {COORDINATOR_DATA.feedbackScript.feedbackEspecifico}</div>
+                              <div><strong>Plano de Ação:</strong> {COORDINATOR_DATA.feedbackScript.planoAcao}</div>
+                              <div><strong>Fechamento:</strong> {COORDINATOR_DATA.feedbackScript.fechamento}</div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Checklists Tab */}
+                  <TabsContent value="checklists">
+                    <div className="space-y-4">
+                      {COORDINATOR_DATA.dailyChecklist && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <ClipboardCheck className="h-5 w-5 text-amber-500" />
+                              Checklist Diário do Coordenador
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {COORDINATOR_DATA.dailyChecklist.map((item, i) => (
+                                <li key={i} className="flex items-center gap-3 p-2 bg-amber-50 dark:bg-amber-950/30 rounded text-sm">
+                                  <Check className="h-4 w-4 text-amber-600" />
+                                  <span className="text-amber-900 dark:text-amber-100">{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {COORDINATOR_DATA.weeklyAudit && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>{COORDINATOR_DATA.weeklyAudit.title}</CardTitle>
+                            <CardDescription>{COORDINATOR_DATA.weeklyAudit.description}</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {COORDINATOR_DATA.weeklyAudit.checklist.map((item, i) => (
+                                <li key={i} className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-500" />{item}</li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {COORDINATOR_DATA.weeklyReport && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>{COORDINATOR_DATA.weeklyReport.title}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {COORDINATOR_DATA.weeklyReport.sections.map((item, i) => (
+                                <li key={i} className="text-sm text-muted-foreground">{item}</li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
                   </TabsContent>
 
                   {/* Tools Tab */}
