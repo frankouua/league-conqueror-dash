@@ -74,6 +74,7 @@ const Header = () => {
 
   const navLinks = [
     { path: "/", label: "Dashboard", icon: Home },
+    { path: "/onboarding-goals", label: "Metas", icon: TrendingUp },
     { path: "/register", label: "Registrar", icon: Plus },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/patient-kanban", label: "Jornada", icon: Route },
