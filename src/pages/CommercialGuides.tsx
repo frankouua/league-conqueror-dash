@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { COMMERCIAL_SCRIPTS, OBJECTION_HANDLERS, BENEFIT_PROJECTS, PAYMENT_CONDITIONS, COORDINATOR_DATA, StageScripts, ActionScript } from "@/constants/commercialScripts";
 import ReactivationStrategies from "@/components/ReactivationStrategies";
 import EngagementStrategies from "@/components/EngagementStrategies";
+import InfluencerStrategies from "@/components/InfluencerStrategies";
 
 interface FavoriteScript {
   id: string;
@@ -145,6 +146,7 @@ const CommercialGuides = () => {
 
   const [showReactivation, setShowReactivation] = useState(false);
   const [showEngagement, setShowEngagement] = useState(false);
+  const [showInfluencer, setShowInfluencer] = useState(false);
 
   const stageColors: Record<number, string> = {
     1: "from-blue-500 to-cyan-500",
