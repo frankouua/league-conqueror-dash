@@ -47,6 +47,7 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: string
+          is_favorite: boolean
           role: string
         }
         Insert: {
@@ -54,6 +55,7 @@ export type Database = {
           conversation_id: string
           created_at?: string
           id?: string
+          is_favorite?: boolean
           role: string
         }
         Update: {
@@ -61,6 +63,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: string
+          is_favorite?: boolean
           role?: string
         }
         Relationships: [
