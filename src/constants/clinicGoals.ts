@@ -6,7 +6,7 @@
  */
 export const CLINIC_GOALS = {
   META_1: 2500000, // R$ 2.500.000
-  META_2: 2750000, // R$ 2.750.000
+  META_2: 2700000, // R$ 2.700.000
   META_3: 3000000, // R$ 3.000.000
 } as const;
 
