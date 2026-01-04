@@ -191,6 +191,54 @@ const ReferralLeads = () => {
     }
   }, [profile?.team_id, role]);
 
+  // Realtime subscription for referral leads
+  useEffect(() => {
+    if (!profile?.team_id && role !== "admin") return;
+
+    const channel = supabase
+      .channel("referral-leads-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "referral_leads",
+        },
+        (payload) => {
+          console.log("Referral lead change:", payload);
+          fetchLeads(); // Refresh leads on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.team_id, role]);
+
+  // Function to send notification via edge function
+  const sendLeadNotification = async (
+    eventType: "new_lead" | "status_change" | "assignment_change",
+    leadData: {
+      lead_id: string;
+      lead_name: string;
+      referrer_name: string;
+      team_id: string;
+      old_status?: string;
+      new_status?: string;
+      assigned_to?: string;
+      registered_by?: string;
+    }
+  ) => {
+    try {
+      await supabase.functions.invoke("referral-lead-notifications", {
+        body: { event_type: eventType, ...leadData },
+      });
+    } catch (error) {
+      console.error("Error sending lead notification:", error);
+    }
+  };
+
   const handleCreateLead = async () => {
     if (!user || !profile?.team_id) return;
     if (!newLead.referrer_name || !newLead.referred_name) {
@@ -201,7 +249,7 @@ const ReferralLeads = () => {
     setIsSaving(true);
 
     try {
-      const { error } = await supabase.from("referral_leads").insert({
+      const { data, error } = await supabase.from("referral_leads").insert({
         team_id: profile.team_id,
         referrer_name: newLead.referrer_name,
         referrer_phone: newLead.referrer_phone || null,
@@ -212,11 +260,23 @@ const ReferralLeads = () => {
         registered_by: user.id,
         notes: newLead.notes || null,
         status: "nova",
-      });
+      }).select().single();
 
       if (error) throw error;
 
-      toast({ title: "Sucesso", description: "Indicação registrada!" });
+      // Send notification for new lead
+      if (data) {
+        sendLeadNotification("new_lead", {
+          lead_id: data.id,
+          lead_name: newLead.referred_name,
+          referrer_name: newLead.referrer_name,
+          team_id: profile.team_id,
+          assigned_to: newLead.assigned_to || undefined,
+          registered_by: user.id,
+        });
+      }
+
+      toast({ title: "Sucesso", description: "Indicação registrada! Equipe notificada." });
       setShowNewDialog(false);
       setNewLead({
         referrer_name: "",
@@ -271,6 +331,17 @@ const ReferralLeads = () => {
 
       if (historyError) console.error("History error:", historyError);
 
+      // Send notification for status change
+      sendLeadNotification("status_change", {
+        lead_id: editingLead.id,
+        lead_name: editingLead.referred_name,
+        referrer_name: editingLead.referrer_name,
+        team_id: editingLead.team_id,
+        old_status: editingLead.status,
+        new_status: newStatus,
+        assigned_to: editingLead.assigned_to || undefined,
+      });
+
       toast({ title: "Status atualizado", description: `Agora: ${STATUS_CONFIG[newStatus].label}` });
       setEditingLead(null);
       setStatusNote("");
@@ -284,12 +355,26 @@ const ReferralLeads = () => {
 
   const handleUpdateAssignment = async (leadId: string, assignedTo: string) => {
     try {
+      // Find the lead to get its data for notification
+      const lead = leads.find(l => l.id === leadId);
+      
       const { error } = await supabase
         .from("referral_leads")
         .update({ assigned_to: assignedTo || null })
         .eq("id", leadId);
 
       if (error) throw error;
+
+      // Send notification when assigning someone
+      if (assignedTo && lead) {
+        sendLeadNotification("assignment_change", {
+          lead_id: leadId,
+          lead_name: lead.referred_name,
+          referrer_name: lead.referrer_name,
+          team_id: lead.team_id,
+          assigned_to: assignedTo,
+        });
+      }
 
       toast({ title: "Responsável atualizado" });
       fetchLeads();

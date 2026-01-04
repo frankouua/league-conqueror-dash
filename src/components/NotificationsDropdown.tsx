@@ -162,6 +162,19 @@ const NotificationsDropdown = () => {
         return <AlertTriangle className="w-4 h-4 text-amber-500" />;
       case "admin_announcement":
         return <Megaphone className="w-4 h-4 text-primary" />;
+      // New referral lead notification types
+      case "new_referral":
+        return <Sparkles className="w-4 h-4 text-green-500" />;
+      case "lead_assigned":
+        return <Bell className="w-4 h-4 text-blue-500" />;
+      case "lead_milestone":
+        return <Trophy className="w-4 h-4 text-emerald-500" />;
+      case "lead_alert":
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case "lead_status_update":
+        return <Target className="w-4 h-4 text-cyan-500" />;
+      case "lead_reminder":
+        return <Bell className="w-4 h-4 text-amber-500" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -190,7 +203,13 @@ const NotificationsDropdown = () => {
     }
     
     // Navigate based on notification type
-    if (notification.type === "stale_lead") {
+    if (notification.type === "stale_lead" || 
+        notification.type === "new_referral" || 
+        notification.type === "lead_assigned" ||
+        notification.type === "lead_milestone" ||
+        notification.type === "lead_alert" ||
+        notification.type === "lead_status_update" ||
+        notification.type === "lead_reminder") {
       navigate("/referral-leads");
     } else if (notification.type === "goal_reminder" || notification.type === "goal_near") {
       navigate("/onboarding-goals");
@@ -269,7 +288,7 @@ const NotificationsDropdown = () => {
               key={notification.id}
             className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""}`}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""} ${notification.type === "new_referral" ? "hover:bg-green-500/10 border-l-2 border-green-500" : ""} ${notification.type === "lead_milestone" ? "hover:bg-emerald-500/10 border-l-2 border-emerald-500" : ""} ${notification.type === "lead_assigned" ? "hover:bg-blue-500/10 border-l-2 border-blue-500" : ""} ${notification.type === "lead_alert" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
@@ -325,6 +344,30 @@ const NotificationsDropdown = () => {
                     <span className="text-xs text-orange-500 flex items-center gap-1">
                       <ExternalLink className="w-3 h-3" />
                       Ver metas
+                    </span>
+                  )}
+                  {(notification.type === "new_referral" || notification.type === "lead_assigned") && (
+                    <span className="text-xs text-green-500 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Ver indicação
+                    </span>
+                  )}
+                  {notification.type === "lead_milestone" && (
+                    <span className="text-xs text-emerald-500 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Ver pipeline
+                    </span>
+                  )}
+                  {notification.type === "lead_alert" && (
+                    <span className="text-xs text-red-500 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Analisar lead
+                    </span>
+                  )}
+                  {notification.type === "lead_reminder" && (
+                    <span className="text-xs text-amber-500 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Entrar em contato
                     </span>
                   )}
                 </div>
