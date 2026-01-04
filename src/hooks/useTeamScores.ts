@@ -49,13 +49,22 @@ const GOALS = {
   goal3: 3000000,
 };
 
-export const useTeamScores = (userTeamId?: string | null) => {
+export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number, selectedYear?: number) => {
   const [teams, setTeams] = useState<TeamScore[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalClinicRevenue, setTotalClinicRevenue] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Use current month/year if not specified
+  const currentDate = new Date();
+  const month = selectedMonth ?? (currentDate.getMonth() + 1);
+  const year = selectedYear ?? currentDate.getFullYear();
+  
+  // Calculate date range for filtering
+  const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+  const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
   
   // Track previous state for celebrations
   const previousLeaderId = useRef<string | null>(null);
@@ -94,14 +103,14 @@ export const useTeamScores = (userTeamId?: string | null) => {
         { data: allSpecialEvents },
         { data: allCancellations },
       ] = await Promise.all([
-        supabase.from("revenue_records").select("*"),
-        supabase.from("nps_records").select("*"),
-        supabase.from("testimonial_records").select("*"),
-        supabase.from("referral_records").select("*"),
-        supabase.from("other_indicators").select("*"),
-        supabase.from("cards").select("*"),
-        supabase.from("special_events").select("*"),
-        supabase.from("cancellations").select("*").in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]),
+        supabase.from("revenue_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
+        supabase.from("nps_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
+        supabase.from("testimonial_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
+        supabase.from("referral_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
+        supabase.from("other_indicators").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
+        supabase.from("cards").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
+        supabase.from("special_events").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
+        supabase.from("cancellations").select("*").in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]).gte("cancellation_request_date", startOfMonth).lte("cancellation_request_date", endOfMonth),
       ]);
 
       for (const team of teamsData) {
@@ -373,7 +382,7 @@ export const useTeamScores = (userTeamId?: string | null) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [startOfMonth, endOfMonth]);
 
   useEffect(() => {
     calculateScores();
@@ -393,7 +402,7 @@ export const useTeamScores = (userTeamId?: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [calculateScores]);
+  }, [calculateScores, month, year]);
 
   // Manual celebration trigger for testing
   const triggerCelebration = useCallback((type: "goal" | "leadership" | "gold") => {
