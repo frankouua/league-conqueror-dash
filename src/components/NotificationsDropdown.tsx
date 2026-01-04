@@ -175,6 +175,11 @@ const NotificationsDropdown = () => {
         return <Target className="w-4 h-4 text-cyan-500" />;
       case "lead_reminder":
         return <Bell className="w-4 h-4 text-amber-500" />;
+      // Timed reminders
+      case "lead_reminder_2h":
+        return <Flame className="w-4 h-4 text-red-500" />;
+      case "lead_reminder_24h":
+        return <AlertTriangle className="w-4 h-4 text-orange-500" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -209,7 +214,9 @@ const NotificationsDropdown = () => {
         notification.type === "lead_milestone" ||
         notification.type === "lead_alert" ||
         notification.type === "lead_status_update" ||
-        notification.type === "lead_reminder") {
+        notification.type === "lead_reminder" ||
+        notification.type === "lead_reminder_2h" ||
+        notification.type === "lead_reminder_24h") {
       navigate("/referral-leads");
     } else if (notification.type === "goal_reminder" || notification.type === "goal_near") {
       navigate("/onboarding-goals");
@@ -288,7 +295,7 @@ const NotificationsDropdown = () => {
               key={notification.id}
             className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""} ${notification.type === "new_referral" ? "hover:bg-green-500/10 border-l-2 border-green-500" : ""} ${notification.type === "lead_milestone" ? "hover:bg-emerald-500/10 border-l-2 border-emerald-500" : ""} ${notification.type === "lead_assigned" ? "hover:bg-blue-500/10 border-l-2 border-blue-500" : ""} ${notification.type === "lead_alert" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""}`}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""} ${notification.type === "new_referral" ? "hover:bg-green-500/10 border-l-2 border-green-500" : ""} ${notification.type === "lead_milestone" ? "hover:bg-emerald-500/10 border-l-2 border-emerald-500" : ""} ${notification.type === "lead_assigned" ? "hover:bg-blue-500/10 border-l-2 border-blue-500" : ""} ${notification.type === "lead_alert" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "lead_reminder_2h" ? "hover:bg-red-500/10 border-l-2 border-red-500 animate-pulse" : ""} ${notification.type === "lead_reminder_24h" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
