@@ -44,16 +44,40 @@ const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
     },
   });
 
-  // Map database department values to goal department names
-  const departmentMapping: Record<string, string> = {
-    "cirurgia_plastica": "Cirurgia Plástica",
-    "consulta_cirurgia_plastica": "Consulta Cirurgia Plástica",
-    "pos_operatorio": "Pós Operatório",
-    "soroterapia_protocolos": "Soroterapia / Protocolos Nutricionais",
-    "harmonizacao_facial_corporal": "Harmonização Facial e Corporal",
-    "spa_estetica": "Spa e Estética",
-    "unique_travel": "Unique Travel Experience",
-    "luxskin": "Luxskin",
+  // Map various department name formats to goal department names
+  // This handles both snake_case values and original Portuguese names from spreadsheets
+  const normalizeDepartmentName = (dept: string | null): string => {
+    if (!dept) return "";
+    const deptLower = dept.toLowerCase().trim();
+    
+    // Map to standard department goal names
+    if (deptLower.includes("cirurgia") && deptLower.includes("plástica") || deptLower === "cirurgia_plastica" || deptLower === "cirurgia plastica") {
+      return "Cirurgia Plástica";
+    }
+    if (deptLower.includes("consulta") && (deptLower.includes("cirurgia") || deptLower.includes("plástica")) || deptLower === "consulta_cirurgia_plastica") {
+      return "Consulta Cirurgia Plástica";
+    }
+    if (deptLower.includes("pós") && deptLower.includes("operat") || deptLower === "pos_operatorio" || deptLower.includes("pos operatorio") || deptLower.includes("pós operatório")) {
+      return "Pós Operatório";
+    }
+    if (deptLower.includes("soroterapia") || deptLower.includes("protocolo") || deptLower.includes("nutricional") || deptLower === "soroterapia_protocolos") {
+      return "Soroterapia / Protocolos Nutricionais";
+    }
+    if (deptLower.includes("harmoniza") || deptLower === "harmonizacao_facial_corporal") {
+      return "Harmonização Facial e Corporal";
+    }
+    if (deptLower.includes("spa") || (deptLower.includes("estética") || deptLower.includes("estetica")) || deptLower === "spa_estetica") {
+      return "Spa e Estética";
+    }
+    if (deptLower.includes("travel") || deptLower.includes("unique") || deptLower === "unique_travel") {
+      return "Unique Travel Experience";
+    }
+    if (deptLower.includes("luxskin") || deptLower === "luxskin") {
+      return "Luxskin";
+    }
+    
+    // Return original if no match found
+    return dept;
   };
 
   // Calculate revenue per department
@@ -62,8 +86,8 @@ const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
     
     // Find matching revenue records
     const matchingRevenue = revenueByDepartment.filter(r => {
-      const mappedName = departmentMapping[r.department || ""] || "";
-      return mappedName === departmentName;
+      const normalizedDept = normalizeDepartmentName(r.department);
+      return normalizedDept === departmentName;
     });
     
     return matchingRevenue.reduce((sum, r) => sum + Number(r.amount), 0);
@@ -197,47 +221,61 @@ const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
                   Departamento
                 </th>
                 <th className="text-right py-3 px-2 text-sm font-semibold text-muted-foreground">
+                  Atual
+                </th>
+                <th className="text-right py-3 px-2 text-sm font-semibold text-muted-foreground">
                   Meta 1
                 </th>
                 <th className="text-right py-3 px-2 text-sm font-semibold text-muted-foreground">
-                  Meta 2
-                </th>
-                <th className="text-right py-3 px-2 text-sm font-semibold text-muted-foreground">
-                  Meta 3
+                  %
                 </th>
               </tr>
             </thead>
             <tbody>
-              {departmentGoals.map((goal) => (
-                <tr key={goal.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="py-3 px-2">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-primary" />
-                      <span className="font-medium text-sm">{goal.department_name}</span>
-                    </div>
-                  </td>
-                  <td className="text-right py-3 px-2 text-sm text-success font-medium">
-                    {formatCurrency(Number(goal.meta1_goal))}
-                  </td>
-                  <td className="text-right py-3 px-2 text-sm text-success font-medium">
-                    {formatCurrency(Number(goal.meta2_goal))}
-                  </td>
-                  <td className="text-right py-3 px-2 text-sm text-primary font-medium">
-                    {formatCurrency(Number(goal.meta3_goal))}
-                  </td>
-                </tr>
-              ))}
+              {departmentGoals.map((goal) => {
+                const deptRevenue = getDepartmentRevenue(goal.department_name);
+                const percent = getProgressPercent(deptRevenue, Number(goal.meta1_goal));
+                const achieved = deptRevenue >= Number(goal.meta1_goal);
+                
+                return (
+                  <tr key={goal.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        {achieved ? (
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        ) : (
+                          <Target className="w-4 h-4 text-primary" />
+                        )}
+                        <span className="font-medium text-sm">{goal.department_name}</span>
+                      </div>
+                    </td>
+                    <td className={`text-right py-3 px-2 text-sm font-medium ${achieved ? 'text-success' : 'text-foreground'}`}>
+                      {formatCurrency(deptRevenue)}
+                    </td>
+                    <td className="text-right py-3 px-2 text-sm text-muted-foreground">
+                      {formatCurrency(Number(goal.meta1_goal))}
+                    </td>
+                    <td className={`text-right py-3 px-2 text-sm font-bold ${
+                      achieved ? 'text-success' : percent >= 70 ? 'text-amber-500' : 'text-destructive'
+                    }`}>
+                      {percent}%
+                    </td>
+                  </tr>
+                );
+              })}
               {/* Total Row */}
               <tr className="bg-muted/50 font-bold">
                 <td className="py-3 px-2 text-sm">TOTAL</td>
-                <td className="text-right py-3 px-2 text-sm text-success">
+                <td className={`text-right py-3 px-2 text-sm ${totalRevenue >= totalMeta1 ? 'text-success' : 'text-foreground'}`}>
+                  {formatCurrency(totalRevenue)}
+                </td>
+                <td className="text-right py-3 px-2 text-sm text-muted-foreground">
                   {formatCurrency(totalMeta1)}
                 </td>
-                <td className="text-right py-3 px-2 text-sm text-success">
-                  {formatCurrency(totalMeta2)}
-                </td>
-                <td className="text-right py-3 px-2 text-sm text-primary">
-                  {formatCurrency(totalMeta3)}
+                <td className={`text-right py-3 px-2 text-sm ${
+                  totalRevenue >= totalMeta1 ? 'text-success' : getProgressPercent(totalRevenue, totalMeta1) >= 70 ? 'text-amber-500' : 'text-destructive'
+                }`}>
+                  {getProgressPercent(totalRevenue, totalMeta1)}%
                 </td>
               </tr>
             </tbody>
