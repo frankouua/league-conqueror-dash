@@ -611,6 +611,65 @@ const RFVDashboard = () => {
   const hasActiveFilters = filterMinValue || filterMaxValue || filterMinDays || filterMaxDays || 
     filterDateFrom || filterDateTo || searchName || selectedSegment !== 'all';
 
+  const exportToExcel = () => {
+    if (filteredCustomers.length === 0) {
+      toast({
+        title: "Nenhum cliente para exportar",
+        description: "Não há clientes correspondentes aos filtros atuais.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = filteredCustomers.map(customer => ({
+      "Nome": customer.name,
+      "Email": customer.email || "",
+      "Telefone": customer.phone || "",
+      "Total de Compras": customer.totalPurchases,
+      "Valor Total (R$)": customer.totalValue.toFixed(2),
+      "Ticket Médio (R$)": customer.averageTicket.toFixed(2),
+      "Primeira Compra": customer.firstPurchaseDate || "",
+      "Última Compra": customer.lastPurchaseDate,
+      "Dias Sem Compra": customer.daysSinceLastPurchase,
+      "Score Recência (R)": customer.recencyScore,
+      "Score Frequência (F)": customer.frequencyScore,
+      "Score Valor (V)": customer.valueScore,
+      "Score Total": customer.recencyScore + customer.frequencyScore + customer.valueScore,
+      "Segmento": RFV_SEGMENTS[customer.segment].name,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes RFV");
+
+    // Auto-size columns
+    const colWidths = [
+      { wch: 30 }, // Nome
+      { wch: 25 }, // Email
+      { wch: 15 }, // Telefone
+      { wch: 16 }, // Total de Compras
+      { wch: 16 }, // Valor Total
+      { wch: 16 }, // Ticket Médio
+      { wch: 14 }, // Primeira Compra
+      { wch: 14 }, // Última Compra
+      { wch: 16 }, // Dias Sem Compra
+      { wch: 18 }, // Score Recência
+      { wch: 20 }, // Score Frequência
+      { wch: 16 }, // Score Valor
+      { wch: 12 }, // Score Total
+      { wch: 15 }, // Segmento
+    ];
+    worksheet["!cols"] = colWidths;
+
+    const fileName = `clientes_rfv_${new Date().toISOString().split("T")[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    
+    toast({
+      title: "Exportação concluída",
+      description: `${filteredCustomers.length} clientes exportados para ${fileName}`,
+    });
+  };
+
   const segmentStats = getSegmentStats();
 
   const pieChartData = Object.entries(segmentStats)
@@ -983,12 +1042,18 @@ const RFVDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Customer List */}
               <Card className="lg:col-span-2">
-                <CardHeader>
+              <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>
                       {selectedSegment === 'all' ? 'Todos os Clientes' : RFV_SEGMENTS[selectedSegment].name}
                     </span>
-                    <Badge variant="outline">{filteredCustomers.length} clientes</Badge>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={exportToExcel}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Exportar Excel
+                      </Button>
+                      <Badge variant="outline">{filteredCustomers.length} clientes</Badge>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
