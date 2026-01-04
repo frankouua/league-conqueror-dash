@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, PartyPopper, Clock, Calendar } from "lucide-react";
+import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Header from "@/components/Header";
@@ -18,11 +18,14 @@ import QuickInsightsPanel from "@/components/QuickInsightsPanel";
 import GoalAchievementSummary from "@/components/GoalAchievementSummary";
 import { SoldVsExecutedPanel } from "@/components/SoldVsExecutedPanel";
 import { GoalConfirmationDialog } from "@/components/GoalConfirmationDialog";
+import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
+import SellerDashboard from "@/components/SellerDashboard";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
 
 const MONTHS = [
@@ -46,6 +49,7 @@ const Index = () => {
   const { role, profile } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [activeTab, setActiveTab] = useState("times");
   
   const isCurrentPeriod = selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear();
   
@@ -87,24 +91,21 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <div className="text-center mb-12 animate-slide-up">
+        <div className="text-center mb-8 animate-slide-up">
           <img 
             src={copaLogo} 
             alt="Copa Unique League 2026" 
-            className="h-32 md:h-40 mx-auto mb-6 trophy-glow"
+            className="h-24 md:h-32 mx-auto mb-4 trophy-glow"
           />
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gradient-gold mb-2">
-            Ranking Ao Vivo
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gradient-gold mb-2">
+            Dashboard Central
           </h1>
           <p className="text-primary font-semibold text-lg mb-2">
-            A Disputa pela Excelência CPI
-          </p>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Acompanhe a competição em tempo real. Cada atendimento importa. Cada sonho realizado vale ouro.
+            Copa Unique League 2026
           </p>
           
           {/* Period Selector */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
               <Calendar className="w-4 h-4 text-primary" />
               <span className="text-sm text-muted-foreground">Período:</span>
@@ -137,7 +138,6 @@ const Index = () => {
 
           {/* Live Indicator & Last Updated */}
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-            {/* Live Indicator - only show for current period */}
             {isCurrentPeriod && (
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30">
                 <span className="relative flex h-3 w-3">
@@ -150,7 +150,6 @@ const Index = () => {
               </div>
             )}
             
-            {/* Period indicator for past months */}
             {!isCurrentPeriod && (
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30">
                 <Clock className="w-4 h-4 text-amber-500" />
@@ -160,7 +159,6 @@ const Index = () => {
               </div>
             )}
             
-            {/* Last Updated */}
             {lastUpdated && isCurrentPeriod && (
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
                 <Clock className="w-4 h-4 text-primary" />
@@ -176,7 +174,7 @@ const Index = () => {
 
           {/* Celebration Test Button - Admin Only */}
           {role === "admin" && (
-            <div className="mt-6 flex justify-center gap-2">
+            <div className="mt-4 flex justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -190,149 +188,163 @@ const Index = () => {
           )}
         </div>
 
-        {/* Team Badges Display - TV Optimized */}
-        <div className="mb-8 animate-scale-in" style={{ animationDelay: "50ms" }}>
-          <TeamBadgesDisplay 
-            layout="tv" 
-            size="xl" 
-            winningTeam={
-              team1 && team2 
-                ? team1.totalPoints > team2.totalPoints 
-                  ? team1.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
-                  : team2.totalPoints > team1.totalPoints
-                  ? team2.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
-                  : "tie"
-                : null
-            }
-            team1={team1 ? {
-              name: team1.name,
-              totalPoints: team1.totalPoints,
-              totalRevenue: team1.totalRevenue
-            } : null}
-            team2={team2 ? {
-              name: team2.name,
-              totalPoints: team2.totalPoints,
-              totalRevenue: team2.totalRevenue
-            } : null}
-          />
-        </div>
-        <div className="mb-8 animate-slide-up" style={{ animationDelay: "100ms" }}>
-          <TimeCounters
-            daysRemainingMonth={daysRemainingMonth}
-            daysRemainingSemester={daysRemainingSemester > 0 ? daysRemainingSemester : 0}
-            daysRemainingYear={daysRemainingYear}
-          />
-        </div>
+        {/* Main Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-2xl md:mx-auto md:grid-cols-4 gap-1 bg-muted/50 p-1 rounded-xl">
+              <TabsTrigger 
+                value="times" 
+                className="whitespace-nowrap text-sm px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Trophy className="w-4 h-4" />
+                Times
+              </TabsTrigger>
+              <TabsTrigger 
+                value="vendido-executado" 
+                className="whitespace-nowrap text-sm px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <TrendingUp className="w-4 h-4" />
+                Vendido vs Executado
+              </TabsTrigger>
+              <TabsTrigger 
+                value="vendedoras" 
+                className="whitespace-nowrap text-sm px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Users className="w-4 h-4" />
+                Por Vendedora
+              </TabsTrigger>
+              <TabsTrigger 
+                value="departamentos" 
+                className="whitespace-nowrap text-sm px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Building2 className="w-4 h-4" />
+                Por Departamento
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        {/* Team Rankings */}
-        {teams.length >= 2 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="animate-scale-in" style={{ animationDelay: "200ms" }}>
-              <TeamRankingCard
-                position={1}
-                teamName={team1.name}
-                totalPoints={team1.totalPoints}
-                revenuePoints={team1.revenuePoints}
-                qualityPoints={team1.qualityPoints}
-                modifierPoints={team1.modifierPoints}
-                totalRevenue={team1.totalRevenue}
-                pointsDifference={pointsDifference}
-                isLeading={true}
+          {/* TIMES TAB - Team Rankings & General Stats */}
+          <TabsContent value="times" className="space-y-8 animate-fade-in">
+            {/* Team Badges Display */}
+            <div className="animate-scale-in">
+              <TeamBadgesDisplay 
+                layout="tv" 
+                size="xl" 
+                winningTeam={
+                  team1 && team2 
+                    ? team1.totalPoints > team2.totalPoints 
+                      ? team1.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
+                      : team2.totalPoints > team1.totalPoints
+                      ? team2.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
+                      : "tie"
+                    : null
+                }
+                team1={team1 ? {
+                  name: team1.name,
+                  totalPoints: team1.totalPoints,
+                  totalRevenue: team1.totalRevenue
+                } : null}
+                team2={team2 ? {
+                  name: team2.name,
+                  totalPoints: team2.totalPoints,
+                  totalRevenue: team2.totalRevenue
+                } : null}
               />
             </div>
-            <div className="animate-scale-in" style={{ animationDelay: "300ms" }}>
-              <TeamRankingCard
-                position={2}
-                teamName={team2.name}
-                totalPoints={team2.totalPoints}
-                revenuePoints={team2.revenuePoints}
-                qualityPoints={team2.qualityPoints}
-                modifierPoints={team2.modifierPoints}
-                totalRevenue={team2.totalRevenue}
-                pointsDifference={-pointsDifference}
-                isLeading={false}
+
+            <TimeCounters
+              daysRemainingMonth={daysRemainingMonth}
+              daysRemainingSemester={daysRemainingSemester > 0 ? daysRemainingSemester : 0}
+              daysRemainingYear={daysRemainingYear}
+            />
+
+            {/* Team Rankings */}
+            {teams.length >= 2 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <TeamRankingCard
+                  position={1}
+                  teamName={team1.name}
+                  totalPoints={team1.totalPoints}
+                  revenuePoints={team1.revenuePoints}
+                  qualityPoints={team1.qualityPoints}
+                  modifierPoints={team1.modifierPoints}
+                  totalRevenue={team1.totalRevenue}
+                  pointsDifference={pointsDifference}
+                  isLeading={true}
+                />
+                <TeamRankingCard
+                  position={2}
+                  teamName={team2.name}
+                  totalPoints={team2.totalPoints}
+                  revenuePoints={team2.revenuePoints}
+                  qualityPoints={team2.qualityPoints}
+                  modifierPoints={team2.modifierPoints}
+                  totalRevenue={team2.totalRevenue}
+                  pointsDifference={-pointsDifference}
+                  isLeading={false}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gradient-card rounded-2xl border border-border">
+                <p className="text-muted-foreground">
+                  Nenhuma equipe cadastrada ainda.
+                </p>
+              </div>
+            )}
+
+            {/* Quick Insights & Team Comparison */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <QuickInsightsPanel month={selectedMonth} year={selectedYear} />
+              <TeamComparisonCard />
+            </div>
+
+            {/* Champions & Streak Records */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChampionsDisplay />
+              <StreakRecordsDisplay />
+            </div>
+
+            {/* Team Prizes */}
+            <TeamPrizesDisplay />
+
+            {/* Clinic Goals & Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ClinicGoalsCard
+                currentRevenue={totalClinicRevenue}
+                goal1={2500000}
+                goal2={2700000}
+                goal3={3000000}
+              />
+              <EvolutionChart
+                data={chartData}
+                team1Name={team1?.name || "Lioness Team"}
+                team2Name={team2?.name || "Tróia Team"}
               />
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-12 mb-8 bg-gradient-card rounded-2xl border border-border">
-            <p className="text-muted-foreground">
-              Nenhuma equipe cadastrada ainda. Entre em contato com o administrador.
-            </p>
-          </div>
-        )}
 
-        {/* Quick Insights & Team Comparison */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="animate-slide-up" style={{ animationDelay: "350ms" }}>
-            <QuickInsightsPanel month={selectedMonth} year={selectedYear} />
-          </div>
-          <div className="animate-slide-up" style={{ animationDelay: "375ms" }}>
-            <TeamComparisonCard />
-          </div>
-        </div>
+            {/* Recent Achievements */}
+            {achievements.length > 0 && (
+              <RecentAchievements achievements={achievements} />
+            )}
+          </TabsContent>
 
-        {/* Champions & Streak Records */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="animate-slide-up" style={{ animationDelay: "400ms" }}>
-            <ChampionsDisplay />
-          </div>
-          <div className="animate-slide-up" style={{ animationDelay: "450ms" }}>
-            <StreakRecordsDisplay />
-          </div>
-        </div>
+          {/* VENDIDO VS EXECUTADO TAB */}
+          <TabsContent value="vendido-executado" className="space-y-8 animate-fade-in">
+            <SoldVsExecutedPanel month={selectedMonth} year={selectedYear} />
+            <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
+            <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
+          </TabsContent>
 
-        {/* Team Prizes */}
-        <div className="mb-8 animate-slide-up" style={{ animationDelay: "475ms" }}>
-          <TeamPrizesDisplay />
-        </div>
+          {/* POR VENDEDORA TAB */}
+          <TabsContent value="vendedoras" className="space-y-8 animate-fade-in">
+            <SellerDashboard month={selectedMonth} year={selectedYear} />
+          </TabsContent>
 
-        {/* Clinic Goals & Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="animate-slide-up" style={{ animationDelay: "500ms" }}>
-            <ClinicGoalsCard
-              currentRevenue={totalClinicRevenue}
-              goal1={2500000}
-              goal2={2700000}
-              goal3={3000000}
-            />
-          </div>
-          <div className="animate-slide-up" style={{ animationDelay: "550ms" }}>
-            <EvolutionChart
-              data={chartData}
-              team1Name={team1?.name || "Lioness Team"}
-              team2Name={team2?.name || "Tróia Team"}
-            />
-          </div>
-        </div>
-
-        {/* Sold vs Executed Comparison */}
-        <div className="mb-8 animate-slide-up" style={{ animationDelay: "575ms" }}>
-          <SoldVsExecutedPanel month={selectedMonth} year={selectedYear} />
-        </div>
-
-        {/* Goal Achievement Summary */}
-        <div className="mb-8 animate-slide-up" style={{ animationDelay: "600ms" }}>
-          <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
-        </div>
-
-        {/* Department Goals */}
-        <div className="mb-8 animate-slide-up" style={{ animationDelay: "600ms" }}>
-          <DepartmentGoalsCard month={selectedMonth} year={selectedYear} />
-        </div>
-
-        {/* Recent Achievements */}
-        <div className="animate-slide-up" style={{ animationDelay: "600ms" }}>
-          {achievements.length > 0 ? (
-            <RecentAchievements achievements={achievements} />
-          ) : (
-            <div className="bg-gradient-card rounded-2xl p-6 border border-border text-center">
-              <p className="text-muted-foreground">
-                Nenhuma conquista registrada ainda. Comece registrando indicadores!
-              </p>
-            </div>
-          )}
-        </div>
+          {/* POR DEPARTAMENTO TAB */}
+          <TabsContent value="departamentos" className="space-y-8 animate-fade-in">
+            <DepartmentGoalsCard month={selectedMonth} year={selectedYear} />
+          </TabsContent>
+        </Tabs>
 
         {/* Footer */}
         <footer className="mt-16 pb-8 text-center">

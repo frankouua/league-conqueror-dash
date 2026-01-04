@@ -84,7 +84,6 @@ const Header = () => {
     { path: "/patient-kanban", label: "Jornada", icon: Route },
     { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
     { path: "/data-reports", label: "Relatórios", icon: FileText },
-    { path: "/performance", label: "Desempenho", icon: BarChart3 },
     { path: "/guides", label: "Guias", icon: BookOpen },
     { path: "/guias-comerciais", label: "Scripts", icon: MessageSquareText },
     { path: "/assistente-comercial", label: "IA Coach", icon: Bot },
