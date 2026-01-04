@@ -1038,6 +1038,66 @@ export type Database = {
           },
         ]
       }
+      rfv_customers: {
+        Row: {
+          average_ticket: number
+          created_at: string
+          created_by: string | null
+          days_since_last_purchase: number
+          email: string | null
+          first_purchase_date: string
+          frequency_score: number
+          id: string
+          last_purchase_date: string
+          name: string
+          phone: string | null
+          recency_score: number
+          segment: string
+          total_purchases: number
+          total_value: number
+          updated_at: string
+          value_score: number
+        }
+        Insert: {
+          average_ticket?: number
+          created_at?: string
+          created_by?: string | null
+          days_since_last_purchase?: number
+          email?: string | null
+          first_purchase_date: string
+          frequency_score?: number
+          id?: string
+          last_purchase_date: string
+          name: string
+          phone?: string | null
+          recency_score?: number
+          segment?: string
+          total_purchases?: number
+          total_value?: number
+          updated_at?: string
+          value_score?: number
+        }
+        Update: {
+          average_ticket?: number
+          created_at?: string
+          created_by?: string | null
+          days_since_last_purchase?: number
+          email?: string | null
+          first_purchase_date?: string
+          frequency_score?: number
+          id?: string
+          last_purchase_date?: string
+          name?: string
+          phone?: string | null
+          recency_score?: number
+          segment?: string
+          total_purchases?: number
+          total_value?: number
+          updated_at?: string
+          value_score?: number
+        }
+        Relationships: []
+      }
       special_events: {
         Row: {
           applied_by: string

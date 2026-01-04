@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,11 @@ import {
   Upload, FileSpreadsheet, AlertCircle, Loader2, Users, TrendingUp, 
   Target, Phone, Gift, Heart, RefreshCw, Crown, Zap, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Clock, DollarSign, Calendar, Star,
-  MessageSquare, Mail, Sparkles, CheckCircle2
+  MessageSquare, Mail, Sparkles, CheckCircle2, Database, Save
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import * as XLSX from "xlsx";
 import { 
@@ -135,9 +136,11 @@ const RFV_SEGMENTS = {
 type RFVSegment = keyof typeof RFV_SEGMENTS;
 
 interface RFVCustomer {
+  id?: string;
   name: string;
   phone?: string;
   email?: string;
+  firstPurchaseDate?: string;
   lastPurchaseDate: string;
   totalPurchases: number;
   totalValue: number;
@@ -162,6 +165,8 @@ const RFVDashboard = () => {
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [customers, setCustomers] = useState<RFVCustomer[]>([]);
   const [availableColumns, setAvailableColumns] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
@@ -175,6 +180,60 @@ const RFVDashboard = () => {
   const [rawData, setRawData] = useState<Record<string, any>[]>([]);
   const [selectedSegment, setSelectedSegment] = useState<RFVSegment | 'all'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<RFVCustomer | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Load existing RFV data from database on mount
+  useEffect(() => {
+    loadExistingData();
+  }, []);
+
+  const loadExistingData = async () => {
+    setIsLoadingData(true);
+    try {
+      const { data, error } = await supabase
+        .from('rfv_customers')
+        .select('*')
+        .order('total_value', { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const loadedCustomers: RFVCustomer[] = data.map(row => ({
+          id: row.id,
+          name: row.name,
+          phone: row.phone || undefined,
+          email: row.email || undefined,
+          firstPurchaseDate: row.first_purchase_date,
+          lastPurchaseDate: row.last_purchase_date,
+          totalPurchases: row.total_purchases,
+          totalValue: Number(row.total_value),
+          averageTicket: Number(row.average_ticket),
+          recencyScore: row.recency_score,
+          frequencyScore: row.frequency_score,
+          valueScore: row.value_score,
+          segment: row.segment as RFVSegment,
+          daysSinceLastPurchase: row.days_since_last_purchase,
+        }));
+
+        // Recalculate days since last purchase
+        const now = new Date();
+        loadedCustomers.forEach(c => {
+          c.daysSinceLastPurchase = Math.floor(
+            (now.getTime() - new Date(c.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24)
+          );
+        });
+
+        setCustomers(loadedCustomers);
+        toast({
+          title: "Dados carregados",
+          description: `${loadedCustomers.length} clientes encontrados no banco`,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading RFV data:', error);
+    }
+    setIsLoadingData(false);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -395,6 +454,7 @@ const RFVDashboard = () => {
 
       setCustomers(rfvCustomers);
       setShowColumnMapping(false);
+      setHasUnsavedChanges(true);
 
       const segmentCounts = rfvCustomers.reduce((acc, c) => {
         acc[c.segment] = (acc[c.segment] || 0) + 1;
@@ -403,7 +463,7 @@ const RFVDashboard = () => {
 
       toast({
         title: "Análise RFV concluída",
-        description: `${rfvCustomers.length} clientes classificados em ${Object.keys(segmentCounts).length} segmentos`,
+        description: `${rfvCustomers.length} clientes classificados. Clique em "Salvar no Banco" para persistir.`,
       });
     } catch (error) {
       console.error('Error processing data:', error);
@@ -415,6 +475,71 @@ const RFVDashboard = () => {
     }
 
     setIsProcessing(false);
+  };
+
+  const saveToDatabase = async () => {
+    if (customers.length === 0) return;
+
+    setIsSaving(true);
+    let inserted = 0;
+    let updated = 0;
+    let errors = 0;
+
+    try {
+      for (const customer of customers) {
+        const customerData = {
+          name: customer.name.toLowerCase().trim(),
+          phone: customer.phone || null,
+          email: customer.email || null,
+          first_purchase_date: customer.firstPurchaseDate || customer.lastPurchaseDate,
+          last_purchase_date: customer.lastPurchaseDate,
+          total_purchases: customer.totalPurchases,
+          total_value: customer.totalValue,
+          average_ticket: customer.averageTicket,
+          recency_score: customer.recencyScore,
+          frequency_score: customer.frequencyScore,
+          value_score: customer.valueScore,
+          segment: customer.segment,
+          days_since_last_purchase: customer.daysSinceLastPurchase,
+          created_by: user?.id,
+        };
+
+        // Try to upsert (insert or update on conflict)
+        const { error } = await supabase
+          .from('rfv_customers')
+          .upsert(customerData, { onConflict: 'name' });
+
+        if (error) {
+          console.error('Error saving customer:', customer.name, error);
+          errors++;
+        } else {
+          if (customer.id) {
+            updated++;
+          } else {
+            inserted++;
+          }
+        }
+      }
+
+      setHasUnsavedChanges(false);
+      
+      toast({
+        title: "Dados salvos com sucesso!",
+        description: `${inserted} novos, ${updated} atualizados, ${errors} erros`,
+      });
+
+      // Reload data to get IDs
+      await loadExistingData();
+    } catch (error) {
+      console.error('Error saving to database:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar os dados.",
+        variant: "destructive",
+      });
+    }
+
+    setIsSaving(false);
   };
 
   const getSegmentStats = () => {
@@ -600,6 +725,27 @@ const RFVDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Save Button and Stats */}
+        {hasUnsavedChanges && customers.length > 0 && (
+          <Alert className="mb-6 border-primary bg-primary/10">
+            <Save className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Você tem {customers.length} clientes processados. Salve para persistir os dados.</span>
+              <Button onClick={saveToDatabase} disabled={isSaving} className="ml-4">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
+                Salvar no Banco
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isLoadingData && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mr-2" />
+            <span>Carregando dados existentes...</span>
+          </div>
+        )}
 
         {customers.length > 0 && (
           <>
