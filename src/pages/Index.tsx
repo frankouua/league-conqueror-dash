@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, BarChart3 } from "lucide-react";
+import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp } from "lucide-react";
+import { MonthlyTeamRankingChart } from "@/components/MonthlyTeamRankingChart";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Header from "@/components/Header";
@@ -311,6 +312,9 @@ const Index = () => {
               <QuickInsightsPanel month={selectedMonth} year={selectedYear} />
               <TeamComparisonCard />
             </div>
+
+            {/* Monthly Team Ranking Chart */}
+            <MonthlyTeamRankingChart />
 
             {/* Champions & Streak Records */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
