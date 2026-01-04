@@ -126,17 +126,45 @@ const SalesSpreadsheetUpload = () => {
         amount: '',
       };
 
+      // Feegow-specific column detection
       for (const col of columns) {
-        const colLower = col.toLowerCase();
-        if (colLower.includes('data') || colLower.includes('date')) {
-          autoMapping.date = col;
-        } else if (colLower.includes('depart') || colLower.includes('setor')) {
-          autoMapping.department = col;
-        } else if (colLower.includes('cliente') || colLower.includes('paciente') || colLower.includes('patient') || colLower.includes('client')) {
-          autoMapping.clientName = col;
-        } else if (colLower.includes('vendedor') || colLower.includes('seller') || colLower.includes('usuario') || colLower.includes('user') || colLower.includes('responsavel')) {
-          autoMapping.sellerName = col;
-        } else if (colLower.includes('valor') || colLower.includes('value') || colLower.includes('amount') || colLower.includes('total')) {
+        const colLower = col.toLowerCase().trim();
+        
+        // Date detection
+        if (colLower.includes('data') || colLower.includes('date') || colLower === 'dt') {
+          if (!autoMapping.date) autoMapping.date = col;
+        }
+        
+        // Department detection - includes "Grupo" which is Feegow's department field
+        if (colLower.includes('depart') || colLower.includes('setor') || 
+            colLower.includes('grupo') || colLower === 'grupo procedimento' || 
+            colLower.includes('segmento') || colLower.includes('grupo proc')) {
+          if (!autoMapping.department) autoMapping.department = col;
+        }
+        
+        // Client name detection - "Nome Conta" is Feegow's patient name
+        if (colLower.includes('cliente') || colLower.includes('paciente') || 
+            colLower.includes('patient') || colLower.includes('client') ||
+            colLower.includes('nome conta') || colLower === 'conta' ||
+            colLower === 'nome' || colLower.includes('nome do paciente')) {
+          if (!autoMapping.clientName) autoMapping.clientName = col;
+        }
+        
+        // Seller detection
+        if (colLower.includes('vendedor') || colLower.includes('seller') || 
+            colLower.includes('usuario') || colLower.includes('user') || 
+            colLower.includes('responsavel') || colLower.includes('atendente') ||
+            colLower.includes('consultor') || colLower.includes('profissional')) {
+          if (!autoMapping.sellerName) autoMapping.sellerName = col;
+        }
+        
+        // Amount detection - prioritize "valor pago" over "valor vendido"
+        if (colLower.includes('valor pago') || colLower === 'pago') {
+          autoMapping.amount = col; // Override any previous amount
+        } else if (!autoMapping.amount && (
+            colLower.includes('valor') || colLower.includes('value') || 
+            colLower.includes('amount') || colLower.includes('total') ||
+            colLower.includes('vendido'))) {
           autoMapping.amount = col;
         }
       }
@@ -159,20 +187,51 @@ const SalesSpreadsheetUpload = () => {
     setIsProcessing(false);
   };
 
+  // Normalize client name for unique identification
+  const normalizeClientName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .replace(/\s+/g, ' '); // Normalize spaces
+  };
+
   const calculateMetrics = (sales: ParsedSale[]): SalesMetrics => {
     const validSales = sales.filter(s => s.status !== 'error' && s.amount > 0);
     
     const totalSales = validSales.length;
     const totalRevenue = validSales.reduce((sum, s) => sum + s.amount, 0);
-    const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
     
-    const uniqueClients = new Set(validSales.map(s => s.clientName.toLowerCase().trim()).filter(Boolean)).size;
+    // Calculate unique clients by normalized name
+    const clientMap = new Map<string, { name: string; totalValue: number; purchases: number }>();
+    for (const sale of validSales) {
+      if (sale.clientName) {
+        const normalizedName = normalizeClientName(sale.clientName);
+        const existing = clientMap.get(normalizedName);
+        if (existing) {
+          existing.totalValue += sale.amount;
+          existing.purchases++;
+        } else {
+          clientMap.set(normalizedName, {
+            name: sale.clientName.trim(),
+            totalValue: sale.amount,
+            purchases: 1,
+          });
+        }
+      }
+    }
+    
+    const uniqueClients = clientMap.size;
     const uniqueSellers = new Set(validSales.map(s => s.sellerName.toLowerCase().trim()).filter(Boolean)).size;
+    
+    // Average ticket is total revenue divided by UNIQUE CLIENTS, not by sales count
+    const averageTicket = uniqueClients > 0 ? totalRevenue / uniqueClients : 0;
     
     // Sales by department
     const salesByDepartment: Record<string, { count: number; revenue: number }> = {};
     for (const sale of validSales) {
-      const dept = sale.department || 'Não informado';
+      const dept = sale.department?.trim() || 'Não informado';
       if (!salesByDepartment[dept]) {
         salesByDepartment[dept] = { count: 0, revenue: 0 };
       }
@@ -183,7 +242,7 @@ const SalesSpreadsheetUpload = () => {
     // Sales by seller
     const salesBySeller: Record<string, { count: number; revenue: number }> = {};
     for (const sale of validSales) {
-      const seller = sale.sellerName || 'Não informado';
+      const seller = sale.sellerName?.trim() || 'Não informado';
       if (!salesBySeller[seller]) {
         salesBySeller[seller] = { count: 0, revenue: 0 };
       }
@@ -191,20 +250,13 @@ const SalesSpreadsheetUpload = () => {
       salesBySeller[seller].revenue += sale.amount;
     }
     
-    // Top clients by revenue
-    const clientRevenue: Record<string, { revenue: number; count: number }> = {};
-    for (const sale of validSales) {
-      if (sale.clientName) {
-        const client = sale.clientName.trim();
-        if (!clientRevenue[client]) {
-          clientRevenue[client] = { revenue: 0, count: 0 };
-        }
-        clientRevenue[client].revenue += sale.amount;
-        clientRevenue[client].count++;
-      }
-    }
-    const topClients = Object.entries(clientRevenue)
-      .map(([name, data]) => ({ name, ...data }))
+    // Top clients by revenue (using unique client data)
+    const topClients = Array.from(clientMap.values())
+      .map(client => ({
+        name: client.name,
+        revenue: client.totalValue,
+        count: client.purchases,
+      }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 10);
     
@@ -265,13 +317,34 @@ const SalesSpreadsheetUpload = () => {
         profileByName.set(p.full_name.toLowerCase().trim(), { user_id: p.user_id, team_id: p.team_id });
       });
 
-      const sales: ParsedSale[] = rawData.map((row) => {
+      // Filter out summary/total rows (usually at the end of Feegow exports)
+      const filteredData = rawData.filter((row) => {
+        const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '') : '';
+        const sellerName = String(row[columnMapping.sellerName] || '');
+        const clientLower = clientName.toLowerCase().trim();
+        const sellerLower = sellerName.toLowerCase().trim();
+        
+        // Skip rows that look like totals/summaries
+        const isTotalRow = 
+          clientLower.includes('total') || 
+          clientLower.includes('soma') || 
+          clientLower.includes('subtotal') ||
+          sellerLower.includes('total') || 
+          sellerLower.includes('soma') ||
+          sellerLower === '' && clientLower === '';
+        
+        return !isTotalRow;
+      });
+
+      console.log(`Filtered ${rawData.length - filteredData.length} total/summary rows`);
+
+      const sales: ParsedSale[] = filteredData.map((row) => {
         try {
           const dateValue = row[columnMapping.date];
           const sellerName = String(row[columnMapping.sellerName] || '').trim();
           const amountRaw = row[columnMapping.amount];
-          const department = columnMapping.department ? String(row[columnMapping.department] || '') : '';
-          const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '') : '';
+          const department = columnMapping.department ? String(row[columnMapping.department] || '').trim() : '';
+          const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '';
 
           // Parse date
           let parsedDate = '';
@@ -305,12 +378,21 @@ const SalesSpreadsheetUpload = () => {
             };
           }
 
-          // Parse amount
+          // Parse amount - handle Brazilian format (1.234,56)
           let amount = 0;
           if (typeof amountRaw === 'number') {
             amount = amountRaw;
           } else if (typeof amountRaw === 'string') {
-            const cleaned = amountRaw.replace(/[R$\s.]/g, '').replace(',', '.');
+            // Remove currency symbols and spaces, handle both 1.234,56 and 1,234.56
+            let cleaned = amountRaw.replace(/[R$\s]/g, '').trim();
+            // Check if it's Brazilian format (comma as decimal separator)
+            if (cleaned.includes(',') && cleaned.indexOf(',') > cleaned.lastIndexOf('.')) {
+              // Format: 1.234,56 - remove dots first, then replace comma with dot
+              cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+            } else if (cleaned.includes(',') && !cleaned.includes('.')) {
+              // Format: 1234,56 - just replace comma with dot
+              cleaned = cleaned.replace(',', '.');
+            }
             amount = parseFloat(cleaned) || 0;
           }
 
