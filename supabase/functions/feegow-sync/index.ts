@@ -108,8 +108,250 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // DIAGNOSE ACTION - Test /financial/sales endpoint
+    // EXPLORE-FINANCIAL ACTION - Explore financial/account endpoints
     // =====================================================
+    if (action === 'explore-financial') {
+      console.log('🔍 Exploring Feegow financial endpoints (contas a receber)...');
+      
+      const today = formatDateFeegow(new Date());
+      const lastMonth = formatDateFeegow(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+      
+      const results: Record<string, any> = {};
+
+      // Test 1: /financial/account/list - Listar contas (main endpoint for accounts receivable)
+      console.log('Testing /financial/account/list (POST)...');
+      try {
+        const accountListResponse = await fetch('https://api.feegow.com/v1/api/financial/account/list', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': feegowToken,
+          },
+          body: JSON.stringify({
+            data_start: lastMonth,
+            data_end: today,
+            tipo_transacao: 'C', // C = Contas a receber (Credit/Revenue)
+          }),
+        });
+
+        const accountListText = await accountListResponse.text();
+        let accountListData;
+        try {
+          accountListData = JSON.parse(accountListText);
+        } catch {
+          accountListData = { raw: accountListText.slice(0, 1000) };
+        }
+
+        // Analyze fields if data exists
+        let sampleAccounts: any[] = [];
+        let allKeys: string[] = [];
+        let userFields: string[] = [];
+        
+        if (accountListData.success && accountListData.content) {
+          const content = accountListData.content;
+          sampleAccounts = Array.isArray(content) ? content.slice(0, 3) : 
+                           (content.contas && Array.isArray(content.contas)) ? content.contas.slice(0, 3) :
+                           (content.accounts && Array.isArray(content.accounts)) ? content.accounts.slice(0, 3) : 
+                           (content.data && Array.isArray(content.data)) ? content.data.slice(0, 3) : [];
+          
+          if (sampleAccounts.length > 0) {
+            const firstAccount = sampleAccounts[0];
+            allKeys = Object.keys(firstAccount);
+            
+            // Look for user/seller fields
+            const userKeywords = ['usuario', 'user', 'vendedor', 'seller', 'funcionario', 'employee', 'responsavel', 'atendente', 'cadastrado', 'criado', 'sys_user', 'created'];
+            for (const key of allKeys) {
+              const keyLower = key.toLowerCase();
+              if (userKeywords.some(kw => keyLower.includes(kw))) {
+                userFields.push(`${key}: ${JSON.stringify(firstAccount[key])}`);
+              }
+            }
+          }
+        }
+
+        results['financial_account_list'] = {
+          status: accountListResponse.status,
+          success: accountListData.success || false,
+          recordCount: Array.isArray(accountListData.content) ? accountListData.content.length : 
+                       accountListData.content?.contas?.length || accountListData.content?.accounts?.length || accountListData.total || 0,
+          allKeys,
+          userFieldsFound: userFields,
+          sampleAccounts,
+        };
+
+        console.log(`/financial/account/list: ${accountListResponse.status} - Records: ${results['financial_account_list'].recordCount}`);
+      } catch (error: unknown) {
+        results['financial_account_list'] = {
+          status: 0,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+
+      // Test 2: /financial/account/list with different params
+      console.log('Testing /financial/account/list (GET with query)...');
+      try {
+        const accountGetResponse = await fetch(
+          `https://api.feegow.com/v1/api/financial/account/list?data_start=${lastMonth}&data_end=${today}&tipo_transacao=C`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-access-token': feegowToken,
+            },
+          }
+        );
+
+        const accountGetText = await accountGetResponse.text();
+        let accountGetData;
+        try {
+          accountGetData = JSON.parse(accountGetText);
+        } catch {
+          accountGetData = { raw: accountGetText.slice(0, 1000) };
+        }
+
+        results['financial_account_list_GET'] = {
+          status: accountGetResponse.status,
+          preview: typeof accountGetData === 'object' ? JSON.stringify(accountGetData).slice(0, 800) : accountGetText.slice(0, 800),
+        };
+      } catch (error: unknown) {
+        results['financial_account_list_GET'] = {
+          status: 0,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+
+      // Test 3: /financial/list-invoice with more detail
+      console.log('Testing /financial/list-invoice for user fields...');
+      try {
+        const invoiceResponse = await fetch(
+          `https://api.feegow.com/v1/api/financial/list-invoice?data_start=${lastMonth}&data_end=${today}&tipo_transacao=C`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-access-token': feegowToken,
+            },
+          }
+        );
+
+        const invoiceData = await invoiceResponse.json();
+        let sampleInvoices: any[] = [];
+        let allKeys: string[] = [];
+        let userFields: string[] = [];
+        
+        if (invoiceData.success && invoiceData.content) {
+          sampleInvoices = invoiceData.content.slice(0, 3);
+          if (sampleInvoices.length > 0) {
+            allKeys = Object.keys(sampleInvoices[0]);
+            const userKeywords = ['usuario', 'user', 'vendedor', 'seller', 'funcionario', 'employee', 'responsavel', 'atendente', 'cadastrado', 'criado', 'sys_user', 'created'];
+            for (const key of allKeys) {
+              const keyLower = key.toLowerCase();
+              if (userKeywords.some(kw => keyLower.includes(kw))) {
+                userFields.push(`${key}: ${JSON.stringify(sampleInvoices[0][key])}`);
+              }
+            }
+          }
+        }
+
+        results['financial_list_invoice'] = {
+          status: invoiceResponse.status,
+          success: invoiceData.success || false,
+          recordCount: invoiceData.content?.length || 0,
+          allKeys,
+          userFieldsFound: userFields,
+          sampleInvoices,
+        };
+      } catch (error: unknown) {
+        results['financial_list_invoice'] = {
+          status: 0,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+
+      // Test 4: /employee/list - Get employees/users
+      console.log('Testing /employee/list...');
+      try {
+        const employeeResponse = await fetch(
+          'https://api.feegow.com/v1/api/employee/list',
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-access-token': feegowToken,
+            },
+          }
+        );
+
+        const employeeData = await employeeResponse.json();
+        let sampleEmployees: any[] = [];
+        
+        if (employeeData.success && employeeData.content) {
+          sampleEmployees = employeeData.content.slice(0, 5).map((e: any) => ({
+            id: e.id || e.funcionario_id || e.user_id,
+            nome: e.nome || e.name || e.funcionario_nome,
+            tipo: e.tipo || e.type,
+            ativo: e.ativo ?? e.active,
+          }));
+        }
+
+        results['employee_list'] = {
+          status: employeeResponse.status,
+          success: employeeData.success || false,
+          recordCount: employeeData.content?.length || 0,
+          sampleEmployees,
+        };
+      } catch (error: unknown) {
+        results['employee_list'] = {
+          status: 0,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+
+      // Test 5: Try specific account details endpoint
+      console.log('Testing /financial/account-details...');
+      try {
+        const accountDetailsResponse = await fetch(
+          'https://api.feegow.com/v1/api/financial/account-details',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-access-token': feegowToken,
+            },
+            body: JSON.stringify({
+              data_start: lastMonth,
+              data_end: today,
+            }),
+          }
+        );
+
+        const accountDetailsText = await accountDetailsResponse.text();
+        results['financial_account_details'] = {
+          status: accountDetailsResponse.status,
+          preview: accountDetailsText.slice(0, 800),
+        };
+      } catch (error: unknown) {
+        results['financial_account_details'] = {
+          status: 0,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          action: 'explore-financial', 
+          message: 'Exploração de endpoints financeiros (contas a receber). Procurando campos de usuário/vendedor.',
+          dateRange: { start: lastMonth, end: today },
+          results,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // =====================================================
     // LIST-SELLERS ACTION - Get unique sellers from Feegow
     // =====================================================
