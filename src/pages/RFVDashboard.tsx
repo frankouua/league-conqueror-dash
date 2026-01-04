@@ -566,9 +566,50 @@ const RFVDashboard = () => {
     return stats;
   };
 
-  const filteredCustomers = selectedSegment === 'all' 
-    ? customers 
-    : customers.filter(c => c.segment === selectedSegment);
+  // Advanced filters state
+  const [filterMinValue, setFilterMinValue] = useState<string>('');
+  const [filterMaxValue, setFilterMaxValue] = useState<string>('');
+  const [filterMinDays, setFilterMinDays] = useState<string>('');
+  const [filterMaxDays, setFilterMaxDays] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [searchName, setSearchName] = useState<string>('');
+
+  const filteredCustomers = customers.filter(c => {
+    // Segment filter
+    if (selectedSegment !== 'all' && c.segment !== selectedSegment) return false;
+    
+    // Name search
+    if (searchName && !c.name.toLowerCase().includes(searchName.toLowerCase())) return false;
+    
+    // Value range filter
+    if (filterMinValue && c.totalValue < parseFloat(filterMinValue)) return false;
+    if (filterMaxValue && c.totalValue > parseFloat(filterMaxValue)) return false;
+    
+    // Days since purchase filter
+    if (filterMinDays && c.daysSinceLastPurchase < parseInt(filterMinDays)) return false;
+    if (filterMaxDays && c.daysSinceLastPurchase > parseInt(filterMaxDays)) return false;
+    
+    // Date range filter (last purchase date)
+    if (filterDateFrom && c.lastPurchaseDate < filterDateFrom) return false;
+    if (filterDateTo && c.lastPurchaseDate > filterDateTo) return false;
+    
+    return true;
+  });
+
+  const clearFilters = () => {
+    setFilterMinValue('');
+    setFilterMaxValue('');
+    setFilterMinDays('');
+    setFilterMaxDays('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setSearchName('');
+    setSelectedSegment('all');
+  };
+
+  const hasActiveFilters = filterMinValue || filterMaxValue || filterMinDays || filterMaxDays || 
+    filterDateFrom || filterDateTo || searchName || selectedSegment !== 'all';
 
   const segmentStats = getSegmentStats();
 
@@ -837,6 +878,106 @@ const RFVDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Advanced Filters */}
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <span className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Filtros Avançados
+                  </span>
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Limpar Filtros
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Name Search */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Buscar por Nome</Label>
+                    <Input
+                      placeholder="Digite o nome..."
+                      value={searchName}
+                      onChange={(e) => setSearchName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Value Range */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Valor Total (R$)</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        type="number"
+                        placeholder="Mín"
+                        value={filterMinValue}
+                        onChange={(e) => setFilterMinValue(e.target.value)}
+                        className="w-1/2"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Máx"
+                        value={filterMaxValue}
+                        onChange={(e) => setFilterMaxValue(e.target.value)}
+                        className="w-1/2"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Days Since Purchase */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Dias sem Compra</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        type="number"
+                        placeholder="Mín"
+                        value={filterMinDays}
+                        onChange={(e) => setFilterMinDays(e.target.value)}
+                        className="w-1/2"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Máx"
+                        value={filterMaxDays}
+                        onChange={(e) => setFilterMaxDays(e.target.value)}
+                        className="w-1/2"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Date Range */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Última Compra (Data)</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        type="date"
+                        value={filterDateFrom}
+                        onChange={(e) => setFilterDateFrom(e.target.value)}
+                        className="w-1/2"
+                      />
+                      <Input
+                        type="date"
+                        value={filterDateTo}
+                        onChange={(e) => setFilterDateTo(e.target.value)}
+                        className="w-1/2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {hasActiveFilters && (
+                  <div className="mt-3 pt-3 border-t flex items-center gap-2 text-sm text-muted-foreground">
+                    <Badge variant="secondary">{filteredCustomers.length} de {customers.length} clientes</Badge>
+                    <span>correspondentes aos filtros</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Customer Detail and Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
