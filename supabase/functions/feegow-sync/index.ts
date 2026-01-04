@@ -110,6 +110,182 @@ Deno.serve(async (req) => {
     // =====================================================
     // DIAGNOSE ACTION - Test /financial/sales endpoint
     // =====================================================
+    // =====================================================
+    // LIST-SELLERS ACTION - Get unique sellers from Feegow
+    // =====================================================
+    if (action === 'list-sellers') {
+      console.log('📋 Listing unique sellers from Feegow appointments...');
+      
+      const today = formatDateFeegow(new Date());
+      // Look back 60 days
+      const lookback = formatDateFeegow(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000));
+      
+      const appointsResponse = await fetch(
+        `https://api.feegow.com/v1/api/appoints/search?data_start=${lookback}&data_end=${today}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': feegowToken,
+          },
+        }
+      );
+
+      if (!appointsResponse.ok) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to fetch appointments' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const appointsData = await appointsResponse.json();
+      const appointments = appointsData.content || [];
+      
+      // Collect unique scheduler names
+      const schedulerCounts: Map<string, number> = new Map();
+      for (const appt of appointments) {
+        if (appt.agendado_por) {
+          const name = appt.agendado_por.trim();
+          schedulerCounts.set(name, (schedulerCounts.get(name) || 0) + 1);
+        }
+      }
+      
+      // Sort by count (most frequent first)
+      const sortedSellers = [...schedulerCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, count]) => ({ name, count }));
+      
+      // Get existing mappings
+      const { data: existingMappings } = await supabase
+        .from('feegow_user_mapping')
+        .select('feegow_name');
+      
+      const mappedNames = new Set(existingMappings?.map((m: { feegow_name: string }) => m.feegow_name.toLowerCase()) || []);
+      
+      // Mark which are mapped
+      const sellersWithStatus = sortedSellers.map(s => ({
+        ...s,
+        mapped: mappedNames.has(s.name.toLowerCase()),
+      }));
+      
+      // Get system users for matching suggestions
+      const { data: systemUsers } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, team_id')
+        .not('team_id', 'is', null);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action: 'list-sellers',
+          total_appointments: appointments.length,
+          unique_sellers: sellersWithStatus.length,
+          sellers: sellersWithStatus,
+          system_users: systemUsers?.map((u: { user_id: string; full_name: string }) => ({ user_id: u.user_id, name: u.full_name })) || [],
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // =====================================================
+    // DEBUG-DATA ACTION - Debug appointment data for sales
+    // =====================================================
+    if (action === 'debug-data') {
+      console.log('🔍 Analyzing appointments as sales source...');
+      
+      const today = formatDateFeegow(new Date());
+      const weekAgo = formatDateFeegow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+      
+      // Fetch appointments
+      const appointsResponse = await fetch(
+        `https://api.feegow.com/v1/api/appoints/search?data_start=${weekAgo}&data_end=${today}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': feegowToken,
+          },
+        }
+      );
+      
+      const appointsData = await appointsResponse.json();
+      const appointments = appointsData.content || [];
+      
+      // Fetch status types
+      const statusResponse = await fetch(
+        `https://api.feegow.com/v1/api/appoints/status`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-token': feegowToken,
+          },
+        }
+      );
+      
+      const statusData = await statusResponse.json();
+      const statusList = statusData.content || [];
+      
+      // Count by status
+      const statusCounts: Record<number, { status: string; count: number; totalValue: number }> = {};
+      for (const appt of appointments) {
+        const statusId = appt.status_id;
+        if (!statusCounts[statusId]) {
+          const statusInfo = statusList.find((s: any) => s.id === statusId);
+          statusCounts[statusId] = { 
+            status: statusInfo?.status || 'Unknown', 
+            count: 0, 
+            totalValue: 0 
+          };
+        }
+        statusCounts[statusId].count++;
+        const valor = parseAmount(appt.valor_total_agendamento || appt.valor || '0');
+        statusCounts[statusId].totalValue += valor;
+      }
+      
+      // Get attended appointments (status_id = 3 usually means "Atendido")
+      const attendedAppts = appointments.filter((a: any) => a.status_id === 3);
+      
+      // Sample attended appointments
+      const sampleAttended = attendedAppts.slice(0, 5).map((a: any) => ({
+        agendamento_id: a.agendamento_id,
+        data: a.data,
+        paciente_id: a.paciente_id,
+        agendado_por: a.agendado_por,
+        valor: a.valor_total_agendamento || a.valor,
+        status_id: a.status_id,
+      }));
+      
+      // Group by seller
+      const sellerSales: Record<string, { count: number; total: number }> = {};
+      for (const appt of attendedAppts) {
+        const seller = appt.agendado_por || 'Unknown';
+        if (!sellerSales[seller]) {
+          sellerSales[seller] = { count: 0, total: 0 };
+        }
+        sellerSales[seller].count++;
+        sellerSales[seller].total += parseAmount(appt.valor_total_agendamento || appt.valor || '0');
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action: 'debug-data',
+          message: 'Usando agendamentos atendidos (status_id=3) como fonte de vendas',
+          statusTypes: statusList,
+          statusCounts,
+          totalAppointments: appointments.length,
+          attendedAppointments: attendedAppts.length,
+          sampleAttended,
+          sellerSales,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // =====================================================
+    // DIAGNOSE ACTION - Test /financial/sales endpoint
+    // =====================================================
     if (action === 'diagnose') {
       console.log('🔍 Running FEEGOW API diagnostics on /financial/sales...');
       
@@ -406,247 +582,12 @@ Deno.serve(async (req) => {
     console.log(`Loaded profiles for ${userToProfile.size} users`);
 
     // =====================================================
-    // TRY /financial/sales ENDPOINT FIRST
+    // SYNC USING ATTENDED APPOINTMENTS (status_id = 3)
     // =====================================================
-    if (useNewEndpoint) {
-      console.log('Trying /financial/sales endpoint...');
-      
-      const salesResponse = await fetch('https://api.feegow.com/v1/api/financial/sales', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-access-token': feegowToken,
-        },
-        body: JSON.stringify({
-          data_start: dateStart,
-          data_end: dateEnd,
-        }),
-      });
-
-      if (salesResponse.ok) {
-        const salesData = await salesResponse.json();
-        
-        if (salesData.success && salesData.content) {
-          // Extract sales array
-          const content = salesData.content;
-          let sales: FeegowSale[] = [];
-          
-          if (Array.isArray(content)) {
-            sales = content;
-          } else if (content.vendas && Array.isArray(content.vendas)) {
-            sales = content.vendas;
-          } else if (content.sales && Array.isArray(content.sales)) {
-            sales = content.sales;
-          } else if (content.data && Array.isArray(content.data)) {
-            sales = content.data;
-          }
-
-          console.log(`📋 Found ${sales.length} sales from /financial/sales`);
-
-          // Process each sale
-          for (const sale of sales) {
-            try {
-              // Extract seller name from various possible fields
-              const sellerName = sale.vendedor || sale.vendedor_nome || 
-                                sale.funcionario_nome || sale.usuario_nome || 
-                                sale.agendador || sale.usuario || sale.responsavel ||
-                                sale.atendente || sale.scheduler || '';
-              
-              const saleId = sale.venda_id || sale.id || `sale_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-              const saleDate = sale.data_venda || sale.data || dateStart;
-              const saleValue = parseAmount(String(sale.valor_total || sale.valor || 0));
-
-              if (saleValue <= 0) {
-                console.log(`⏭️ Skipping sale ${saleId}: zero or negative value`);
-                skipped++;
-                continue;
-              }
-
-              if (!sellerName) {
-                console.log(`⏭️ Skipping sale ${saleId}: no seller name found`);
-                skipped++;
-                continue;
-              }
-
-              // Find user by seller name
-              const normalizedName = sellerName.toLowerCase().trim();
-              let userId = nameToUserId.get(normalizedName);
-
-              // Try partial match if exact match fails
-              if (!userId) {
-                for (const [feegowName, uid] of nameToUserId.entries()) {
-                  if (normalizedName.includes(feegowName) || feegowName.includes(normalizedName)) {
-                    userId = uid;
-                    break;
-                  }
-                }
-              }
-
-              if (!userId) {
-                sellersNotFound.add(sellerName);
-                skipped++;
-                continue;
-              }
-
-              const profile = userToProfile.get(userId);
-              if (!profile) {
-                console.log(`⚠️ No profile found for user ${userId}`);
-                skipped++;
-                continue;
-              }
-
-              const parsedDate = parseFeegowDate(saleDate);
-              const feegowId = `feegow_sale_${saleId}`;
-
-              // Check for duplicate
-              const { data: existing } = await supabase
-                .from('revenue_records')
-                .select('id')
-                .ilike('notes', `%${feegowId}%`)
-                .maybeSingle();
-
-              if (existing) {
-                skipped++;
-                continue;
-              }
-
-              // Insert revenue record
-              const { error: insertError } = await supabase
-                .from('revenue_records')
-                .insert({
-                  user_id: userId,
-                  team_id: profile.team_id,
-                  amount: saleValue,
-                  date: parsedDate,
-                  department: profile.department,
-                  notes: `FEEGOW Sync | ${feegowId} | Vendedor: ${sellerName} | Paciente: ${sale.paciente_nome || sale.paciente_id || 'N/A'}`,
-                  registered_by_admin: true,
-                  counts_for_individual: true,
-                  attributed_to_user_id: userId,
-                });
-
-              if (insertError) {
-                console.error(`Insert error for sale ${saleId}:`, insertError);
-                errors++;
-              } else {
-                console.log(`✅ Inserted: R$ ${saleValue.toFixed(2)} -> ${sellerName} (${profile.full_name}) on ${parsedDate}`);
-                inserted++;
-                totalAmount += saleValue;
-              }
-            } catch (saleError) {
-              console.error('Error processing sale:', saleError);
-              errors++;
-            }
-          }
-
-          // If /financial/sales worked, return the result
-          const sellersNotFoundArray = [...sellersNotFound];
-          const result = {
-            success: true,
-            message: 'Sync completed using /financial/sales endpoint',
-            endpoint_used: '/financial/sales',
-            stats: {
-              total_sales: sales.length,
-              total_amount: totalAmount,
-              inserted,
-              skipped,
-              errors,
-            },
-            sellers_not_found: sellersNotFoundArray,
-          };
-
-          // Update sync log
-          if (logId) {
-            await supabase
-              .from('feegow_sync_logs')
-              .update({
-                status: 'success',
-                completed_at: new Date().toISOString(),
-                total_accounts: sales.length,
-                paid_accounts: sales.length,
-                inserted,
-                skipped,
-                errors,
-                sellers_not_found: sellersNotFoundArray,
-              })
-              .eq('id', logId);
-          }
-
-          // Notify about unmapped sellers
-          if (sellersNotFoundArray.length > 0) {
-            const { data: adminRoles } = await supabase
-              .from('user_roles')
-              .select('user_id')
-              .eq('role', 'admin');
-
-            if (adminRoles && adminRoles.length > 0) {
-              const notifications = adminRoles.map((admin: any) => ({
-                user_id: admin.user_id,
-                title: 'Vendedores FEEGOW não mapeados',
-                message: `${sellersNotFoundArray.length} vendedor(es) não encontrado(s): ${sellersNotFoundArray.slice(0, 3).join(', ')}${sellersNotFoundArray.length > 3 ? '...' : ''}`,
-                type: 'feegow_sync_warning',
-              }));
-
-              await supabase.from('notifications').insert(notifications);
-            }
-          }
-
-          console.log('=== SYNC RESULT ===');
-          console.log(JSON.stringify(result, null, 2));
-
-          return new Response(
-            JSON.stringify(result),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      }
-      
-      console.log('⚠️ /financial/sales failed or returned no data, falling back to invoice+appoints method...');
-    }
-
-    // =====================================================
-    // FALLBACK: Use invoice + appointments method
-    // =====================================================
-    console.log('Using fallback method: /financial/list-invoice + /appoints/search');
-    
-    // Fetch invoices
-    const invoiceResponse = await fetch(
-      `https://api.feegow.com/v1/api/financial/list-invoice?data_start=${dateStart}&data_end=${dateEnd}&tipo_transacao=C`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-access-token': feegowToken,
-        },
-      }
-    );
-
-    if (!invoiceResponse.ok) {
-      const errorText = await invoiceResponse.text();
-      throw new Error(`Failed to fetch invoices: ${invoiceResponse.status} - ${errorText}`);
-    }
-
-    const invoiceData = await invoiceResponse.json();
-    const invoices: FeegowInvoice[] = invoiceData.content || [];
-    console.log(`Fetched ${invoices.length} invoices`);
-
-    // Collect patient IDs
-    const patientIdsFromInvoices = new Set<number>();
-    for (const invoice of invoices) {
-      if (invoice.paciente_id) {
-        patientIdsFromInvoices.add(invoice.paciente_id);
-      }
-    }
-
-    // Fetch appointments with lookback
-    const lookbackStartDate = new Date();
-    const [day, month, year] = dateStart.split('-').map(Number);
-    lookbackStartDate.setFullYear(year, month - 1, day);
-    lookbackStartDate.setDate(lookbackStartDate.getDate() - 150);
-    const lookbackDateStr = formatDateFeegow(lookbackStartDate);
+    console.log('Fetching attended appointments (status_id = 3)...');
     
     const appointsResponse = await fetch(
-      `https://api.feegow.com/v1/api/appoints/search?data_start=${lookbackDateStr}&data_end=${dateEnd}`,
+      `https://api.feegow.com/v1/api/appoints/search?data_start=${dateStart}&data_end=${dateEnd}`,
       {
         method: 'GET',
         headers: {
@@ -656,64 +597,62 @@ Deno.serve(async (req) => {
       }
     );
 
-    const appointsData = await appointsResponse.json();
-    const appointments: FeegowAppointment[] = appointsData.content || [];
-    console.log(`Fetched ${appointments.length} appointments`);
-
-    // Build patient to scheduler map
-    const patientToScheduler: Map<number, string> = new Map();
-    const sortedAppointments = [...appointments].sort((a, b) => {
-      const dateA = parseFeegowDate(a.data);
-      const dateB = parseFeegowDate(b.data);
-      return dateA.localeCompare(dateB);
-    });
-
-    for (const appt of sortedAppointments) {
-      if (appt.paciente_id && appt.agendado_por && patientIdsFromInvoices.has(appt.paciente_id)) {
-        if (!patientToScheduler.has(appt.paciente_id)) {
-          patientToScheduler.set(appt.paciente_id, appt.agendado_por);
-        }
-      }
+    if (!appointsResponse.ok) {
+      const errorText = await appointsResponse.text();
+      throw new Error(`Failed to fetch appointments: ${appointsResponse.status} - ${errorText}`);
     }
-    console.log(`Built scheduler map for ${patientToScheduler.size} patients`);
 
-    // Process invoices
-    let noSchedulerCount = 0;
+    const appointsData = await appointsResponse.json();
+    const allAppointments = appointsData.content || [];
+    
+    // Filter only attended appointments (status_id = 3)
+    const attendedAppointments = allAppointments.filter((a: any) => a.status_id === 3);
+    
+    console.log(`Found ${allAppointments.length} total appointments, ${attendedAppointments.length} attended`);
+
+    let zeroValueCount = 0;
+    let noSellerCount = 0;
     let noMappingCount = 0;
     let noProfileCount = 0;
     let duplicateCount = 0;
-    let zeroPaidCount = 0;
 
-    for (const invoice of invoices) {
+    for (const appt of attendedAppointments) {
       try {
-        let paidAmount = 0;
-        if (invoice.pagamentos && Array.isArray(invoice.pagamentos)) {
-          for (const pagamento of invoice.pagamentos) {
-            const valor = parseAmount(String(pagamento.valor || 0));
-            paidAmount += valor;
+        const sellerName = appt.agendado_por;
+        const apptId = appt.agendamento_id;
+        const apptDate = appt.data;
+        const apptValue = parseAmount(appt.valor_total_agendamento || appt.valor || '0');
+
+        // Skip zero value appointments
+        if (apptValue <= 0) {
+          zeroValueCount++;
+          skipped++;
+          continue;
+        }
+
+        // Skip if no seller
+        if (!sellerName) {
+          noSellerCount++;
+          skipped++;
+          continue;
+        }
+
+        // Find user by seller name
+        const normalizedName = sellerName.toLowerCase().trim();
+        let userId = nameToUserId.get(normalizedName);
+
+        // Try partial match if exact match fails
+        if (!userId) {
+          for (const [feegowName, uid] of nameToUserId.entries()) {
+            if (normalizedName.includes(feegowName) || feegowName.includes(normalizedName)) {
+              userId = uid;
+              break;
+            }
           }
         }
 
-        if (paidAmount <= 0) {
-          zeroPaidCount++;
-          skipped++;
-          continue;
-        }
-
-        totalAmount += paidAmount;
-
-        const schedulerName = patientToScheduler.get(invoice.paciente_id);
-        
-        if (!schedulerName) {
-          noSchedulerCount++;
-          skipped++;
-          continue;
-        }
-
-        const userId = nameToUserId.get(schedulerName.toLowerCase().trim());
-        
         if (!userId) {
-          sellersNotFound.add(schedulerName);
+          sellersNotFound.add(sellerName);
           noMappingCount++;
           skipped++;
           continue;
@@ -726,9 +665,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const invoiceDate = parseFeegowDate(invoice.data);
-        const feegowId = `feegow_invoice_${invoice.conta_id}`;
+        const parsedDate = parseFeegowDate(apptDate);
+        const feegowId = `feegow_appt_${apptId}`;
 
+        // Check for duplicate
         const { data: existing } = await supabase
           .from('revenue_records')
           .select('id')
@@ -741,29 +681,31 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Insert revenue record
         const { error: insertError } = await supabase
           .from('revenue_records')
           .insert({
             user_id: userId,
             team_id: profile.team_id,
-            amount: paidAmount,
-            date: invoiceDate,
+            amount: apptValue,
+            date: parsedDate,
             department: profile.department,
-            notes: `FEEGOW Sync | ${feegowId} | Vendedor: ${schedulerName} | Paciente: ${invoice.paciente_nome || invoice.paciente_id}`,
+            notes: `FEEGOW Sync | ${feegowId} | Vendedor: ${sellerName} | Paciente ID: ${appt.paciente_id}`,
             registered_by_admin: true,
             counts_for_individual: true,
             attributed_to_user_id: userId,
           });
 
         if (insertError) {
-          console.error(`Insert error for invoice ${invoice.conta_id}:`, insertError);
+          console.error(`Insert error for appt ${apptId}:`, insertError);
           errors++;
         } else {
-          console.log(`✅ Inserted: R$ ${paidAmount.toFixed(2)} -> ${schedulerName} (${profile.full_name}) on ${invoiceDate}`);
+          console.log(`✅ Inserted: R$ ${apptValue.toFixed(2)} -> ${sellerName} (${profile.full_name}) on ${parsedDate}`);
           inserted++;
+          totalAmount += apptValue;
         }
-      } catch (err) {
-        console.error('Error processing invoice:', err);
+      } catch (apptError) {
+        console.error('Error processing appointment:', apptError);
         errors++;
       }
     }
@@ -772,19 +714,18 @@ Deno.serve(async (req) => {
     
     const result = {
       success: true,
-      message: 'Sync completed using invoice+appoints fallback',
-      endpoint_used: '/financial/list-invoice + /appoints/search',
+      message: 'Sync completed using attended appointments',
+      endpoint_used: '/appoints/search (status_id=3)',
       stats: {
-        total_appointments: appointments.length,
-        patients_with_scheduler: patientToScheduler.size,
-        total_invoices: invoices.length,
+        total_appointments: allAppointments.length,
+        attended_appointments: attendedAppointments.length,
         total_amount: totalAmount,
         inserted,
         skipped,
         errors,
         breakdown: {
-          zero_paid: zeroPaidCount,
-          no_scheduler: noSchedulerCount,
+          zero_value: zeroValueCount,
+          no_seller: noSellerCount,
           no_mapping: noMappingCount,
           no_profile: noProfileCount,
           duplicates: duplicateCount,
@@ -803,8 +744,8 @@ Deno.serve(async (req) => {
         .update({
           status: 'success',
           completed_at: new Date().toISOString(),
-          total_accounts: invoices.length,
-          paid_accounts: appointments.length,
+          total_accounts: attendedAppointments.length,
+          paid_accounts: allAppointments.length,
           inserted,
           skipped,
           errors,
