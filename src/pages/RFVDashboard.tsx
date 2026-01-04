@@ -140,6 +140,7 @@ interface RFVCustomer {
   id?: string;
   name: string;
   phone?: string;
+  whatsapp?: string;
   email?: string;
   firstPurchaseDate?: string;
   lastPurchaseDate: string;
@@ -156,6 +157,7 @@ interface RFVCustomer {
 interface ColumnMapping {
   clientName: string;
   phone: string;
+  whatsapp: string;
   email: string;
   purchaseDate: string;
   amount: string;
@@ -173,6 +175,7 @@ const RFVDashboard = () => {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     clientName: '',
     phone: '',
+    whatsapp: '',
     email: '',
     purchaseDate: '',
     amount: '',
@@ -352,6 +355,7 @@ const RFVDashboard = () => {
       const autoMapping: ColumnMapping = {
         clientName: '',
         phone: '',
+        whatsapp: '',
         email: '',
         purchaseDate: '',
         amount: '',
@@ -361,7 +365,9 @@ const RFVDashboard = () => {
         const colLower = col.toLowerCase();
         if (!autoMapping.clientName && (colLower.includes('cliente') || colLower.includes('paciente') || colLower.includes('nome'))) {
           autoMapping.clientName = col;
-        } else if (!autoMapping.phone && (colLower.includes('telefone') || colLower.includes('phone') || colLower.includes('celular') || colLower.includes('whatsapp'))) {
+        } else if (!autoMapping.whatsapp && (colLower.includes('whatsapp') || colLower.includes('whats') || colLower.includes('zap'))) {
+          autoMapping.whatsapp = col;
+        } else if (!autoMapping.phone && (colLower.includes('telefone') || colLower.includes('phone') || colLower.includes('celular'))) {
           autoMapping.phone = col;
         } else if (!autoMapping.email && (colLower.includes('email') || colLower.includes('e-mail'))) {
           autoMapping.email = col;
@@ -426,7 +432,7 @@ const RFVDashboard = () => {
 
     try {
       // Group transactions by customer
-      const customerTransactions: Record<string, { dates: Date[]; amounts: number[]; phone?: string; email?: string }> = {};
+      const customerTransactions: Record<string, { dates: Date[]; amounts: number[]; phone?: string; whatsapp?: string; email?: string }> = {};
 
       for (const row of rawData) {
         const clientName = String(row[columnMapping.clientName] || '').trim();
@@ -466,7 +472,7 @@ const RFVDashboard = () => {
 
         const key = clientName.toLowerCase();
         if (!customerTransactions[key]) {
-          customerTransactions[key] = { dates: [], amounts: [], phone: undefined, email: undefined };
+          customerTransactions[key] = { dates: [], amounts: [], phone: undefined, whatsapp: undefined, email: undefined };
         }
         
         customerTransactions[key].dates.push(parsedDate);
@@ -474,6 +480,9 @@ const RFVDashboard = () => {
         
         if (columnMapping.phone && row[columnMapping.phone]) {
           customerTransactions[key].phone = String(row[columnMapping.phone]);
+        }
+        if (columnMapping.whatsapp && row[columnMapping.whatsapp]) {
+          customerTransactions[key].whatsapp = String(row[columnMapping.whatsapp]);
         }
         if (columnMapping.email && row[columnMapping.email]) {
           customerTransactions[key].email = String(row[columnMapping.email]);
@@ -489,9 +498,13 @@ const RFVDashboard = () => {
         const totalValue = data.amounts.reduce((sum, a) => sum + a, 0);
         const averageTicket = totalValue / totalPurchases;
 
+        // Use whatsapp if available, otherwise use phone
+        const whatsappNumber = data.whatsapp || data.phone;
+
         return {
           name: name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
           phone: data.phone,
+          whatsapp: whatsappNumber,
           email: data.email,
           daysSinceLastPurchase,
           totalPurchases,
@@ -774,6 +787,31 @@ const RFVDashboard = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
+  // Generate personalized WhatsApp message based on segment
+  const getWhatsAppMessage = (customer: RFVCustomer): string => {
+    const firstName = customer.name.split(' ')[0];
+    const messages: Record<RFVSegment, string> = {
+      champions: `Olá ${firstName}! 👑 Tudo bem? Aqui é da Unique. Você é uma cliente especial para nós! Temos novidades exclusivas e gostaríamos de te contar. Podemos conversar?`,
+      loyal: `Oi ${firstName}! 💙 Tudo bem? Passando para saber como você está. Temos algumas novidades que combinam com seu perfil. Posso te contar mais?`,
+      potential: `Olá ${firstName}! ✨ Tudo bem com você? Esperamos que esteja gostando dos nossos serviços. Gostaríamos de saber sua opinião e mostrar o que temos de novo!`,
+      at_risk: `Oi ${firstName}! 💛 Sentimos sua falta por aqui! Como você está? Estamos com condições especiais e gostaríamos muito de te receber novamente. Posso te apresentar?`,
+      hibernating: `Olá ${firstName}! Há quanto tempo! Como você está? Temos muitas novidades na Unique e gostaríamos de te mostrar. Você está disponível para uma conversa?`,
+      lost: `Oi ${firstName}! Tudo bem? Estamos com saudade de você! Preparamos algo especial para nossos clientes. Posso te contar mais?`,
+    };
+    return encodeURIComponent(messages[customer.segment]);
+  };
+
+  const getWhatsAppNumber = (customer: RFVCustomer): string => {
+    const number = customer.whatsapp || customer.phone || '';
+    // Remove all non-numeric characters
+    const cleaned = number.replace(/\D/g, '');
+    // Add Brazil country code if not present
+    if (cleaned.length === 10 || cleaned.length === 11) {
+      return `55${cleaned}`;
+    }
+    return cleaned;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -883,6 +921,19 @@ const RFVDashboard = () => {
                         className="w-full p-2 border rounded-md bg-background"
                         value={columnMapping.phone}
                         onChange={(e) => setColumnMapping({ ...columnMapping, phone: e.target.value })}
+                      >
+                        <option value="">Selecione...</option>
+                        {availableColumns.map(col => (
+                          <option key={col} value={col}>{col}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label>WhatsApp</Label>
+                      <select
+                        className="w-full p-2 border rounded-md bg-background"
+                        value={columnMapping.whatsapp}
+                        onChange={(e) => setColumnMapping({ ...columnMapping, whatsapp: e.target.value })}
                       >
                         <option value="">Selecione...</option>
                         {availableColumns.map(col => (
@@ -1291,29 +1342,42 @@ const RFVDashboard = () => {
                       </div>
 
                       {/* Quick Actions */}
-                      <div className="flex gap-2 pt-2">
-                        {selectedCustomer.phone && (
-                          <Button size="sm" variant="outline" className="flex-1" asChild>
-                            <a href={`tel:${selectedCustomer.phone}`}>
-                              <Phone className="h-4 w-4 mr-1" />
-                              Ligar
+                      <div className="flex flex-col gap-2 pt-2">
+                        {/* WhatsApp Button - Main CTA */}
+                        {(selectedCustomer.whatsapp || selectedCustomer.phone) && (
+                          <Button 
+                            size="sm" 
+                            className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                            asChild
+                          >
+                            <a 
+                              href={`https://wa.me/${getWhatsAppNumber(selectedCustomer)}?text=${getWhatsAppMessage(selectedCustomer)}`} 
+                              target="_blank"
+                            >
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Enviar WhatsApp com Mensagem
                             </a>
                           </Button>
                         )}
-                        {selectedCustomer.email && (
-                          <Button size="sm" variant="outline" className="flex-1" asChild>
-                            <a href={`mailto:${selectedCustomer.email}`}>
-                              <Mail className="h-4 w-4 mr-1" />
-                              Email
-                            </a>
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="flex-1" asChild>
-                          <a href={`https://wa.me/55${selectedCustomer.phone?.replace(/\D/g, '') || ''}`} target="_blank">
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            WhatsApp
-                          </a>
-                        </Button>
+                        
+                        <div className="flex gap-2">
+                          {selectedCustomer.phone && (
+                            <Button size="sm" variant="outline" className="flex-1" asChild>
+                              <a href={`tel:${selectedCustomer.phone}`}>
+                                <Phone className="h-4 w-4 mr-1" />
+                                Ligar
+                              </a>
+                            </Button>
+                          )}
+                          {selectedCustomer.email && (
+                            <Button size="sm" variant="outline" className="flex-1" asChild>
+                              <a href={`mailto:${selectedCustomer.email}`}>
+                                <Mail className="h-4 w-4 mr-1" />
+                                Email
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Action History Component */}
