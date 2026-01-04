@@ -1,0 +1,617 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import {
+  Target,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle2,
+  Calendar,
+  Calculator,
+  ArrowUp,
+  Sparkles,
+  Users,
+  Building2,
+  ChevronRight,
+  Lightbulb,
+} from "lucide-react";
+import { CLINIC_GOALS } from "@/constants/clinicGoals";
+import { DEPARTMENTS } from "@/constants/departments";
+
+interface GoalGapAnalysisProps {
+  month: number;
+  year: number;
+}
+
+const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
+  const now = new Date();
+  const currentDay = now.getDate();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const daysRemaining = Math.max(0, daysInMonth - currentDay);
+  const businessDaysRemaining = Math.round(daysRemaining * 0.7); // Approximation for business days
+  const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear();
+
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  // Fetch department goals
+  const { data: departmentGoals } = useQuery({
+    queryKey: ["dept-goals-gap", month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("department_goals")
+        .select("*")
+        .eq("month", month)
+        .eq("year", year);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch revenue records
+  const { data: revenueRecords } = useQuery({
+    queryKey: ["revenue-gap", month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("revenue_records")
+        .select("*")
+        .gte("date", startDate)
+        .lte("date", endDate);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch executed records
+  const { data: executedRecords } = useQuery({
+    queryKey: ["executed-gap", month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("executed_records")
+        .select("*")
+        .gte("date", startDate)
+        .lte("date", endDate);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch cancellations
+  const { data: cancellations } = useQuery({
+    queryKey: ["cancellations-gap", month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cancellations")
+        .select("*")
+        .gte("cancellation_request_date", startDate)
+        .lte("cancellation_request_date", endDate)
+        .in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch profiles for individual analysis
+  const { data: profiles } = useQuery({
+    queryKey: ["profiles-gap"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch individual goals
+  const { data: individualGoals } = useQuery({
+    queryKey: ["individual-goals-gap", month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("individual_goals")
+        .select("*")
+        .eq("month", month)
+        .eq("year", year);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+
+  // Normalize department names
+  const normalizeDepartmentName = (dept: string | null): string => {
+    if (!dept) return "";
+    const deptLower = dept.toLowerCase().trim();
+    
+    if (deptLower.startsWith("02") || (deptLower.includes("consulta") && deptLower.includes("cirurgia"))) {
+      return "Consulta Cirurgia Plástica";
+    }
+    if (deptLower.startsWith("01") || (deptLower.includes("cirurgia") && deptLower.includes("plástica")) || deptLower === "cirurgia_plastica") {
+      return "Cirurgia Plástica";
+    }
+    if (deptLower.startsWith("03") || deptLower.includes("pós") || (deptLower.includes("pos") && deptLower.includes("operat"))) {
+      return "Pós Operatório";
+    }
+    if (deptLower.startsWith("04") || deptLower.includes("soroterapia") || deptLower.includes("protocolo") || deptLower.includes("nutricional")) {
+      return "Soroterapia / Protocolos Nutricionais";
+    }
+    if (deptLower.startsWith("08") || deptLower.includes("harmoniza")) {
+      return "Harmonização Facial e Corporal";
+    }
+    if (deptLower.startsWith("09") || deptLower.includes("spa") || deptLower.includes("estética") || deptLower.includes("estetica")) {
+      return "Spa e Estética";
+    }
+    if (deptLower.startsWith("25") || deptLower.includes("travel") || deptLower.includes("unique")) {
+      return "Unique Travel Experience";
+    }
+    if (deptLower.includes("luxskin")) {
+      return "Luxskin";
+    }
+    
+    return dept;
+  };
+
+  // Calculate metrics
+  const metrics = useMemo(() => {
+    const totalSold = revenueRecords?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    const totalExecuted = executedRecords?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    const totalCancelled = cancellations?.reduce((sum, c) => sum + Number(c.contract_value), 0) || 0;
+    
+    // Use department goals sum as the official meta if available
+    const deptMeta1 = departmentGoals?.reduce((sum, g) => sum + Number(g.meta1_goal), 0) || CLINIC_GOALS.META_1;
+    const deptMeta2 = departmentGoals?.reduce((sum, g) => sum + Number(g.meta2_goal), 0) || CLINIC_GOALS.META_2;
+    const deptMeta3 = departmentGoals?.reduce((sum, g) => sum + Number(g.meta3_goal), 0) || CLINIC_GOALS.META_3;
+
+    // Net revenue (sold - cancelled)
+    const netSold = totalSold - totalCancelled;
+
+    const remainingMeta1 = Math.max(0, deptMeta1 - netSold);
+    const remainingMeta2 = Math.max(0, deptMeta2 - netSold);
+    const remainingMeta3 = Math.max(0, deptMeta3 - netSold);
+
+    // Calculate daily averages needed
+    const avgDailyNeededMeta1 = daysRemaining > 0 ? remainingMeta1 / daysRemaining : 0;
+    const avgDailyNeededMeta2 = daysRemaining > 0 ? remainingMeta2 / daysRemaining : 0;
+    const avgDailyNeededMeta3 = daysRemaining > 0 ? remainingMeta3 / daysRemaining : 0;
+
+    // Current daily average
+    const daysElapsed = currentDay;
+    const currentDailyAvg = daysElapsed > 0 ? netSold / daysElapsed : 0;
+
+    // Projection based on current pace
+    const projectedTotal = currentDailyAvg * daysInMonth;
+
+    // Average ticket calculation (from revenue records)
+    const avgTicket = revenueRecords && revenueRecords.length > 0 
+      ? totalSold / revenueRecords.length 
+      : 15000; // Default average ticket
+
+    // Procedures needed to hit goals
+    const proceduresForMeta1 = avgTicket > 0 ? Math.ceil(remainingMeta1 / avgTicket) : 0;
+    const proceduresForMeta2 = avgTicket > 0 ? Math.ceil(remainingMeta2 / avgTicket) : 0;
+    const proceduresForMeta3 = avgTicket > 0 ? Math.ceil(remainingMeta3 / avgTicket) : 0;
+
+    return {
+      totalSold,
+      totalExecuted,
+      totalCancelled,
+      netSold,
+      deptMeta1,
+      deptMeta2,
+      deptMeta3,
+      remainingMeta1,
+      remainingMeta2,
+      remainingMeta3,
+      avgDailyNeededMeta1,
+      avgDailyNeededMeta2,
+      avgDailyNeededMeta3,
+      currentDailyAvg,
+      projectedTotal,
+      avgTicket,
+      proceduresForMeta1,
+      proceduresForMeta2,
+      proceduresForMeta3,
+      percentMeta1: deptMeta1 > 0 ? (netSold / deptMeta1) * 100 : 0,
+      percentMeta2: deptMeta2 > 0 ? (netSold / deptMeta2) * 100 : 0,
+      percentMeta3: deptMeta3 > 0 ? (netSold / deptMeta3) * 100 : 0,
+    };
+  }, [revenueRecords, executedRecords, cancellations, departmentGoals, currentDay, daysInMonth, daysRemaining]);
+
+  // Department breakdown
+  const departmentBreakdown = useMemo(() => {
+    if (!departmentGoals || !revenueRecords) return [];
+
+    return departmentGoals.map((goal) => {
+      const deptRevenue = revenueRecords
+        .filter((r) => normalizeDepartmentName(r.department) === goal.department_name)
+        .reduce((sum, r) => sum + Number(r.amount), 0);
+
+      const meta1 = Number(goal.meta1_goal);
+      const remaining = Math.max(0, meta1 - deptRevenue);
+      const percent = meta1 > 0 ? (deptRevenue / meta1) * 100 : 0;
+
+      return {
+        name: goal.department_name,
+        revenue: deptRevenue,
+        meta1,
+        meta2: Number(goal.meta2_goal),
+        meta3: Number(goal.meta3_goal),
+        remaining,
+        percent: Math.min(percent, 100),
+        status: percent >= 100 ? "atingida" : percent >= 70 ? "encaminhada" : "precisa_atenção",
+      };
+    }).sort((a, b) => a.percent - b.percent); // Sort by lowest percent first (priority)
+  }, [departmentGoals, revenueRecords]);
+
+  // Sellers needing attention
+  const sellersAnalysis = useMemo(() => {
+    if (!profiles || !individualGoals || !revenueRecords) return [];
+
+    return profiles
+      .map((profile) => {
+        const goal = individualGoals.find((g) => g.user_id === profile.user_id);
+        const goalValue = Number(goal?.revenue_goal) || 0;
+        
+        if (goalValue === 0) return null;
+
+        const revenue = revenueRecords
+          .filter((r) => r.user_id === profile.user_id || r.attributed_to_user_id === profile.user_id)
+          .reduce((sum, r) => sum + Number(r.amount), 0);
+
+        const remaining = Math.max(0, goalValue - revenue);
+        const percent = goalValue > 0 ? (revenue / goalValue) * 100 : 0;
+
+        return {
+          name: profile.full_name,
+          goal: goalValue,
+          revenue,
+          remaining,
+          percent: Math.min(percent, 100),
+          dailyNeeded: daysRemaining > 0 ? remaining / daysRemaining : 0,
+        };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+      .sort((a, b) => a.percent - b.percent); // Sort by lowest percent first
+  }, [profiles, individualGoals, revenueRecords, daysRemaining]);
+
+  // Generate insights
+  const insights = useMemo(() => {
+    const tips: string[] = [];
+
+    // Meta progress insight
+    if (metrics.percentMeta1 >= 100) {
+      tips.push("🎉 Meta 1 atingida! Foco total na Meta 2!");
+    } else if (metrics.percentMeta1 >= 80) {
+      tips.push(`📈 Faltam apenas ${formatCurrency(metrics.remainingMeta1)} para a Meta 1 - continue o ritmo!`);
+    } else if (isCurrentMonth && currentDay > daysInMonth * 0.5 && metrics.percentMeta1 < 50) {
+      tips.push("⚠️ Passamos da metade do mês e ainda não atingimos 50% da meta. Hora de intensificar!");
+    }
+
+    // Daily pace insight
+    if (isCurrentMonth && metrics.currentDailyAvg > 0) {
+      if (metrics.projectedTotal >= metrics.deptMeta3) {
+        tips.push("🚀 No ritmo atual, vocês atingirão a META 3! Mantenham a energia!");
+      } else if (metrics.projectedTotal >= metrics.deptMeta2) {
+        tips.push("✨ Projeção indica META 2 alcançável no ritmo atual.");
+      } else if (metrics.projectedTotal >= metrics.deptMeta1) {
+        tips.push("📊 Ritmo atual deve garantir a META 1.");
+      } else {
+        const boost = ((metrics.deptMeta1 / metrics.projectedTotal) - 1) * 100;
+        tips.push(`💪 Precisamos aumentar ${boost.toFixed(0)}% nas vendas diárias para bater a Meta 1.`);
+      }
+    }
+
+    // Department insights
+    const criticalDepts = departmentBreakdown.filter((d) => d.status === "precisa_atenção");
+    if (criticalDepts.length > 0) {
+      tips.push(`🎯 Departamentos que precisam de atenção: ${criticalDepts.map((d) => d.name).join(", ")}`);
+    }
+
+    // Procedures needed
+    if (metrics.proceduresForMeta1 > 0 && metrics.proceduresForMeta1 <= 10) {
+      tips.push(`💰 Apenas ${metrics.proceduresForMeta1} procedimento${metrics.proceduresForMeta1 > 1 ? "s" : ""} no ticket médio para bater a Meta 1!`);
+    }
+
+    return tips;
+  }, [metrics, departmentBreakdown, isCurrentMonth, currentDay, daysInMonth]);
+
+  const getStatusColor = (percent: number) => {
+    if (percent >= 100) return "text-success";
+    if (percent >= 70) return "text-amber-500";
+    return "text-destructive";
+  };
+
+  return (
+    <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2">
+          <Target className="w-6 h-6 text-primary" />
+          O Que Falta para Bater a Meta
+          {isCurrentMonth && (
+            <Badge variant="outline" className="ml-2 gap-1">
+              <Calendar className="w-3 h-3" />
+              {daysRemaining} dias restantes
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Main Progress Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Meta 1 */}
+          <div className={`p-4 rounded-xl border-2 ${
+            metrics.percentMeta1 >= 100 
+              ? "bg-success/20 border-success" 
+              : "bg-card border-border"
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-muted-foreground">META 1</span>
+              {metrics.percentMeta1 >= 100 && <CheckCircle2 className="w-5 h-5 text-success" />}
+            </div>
+            <p className="text-xl font-bold mb-1">{formatCurrency(metrics.deptMeta1)}</p>
+            <Progress value={Math.min(metrics.percentMeta1, 100)} className="h-2 mb-2" />
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Fechado:</span>
+                <span className="font-medium text-success">{formatCurrency(metrics.netSold)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Faltam:</span>
+                <span className={`font-bold ${metrics.remainingMeta1 > 0 ? "text-destructive" : "text-success"}`}>
+                  {metrics.remainingMeta1 > 0 ? formatCurrency(metrics.remainingMeta1) : "✓ Atingida!"}
+                </span>
+              </div>
+              {isCurrentMonth && metrics.remainingMeta1 > 0 && (
+                <div className="flex justify-between pt-1 border-t border-border/50">
+                  <span className="text-muted-foreground text-xs">Média/dia necessária:</span>
+                  <span className="font-medium text-xs">{formatCurrency(metrics.avgDailyNeededMeta1)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Meta 2 */}
+          <div className={`p-4 rounded-xl border-2 ${
+            metrics.percentMeta2 >= 100 
+              ? "bg-success/20 border-success" 
+              : "bg-card border-border"
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-muted-foreground">META 2</span>
+              {metrics.percentMeta2 >= 100 && <CheckCircle2 className="w-5 h-5 text-success" />}
+            </div>
+            <p className="text-xl font-bold mb-1">{formatCurrency(metrics.deptMeta2)}</p>
+            <Progress value={Math.min(metrics.percentMeta2, 100)} className="h-2 mb-2" />
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Fechado:</span>
+                <span className="font-medium text-success">{formatCurrency(metrics.netSold)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Faltam:</span>
+                <span className={`font-bold ${metrics.remainingMeta2 > 0 ? "text-amber-500" : "text-success"}`}>
+                  {metrics.remainingMeta2 > 0 ? formatCurrency(metrics.remainingMeta2) : "✓ Atingida!"}
+                </span>
+              </div>
+              {isCurrentMonth && metrics.remainingMeta2 > 0 && (
+                <div className="flex justify-between pt-1 border-t border-border/50">
+                  <span className="text-muted-foreground text-xs">Média/dia necessária:</span>
+                  <span className="font-medium text-xs">{formatCurrency(metrics.avgDailyNeededMeta2)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Meta 3 */}
+          <div className={`p-4 rounded-xl border-2 ${
+            metrics.percentMeta3 >= 100 
+              ? "bg-gradient-gold-shine border-primary shadow-gold" 
+              : "bg-card border-primary/50"
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-sm font-semibold ${metrics.percentMeta3 >= 100 ? "text-primary-foreground" : "text-primary"}`}>
+                META 3 (SUPREMA) 🏆
+              </span>
+              {metrics.percentMeta3 >= 100 && <CheckCircle2 className="w-5 h-5 text-primary-foreground" />}
+            </div>
+            <p className={`text-xl font-bold mb-1 ${metrics.percentMeta3 >= 100 ? "text-primary-foreground" : ""}`}>
+              {formatCurrency(metrics.deptMeta3)}
+            </p>
+            <Progress value={Math.min(metrics.percentMeta3, 100)} className="h-2 mb-2" />
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className={metrics.percentMeta3 >= 100 ? "text-primary-foreground/70" : "text-muted-foreground"}>
+                  Fechado:
+                </span>
+                <span className={`font-medium ${metrics.percentMeta3 >= 100 ? "text-primary-foreground" : "text-success"}`}>
+                  {formatCurrency(metrics.netSold)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className={metrics.percentMeta3 >= 100 ? "text-primary-foreground/70" : "text-muted-foreground"}>
+                  Faltam:
+                </span>
+                <span className={`font-bold ${
+                  metrics.percentMeta3 >= 100 ? "text-primary-foreground" : "text-primary"
+                }`}>
+                  {metrics.remainingMeta3 > 0 ? formatCurrency(metrics.remainingMeta3) : "🏆 CONQUISTADA!"}
+                </span>
+              </div>
+              {isCurrentMonth && metrics.remainingMeta3 > 0 && (
+                <div className="flex justify-between pt-1 border-t border-border/50">
+                  <span className={metrics.percentMeta3 >= 100 ? "text-primary-foreground/70 text-xs" : "text-muted-foreground text-xs"}>
+                    Média/dia necessária:
+                  </span>
+                  <span className={`font-medium text-xs ${metrics.percentMeta3 >= 100 ? "text-primary-foreground" : ""}`}>
+                    {formatCurrency(metrics.avgDailyNeededMeta3)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <Calculator className="w-5 h-5 mx-auto mb-1 text-primary" />
+            <p className="text-xs text-muted-foreground">Ticket Médio</p>
+            <p className="font-bold">{formatCurrency(metrics.avgTicket)}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <TrendingUp className="w-5 h-5 mx-auto mb-1 text-success" />
+            <p className="text-xs text-muted-foreground">Média/Dia Atual</p>
+            <p className="font-bold">{formatCurrency(metrics.currentDailyAvg)}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <ArrowUp className="w-5 h-5 mx-auto mb-1 text-amber-500" />
+            <p className="text-xs text-muted-foreground">Projeção Mês</p>
+            <p className="font-bold">{formatCurrency(metrics.projectedTotal)}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-destructive/10 text-center">
+            <AlertTriangle className="w-5 h-5 mx-auto mb-1 text-destructive" />
+            <p className="text-xs text-muted-foreground">Cancelamentos</p>
+            <p className="font-bold text-destructive">{formatCurrency(metrics.totalCancelled)}</p>
+          </div>
+        </div>
+
+        {/* Procedures Needed */}
+        {metrics.remainingMeta1 > 0 && (
+          <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
+            <h4 className="font-semibold flex items-center gap-2 mb-3">
+              <Target className="w-4 h-4 text-primary" />
+              Procedimentos Necessários (Ticket Médio: {formatCurrency(metrics.avgTicket)})
+            </h4>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-success">{metrics.proceduresForMeta1}</p>
+                <p className="text-xs text-muted-foreground">para Meta 1</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-500">{metrics.proceduresForMeta2}</p>
+                <p className="text-xs text-muted-foreground">para Meta 2</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-primary">{metrics.proceduresForMeta3}</p>
+                <p className="text-xs text-muted-foreground">para Meta 3</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Department Breakdown */}
+        {departmentBreakdown.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-semibold flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" />
+              Por Departamento - O Que Falta
+            </h4>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {departmentBreakdown.map((dept) => (
+                <div
+                  key={dept.name}
+                  className={`p-3 rounded-lg border ${
+                    dept.status === "atingida"
+                      ? "bg-success/10 border-success/30"
+                      : dept.status === "encaminhada"
+                      ? "bg-amber-500/10 border-amber-500/30"
+                      : "bg-destructive/10 border-destructive/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-sm flex items-center gap-2">
+                      {dept.status === "atingida" && <CheckCircle2 className="w-4 h-4 text-success" />}
+                      {dept.status === "precisa_atenção" && <AlertTriangle className="w-4 h-4 text-destructive" />}
+                      {dept.name}
+                    </span>
+                    <span className={`text-sm font-bold ${getStatusColor(dept.percent)}`}>
+                      {dept.percent.toFixed(0)}%
+                    </span>
+                  </div>
+                  <Progress value={dept.percent} className="h-1.5 mb-1" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Fechado: {formatCurrency(dept.revenue)}</span>
+                    <span>
+                      {dept.remaining > 0 ? (
+                        <span className="text-destructive font-medium">Faltam: {formatCurrency(dept.remaining)}</span>
+                      ) : (
+                        <span className="text-success font-medium">✓ Atingida</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sellers Needing Attention */}
+        {sellersAnalysis.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-semibold flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              Vendedoras - Acompanhamento
+            </h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {sellersAnalysis.slice(0, 5).map((seller) => (
+                <div
+                  key={seller.name}
+                  className={`p-3 rounded-lg border ${
+                    seller.percent >= 100
+                      ? "bg-success/10 border-success/30"
+                      : seller.percent >= 70
+                      ? "bg-amber-500/10 border-amber-500/30"
+                      : "bg-destructive/10 border-destructive/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-sm">{seller.name}</span>
+                    <span className={`text-sm font-bold ${getStatusColor(seller.percent)}`}>
+                      {seller.percent.toFixed(0)}%
+                    </span>
+                  </div>
+                  <Progress value={seller.percent} className="h-1.5 mb-1" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{formatCurrency(seller.revenue)} / {formatCurrency(seller.goal)}</span>
+                    {seller.remaining > 0 && isCurrentMonth && (
+                      <span className="text-primary">~{formatCurrency(seller.dailyNeeded)}/dia</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Insights & Tips */}
+        {insights.length > 0 && (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30">
+            <h4 className="font-semibold flex items-center gap-2 mb-3">
+              <Lightbulb className="w-4 h-4 text-primary" />
+              Insights & Sugestões
+            </h4>
+            <ul className="space-y-2">
+              {insights.map((tip, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-sm">
+                  <ChevronRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default GoalGapAnalysis;

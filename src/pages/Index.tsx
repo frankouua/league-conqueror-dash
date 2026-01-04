@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp } from "lucide-react";
+import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target } from "lucide-react";
 import { MonthlyTeamRankingChart } from "@/components/MonthlyTeamRankingChart";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import { format } from "date-fns";
@@ -24,6 +24,7 @@ import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 import SellerDashboard from "@/components/SellerDashboard";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { HistoricalTrendsPanel } from "@/components/HistoricalTrendsPanel";
+import GoalGapAnalysis from "@/components/GoalGapAnalysis";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -197,39 +198,46 @@ const Index = () => {
         {/* Main Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-2xl md:mx-auto md:grid-cols-4 gap-1 bg-muted/50 p-1 rounded-xl">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-3xl md:mx-auto md:grid-cols-5 gap-1 bg-muted/50 p-1 rounded-xl">
               <TabsTrigger 
                 value="times" 
-                className="whitespace-nowrap text-sm px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
               >
                 <Trophy className="w-4 h-4" />
                 Times
               </TabsTrigger>
               <TabsTrigger 
+                value="o-que-falta" 
+                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Target className="w-4 h-4" />
+                O Que Falta
+              </TabsTrigger>
+              <TabsTrigger 
                 value="vendido-executado" 
-                className="whitespace-nowrap text-sm px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
               >
                 <TrendingUp className="w-4 h-4" />
                 Vendido vs Executado
               </TabsTrigger>
               <TabsTrigger 
                 value="vendedoras" 
-                className="whitespace-nowrap text-sm px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
               >
                 <Users className="w-4 h-4" />
-                Por Vendedora
+                Vendedoras
               </TabsTrigger>
               <TabsTrigger 
                 value="departamentos" 
-                className="whitespace-nowrap text-sm px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
               >
                 <Building2 className="w-4 h-4" />
-                Por Departamento
+                Departamentos
               </TabsTrigger>
           </TabsList>
           
           {/* Filters - shown for relevant tabs */}
-          {(activeTab === "vendido-executado" || activeTab === "vendedoras" || activeTab === "departamentos") && (
+          {(activeTab === "vendido-executado" || activeTab === "vendedoras" || activeTab === "departamentos" || activeTab === "o-que-falta") && (
             <DashboardFilters
               selectedSeller={filterSeller}
               selectedDepartment={filterDepartment}
@@ -347,6 +355,12 @@ const Index = () => {
             )}
           </TabsContent>
 
+          {/* O QUE FALTA TAB */}
+          <TabsContent value="o-que-falta" className="space-y-8 animate-fade-in">
+            <GoalGapAnalysis month={selectedMonth} year={selectedYear} />
+            <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
+          </TabsContent>
+
           {/* VENDIDO VS EXECUTADO TAB */}
           <TabsContent value="vendido-executado" className="space-y-8 animate-fade-in">
             <SoldVsExecutedPanel 
@@ -363,7 +377,6 @@ const Index = () => {
             />
             
             <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
-            <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
           </TabsContent>
 
           {/* POR VENDEDORA TAB */}
