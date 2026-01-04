@@ -452,45 +452,100 @@ const RFVDashboard = () => {
     setIsProcessing(true);
 
     try {
+      // Track stats for debugging
+      let totalRows = 0;
+      let skippedNoName = 0;
+      let skippedNoDate = 0;
+      let skippedNoAmount = 0;
+      let processedRows = 0;
+
       // Group transactions by customer
       const customerTransactions: Record<string, { dates: Date[]; amounts: number[]; phone?: string; whatsapp?: string; email?: string }> = {};
 
       for (const row of rawData) {
+        totalRows++;
         const clientName = String(row[columnMapping.clientName] || '').trim();
-        if (!clientName) continue;
+        if (!clientName) {
+          skippedNoName++;
+          continue;
+        }
 
         const dateValue = row[columnMapping.purchaseDate];
         let parsedDate: Date | null = null;
 
         if (dateValue) {
           if (typeof dateValue === 'number') {
-            const excelDate = XLSX.SSF.parse_date_code(dateValue);
-            parsedDate = new Date(excelDate.y, excelDate.m - 1, excelDate.d);
+            try {
+              const excelDate = XLSX.SSF.parse_date_code(dateValue);
+              if (excelDate && excelDate.y > 1900) {
+                parsedDate = new Date(excelDate.y, excelDate.m - 1, excelDate.d);
+              }
+            } catch (e) {
+              // Invalid date number
+            }
           } else if (typeof dateValue === 'string') {
-            const parts = dateValue.split(/[-\/]/);
+            const dateStr = dateValue.trim();
+            // Try different date formats
+            const parts = dateStr.split(/[-\/\.]/);
             if (parts.length === 3) {
               if (parts[0].length === 4) {
+                // YYYY-MM-DD or YYYY/MM/DD
                 parsedDate = new Date(parts.join('-'));
-              } else {
-                parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+              } else if (parts[2].length === 4) {
+                // DD/MM/YYYY or DD-MM-YYYY
+                parsedDate = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+              } else if (parts[2].length === 2) {
+                // DD/MM/YY - assume 20XX
+                const year = parseInt(parts[2]) > 50 ? `19${parts[2]}` : `20${parts[2]}`;
+                parsedDate = new Date(`${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
               }
             }
+          } else if (dateValue instanceof Date) {
+            parsedDate = dateValue;
           }
         }
 
-        if (!parsedDate || isNaN(parsedDate.getTime())) continue;
+        // If no valid date, use a default old date so we can still include the customer
+        if (!parsedDate || isNaN(parsedDate.getTime())) {
+          // Use January 1, 2020 as default for customers without valid date
+          parsedDate = new Date('2020-01-01');
+          skippedNoDate++;
+        }
 
         let amount = 0;
         const amountRaw = row[columnMapping.amount];
         if (typeof amountRaw === 'number') {
           amount = amountRaw;
         } else if (typeof amountRaw === 'string') {
-          const cleaned = amountRaw.replace(/[R$\s.]/g, '').replace(',', '.');
+          // Handle various number formats: R$ 1.234,56 or 1234.56 or 1,234.56
+          let cleaned = amountRaw.replace(/[R$\s]/g, '');
+          // Check if it uses comma as decimal separator (Brazilian format)
+          if (cleaned.includes(',') && cleaned.includes('.')) {
+            // 1.234,56 format
+            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+          } else if (cleaned.includes(',') && !cleaned.includes('.')) {
+            // Could be 1234,56 (decimal) or 1,234 (thousands)
+            const parts = cleaned.split(',');
+            if (parts.length === 2 && parts[1].length <= 2) {
+              // Likely decimal separator
+              cleaned = cleaned.replace(',', '.');
+            } else {
+              // Likely thousands separator
+              cleaned = cleaned.replace(/,/g, '');
+            }
+          }
           amount = parseFloat(cleaned) || 0;
         }
 
-        if (amount <= 0) continue;
+        // Allow zero amount - customer might just be a contact without purchase history
+        if (amount < 0) {
+          amount = 0;
+        }
+        if (amount === 0) {
+          skippedNoAmount++;
+        }
 
+        processedRows++;
         const key = clientName.toLowerCase();
         if (!customerTransactions[key]) {
           customerTransactions[key] = { dates: [], amounts: [], phone: undefined, whatsapp: undefined, email: undefined };
@@ -509,6 +564,15 @@ const RFVDashboard = () => {
           customerTransactions[key].email = String(row[columnMapping.email]);
         }
       }
+
+      console.log('Processing stats:', {
+        totalRows,
+        skippedNoName,
+        skippedNoDate,
+        skippedNoAmount,
+        processedRows,
+        uniqueCustomers: Object.keys(customerTransactions).length
+      });
 
       const now = new Date();
       const allCustomerData = Object.entries(customerTransactions).map(([name, data]) => {
@@ -578,9 +642,14 @@ const RFVDashboard = () => {
         return acc;
       }, {} as Record<string, number>);
 
+      // Show detailed stats in toast
+      const statsMessage = skippedNoName > 0 
+        ? `${totalRows} linhas lidas, ${skippedNoName} sem nome. ${rfvCustomers.length} clientes únicos classificados.`
+        : `${totalRows} linhas → ${rfvCustomers.length} clientes únicos classificados.`;
+
       toast({
         title: "Análise RFV concluída",
-        description: `${rfvCustomers.length} clientes classificados. Clique em "Salvar no Banco" para persistir.`,
+        description: statsMessage,
       });
     } catch (error) {
       console.error('Error processing data:', error);
