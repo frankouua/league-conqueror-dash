@@ -46,34 +46,35 @@ const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
   });
 
   // Map various department name formats to goal department names
-  // This handles both snake_case values and original Portuguese names from spreadsheets
+  // This handles codes like "01 - CIRURGIA PLÁSTICA", snake_case values, and original Portuguese names
   const normalizeDepartmentName = (dept: string | null): string => {
     if (!dept) return "";
     const deptLower = dept.toLowerCase().trim();
     
-    // Map to standard department goal names
-    if (deptLower.includes("cirurgia") && deptLower.includes("plástica") || deptLower === "cirurgia_plastica" || deptLower === "cirurgia plastica") {
-      return "Cirurgia Plástica";
-    }
-    if (deptLower.includes("consulta") && (deptLower.includes("cirurgia") || deptLower.includes("plástica")) || deptLower === "consulta_cirurgia_plastica") {
+    // Map by code prefix or name - order matters (more specific first)
+    // 02 - Consulta must come before 01 - Cirurgia (both contain "cirurgia")
+    if (deptLower.startsWith("02") || (deptLower.includes("consulta") && deptLower.includes("cirurgia"))) {
       return "Consulta Cirurgia Plástica";
     }
-    if (deptLower.includes("pós") && deptLower.includes("operat") || deptLower === "pos_operatorio" || deptLower.includes("pos operatorio") || deptLower.includes("pós operatório")) {
+    if (deptLower.startsWith("01") || (deptLower.includes("cirurgia") && deptLower.includes("plástica")) || deptLower === "cirurgia_plastica") {
+      return "Cirurgia Plástica";
+    }
+    if (deptLower.startsWith("03") || deptLower.includes("pós") || deptLower.includes("pos") && deptLower.includes("operat")) {
       return "Pós Operatório";
     }
-    if (deptLower.includes("soroterapia") || deptLower.includes("protocolo") || deptLower.includes("nutricional") || deptLower === "soroterapia_protocolos") {
+    if (deptLower.startsWith("04") || deptLower.includes("soroterapia") || deptLower.includes("protocolo") || deptLower.includes("nutricional")) {
       return "Soroterapia / Protocolos Nutricionais";
     }
-    if (deptLower.includes("harmoniza") || deptLower === "harmonizacao_facial_corporal") {
+    if (deptLower.startsWith("08") || deptLower.includes("harmoniza")) {
       return "Harmonização Facial e Corporal";
     }
-    if (deptLower.includes("spa") || (deptLower.includes("estética") || deptLower.includes("estetica")) || deptLower === "spa_estetica") {
+    if (deptLower.startsWith("09") || deptLower.includes("spa") || deptLower.includes("estética") || deptLower.includes("estetica")) {
       return "Spa e Estética";
     }
-    if (deptLower.includes("travel") || deptLower.includes("unique") || deptLower === "unique_travel") {
+    if (deptLower.startsWith("25") || deptLower.includes("travel") || deptLower.includes("unique")) {
       return "Unique Travel Experience";
     }
-    if (deptLower.includes("luxskin") || deptLower === "luxskin") {
+    if (deptLower.includes("luxskin")) {
       return "Luxskin";
     }
     
