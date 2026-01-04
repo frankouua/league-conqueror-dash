@@ -97,6 +97,7 @@ const SalesSpreadsheetUpload = () => {
     skipped: number;
   } | null>(null);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
+  const [sellerSortBy, setSellerSortBy] = useState<'revenuePaid' | 'revenueSold' | 'count'>('revenuePaid');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -1371,8 +1372,20 @@ const SalesSpreadsheetUpload = () => {
 
             {/* Por Vendedor - Table */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Ranking de Vendedores</CardTitle>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Ordenar por:</span>
+                  <select
+                    value={sellerSortBy}
+                    onChange={(e) => setSellerSortBy(e.target.value as 'revenuePaid' | 'revenueSold' | 'count')}
+                    className="text-sm p-1.5 border rounded-md bg-background"
+                  >
+                    <option value="revenuePaid">Valor Recebido</option>
+                    <option value="revenueSold">Valor Vendido</option>
+                    <option value="count">Nº de Vendas</option>
+                  </select>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-auto">
@@ -1382,13 +1395,13 @@ const SalesSpreadsheetUpload = () => {
                         <TableHead>Vendedor</TableHead>
                         <TableHead className="text-right">Vendas</TableHead>
                         <TableHead className="text-right">Clientes</TableHead>
-                        <TableHead className="text-right">Vendido</TableHead>
-                        <TableHead className="text-right">Recebido</TableHead>
+                        <TableHead className={`text-right ${sellerSortBy === 'revenueSold' ? 'font-bold' : ''}`}>Vendido</TableHead>
+                        <TableHead className={`text-right ${sellerSortBy === 'revenuePaid' ? 'font-bold' : ''}`}>Recebido</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {Object.entries(metrics.salesBySeller)
-                        .sort((a, b) => b[1].revenuePaid - a[1].revenuePaid)
+                        .sort((a, b) => b[1][sellerSortBy] - a[1][sellerSortBy])
                         .slice(0, 15)
                         .map(([seller, data], index) => (
                           <TableRow key={seller}>
@@ -1400,12 +1413,12 @@ const SalesSpreadsheetUpload = () => {
                               </span>
                               {seller}
                             </TableCell>
-                            <TableCell className="text-right">{data.count}</TableCell>
+                            <TableCell className={`text-right ${sellerSortBy === 'count' ? 'font-bold' : ''}`}>{data.count}</TableCell>
                             <TableCell className="text-right">{data.uniqueClients}</TableCell>
-                            <TableCell className="text-right text-blue-600">
+                            <TableCell className={`text-right text-blue-600 ${sellerSortBy === 'revenueSold' ? 'font-bold' : ''}`}>
                               {data.revenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </TableCell>
-                            <TableCell className="text-right text-green-600 font-medium">
+                            <TableCell className={`text-right text-green-600 ${sellerSortBy === 'revenuePaid' ? 'font-bold' : ''}`}>
                               {data.revenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </TableCell>
                           </TableRow>
