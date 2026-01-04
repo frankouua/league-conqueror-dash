@@ -20,15 +20,16 @@ import {
 } from "@/components/ui/table";
 
 // Metas por departamento (valores de referência)
+// Proporções baseadas nos totais: Meta 1 = R$ 2.500.000, Meta 2 = R$ 2.750.000, Meta 3 = R$ 3.000.000
 const DEPARTMENT_GOALS = [
-  { department: "Cirurgia Plástica", meta1: 1785662, meta2: 1928515, meta3: 2142795 },
-  { department: "Consulta Cirurgia Plástica", meta1: 43505, meta2: 46986, meta3: 52206 },
-  { department: "Pós Operatório", meta1: 76134, meta2: 82225, meta3: 91361 },
-  { department: "Soroterapia / Protocolos Nutricionais", meta1: 314417, meta2: 339570, meta3: 377300 },
-  { department: "Harmonização Facial e Corporal", meta1: 175740, meta2: 189799, meta3: 210888 },
-  { department: "Spa e Estética", meta1: 3996, meta2: 4316, meta3: 4795 },
-  { department: "Unique Travel Experience", meta1: 29572, meta2: 31938, meta3: 35487 },
-  { department: "Luxskin", meta1: 70973, meta2: 76651, meta3: 85168 },
+  { department: "Cirurgia Plástica", meta1: 1785662, meta2: 1964228, meta3: 2142795 },
+  { department: "Consulta Cirurgia Plástica", meta1: 43505, meta2: 47856, meta3: 52206 },
+  { department: "Pós Operatório", meta1: 76134, meta2: 83747, meta3: 91361 },
+  { department: "Soroterapia / Protocolos Nutricionais", meta1: 314418, meta2: 345860, meta3: 377300 },
+  { department: "Harmonização Facial e Corporal", meta1: 175740, meta2: 193314, meta3: 210888 },
+  { department: "Spa e Estética", meta1: 3996, meta2: 4396, meta3: 4795 },
+  { department: "Unique Travel Experience", meta1: 29572, meta2: 32529, meta3: 35487 },
+  { department: "Luxskin", meta1: 70973, meta2: 78070, meta3: 85168 },
 ];
 
 const TOTALS = {
