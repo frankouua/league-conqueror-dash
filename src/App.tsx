@@ -18,6 +18,7 @@ import ReferralLeads from "./pages/ReferralLeads";
 import PatientKanban from "./pages/PatientKanban";
 import OnboardingGoals from "./pages/OnboardingGoals";
 import SalesDashboard from "./pages/SalesDashboard";
+import SalesUpload from "./pages/SalesUpload";
 import TVDisplay from "./pages/TVDisplay";
 import CommercialGuides from "./pages/CommercialGuides";
 import Cancellations from "./pages/Cancellations";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/guias-comerciais" element={<ProtectedRoute><CommercialGuides /></ProtectedRoute>} />
             <Route path="/cancellations" element={<ProtectedRoute><Cancellations /></ProtectedRoute>} />
             <Route path="/assistente-comercial" element={<ProtectedRoute><CommercialAssistantPage /></ProtectedRoute>} />
+            <Route path="/sales-upload" element={<ProtectedRoute><SalesUpload /></ProtectedRoute>} />
             <Route path="/sales-dashboard" element={<ProtectedRoute requireAdmin><SalesDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/tv" element={<TVDisplay />} />

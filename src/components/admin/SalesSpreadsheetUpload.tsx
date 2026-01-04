@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import * as XLSX from "xlsx";
 
 interface ParsedSale {
@@ -31,8 +32,21 @@ interface ColumnMapping {
   amount: string;
 }
 
+interface SalesMetrics {
+  totalSales: number;
+  totalRevenue: number;
+  averageTicket: number;
+  uniqueClients: number;
+  uniqueSellers: number;
+  salesByDepartment: Record<string, { count: number; revenue: number }>;
+  salesBySeller: Record<string, { count: number; revenue: number }>;
+  topClients: { name: string; revenue: number; count: number }[];
+  salesByDate: Record<string, { count: number; revenue: number }>;
+}
+
 const SalesSpreadsheetUpload = () => {
   const { toast } = useToast();
+  const { user, profile } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -52,6 +66,7 @@ const SalesSpreadsheetUpload = () => {
     failed: number;
     skipped: number;
   } | null>(null);
+  const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -59,6 +74,7 @@ const SalesSpreadsheetUpload = () => {
       setFile(selectedFile);
       setParsedSales([]);
       setImportResults(null);
+      setMetrics(null);
       parseExcelFile(selectedFile);
     }
   };
@@ -82,12 +98,11 @@ const SalesSpreadsheetUpload = () => {
         return;
       }
 
-      // Get column names from first row
       const columns = Object.keys(jsonData[0]);
       setAvailableColumns(columns);
       setRawData(jsonData);
 
-      // Try to auto-detect columns
+      // Auto-detect columns
       const autoMapping: ColumnMapping = {
         date: '',
         department: '',
@@ -129,6 +144,80 @@ const SalesSpreadsheetUpload = () => {
     setIsProcessing(false);
   };
 
+  const calculateMetrics = (sales: ParsedSale[]): SalesMetrics => {
+    const validSales = sales.filter(s => s.status !== 'error' && s.amount > 0);
+    
+    const totalSales = validSales.length;
+    const totalRevenue = validSales.reduce((sum, s) => sum + s.amount, 0);
+    const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
+    
+    const uniqueClients = new Set(validSales.map(s => s.clientName.toLowerCase().trim()).filter(Boolean)).size;
+    const uniqueSellers = new Set(validSales.map(s => s.sellerName.toLowerCase().trim()).filter(Boolean)).size;
+    
+    // Sales by department
+    const salesByDepartment: Record<string, { count: number; revenue: number }> = {};
+    for (const sale of validSales) {
+      const dept = sale.department || 'Não informado';
+      if (!salesByDepartment[dept]) {
+        salesByDepartment[dept] = { count: 0, revenue: 0 };
+      }
+      salesByDepartment[dept].count++;
+      salesByDepartment[dept].revenue += sale.amount;
+    }
+    
+    // Sales by seller
+    const salesBySeller: Record<string, { count: number; revenue: number }> = {};
+    for (const sale of validSales) {
+      const seller = sale.sellerName || 'Não informado';
+      if (!salesBySeller[seller]) {
+        salesBySeller[seller] = { count: 0, revenue: 0 };
+      }
+      salesBySeller[seller].count++;
+      salesBySeller[seller].revenue += sale.amount;
+    }
+    
+    // Top clients by revenue
+    const clientRevenue: Record<string, { revenue: number; count: number }> = {};
+    for (const sale of validSales) {
+      if (sale.clientName) {
+        const client = sale.clientName.trim();
+        if (!clientRevenue[client]) {
+          clientRevenue[client] = { revenue: 0, count: 0 };
+        }
+        clientRevenue[client].revenue += sale.amount;
+        clientRevenue[client].count++;
+      }
+    }
+    const topClients = Object.entries(clientRevenue)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+    
+    // Sales by date
+    const salesByDate: Record<string, { count: number; revenue: number }> = {};
+    for (const sale of validSales) {
+      if (sale.date) {
+        if (!salesByDate[sale.date]) {
+          salesByDate[sale.date] = { count: 0, revenue: 0 };
+        }
+        salesByDate[sale.date].count++;
+        salesByDate[sale.date].revenue += sale.amount;
+      }
+    }
+    
+    return {
+      totalSales,
+      totalRevenue,
+      averageTicket,
+      uniqueClients,
+      uniqueSellers,
+      salesByDepartment,
+      salesBySeller,
+      topClients,
+      salesByDate,
+    };
+  };
+
   const processWithMapping = async () => {
     if (!columnMapping.date || !columnMapping.sellerName || !columnMapping.amount) {
       toast({
@@ -142,13 +231,11 @@ const SalesSpreadsheetUpload = () => {
     setIsProcessing(true);
 
     try {
-      // Fetch user mappings and profiles
       const [{ data: mappings }, { data: profiles }] = await Promise.all([
         supabase.from('feegow_user_mapping').select('feegow_name, user_id'),
         supabase.from('profiles').select('user_id, full_name, team_id').not('team_id', 'is', null),
       ]);
 
-      // Create lookup maps
       const mappingByName = new Map<string, string>();
       mappings?.forEach(m => {
         mappingByName.set(m.feegow_name.toLowerCase().trim(), m.user_id);
@@ -158,14 +245,12 @@ const SalesSpreadsheetUpload = () => {
       const profileByName = new Map<string, { user_id: string; team_id: string }>();
       profiles?.forEach(p => {
         profileByUserId.set(p.user_id, { full_name: p.full_name, team_id: p.team_id });
-        // Also map by first name for fuzzy matching
         const firstName = p.full_name.split(' ')[0].toLowerCase().trim();
         profileByName.set(firstName, { user_id: p.user_id, team_id: p.team_id });
         profileByName.set(p.full_name.toLowerCase().trim(), { user_id: p.user_id, team_id: p.team_id });
       });
 
-      // Process each row
-      const sales: ParsedSale[] = rawData.map((row, index) => {
+      const sales: ParsedSale[] = rawData.map((row) => {
         try {
           const dateValue = row[columnMapping.date];
           const sellerName = String(row[columnMapping.sellerName] || '').trim();
@@ -177,18 +262,14 @@ const SalesSpreadsheetUpload = () => {
           let parsedDate = '';
           if (dateValue) {
             if (typeof dateValue === 'number') {
-              // Excel serial date
               const excelDate = XLSX.SSF.parse_date_code(dateValue);
               parsedDate = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
             } else if (typeof dateValue === 'string') {
-              // Try to parse string date
               const parts = dateValue.split(/[-\/]/);
               if (parts.length === 3) {
                 if (parts[0].length === 4) {
-                  // YYYY-MM-DD
                   parsedDate = dateValue;
                 } else {
-                  // DD-MM-YYYY or DD/MM/YYYY
                   parsedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                 }
               }
@@ -214,7 +295,6 @@ const SalesSpreadsheetUpload = () => {
           if (typeof amountRaw === 'number') {
             amount = amountRaw;
           } else if (typeof amountRaw === 'string') {
-            // Remove currency symbols and parse
             const cleaned = amountRaw.replace(/[R$\s.]/g, '').replace(',', '.');
             amount = parseFloat(cleaned) || 0;
           }
@@ -238,21 +318,18 @@ const SalesSpreadsheetUpload = () => {
           let matchedUserId: string | null = null;
           let matchedTeamId: string | null = null;
 
-          // Try feegow_user_mapping first
           if (mappingByName.has(sellerLower)) {
             matchedUserId = mappingByName.get(sellerLower)!;
-            const profile = profileByUserId.get(matchedUserId);
-            if (profile) {
-              matchedTeamId = profile.team_id;
+            const profileData = profileByUserId.get(matchedUserId);
+            if (profileData) {
+              matchedTeamId = profileData.team_id;
             }
           } else {
-            // Try direct profile match
             const directMatch = profileByName.get(sellerLower);
             if (directMatch) {
               matchedUserId = directMatch.user_id;
               matchedTeamId = directMatch.team_id;
             } else {
-              // Try first name match
               const firstName = sellerName.split(' ')[0].toLowerCase().trim();
               const firstNameMatch = profileByName.get(firstName);
               if (firstNameMatch) {
@@ -272,7 +349,7 @@ const SalesSpreadsheetUpload = () => {
             matchedTeamId,
             status: matchedUserId ? 'matched' as const : 'unmatched' as const,
           };
-        } catch (error) {
+        } catch {
           return {
             date: '',
             department: '',
@@ -289,6 +366,7 @@ const SalesSpreadsheetUpload = () => {
 
       setParsedSales(sales);
       setShowColumnMapping(false);
+      setMetrics(calculateMetrics(sales));
 
       const matched = sales.filter(s => s.status === 'matched').length;
       const unmatched = sales.filter(s => s.status === 'unmatched').length;
@@ -329,7 +407,6 @@ const SalesSpreadsheetUpload = () => {
 
     try {
       for (const sale of validSales) {
-        // Check for duplicate
         const { data: existing } = await supabase
           .from('revenue_records')
           .select('id')
@@ -352,7 +429,7 @@ const SalesSpreadsheetUpload = () => {
           team_id: sale.matchedTeamId!,
           attributed_to_user_id: sale.matchedUserId,
           counts_for_individual: true,
-          registered_by_admin: true,
+          registered_by_admin: false,
         });
 
         if (error) {
@@ -382,7 +459,6 @@ const SalesSpreadsheetUpload = () => {
   };
 
   const addSellerMapping = async (sellerName: string) => {
-    // Get profiles without mapping
     const { data: profiles } = await supabase
       .from('profiles')
       .select('user_id, full_name')
@@ -397,7 +473,6 @@ const SalesSpreadsheetUpload = () => {
       return;
     }
 
-    // For now, show a prompt to select user
     const userOptions = profiles.map(p => `${p.full_name}`).join('\n');
     const selectedName = prompt(`Selecione o usuário para mapear "${sellerName}":\n\n${userOptions}\n\nDigite o nome exato:`);
     
@@ -435,7 +510,6 @@ const SalesSpreadsheetUpload = () => {
       description: `"${sellerName}" → "${selectedProfile.full_name}"`,
     });
 
-    // Re-process with new mapping
     processWithMapping();
   };
 
@@ -445,6 +519,7 @@ const SalesSpreadsheetUpload = () => {
 
   return (
     <div className="space-y-6">
+      {/* Upload Card */}
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -453,7 +528,7 @@ const SalesSpreadsheetUpload = () => {
           </CardTitle>
           <CardDescription>
             Faça upload de uma planilha Excel exportada do Feegow com os dados de vendas.
-            A planilha deve conter: Data, Vendedor, Valor (e opcionalmente Departamento, Cliente).
+            A planilha deve conter: Data, Departamento, Cliente, Vendedor e Valor.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -536,13 +611,13 @@ const SalesSpreadsheetUpload = () => {
                 </select>
               </div>
               <div>
-                <Label>Departamento</Label>
+                <Label>Departamento *</Label>
                 <select
                   value={columnMapping.department}
                   onChange={(e) => setColumnMapping(m => ({ ...m, department: e.target.value }))}
                   className="w-full mt-1 p-2 border rounded-md bg-background"
                 >
-                  <option value="">Não incluir</option>
+                  <option value="">Selecione...</option>
                   {availableColumns.map(col => (
                     <option key={col} value={col}>{col}</option>
                   ))}
@@ -577,6 +652,203 @@ const SalesSpreadsheetUpload = () => {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Metrics Dashboard */}
+      {metrics && (
+        <div className="space-y-6">
+          {/* KPIs */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-primary/20">
+                    <DollarSign className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Faturamento Total</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {metrics.totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-blue-500/20">
+                    <TrendingUp className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nº de Vendas</p>
+                    <p className="text-2xl font-bold text-foreground">{metrics.totalSales}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-green-500/20">
+                    <Award className="w-6 h-6 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ticket Médio</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {metrics.averageTicket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-purple-500/20">
+                    <Users className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Clientes Únicos</p>
+                    <p className="text-2xl font-bold text-foreground">{metrics.uniqueClients}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-orange-500/20">
+                    <Calendar className="w-6 h-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Vendedores</p>
+                    <p className="text-2xl font-bold text-foreground">{metrics.uniqueSellers}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Vendas por Departamento e Vendedor */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Por Departamento */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Vendas por Departamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Departamento</TableHead>
+                      <TableHead className="text-right">Vendas</TableHead>
+                      <TableHead className="text-right">Faturamento</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(metrics.salesByDepartment)
+                      .sort((a, b) => b[1].revenue - a[1].revenue)
+                      .map(([dept, data]) => (
+                        <TableRow key={dept}>
+                          <TableCell className="font-medium">{dept}</TableCell>
+                          <TableCell className="text-right">{data.count}</TableCell>
+                          <TableCell className="text-right">
+                            {data.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Por Vendedor */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Ranking de Vendedores</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vendedor</TableHead>
+                      <TableHead className="text-right">Vendas</TableHead>
+                      <TableHead className="text-right">Faturamento</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(metrics.salesBySeller)
+                      .sort((a, b) => b[1].revenue - a[1].revenue)
+                      .slice(0, 10)
+                      .map(([seller, data], index) => (
+                        <TableRow key={seller}>
+                          <TableCell className="font-medium">
+                            <span className="mr-2">
+                              {index === 0 && '🥇'}
+                              {index === 1 && '🥈'}
+                              {index === 2 && '🥉'}
+                            </span>
+                            {seller}
+                          </TableCell>
+                          <TableCell className="text-right">{data.count}</TableCell>
+                          <TableCell className="text-right">
+                            {data.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Clientes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Award className="w-5 h-5 text-primary" />
+                Top 10 Clientes (Maior Faturamento)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-right">Compras</TableHead>
+                    <TableHead className="text-right">Faturamento Total</TableHead>
+                    <TableHead className="text-right">Ticket Médio</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {metrics.topClients.map((client, index) => (
+                    <TableRow key={client.name}>
+                      <TableCell>
+                        <Badge variant={index < 3 ? "default" : "secondary"}>
+                          {index + 1}º
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{client.name}</TableCell>
+                      <TableCell className="text-right">{client.count}</TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {client.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {(client.revenue / client.count).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Results Summary */}
@@ -650,6 +922,7 @@ const SalesSpreadsheetUpload = () => {
                   <TableRow>
                     <TableHead>Status</TableHead>
                     <TableHead>Data</TableHead>
+                    <TableHead>Departamento</TableHead>
                     <TableHead>Vendedor</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Cliente</TableHead>
@@ -680,6 +953,7 @@ const SalesSpreadsheetUpload = () => {
                         )}
                       </TableCell>
                       <TableCell>{sale.date}</TableCell>
+                      <TableCell>{sale.department || '-'}</TableCell>
                       <TableCell>{sale.sellerName}</TableCell>
                       <TableCell>
                         {sale.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

@@ -2,7 +2,7 @@ import {
   LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
   ChevronDown, Settings, AlertCircle, Route, UserPlus, MessageSquareText,
-  ShieldAlert, Flame, Bot
+  ShieldAlert, Flame, Bot, FileSpreadsheet
 } from "lucide-react";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,7 @@ const Header = () => {
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/onboarding-goals", label: "Metas", icon: TrendingUp, showBadge: goalProgress?.isNearGoal || goalProgress?.hasReachedGoal },
     { path: "/register", label: "Registrar", icon: Plus },
+    { path: "/sales-upload", label: "Vendas", icon: FileSpreadsheet },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/patient-kanban", label: "Jornada", icon: Route },
     { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
