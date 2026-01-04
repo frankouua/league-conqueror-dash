@@ -242,10 +242,28 @@ const SalesSpreadsheetUpload = () => {
 
   const calculateMetrics = (sales: ParsedSale[]): SalesMetrics => {
     const validSales = sales.filter(s => s.status !== 'error' && (s.amountSold > 0 || s.amountPaid > 0));
+    const errorSales = sales.filter(s => s.status === 'error');
+    const zeroValueSales = sales.filter(s => s.status !== 'error' && s.amountSold === 0 && s.amountPaid === 0);
+    
+    // Debug logs
+    console.log('=== DEBUG MÉTRICAS ===');
+    console.log('Total de linhas:', sales.length);
+    console.log('Linhas válidas:', validSales.length);
+    console.log('Linhas com erro:', errorSales.length);
+    console.log('Linhas com valor zero:', zeroValueSales.length);
     
     const totalSales = validSales.length;
     const totalRevenueSold = validSales.reduce((sum, s) => sum + s.amountSold, 0);
     const totalRevenuePaid = validSales.reduce((sum, s) => sum + s.amountPaid, 0);
+    
+    console.log('Soma Valor Vendido:', totalRevenueSold);
+    console.log('Soma Valor Recebido:', totalRevenuePaid);
+    
+    // Log primeiras 5 vendas para verificar parsing
+    console.log('Primeiras 5 vendas (debug):');
+    validSales.slice(0, 5).forEach((s, i) => {
+      console.log(`  ${i+1}. Vendido: ${s.amountSold}, Pago: ${s.amountPaid}, Vendedor: ${s.sellerName}`);
+    });
     
     // Calculate unique clients by normalized name
     const clientMap = new Map<string, { name: string; totalSold: number; totalPaid: number; purchases: number }>();
