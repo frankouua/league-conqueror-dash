@@ -252,7 +252,35 @@ const RFVDashboard = () => {
       const workbook = XLSX.read(data);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+      
+      // First, get all data as array of arrays to find the header row
+      const allRows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+      
+      // Find the first row that looks like a header (has text content, not empty or numeric)
+      let headerRowIndex = 0;
+      for (let i = 0; i < Math.min(allRows.length, 10); i++) {
+        const row = allRows[i];
+        if (row && row.length > 0) {
+          // Check if this row contains text that looks like column names
+          const hasTextHeaders = row.some((cell: any) => {
+            if (typeof cell !== 'string') return false;
+            const lower = cell.toLowerCase();
+            return lower.includes('nome') || lower.includes('cliente') || lower.includes('paciente') ||
+                   lower.includes('data') || lower.includes('valor') || lower.includes('email') ||
+                   lower.includes('telefone') || lower.includes('phone') || lower.includes('total');
+          });
+          if (hasTextHeaders) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+      }
+      
+      // Parse again with the correct header row
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { 
+        range: headerRowIndex,
+        defval: ''
+      });
 
       if (jsonData.length === 0) {
         toast({
@@ -264,7 +292,15 @@ const RFVDashboard = () => {
         return;
       }
 
-      const columns = Object.keys(jsonData[0]);
+      // Get columns and filter out empty/invalid ones
+      const columns = Object.keys(jsonData[0]).filter(col => {
+        // Filter out columns that start with __EMPTY or are just numbers
+        if (col.startsWith('__EMPTY')) return false;
+        if (/^\d+$/.test(col)) return false;
+        if (!col.trim()) return false;
+        return true;
+      });
+      
       setAvailableColumns(columns);
       setRawData(jsonData);
 
