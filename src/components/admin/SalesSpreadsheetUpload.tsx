@@ -241,9 +241,11 @@ const SalesSpreadsheetUpload = () => {
   };
 
   const calculateMetrics = (sales: ParsedSale[]): SalesMetrics => {
-    const validSales = sales.filter(s => s.status !== 'error' && (s.amountSold > 0 || s.amountPaid > 0));
+    // Include all non-error sales (including negative values for cancellations)
+    const validSales = sales.filter(s => s.status !== 'error' && (s.amountSold !== 0 || s.amountPaid !== 0));
     const errorSales = sales.filter(s => s.status === 'error');
     const zeroValueSales = sales.filter(s => s.status !== 'error' && s.amountSold === 0 && s.amountPaid === 0);
+    const negativeSales = validSales.filter(s => s.amountSold < 0 || s.amountPaid < 0);
     
     // Debug logs
     console.log('=== DEBUG MÉTRICAS ===');
@@ -251,6 +253,7 @@ const SalesSpreadsheetUpload = () => {
     console.log('Linhas válidas:', validSales.length);
     console.log('Linhas com erro:', errorSales.length);
     console.log('Linhas com valor zero:', zeroValueSales.length);
+    console.log('Cancelamentos (valores negativos):', negativeSales.length);
     
     const totalSales = validSales.length;
     const totalRevenueSold = validSales.reduce((sum, s) => sum + s.amountSold, 0);
@@ -533,8 +536,8 @@ const SalesSpreadsheetUpload = () => {
           const amountSold = parseAmount(amountSoldRaw);
           const amountPaid = parseAmount(amountPaidRaw);
 
-          // At least one amount should be valid
-          if (amountSold <= 0 && amountPaid <= 0) {
+          // Both amounts are exactly zero - skip this row
+          if (amountSold === 0 && amountPaid === 0) {
             return {
               date: parsedDate,
               department,
@@ -547,9 +550,11 @@ const SalesSpreadsheetUpload = () => {
               matchedTeamId: null,
               matchedTeamName: null,
               status: 'error' as const,
-              errorMessage: 'Valor inválido ou zero',
+              errorMessage: 'Valor zero',
             };
           }
+
+          // Note: negative values (cancellations/refunds) are valid and will be included
 
           // Match seller
           const sellerLower = sellerName.toLowerCase().trim();
