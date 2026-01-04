@@ -753,6 +753,10 @@ const RFVDashboard = () => {
   const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [searchName, setSearchName] = useState<string>('');
 
+  // Table pagination
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(100);
+
   const filteredCustomers = customers.filter(c => {
     // Segment filter
     if (selectedSegment !== 'all' && c.segment !== selectedSegment) return false;
@@ -774,6 +778,28 @@ const RFVDashboard = () => {
     
     return true;
   });
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setTablePage(1);
+  }, [
+    selectedSegment,
+    searchName,
+    filterMinValue,
+    filterMaxValue,
+    filterMinDays,
+    filterMaxDays,
+    filterDateFrom,
+    filterDateTo,
+    customers.length,
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / tablePageSize));
+  const safePage = Math.min(tablePage, totalPages);
+  const pagedCustomers = filteredCustomers.slice(
+    (safePage - 1) * tablePageSize,
+    safePage * tablePageSize
+  );
 
   const clearFilters = () => {
     setFilterMinValue('');
@@ -1343,16 +1369,53 @@ const RFVDashboard = () => {
               {/* Customer List */}
               <Card className="lg:col-span-2">
               <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span>
                       {selectedSegment === 'all' ? 'Todos os Clientes' : RFV_SEGMENTS[selectedSegment].name}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={exportToExcel}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2" />
-                        Exportar Excel
-                      </Button>
-                      <Badge variant="outline">{filteredCustomers.length} clientes</Badge>
+
+                    <div className="flex flex-col items-start sm:items-end gap-2">
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={exportToExcel}>
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                          Exportar Excel
+                        </Button>
+                        <Badge variant="outline">{filteredCustomers.length} clientes</Badge>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <select
+                          className="h-8 px-2 border rounded-md bg-background text-sm"
+                          value={tablePageSize}
+                          onChange={(e) => setTablePageSize(parseInt(e.target.value, 10))}
+                          aria-label="Itens por página"
+                        >
+                          <option value={50}>50/pág</option>
+                          <option value={100}>100/pág</option>
+                          <option value={250}>250/pág</option>
+                          <option value={500}>500/pág</option>
+                        </select>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+                          disabled={safePage <= 1}
+                        >
+                          Anterior
+                        </Button>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                          Página {safePage} de {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTablePage((p) => Math.min(totalPages, p + 1))}
+                          disabled={safePage >= totalPages}
+                        >
+                          Próxima
+                        </Button>
+                      </div>
                     </div>
                   </CardTitle>
                 </CardHeader>
@@ -1371,7 +1434,7 @@ const RFVDashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredCustomers.slice(0, 100).map((customer, index) => {
+                        {pagedCustomers.map((customer, index) => {
                           const segment = RFV_SEGMENTS[customer.segment];
                           const Icon = segment.icon;
                           return (
