@@ -11,12 +11,13 @@ import {
   Upload, FileSpreadsheet, AlertCircle, Loader2, Users, TrendingUp, 
   Target, Phone, Gift, Heart, RefreshCw, Crown, Zap, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Clock, DollarSign, Calendar, Star,
-  MessageSquare, Mail, Sparkles, CheckCircle2, Database, Save
+  MessageSquare, Mail, Sparkles, CheckCircle2, Database, Save, History
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import RFVActionHistory from "@/components/rfv/RFVActionHistory";
 import * as XLSX from "xlsx";
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip,
@@ -1131,15 +1132,15 @@ const RFVDashboard = () => {
 
               {/* Customer Actions Panel */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
                     <Sparkles className="h-5 w-5" />
                     Ações Recomendadas
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   {selectedCustomer ? (
-                    <div className="space-y-4">
+                    <>
                       {/* Customer Summary */}
                       <div className={`p-4 rounded-lg ${RFV_SEGMENTS[selectedCustomer.segment].bgLight}`}>
                         <div className="flex items-center gap-2 mb-2">
@@ -1166,7 +1167,7 @@ const RFVDashboard = () => {
                       </div>
 
                       {/* Radar Chart */}
-                      <div className="h-[200px]">
+                      <div className="h-[180px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <RadarChart data={radarData}>
                             <PolarGrid />
@@ -1186,7 +1187,7 @@ const RFVDashboard = () => {
                       {/* Action Cards */}
                       <div className="space-y-2">
                         <h4 className="font-semibold text-sm">Próximas Ações:</h4>
-                        {RFV_SEGMENTS[selectedCustomer.segment].actions.map((action, index) => (
+                        {RFV_SEGMENTS[selectedCustomer.segment].actions.slice(0, 3).map((action, index) => (
                           <div 
                             key={index}
                             className="p-3 border rounded-lg hover:bg-muted cursor-pointer transition-colors"
@@ -1205,23 +1206,37 @@ const RFVDashboard = () => {
                       {/* Quick Actions */}
                       <div className="flex gap-2 pt-2">
                         {selectedCustomer.phone && (
-                          <Button size="sm" variant="outline" className="flex-1">
-                            <Phone className="h-4 w-4 mr-1" />
-                            Ligar
+                          <Button size="sm" variant="outline" className="flex-1" asChild>
+                            <a href={`tel:${selectedCustomer.phone}`}>
+                              <Phone className="h-4 w-4 mr-1" />
+                              Ligar
+                            </a>
                           </Button>
                         )}
                         {selectedCustomer.email && (
-                          <Button size="sm" variant="outline" className="flex-1">
-                            <Mail className="h-4 w-4 mr-1" />
-                            Email
+                          <Button size="sm" variant="outline" className="flex-1" asChild>
+                            <a href={`mailto:${selectedCustomer.email}`}>
+                              <Mail className="h-4 w-4 mr-1" />
+                              Email
+                            </a>
                           </Button>
                         )}
-                        <Button size="sm" variant="outline" className="flex-1">
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          WhatsApp
+                        <Button size="sm" variant="outline" className="flex-1" asChild>
+                          <a href={`https://wa.me/55${selectedCustomer.phone?.replace(/\D/g, '') || ''}`} target="_blank">
+                            <MessageSquare className="h-4 w-4 mr-1" />
+                            WhatsApp
+                          </a>
                         </Button>
                       </div>
-                    </div>
+
+                      {/* Action History Component */}
+                      <div className="pt-4 border-t">
+                        <RFVActionHistory 
+                          customerId={selectedCustomer.id}
+                          customerName={selectedCustomer.name}
+                        />
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />

@@ -1038,6 +1038,53 @@ export type Database = {
           },
         ]
       }
+      rfv_action_history: {
+        Row: {
+          action_type: string
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          notes: string | null
+          performed_by: string
+          performed_by_name: string | null
+          result: string | null
+          scheduled_callback: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          notes?: string | null
+          performed_by: string
+          performed_by_name?: string | null
+          result?: string | null
+          scheduled_callback?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string
+          performed_by_name?: string | null
+          result?: string | null
+          scheduled_callback?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfv_action_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "rfv_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rfv_customers: {
         Row: {
           average_ticket: number
