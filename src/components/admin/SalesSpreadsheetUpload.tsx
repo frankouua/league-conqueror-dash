@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,15 +6,30 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import * as XLSX from "xlsx";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from "recharts";
+
+interface UploadLog {
+  id: string;
+  uploaded_by_name: string;
+  uploaded_at: string;
+  file_name: string;
+  total_rows: number;
+  imported_rows: number;
+  total_revenue_sold: number;
+  total_revenue_paid: number;
+  date_range_start: string | null;
+  date_range_end: string | null;
+}
 
 const CHART_COLORS = [
   'hsl(var(--primary))',
@@ -98,6 +113,27 @@ const SalesSpreadsheetUpload = () => {
   } | null>(null);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
   const [sellerSortBy, setSellerSortBy] = useState<'revenuePaid' | 'revenueSold' | 'count'>('revenuePaid');
+  const [lastUpload, setLastUpload] = useState<UploadLog | null>(null);
+  const [uploadHistory, setUploadHistory] = useState<UploadLog[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Fetch last upload on mount
+  useEffect(() => {
+    fetchUploadHistory();
+  }, []);
+
+  const fetchUploadHistory = async () => {
+    const { data, error } = await supabase
+      .from('sales_upload_logs')
+      .select('*')
+      .order('uploaded_at', { ascending: false })
+      .limit(10);
+    
+    if (!error && data && data.length > 0) {
+      setUploadHistory(data as UploadLog[]);
+      setLastUpload(data[0] as UploadLog);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -739,6 +775,34 @@ const SalesSpreadsheetUpload = () => {
       // Update RFV customer data
       await updateRFVCustomers(validSales);
 
+      // Calculate date range
+      const dates = validSales.map(s => s.date).filter(Boolean).sort();
+      const dateRangeStart = dates[0] || null;
+      const dateRangeEnd = dates[dates.length - 1] || null;
+
+      // Save upload log
+      const totalRevenueSold = validSales.reduce((sum, s) => sum + s.amountSold, 0);
+      const totalRevenuePaid = validSales.reduce((sum, s) => sum + s.amountPaid, 0);
+
+      await supabase.from('sales_upload_logs').insert({
+        uploaded_by: user?.id,
+        uploaded_by_name: profile?.full_name || user?.email || 'Desconhecido',
+        file_name: file?.name || 'Planilha',
+        sheet_name: selectedSheet,
+        total_rows: parsedSales.length,
+        imported_rows: success,
+        skipped_rows: skipped,
+        error_rows: failed,
+        total_revenue_sold: totalRevenueSold,
+        total_revenue_paid: totalRevenuePaid,
+        date_range_start: dateRangeStart,
+        date_range_end: dateRangeEnd,
+        status: 'completed',
+      });
+
+      // Refresh upload history
+      await fetchUploadHistory();
+
       setImportResults({ success, failed, skipped });
       
       toast({
@@ -972,6 +1036,93 @@ const SalesSpreadsheetUpload = () => {
 
   return (
     <div className="space-y-6">
+      {/* Last Upload Info */}
+      {lastUpload && (
+        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <Clock className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Última Atualização de Vendas</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(lastUpload.uploaded_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} por <span className="font-medium">{lastUpload.uploaded_by_name}</span>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="text-center">
+                  <p className="font-bold text-green-600">{lastUpload.imported_rows}</p>
+                  <p className="text-xs text-muted-foreground">Importadas</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-blue-600">
+                    {Number(lastUpload.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Vendido</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-green-600">
+                    {Number(lastUpload.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Recebido</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)}>
+                  <History className="w-4 h-4 mr-1" />
+                  Histórico
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Upload History */}
+      {showHistory && uploadHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <History className="w-5 h-5" />
+              Histórico de Uploads
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Arquivo</TableHead>
+                  <TableHead className="text-right">Importadas</TableHead>
+                  <TableHead className="text-right">Vendido</TableHead>
+                  <TableHead className="text-right">Recebido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {uploadHistory.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="whitespace-nowrap">
+                      {format(new Date(log.uploaded_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>{log.uploaded_by_name}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{log.file_name}</TableCell>
+                    <TableCell className="text-right">{log.imported_rows}</TableCell>
+                    <TableCell className="text-right text-blue-600">
+                      {Number(log.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </TableCell>
+                    <TableCell className="text-right text-green-600">
+                      {Number(log.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Upload Card */}
       <Card className="border-primary/20">
         <CardHeader>
