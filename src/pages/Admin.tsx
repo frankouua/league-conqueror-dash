@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, RefreshCw, Trophy, Megaphone } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, RefreshCw, Trophy, Megaphone, FileSpreadsheet } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,7 @@ import GoalNotifications from "@/components/admin/GoalNotifications";
 import FeegowSync from "@/components/admin/FeegowSync";
 import PrizeForm from "@/components/admin/PrizeForm";
 import AdminAnnouncements from "@/components/admin/AdminAnnouncements";
+import SalesSpreadsheetUpload from "@/components/admin/SalesSpreadsheetUpload";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -62,8 +63,8 @@ const Admin = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="cards" className="max-w-4xl mx-auto">
-          <TabsList className="grid grid-cols-10 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
+        <Tabs defaultValue="cards" className="max-w-5xl mx-auto">
+          <TabsList className="grid grid-cols-11 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
             <TabsTrigger
               value="cards"
               className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
@@ -98,6 +99,13 @@ const Admin = () => {
             >
               <FileEdit className="w-5 h-5" />
               <span className="hidden sm:block">Registros</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="sales-upload"
+              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+            >
+              <FileSpreadsheet className="w-5 h-5" />
+              <span className="hidden sm:block">Vendas</span>
             </TabsTrigger>
             <TabsTrigger
               value="goals"
@@ -157,6 +165,10 @@ const Admin = () => {
 
           <TabsContent value="records" className="animate-scale-in">
             <RecordsEditor />
+          </TabsContent>
+
+          <TabsContent value="sales-upload" className="animate-scale-in">
+            <SalesSpreadsheetUpload />
           </TabsContent>
 
           <TabsContent value="goals" className="animate-scale-in">
