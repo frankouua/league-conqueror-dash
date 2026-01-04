@@ -1065,6 +1065,98 @@ const SalesSpreadsheetUpload = () => {
 
   return (
     <div className="space-y-6">
+      {/* Quick Actions Bar - Always Visible */}
+      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/20">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Ações Rápidas</p>
+                <p className="text-xs text-muted-foreground">
+                  Gerencie uploads e atualize os dashboards
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowHistory(!showHistory)}
+                className="gap-1"
+              >
+                <History className="w-4 h-4" />
+                {showHistory ? "Ocultar Histórico" : "Ver Histórico"}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshAllDashboards}
+                className="gap-1 border-primary/50 text-primary hover:bg-primary/10"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Atualizar Dashboards
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => navigate("/")}
+                className="gap-1"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Ver Dashboard
+              </Button>
+            </div>
+          </div>
+          
+          {/* Last Upload Summary */}
+          {lastUpload && (
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="flex flex-wrap items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Última atualização:</span>
+                  <span className="font-medium">
+                    {format(new Date(lastUpload.uploaded_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </span>
+                  <span className="text-muted-foreground">por</span>
+                  <span className="font-medium">{lastUpload.uploaded_by_name}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <span className="font-bold text-green-600">{lastUpload.imported_rows}</span>
+                    <span className="text-muted-foreground ml-1">vendas</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="font-bold text-blue-600">
+                      {Number(lastUpload.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                    <span className="text-muted-foreground ml-1">vendido</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="font-bold text-green-600">
+                      {Number(lastUpload.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                    <span className="text-muted-foreground ml-1">recebido</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* No uploads yet message */}
+          {!lastUpload && (
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Nenhuma planilha importada ainda. Faça o primeiro upload abaixo.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Success Panel after Import */}
       {importSuccess && importResults && importResults.success > 0 && (
         <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30">
@@ -1102,68 +1194,9 @@ const SalesSpreadsheetUpload = () => {
           </CardContent>
         </Card>
       )}
-      {/* Last Upload Info */}
-      {lastUpload && (
-        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/20">
-                  <Clock className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">Última Atualização de Vendas</p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(lastUpload.uploaded_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} por <span className="font-medium">{lastUpload.uploaded_by_name}</span>
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="text-center">
-                  <p className="font-bold text-green-600">{lastUpload.imported_rows}</p>
-                  <p className="text-xs text-muted-foreground">Importadas</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-blue-600">
-                    {Number(lastUpload.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Vendido</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-green-600">
-                    {Number(lastUpload.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Recebido</p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)}>
-                  <History className="w-4 h-4 mr-1" />
-                  Histórico
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={refreshAllDashboards}
-                  className="gap-1 border-primary/50 text-primary hover:bg-primary/10"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Atualizar Dashboards
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => navigate("/")}
-                  className="gap-1"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Ver Dashboard
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Upload History */}
-      {showHistory && uploadHistory.length > 0 && (
+      {/* Upload History - Toggle with button */}
+      {showHistory && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -1172,36 +1205,44 @@ const SalesSpreadsheetUpload = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Arquivo</TableHead>
-                  <TableHead className="text-right">Importadas</TableHead>
-                  <TableHead className="text-right">Vendido</TableHead>
-                  <TableHead className="text-right">Recebido</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {uploadHistory.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap">
-                      {format(new Date(log.uploaded_at), "dd/MM/yy HH:mm", { locale: ptBR })}
-                    </TableCell>
-                    <TableCell>{log.uploaded_by_name}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{log.file_name}</TableCell>
-                    <TableCell className="text-right">{log.imported_rows}</TableCell>
-                    <TableCell className="text-right text-blue-600">
-                      {Number(log.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </TableCell>
-                    <TableCell className="text-right text-green-600">
-                      {Number(log.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </TableCell>
+            {uploadHistory.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data/Hora</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Arquivo</TableHead>
+                    <TableHead className="text-right">Importadas</TableHead>
+                    <TableHead className="text-right">Vendido</TableHead>
+                    <TableHead className="text-right">Recebido</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {uploadHistory.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="whitespace-nowrap">
+                        {format(new Date(log.uploaded_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>{log.uploaded_by_name}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{log.file_name}</TableCell>
+                      <TableCell className="text-right">{log.imported_rows}</TableCell>
+                      <TableCell className="text-right text-blue-600">
+                        {Number(log.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
+                      <TableCell className="text-right text-green-600">
+                        {Number(log.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <History className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Nenhum upload registrado ainda.</p>
+                <p className="text-sm">O histórico aparecerá aqui após o primeiro upload.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
