@@ -4,13 +4,22 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { TrendingUp, TrendingDown, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { useMemo } from "react";
+import { DEPARTMENTS, getDepartmentLabel } from "@/constants/departments";
 
 interface SoldVsExecutedPanelProps {
   month: number;
   year: number;
+  filterSeller?: string | null;
+  filterDepartment?: string | null;
 }
 
-export const SoldVsExecutedPanel = ({ month, year }: SoldVsExecutedPanelProps) => {
+export const SoldVsExecutedPanel = ({ 
+  month, 
+  year, 
+  filterSeller, 
+  filterDepartment 
+}: SoldVsExecutedPanelProps) => {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
@@ -20,7 +29,7 @@ export const SoldVsExecutedPanel = ({ month, year }: SoldVsExecutedPanelProps) =
     queryFn: async () => {
       const { data, error } = await supabase
         .from("revenue_records")
-        .select("amount, attributed_to_user_id, department")
+        .select("amount, attributed_to_user_id, user_id, department")
         .gte("date", startDate)
         .lte("date", endDate);
       if (error) throw error;
@@ -34,7 +43,7 @@ export const SoldVsExecutedPanel = ({ month, year }: SoldVsExecutedPanelProps) =
     queryFn: async () => {
       const { data, error } = await supabase
         .from("executed_records")
-        .select("amount, attributed_to_user_id, department")
+        .select("amount, attributed_to_user_id, user_id, department")
         .gte("date", startDate)
         .lte("date", endDate);
       if (error) throw error;
@@ -48,7 +57,7 @@ export const SoldVsExecutedPanel = ({ month, year }: SoldVsExecutedPanelProps) =
     queryFn: async () => {
       const { data, error } = await supabase
         .from("predefined_goals")
-        .select("matched_user_id, meta1_goal, meta2_goal, meta3_goal")
+        .select("matched_user_id, meta1_goal, meta2_goal, meta3_goal, department")
         .eq("month", month)
         .eq("year", year);
       if (error) throw error;
@@ -70,16 +79,73 @@ export const SoldVsExecutedPanel = ({ month, year }: SoldVsExecutedPanelProps) =
     },
   });
 
-  // Calculate totals
-  const totalSold = revenueRecords?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
-  const totalExecuted = executedRecords?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+  // Apply filters
+  const filteredRevenueRecords = useMemo(() => {
+    if (!revenueRecords) return [];
+    let filtered = revenueRecords;
+    
+    if (filterSeller) {
+      filtered = filtered.filter(r => 
+        r.user_id === filterSeller || r.attributed_to_user_id === filterSeller
+      );
+    }
+    
+    if (filterDepartment) {
+      const deptInfo = DEPARTMENTS.find(d => d.key === filterDepartment);
+      if (deptInfo) {
+        filtered = filtered.filter(r => 
+          r.department?.toLowerCase().includes(deptInfo.label.toLowerCase()) ||
+          r.department?.includes(deptInfo.name) ||
+          r.department === deptInfo.key
+        );
+      }
+    }
+    
+    return filtered;
+  }, [revenueRecords, filterSeller, filterDepartment]);
+
+  const filteredExecutedRecords = useMemo(() => {
+    if (!executedRecords) return [];
+    let filtered = executedRecords;
+    
+    if (filterSeller) {
+      filtered = filtered.filter(r => 
+        r.user_id === filterSeller || r.attributed_to_user_id === filterSeller
+      );
+    }
+    
+    if (filterDepartment) {
+      const deptInfo = DEPARTMENTS.find(d => d.key === filterDepartment);
+      if (deptInfo) {
+        filtered = filtered.filter(r => 
+          r.department?.toLowerCase().includes(deptInfo.label.toLowerCase()) ||
+          r.department?.includes(deptInfo.name) ||
+          r.department === deptInfo.key
+        );
+      }
+    }
+    
+    return filtered;
+  }, [executedRecords, filterSeller, filterDepartment]);
+
+  // Calculate totals with filters
+  const totalSold = filteredRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
+  const totalExecuted = filteredExecutedRecords.reduce((sum, r) => sum + Number(r.amount), 0);
   const difference = totalExecuted - totalSold;
   const percentDiff = totalSold > 0 ? ((totalExecuted / totalSold) * 100) : 0;
 
-  // Calculate total goals
-  const totalMeta1 = goals?.reduce((sum, g) => sum + Number(g.meta1_goal), 0) || 0;
-  const totalMeta2 = goals?.reduce((sum, g) => sum + Number(g.meta2_goal), 0) || 0;
-  const totalMeta3 = goals?.reduce((sum, g) => sum + Number(g.meta3_goal), 0) || 0;
+  // Calculate total goals (filtered if seller filter is applied)
+  const filteredGoals = useMemo(() => {
+    if (!goals) return [];
+    if (filterSeller) {
+      return goals.filter(g => g.matched_user_id === filterSeller);
+    }
+    return goals;
+  }, [goals, filterSeller]);
+
+  const totalMeta1 = filteredGoals.reduce((sum, g) => sum + Number(g.meta1_goal), 0);
+  const totalMeta2 = filteredGoals.reduce((sum, g) => sum + Number(g.meta2_goal), 0);
+  const totalMeta3 = filteredGoals.reduce((sum, g) => sum + Number(g.meta3_goal), 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
