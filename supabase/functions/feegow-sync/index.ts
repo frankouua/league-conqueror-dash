@@ -526,6 +526,214 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
+    // TEST-SALES ACTION - Deep exploration of /financial/sales endpoint
+    // =====================================================
+    if (action === 'test-sales') {
+      console.log('🔍 Testing /financial/sales endpoint with multiple parameter variations...');
+      
+      const today = formatDateFeegow(new Date());
+      const lastMonth = formatDateFeegow(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+      const lastWeek = formatDateFeegow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+      
+      const results: Record<string, any> = {};
+
+      // Common helper to analyze response
+      const analyzeResponse = async (res: Response, name: string) => {
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 800) }; }
+        
+        let sampleItems: any[] = [];
+        let allKeys: string[] = [];
+        let sellerFields: Record<string, any> = {};
+        
+        if (data.success && data.content) {
+          const content = data.content;
+          const items = Array.isArray(content) ? content : 
+                        content.vendas || content.sales || content.data || 
+                        content.itens || content.items || content.contas || [];
+          sampleItems = items.slice(0, 3);
+          
+          if (sampleItems.length > 0) {
+            allKeys = Object.keys(sampleItems[0]);
+            for (const key of allKeys) {
+              const keyLower = key.toLowerCase();
+              if (['vendedor', 'seller', 'funcionario', 'employee', 'usuario', 'user', 
+                   'agendador', 'responsavel', 'atendente', 'scheduler', 'criado', 
+                   'created', 'sys', 'cadastrado', 'operador'].some(kw => keyLower.includes(kw))) {
+                sellerFields[key] = sampleItems[0][key];
+              }
+            }
+          }
+          
+          return {
+            status: res.status,
+            success: true,
+            recordCount: items.length,
+            allKeys,
+            sellerFields,
+            sampleItems,
+          };
+        }
+        
+        return {
+          status: res.status,
+          success: false,
+          raw: JSON.stringify(data).slice(0, 800),
+        };
+      };
+
+      // Test 1: POST with DD-MM-YYYY format
+      console.log('Test 1: POST /financial/sales with DD-MM-YYYY format...');
+      try {
+        const res1 = await fetch('https://api.feegow.com/v1/api/financial/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+          body: JSON.stringify({ data_start: lastWeek, data_end: today }),
+        });
+        results['test1_ddmmyyyy'] = await analyzeResponse(res1, 'test1');
+      } catch (error: unknown) {
+        results['test1_ddmmyyyy'] = { error: String(error) };
+      }
+
+      // Test 2: POST with YYYY-MM-DD (ISO format)
+      console.log('Test 2: POST /financial/sales with YYYY-MM-DD format...');
+      try {
+        const todayISO = new Date().toISOString().split('T')[0];
+        const lastWeekISO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const res2 = await fetch('https://api.feegow.com/v1/api/financial/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+          body: JSON.stringify({ data_start: lastWeekISO, data_end: todayISO }),
+        });
+        results['test2_iso'] = await analyzeResponse(res2, 'test2');
+      } catch (error: unknown) {
+        results['test2_iso'] = { error: String(error) };
+      }
+
+      // Test 3: POST with different param names (dataInicio/dataFim)
+      console.log('Test 3: POST /financial/sales with dataInicio/dataFim...');
+      try {
+        const res3 = await fetch('https://api.feegow.com/v1/api/financial/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+          body: JSON.stringify({ dataInicio: lastWeek, dataFim: today }),
+        });
+        results['test3_dataInicio'] = await analyzeResponse(res3, 'test3');
+      } catch (error: unknown) {
+        results['test3_dataInicio'] = { error: String(error) };
+      }
+
+      // Test 4: POST with competencia (month/year filter)
+      console.log('Test 4: POST /financial/sales with competencia...');
+      try {
+        const now = new Date();
+        const res4 = await fetch('https://api.feegow.com/v1/api/financial/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+          body: JSON.stringify({ 
+            competencia_mes: now.getMonth() + 1,
+            competencia_ano: now.getFullYear(),
+          }),
+        });
+        results['test4_competencia'] = await analyzeResponse(res4, 'test4');
+      } catch (error: unknown) {
+        results['test4_competencia'] = { error: String(error) };
+      }
+
+      // Test 5: POST with date (single date field)
+      console.log('Test 5: POST /financial/sales with date field...');
+      try {
+        const res5 = await fetch('https://api.feegow.com/v1/api/financial/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+          body: JSON.stringify({ date: today }),
+        });
+        results['test5_date'] = await analyzeResponse(res5, 'test5');
+      } catch (error: unknown) {
+        results['test5_date'] = { error: String(error) };
+      }
+
+      // Test 6: POST with unidade_id (unit filter)
+      console.log('Test 6: POST /financial/sales with unidade_id...');
+      try {
+        const res6 = await fetch('https://api.feegow.com/v1/api/financial/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+          body: JSON.stringify({ 
+            data_start: lastWeek, 
+            data_end: today,
+            unidade_id: 1,
+          }),
+        });
+        results['test6_unidade'] = await analyzeResponse(res6, 'test6');
+      } catch (error: unknown) {
+        results['test6_unidade'] = { error: String(error) };
+      }
+
+      // Test 7: Try empty body POST
+      console.log('Test 7: POST /financial/sales with empty body...');
+      try {
+        const res7 = await fetch('https://api.feegow.com/v1/api/financial/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+          body: JSON.stringify({}),
+        });
+        results['test7_empty'] = await analyzeResponse(res7, 'test7');
+      } catch (error: unknown) {
+        results['test7_empty'] = { error: String(error) };
+      }
+
+      // Test 8: GET without params
+      console.log('Test 8: GET /financial/sales without params...');
+      try {
+        const res8 = await fetch('https://api.feegow.com/v1/api/financial/sales', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+        });
+        results['test8_get_noparams'] = await analyzeResponse(res8, 'test8');
+      } catch (error: unknown) {
+        results['test8_get_noparams'] = { error: String(error) };
+      }
+
+      // Test 9: Try /financial/sale (singular)
+      console.log('Test 9: POST /financial/sale (singular)...');
+      try {
+        const res9 = await fetch('https://api.feegow.com/v1/api/financial/sale', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken },
+          body: JSON.stringify({ data_start: lastWeek, data_end: today }),
+        });
+        results['test9_sale_singular'] = await analyzeResponse(res9, 'test9');
+      } catch (error: unknown) {
+        results['test9_sale_singular'] = { error: String(error) };
+      }
+
+      // Test 10: Try /financial/invoice with seller expansion
+      console.log('Test 10: GET /financial/list-invoice with all expansions...');
+      try {
+        const res10 = await fetch(
+          `https://api.feegow.com/v1/api/financial/list-invoice?data_start=${lastWeek}&data_end=${today}&tipo_transacao=C&expand=all`,
+          { method: 'GET', headers: { 'Content-Type': 'application/json', 'x-access-token': feegowToken } }
+        );
+        results['test10_invoice_expand'] = await analyzeResponse(res10, 'test10');
+      } catch (error: unknown) {
+        results['test10_invoice_expand'] = { error: String(error) };
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          action: 'test-sales',
+          message: 'Exploração profunda do endpoint /financial/sales com diferentes parâmetros',
+          dateRange: { lastWeek, lastMonth: lastMonth, today },
+          results,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // =====================================================
     // DIAGNOSE ACTION - Test /financial/sales endpoint
     // =====================================================
     if (action === 'diagnose') {
