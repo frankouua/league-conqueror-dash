@@ -105,6 +105,16 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
     },
   });
 
+  // Fetch teams
+  const { data: teams } = useQuery({
+    queryKey: ["teams-gap"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("teams").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch individual goals
   const { data: individualGoals } = useQuery({
     queryKey: ["individual-goals-gap", month, year],
@@ -252,7 +262,88 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
     }).sort((a, b) => a.percent - b.percent); // Sort by lowest percent first (priority)
   }, [departmentGoals, revenueRecords]);
 
-  // Sellers needing attention
+  // Position labels mapping
+  const POSITION_LABELS: Record<string, string> = {
+    comercial_1_captacao: "Comercial 1 - Captação",
+    comercial_2_closer: "Comercial 2 - Closer",
+    comercial_3_experiencia: "Comercial 3 - Experiência",
+    comercial_4_farmer: "Comercial 4 - Farmer",
+    sdr: "SDR",
+    coordenador: "Coordenador(a)",
+    gerente: "Gerente",
+    assistente: "Assistente",
+    outro: "Outro",
+  };
+
+  // Sellers grouped by position for team comparison
+  const sellersGroupedByPosition = useMemo(() => {
+    if (!profiles || !individualGoals || !revenueRecords || !teams) return [];
+
+    // Build seller data with team info
+    const sellersData = profiles
+      .map((profile) => {
+        const goal = individualGoals.find((g) => g.user_id === profile.user_id);
+        const goalValue = Number(goal?.revenue_goal) || 0;
+        
+        if (goalValue === 0) return null;
+
+        const revenue = revenueRecords
+          .filter((r) => r.user_id === profile.user_id || r.attributed_to_user_id === profile.user_id)
+          .reduce((sum, r) => sum + Number(r.amount), 0);
+
+        const remaining = Math.max(0, goalValue - revenue);
+        const percent = goalValue > 0 ? (revenue / goalValue) * 100 : 0;
+        const team = teams.find((t) => t.id === profile.team_id);
+
+        return {
+          id: profile.user_id,
+          name: profile.full_name,
+          position: profile.position || "outro",
+          positionLabel: POSITION_LABELS[profile.position || "outro"] || "Outro",
+          teamId: profile.team_id,
+          teamName: team?.name || "Sem equipe",
+          goal: goalValue,
+          revenue,
+          remaining,
+          percent: Math.min(percent, 100),
+          dailyNeeded: daysRemaining > 0 ? remaining / daysRemaining : 0,
+        };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null);
+
+    // Group by position
+    const positionGroups: Record<string, typeof sellersData> = {};
+    sellersData.forEach((seller) => {
+      const pos = seller.position;
+      if (!positionGroups[pos]) {
+        positionGroups[pos] = [];
+      }
+      positionGroups[pos].push(seller);
+    });
+
+    // Convert to array and sort by position priority
+    const positionPriority = [
+      "comercial_1_captacao",
+      "comercial_2_closer",
+      "comercial_3_experiencia",
+      "comercial_4_farmer",
+      "sdr",
+      "coordenador",
+      "gerente",
+      "assistente",
+      "outro",
+    ];
+
+    return positionPriority
+      .filter((pos) => positionGroups[pos] && positionGroups[pos].length > 0)
+      .map((pos) => ({
+        position: pos,
+        label: POSITION_LABELS[pos] || pos,
+        sellers: positionGroups[pos].sort((a, b) => b.percent - a.percent), // Best performer first within group
+      }));
+  }, [profiles, individualGoals, revenueRecords, teams, daysRemaining]);
+
+  // Legacy sellers analysis for fallback
   const sellersAnalysis = useMemo(() => {
     if (!profiles || !individualGoals || !revenueRecords) return [];
 
@@ -554,37 +645,103 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
           </div>
         )}
 
-        {/* Sellers Needing Attention */}
-        {sellersAnalysis.length > 0 && (
-          <div className="space-y-3">
+        {/* Sellers Comparison by Position */}
+        {sellersGroupedByPosition.length > 0 && (
+          <div className="space-y-4">
             <h4 className="font-semibold flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
-              Vendedoras - Acompanhamento
+              Comparativo por Cargo - Equipes
             </h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {sellersAnalysis.slice(0, 5).map((seller) => (
-                <div
-                  key={seller.name}
-                  className={`p-3 rounded-lg border ${
-                    seller.percent >= 100
-                      ? "bg-success/10 border-success/30"
-                      : seller.percent >= 70
-                      ? "bg-amber-500/10 border-amber-500/30"
-                      : "bg-destructive/10 border-destructive/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm">{seller.name}</span>
-                    <span className={`text-sm font-bold ${getStatusColor(seller.percent)}`}>
-                      {seller.percent.toFixed(0)}%
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {sellersGroupedByPosition.map((group) => (
+                <div key={group.position} className="space-y-2">
+                  {/* Position Header */}
+                  <div className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md">
+                    <Badge variant="outline" className="text-xs font-semibold">
+                      {group.label}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      ({group.sellers.length} {group.sellers.length === 1 ? "pessoa" : "pessoas"})
                     </span>
                   </div>
-                  <Progress value={seller.percent} className="h-1.5 mb-1" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatCurrency(seller.revenue)} / {formatCurrency(seller.goal)}</span>
-                    {seller.remaining > 0 && isCurrentMonth && (
-                      <span className="text-primary">~{formatCurrency(seller.dailyNeeded)}/dia</span>
-                    )}
+                  
+                  {/* Sellers Grid - Side by Side for Comparison */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {group.sellers.map((seller, idx) => {
+                      // Find if there's a counterpart in other team with same position
+                      const hasCounterpart = group.sellers.length > 1;
+                      const isTopPerformer = idx === 0 && hasCounterpart;
+                      const isUnderperformer = idx === group.sellers.length - 1 && hasCounterpart && idx !== 0;
+                      
+                      return (
+                        <div
+                          key={seller.id}
+                          className={`p-3 rounded-lg border transition-all ${
+                            seller.percent >= 100
+                              ? "bg-success/10 border-success/30"
+                              : seller.percent >= 70
+                              ? "bg-amber-500/10 border-amber-500/30"
+                              : "bg-destructive/10 border-destructive/30"
+                          } ${isTopPerformer ? "ring-2 ring-success/50" : ""}`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              {isTopPerformer && <span className="text-success">👑</span>}
+                              <span className="font-medium text-sm">{seller.name}</span>
+                            </div>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-xs ${
+                                seller.teamName.toLowerCase().includes("lioness") 
+                                  ? "bg-amber-500/20 text-amber-600" 
+                                  : "bg-blue-500/20 text-blue-600"
+                              }`}
+                            >
+                              {seller.teamName.replace(" Team", "")}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 mb-1">
+                            <Progress value={seller.percent} className="h-2 flex-1" />
+                            <span className={`text-sm font-bold min-w-[40px] text-right ${getStatusColor(seller.percent)}`}>
+                              {seller.percent.toFixed(0)}%
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>{formatCurrency(seller.revenue)} / {formatCurrency(seller.goal)}</span>
+                            {seller.remaining > 0 ? (
+                              <span className="text-destructive font-medium">
+                                Falta: {formatCurrency(seller.remaining)}
+                              </span>
+                            ) : (
+                              <span className="text-success font-medium">✓ Meta atingida!</span>
+                            )}
+                          </div>
+                          
+                          {seller.remaining > 0 && isCurrentMonth && (
+                            <div className="mt-1 pt-1 border-t border-border/50 text-xs text-primary">
+                              ~{formatCurrency(seller.dailyNeeded)}/dia para bater meta
+                            </div>
+                          )}
+                          
+                          {/* Comparison insight if underperforming */}
+                          {isUnderperformer && (
+                            <div className="mt-2 pt-2 border-t border-border/50">
+                              <p className="text-xs text-muted-foreground flex items-start gap-1">
+                                <Lightbulb className="w-3 h-3 mt-0.5 text-amber-500 flex-shrink-0" />
+                                <span>
+                                  {group.sellers[0].percent - seller.percent > 20 
+                                    ? `Diferença de ${(group.sellers[0].percent - seller.percent).toFixed(0)}% para ${group.sellers[0].name.split(' ')[0]}. Troca de experiências pode ajudar!`
+                                    : `Próximo de ${group.sellers[0].name.split(' ')[0]}! Continue focada.`
+                                  }
+                                </span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
