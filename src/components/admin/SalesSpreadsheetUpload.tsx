@@ -33,7 +33,8 @@ interface ParsedSale {
   procedure: string;
   clientName: string;
   sellerName: string;
-  amount: number;
+  amountSold: number;      // Valor Vendido
+  amountPaid: number;      // Valor Pago/Recebido
   matchedUserId: string | null;
   matchedTeamId: string | null;
   matchedTeamName: string | null;
@@ -47,21 +48,24 @@ interface ColumnMapping {
   procedure: string;
   clientName: string;
   sellerName: string;
-  amount: string;
+  amountSold: string;      // Valor Vendido
+  amountPaid: string;      // Valor Pago/Recebido
 }
 
 interface SalesMetrics {
   totalSales: number;
-  totalRevenue: number;
-  averageTicket: number;
+  totalRevenueSold: number;    // Total Valor Vendido
+  totalRevenuePaid: number;    // Total Valor Recebido
+  averageTicketSold: number;   // Ticket Médio (Vendido)
+  averageTicketPaid: number;   // Ticket Médio (Recebido)
   uniqueClients: number;
   uniqueSellers: number;
-  salesByDepartment: Record<string, { count: number; revenue: number }>;
-  salesBySeller: Record<string, { count: number; revenue: number }>;
-  salesByTeam: Record<string, { count: number; revenue: number; teamName: string }>;
-  salesByProcedure: Record<string, { count: number; revenue: number }>;
-  topClients: { name: string; revenue: number; count: number }[];
-  salesByDate: Record<string, { count: number; revenue: number }>;
+  salesByDepartment: Record<string, { count: number; revenueSold: number; revenuePaid: number }>;
+  salesBySeller: Record<string, { count: number; revenueSold: number; revenuePaid: number }>;
+  salesByTeam: Record<string, { count: number; revenueSold: number; revenuePaid: number; teamName: string }>;
+  salesByProcedure: Record<string, { count: number; revenueSold: number; revenuePaid: number }>;
+  topClients: { name: string; revenueSold: number; revenuePaid: number; count: number }[];
+  salesByDate: Record<string, { count: number; revenueSold: number; revenuePaid: number }>;
 }
 
 const SalesSpreadsheetUpload = () => {
@@ -78,7 +82,8 @@ const SalesSpreadsheetUpload = () => {
     procedure: '',
     clientName: '',
     sellerName: '',
-    amount: '',
+    amountSold: '',
+    amountPaid: '',
   });
   const [showColumnMapping, setShowColumnMapping] = useState(false);
   const [rawData, setRawData] = useState<Record<string, any>[]>([]);
@@ -130,7 +135,8 @@ const SalesSpreadsheetUpload = () => {
         procedure: '',
         clientName: '',
         sellerName: '',
-        amount: '',
+        amountSold: '',
+        amountPaid: '',
       };
 
       // Feegow-specific column detection
@@ -172,14 +178,17 @@ const SalesSpreadsheetUpload = () => {
           if (!autoMapping.procedure) autoMapping.procedure = col;
         }
         
-        // Amount detection - prioritize "valor pago" over "valor vendido"
-        if (colLower.includes('valor pago') || colLower === 'pago') {
-          autoMapping.amount = col; // Override any previous amount
-        } else if (!autoMapping.amount && (
-            colLower.includes('valor') || colLower.includes('value') || 
-            colLower.includes('amount') || colLower.includes('total') ||
-            colLower.includes('vendido'))) {
-          autoMapping.amount = col;
+        // Amount Sold detection (valor vendido)
+        if (colLower.includes('valor vendido') || colLower === 'vendido') {
+          autoMapping.amountSold = col;
+        } else if (!autoMapping.amountSold && colLower.includes('valor') && !colLower.includes('pago') && !colLower.includes('recebido')) {
+          autoMapping.amountSold = col;
+        }
+        
+        // Amount Paid detection (valor pago/recebido)
+        if (colLower.includes('valor pago') || colLower === 'pago' || 
+            colLower.includes('valor recebido') || colLower === 'recebido') {
+          autoMapping.amountPaid = col;
         }
       }
 
@@ -212,24 +221,27 @@ const SalesSpreadsheetUpload = () => {
   };
 
   const calculateMetrics = (sales: ParsedSale[]): SalesMetrics => {
-    const validSales = sales.filter(s => s.status !== 'error' && s.amount > 0);
+    const validSales = sales.filter(s => s.status !== 'error' && (s.amountSold > 0 || s.amountPaid > 0));
     
     const totalSales = validSales.length;
-    const totalRevenue = validSales.reduce((sum, s) => sum + s.amount, 0);
+    const totalRevenueSold = validSales.reduce((sum, s) => sum + s.amountSold, 0);
+    const totalRevenuePaid = validSales.reduce((sum, s) => sum + s.amountPaid, 0);
     
     // Calculate unique clients by normalized name
-    const clientMap = new Map<string, { name: string; totalValue: number; purchases: number }>();
+    const clientMap = new Map<string, { name: string; totalSold: number; totalPaid: number; purchases: number }>();
     for (const sale of validSales) {
       if (sale.clientName) {
         const normalizedName = normalizeClientName(sale.clientName);
         const existing = clientMap.get(normalizedName);
         if (existing) {
-          existing.totalValue += sale.amount;
+          existing.totalSold += sale.amountSold;
+          existing.totalPaid += sale.amountPaid;
           existing.purchases++;
         } else {
           clientMap.set(normalizedName, {
             name: sale.clientName.trim(),
-            totalValue: sale.amount,
+            totalSold: sale.amountSold,
+            totalPaid: sale.amountPaid,
             purchases: 1,
           });
         }
@@ -239,82 +251,91 @@ const SalesSpreadsheetUpload = () => {
     const uniqueClients = clientMap.size;
     const uniqueSellers = new Set(validSales.map(s => s.sellerName.toLowerCase().trim()).filter(Boolean)).size;
     
-    // Average ticket is total revenue divided by UNIQUE CLIENTS, not by sales count
-    const averageTicket = uniqueClients > 0 ? totalRevenue / uniqueClients : 0;
+    // Average ticket is total revenue divided by UNIQUE CLIENTS
+    const averageTicketSold = uniqueClients > 0 ? totalRevenueSold / uniqueClients : 0;
+    const averageTicketPaid = uniqueClients > 0 ? totalRevenuePaid / uniqueClients : 0;
     
     // Sales by department
-    const salesByDepartment: Record<string, { count: number; revenue: number }> = {};
+    const salesByDepartment: Record<string, { count: number; revenueSold: number; revenuePaid: number }> = {};
     for (const sale of validSales) {
       const dept = sale.department?.trim() || 'Não informado';
       if (!salesByDepartment[dept]) {
-        salesByDepartment[dept] = { count: 0, revenue: 0 };
+        salesByDepartment[dept] = { count: 0, revenueSold: 0, revenuePaid: 0 };
       }
       salesByDepartment[dept].count++;
-      salesByDepartment[dept].revenue += sale.amount;
+      salesByDepartment[dept].revenueSold += sale.amountSold;
+      salesByDepartment[dept].revenuePaid += sale.amountPaid;
     }
     
     // Sales by seller
-    const salesBySeller: Record<string, { count: number; revenue: number }> = {};
+    const salesBySeller: Record<string, { count: number; revenueSold: number; revenuePaid: number }> = {};
     for (const sale of validSales) {
       const seller = sale.sellerName?.trim() || 'Não informado';
       if (!salesBySeller[seller]) {
-        salesBySeller[seller] = { count: 0, revenue: 0 };
+        salesBySeller[seller] = { count: 0, revenueSold: 0, revenuePaid: 0 };
       }
       salesBySeller[seller].count++;
-      salesBySeller[seller].revenue += sale.amount;
+      salesBySeller[seller].revenueSold += sale.amountSold;
+      salesBySeller[seller].revenuePaid += sale.amountPaid;
     }
 
     // Sales by team
-    const salesByTeam: Record<string, { count: number; revenue: number; teamName: string }> = {};
+    const salesByTeam: Record<string, { count: number; revenueSold: number; revenuePaid: number; teamName: string }> = {};
     for (const sale of validSales) {
       if (sale.matchedTeamId) {
         const teamKey = sale.matchedTeamId;
         const teamName = sale.matchedTeamName || 'Time Desconhecido';
         if (!salesByTeam[teamKey]) {
-          salesByTeam[teamKey] = { count: 0, revenue: 0, teamName };
+          salesByTeam[teamKey] = { count: 0, revenueSold: 0, revenuePaid: 0, teamName };
         }
         salesByTeam[teamKey].count++;
-        salesByTeam[teamKey].revenue += sale.amount;
+        salesByTeam[teamKey].revenueSold += sale.amountSold;
+        salesByTeam[teamKey].revenuePaid += sale.amountPaid;
       }
     }
 
     // Sales by procedure
-    const salesByProcedure: Record<string, { count: number; revenue: number }> = {};
+    const salesByProcedure: Record<string, { count: number; revenueSold: number; revenuePaid: number }> = {};
     for (const sale of validSales) {
       const proc = sale.procedure?.trim() || 'Não informado';
       if (!salesByProcedure[proc]) {
-        salesByProcedure[proc] = { count: 0, revenue: 0 };
+        salesByProcedure[proc] = { count: 0, revenueSold: 0, revenuePaid: 0 };
       }
       salesByProcedure[proc].count++;
-      salesByProcedure[proc].revenue += sale.amount;
+      salesByProcedure[proc].revenueSold += sale.amountSold;
+      salesByProcedure[proc].revenuePaid += sale.amountPaid;
     }
     
     // Top clients by revenue (using unique client data)
     const topClients = Array.from(clientMap.values())
       .map(client => ({
         name: client.name,
-        revenue: client.totalValue,
+        revenueSold: client.totalSold,
+        revenuePaid: client.totalPaid,
         count: client.purchases,
       }))
-      .sort((a, b) => b.revenue - a.revenue)
+      .sort((a, b) => b.revenueSold - a.revenueSold)
       .slice(0, 10);
     
     // Sales by date
-    const salesByDate: Record<string, { count: number; revenue: number }> = {};
+    const salesByDate: Record<string, { count: number; revenueSold: number; revenuePaid: number }> = {};
     for (const sale of validSales) {
       if (sale.date) {
         if (!salesByDate[sale.date]) {
-          salesByDate[sale.date] = { count: 0, revenue: 0 };
+          salesByDate[sale.date] = { count: 0, revenueSold: 0, revenuePaid: 0 };
         }
         salesByDate[sale.date].count++;
-        salesByDate[sale.date].revenue += sale.amount;
+        salesByDate[sale.date].revenueSold += sale.amountSold;
+        salesByDate[sale.date].revenuePaid += sale.amountPaid;
       }
     }
     
     return {
       totalSales,
-      totalRevenue,
-      averageTicket,
+      totalRevenueSold,
+      totalRevenuePaid,
+      averageTicketSold,
+      averageTicketPaid,
       uniqueClients,
       uniqueSellers,
       salesByDepartment,
@@ -327,10 +348,10 @@ const SalesSpreadsheetUpload = () => {
   };
 
   const processWithMapping = async () => {
-    if (!columnMapping.date || !columnMapping.sellerName || !columnMapping.amount) {
+    if (!columnMapping.date || !columnMapping.sellerName || (!columnMapping.amountSold && !columnMapping.amountPaid)) {
       toast({
         title: "Mapeamento incompleto",
-        description: "Configure pelo menos Data, Vendedor e Valor.",
+        description: "Configure pelo menos Data, Vendedor e um campo de Valor (Vendido ou Pago).",
         variant: "destructive",
       });
       return;
@@ -389,7 +410,8 @@ const SalesSpreadsheetUpload = () => {
         try {
           const dateValue = row[columnMapping.date];
           const sellerName = String(row[columnMapping.sellerName] || '').trim();
-          const amountRaw = row[columnMapping.amount];
+          const amountSoldRaw = columnMapping.amountSold ? row[columnMapping.amountSold] : 0;
+          const amountPaidRaw = columnMapping.amountPaid ? row[columnMapping.amountPaid] : 0;
           const department = columnMapping.department ? String(row[columnMapping.department] || '').trim() : '';
           const procedure = columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : '';
           const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '';
@@ -419,7 +441,8 @@ const SalesSpreadsheetUpload = () => {
               procedure,
               clientName,
               sellerName,
-              amount: 0,
+              amountSold: 0,
+              amountPaid: 0,
               matchedUserId: null,
               matchedTeamId: null,
               matchedTeamName: null,
@@ -428,32 +451,34 @@ const SalesSpreadsheetUpload = () => {
             };
           }
 
-          // Parse amount - handle Brazilian format (1.234,56)
-          let amount = 0;
-          if (typeof amountRaw === 'number') {
-            amount = amountRaw;
-          } else if (typeof amountRaw === 'string') {
-            // Remove currency symbols and spaces, handle both 1.234,56 and 1,234.56
-            let cleaned = amountRaw.replace(/[R$\s]/g, '').trim();
-            // Check if it's Brazilian format (comma as decimal separator)
-            if (cleaned.includes(',') && cleaned.indexOf(',') > cleaned.lastIndexOf('.')) {
-              // Format: 1.234,56 - remove dots first, then replace comma with dot
-              cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-            } else if (cleaned.includes(',') && !cleaned.includes('.')) {
-              // Format: 1234,56 - just replace comma with dot
-              cleaned = cleaned.replace(',', '.');
+          // Parse amounts - helper function for Brazilian format
+          const parseAmount = (raw: any): number => {
+            if (typeof raw === 'number') return raw;
+            if (typeof raw === 'string') {
+              let cleaned = raw.replace(/[R$\s]/g, '').trim();
+              if (cleaned.includes(',') && cleaned.indexOf(',') > cleaned.lastIndexOf('.')) {
+                cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+              } else if (cleaned.includes(',') && !cleaned.includes('.')) {
+                cleaned = cleaned.replace(',', '.');
+              }
+              return parseFloat(cleaned) || 0;
             }
-            amount = parseFloat(cleaned) || 0;
-          }
+            return 0;
+          };
 
-          if (amount <= 0) {
+          const amountSold = parseAmount(amountSoldRaw);
+          const amountPaid = parseAmount(amountPaidRaw);
+
+          // At least one amount should be valid
+          if (amountSold <= 0 && amountPaid <= 0) {
             return {
               date: parsedDate,
               department,
               procedure,
               clientName,
               sellerName,
-              amount: 0,
+              amountSold: 0,
+              amountPaid: 0,
               matchedUserId: null,
               matchedTeamId: null,
               matchedTeamName: null,
@@ -500,7 +525,8 @@ const SalesSpreadsheetUpload = () => {
             procedure,
             clientName,
             sellerName,
-            amount,
+            amountSold,
+            amountPaid,
             matchedUserId,
             matchedTeamId,
             matchedTeamName,
@@ -513,7 +539,8 @@ const SalesSpreadsheetUpload = () => {
             procedure: '',
             clientName: '',
             sellerName: '',
-            amount: 0,
+            amountSold: 0,
+            amountPaid: 0,
             matchedUserId: null,
             matchedTeamId: null,
             matchedTeamName: null,
@@ -566,12 +593,15 @@ const SalesSpreadsheetUpload = () => {
 
     try {
       for (const sale of validSales) {
+        // Use amountPaid for the main revenue record (actual payment received)
+        const primaryAmount = sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold;
+        
         const { data: existing } = await supabase
           .from('revenue_records')
           .select('id')
           .eq('date', sale.date)
           .eq('attributed_to_user_id', sale.matchedUserId)
-          .eq('amount', sale.amount)
+          .eq('amount', primaryAmount)
           .maybeSingle();
 
         if (existing) {
@@ -579,15 +609,18 @@ const SalesSpreadsheetUpload = () => {
           continue;
         }
 
-        // Build notes with client and procedure info
+        // Build notes with client, procedure and amounts info
         const noteParts: string[] = [];
         if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
         if (sale.procedure) noteParts.push(`Procedimento: ${sale.procedure}`);
+        if (sale.amountSold > 0 && sale.amountPaid > 0 && sale.amountSold !== sale.amountPaid) {
+          noteParts.push(`Vendido: ${sale.amountSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+        }
         const notes = noteParts.length > 0 ? noteParts.join(' | ') : null;
 
         const { error } = await supabase.from('revenue_records').insert({
           date: sale.date,
-          amount: sale.amount,
+          amount: primaryAmount,
           notes,
           department: sale.department || null,
           user_id: sale.matchedUserId!,
@@ -628,7 +661,7 @@ const SalesSpreadsheetUpload = () => {
 
   // Function to update RFV customers based on sales data
   const updateRFVCustomers = async (sales: ParsedSale[]) => {
-    // Group sales by client name
+    // Group sales by client name - use amountPaid for RFV (actual value received)
     const clientSales: Record<string, { dates: string[]; amounts: number[] }> = {};
 
     for (const sale of sales) {
@@ -638,7 +671,9 @@ const SalesSpreadsheetUpload = () => {
         clientSales[key] = { dates: [], amounts: [] };
       }
       clientSales[key].dates.push(sale.date);
-      clientSales[key].amounts.push(sale.amount);
+      // Use amountPaid if available, otherwise amountSold
+      const amount = sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold;
+      clientSales[key].amounts.push(amount);
     }
 
     const now = new Date();
@@ -918,10 +953,23 @@ const SalesSpreadsheetUpload = () => {
                 </select>
               </div>
               <div>
-                <Label>Valor *</Label>
+                <Label>Valor Vendido</Label>
                 <select
-                  value={columnMapping.amount}
-                  onChange={(e) => setColumnMapping(m => ({ ...m, amount: e.target.value }))}
+                  value={columnMapping.amountSold}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, amountSold: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não incluir</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Valor Pago/Recebido *</Label>
+                <select
+                  value={columnMapping.amountPaid}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, amountPaid: e.target.value }))}
                   className="w-full mt-1 p-2 border rounded-md bg-background"
                 >
                   <option value="">Selecione...</option>
@@ -999,10 +1047,15 @@ const SalesSpreadsheetUpload = () => {
                     <DollarSign className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Faturamento Total</p>
+                    <p className="text-sm text-muted-foreground">Valor Recebido</p>
                     <p className="text-2xl font-bold text-foreground">
-                      {metrics.totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      {metrics.totalRevenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </p>
+                    {metrics.totalRevenueSold > 0 && metrics.totalRevenueSold !== metrics.totalRevenuePaid && (
+                      <p className="text-xs text-muted-foreground">
+                        Vendido: {metrics.totalRevenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -1029,9 +1082,9 @@ const SalesSpreadsheetUpload = () => {
                     <Award className="w-6 h-6 text-green-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Ticket Médio</p>
+                    <p className="text-sm text-muted-foreground">Ticket Médio (Recebido)</p>
                     <p className="text-2xl font-bold text-foreground">
-                      {metrics.averageTicket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      {metrics.averageTicketPaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </p>
                   </div>
                 </div>
@@ -1081,7 +1134,7 @@ const SalesSpreadsheetUpload = () => {
                       <Pie
                         data={Object.entries(metrics.salesByDepartment).map(([name, data]) => ({
                           name,
-                          value: data.revenue,
+                          value: data.revenuePaid,
                           count: data.count,
                         }))}
                         cx="50%"
@@ -1117,12 +1170,12 @@ const SalesSpreadsheetUpload = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={Object.entries(metrics.salesBySeller)
-                        .sort((a, b) => b[1].revenue - a[1].revenue)
+                        .sort((a, b) => b[1].revenuePaid - a[1].revenuePaid)
                         .slice(0, 10)
                         .map(([name, data]) => ({
                           name: name.split(' ')[0], // First name only for chart
                           fullName: name,
-                          revenue: data.revenue,
+                          revenue: data.revenuePaid,
                           count: data.count,
                         }))}
                       layout="vertical"
@@ -1169,13 +1222,13 @@ const SalesSpreadsheetUpload = () => {
                   </TableHeader>
                   <TableBody>
                     {Object.entries(metrics.salesByDepartment)
-                      .sort((a, b) => b[1].revenue - a[1].revenue)
+                      .sort((a, b) => b[1].revenuePaid - a[1].revenuePaid)
                       .map(([dept, data]) => (
                         <TableRow key={dept}>
                           <TableCell className="font-medium">{dept}</TableCell>
                           <TableCell className="text-right">{data.count}</TableCell>
                           <TableCell className="text-right">
-                            {data.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            {data.revenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1200,7 +1253,7 @@ const SalesSpreadsheetUpload = () => {
                   </TableHeader>
                   <TableBody>
                     {Object.entries(metrics.salesBySeller)
-                      .sort((a, b) => b[1].revenue - a[1].revenue)
+                      .sort((a, b) => b[1].revenuePaid - a[1].revenuePaid)
                       .slice(0, 10)
                       .map(([seller, data], index) => (
                         <TableRow key={seller}>
@@ -1214,7 +1267,7 @@ const SalesSpreadsheetUpload = () => {
                           </TableCell>
                           <TableCell className="text-right">{data.count}</TableCell>
                           <TableCell className="text-right">
-                            {data.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            {data.revenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1254,10 +1307,10 @@ const SalesSpreadsheetUpload = () => {
                       <TableCell className="font-medium">{client.name}</TableCell>
                       <TableCell className="text-right">{client.count}</TableCell>
                       <TableCell className="text-right font-semibold">
-                        {client.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {client.revenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
                       <TableCell className="text-right">
-                        {(client.revenue / client.count).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {(client.revenuePaid / client.count).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1373,7 +1426,7 @@ const SalesSpreadsheetUpload = () => {
                       <TableCell>{sale.department || '-'}</TableCell>
                       <TableCell>{sale.sellerName}</TableCell>
                       <TableCell>
-                        {sale.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {(sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">{sale.clientName}</TableCell>
                       <TableCell>
