@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History, RefreshCw, LayoutDashboard, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -88,6 +90,8 @@ interface SalesMetrics {
 const SalesSpreadsheetUpload = () => {
   const { toast } = useToast();
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -116,6 +120,26 @@ const SalesSpreadsheetUpload = () => {
   const [lastUpload, setLastUpload] = useState<UploadLog | null>(null);
   const [uploadHistory, setUploadHistory] = useState<UploadLog[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [importSuccess, setImportSuccess] = useState(false);
+
+  // Function to refresh all dashboard data
+  const refreshAllDashboards = () => {
+    // Invalidate all relevant queries to force refetch
+    queryClient.invalidateQueries({ queryKey: ["team-scores"] });
+    queryClient.invalidateQueries({ queryKey: ["revenue"] });
+    queryClient.invalidateQueries({ queryKey: ["revenue-by-department"] });
+    queryClient.invalidateQueries({ queryKey: ["department-goals"] });
+    queryClient.invalidateQueries({ queryKey: ["goal-progress"] });
+    queryClient.invalidateQueries({ queryKey: ["predefined-goals"] });
+    queryClient.invalidateQueries({ queryKey: ["individual-goals"] });
+    queryClient.invalidateQueries({ queryKey: ["seller-dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["rfv"] });
+    
+    toast({
+      title: "✅ Dashboards Atualizados!",
+      description: "Todos os painéis foram atualizados com os novos dados.",
+    });
+  };
 
   // Fetch last upload on mount
   useEffect(() => {
@@ -144,6 +168,7 @@ const SalesSpreadsheetUpload = () => {
       setMetrics(null);
       setSheetNames([]);
       setSelectedSheet("");
+      setImportSuccess(false); // Reset success state for new file
       parseExcelFile(selectedFile);
     }
   };
@@ -804,10 +829,14 @@ const SalesSpreadsheetUpload = () => {
       await fetchUploadHistory();
 
       setImportResults({ success, failed, skipped });
+      setImportSuccess(true);
+      
+      // Automatically refresh all dashboard caches
+      refreshAllDashboards();
       
       toast({
-        title: "Importação concluída",
-        description: `${success} vendas importadas, ${skipped} duplicadas ignoradas, ${failed} erros. Dados RFV atualizados.`,
+        title: "🎉 Importação Concluída!",
+        description: `${success} vendas importadas com sucesso! Dashboards atualizados.`,
       });
     } catch (error) {
       console.error('Error importing sales:', error);
@@ -1036,6 +1065,43 @@ const SalesSpreadsheetUpload = () => {
 
   return (
     <div className="space-y-6">
+      {/* Success Panel after Import */}
+      {importSuccess && importResults && importResults.success > 0 && (
+        <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-green-500/20">
+                  <CheckCircle2 className="w-8 h-8 text-green-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-green-600">Importação Concluída com Sucesso!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {importResults.success} vendas importadas, {importResults.skipped} duplicadas ignoradas
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button 
+                  onClick={refreshAllDashboards}
+                  variant="outline" 
+                  className="gap-2 border-green-500/50 text-green-600 hover:bg-green-500/10"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Atualizar Dashboards
+                </Button>
+                <Button 
+                  onClick={() => navigate("/")}
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Ver Dashboard Principal
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {/* Last Upload Info */}
       {lastUpload && (
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
