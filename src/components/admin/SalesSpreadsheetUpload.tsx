@@ -76,6 +76,8 @@ const SalesSpreadsheetUpload = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [parsedSales, setParsedSales] = useState<ParsedSale[]>([]);
   const [availableColumns, setAvailableColumns] = useState<string[]>([]);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>("");
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     date: '',
     department: '',
@@ -101,18 +103,26 @@ const SalesSpreadsheetUpload = () => {
       setParsedSales([]);
       setImportResults(null);
       setMetrics(null);
+      setSheetNames([]);
+      setSelectedSheet("");
       parseExcelFile(selectedFile);
     }
   };
 
-  const parseExcelFile = async (file: File) => {
+  const parseExcelFile = async (file: File, sheetOverride?: string) => {
     setIsProcessing(true);
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      setSheetNames(workbook.SheetNames);
 
+      const sheetName = sheetOverride && workbook.SheetNames.includes(sheetOverride)
+        ? sheetOverride
+        : workbook.SheetNames[0];
+
+      setSelectedSheet(sheetName);
+
+      const worksheet = workbook.Sheets[sheetName];
       // Use defval to keep empty cells so columns don't disappear from the first row
       const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
         defval: "",
@@ -912,6 +922,30 @@ const SalesSpreadsheetUpload = () => {
               </Badge>
             )}
           </div>
+
+          {file && sheetNames.length > 1 && showColumnMapping && (
+            <div>
+              <Label>Aba da planilha</Label>
+              <select
+                value={selectedSheet}
+                onChange={(e) => {
+                  const newSheet = e.target.value;
+                  setSelectedSheet(newSheet);
+                  if (file) parseExcelFile(file, newSheet);
+                }}
+                className="w-full mt-1 p-2 border rounded-md bg-background"
+              >
+                {sheetNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Dica: se “Grupo Procedimento”/“Procedimento” não aparecem, normalmente estão em outra aba.
+              </p>
+            </div>
+          )}
 
           {isProcessing && (
             <div className="flex items-center gap-2 text-muted-foreground">
