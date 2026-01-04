@@ -56,12 +56,14 @@ interface SalesMetrics {
   totalSales: number;
   totalRevenueSold: number;    // Total Valor Vendido
   totalRevenuePaid: number;    // Total Valor Recebido
-  averageTicketSold: number;   // Ticket Médio (Vendido)
-  averageTicketPaid: number;   // Ticket Médio (Recebido)
+  averageTicketSoldPerSale: number;   // Ticket Médio por Venda (Vendido)
+  averageTicketPaidPerSale: number;   // Ticket Médio por Venda (Recebido)
+  averageTicketSoldPerClient: number; // Ticket Médio por Cliente (Vendido)
+  averageTicketPaidPerClient: number; // Ticket Médio por Cliente (Recebido)
   uniqueClients: number;
   uniqueSellers: number;
   salesByDepartment: Record<string, { count: number; revenueSold: number; revenuePaid: number }>;
-  salesBySeller: Record<string, { count: number; revenueSold: number; revenuePaid: number }>;
+  salesBySeller: Record<string, { count: number; revenueSold: number; revenuePaid: number; uniqueClients: number }>;
   salesByTeam: Record<string, { count: number; revenueSold: number; revenuePaid: number; teamName: string }>;
   salesByProcedure: Record<string, { count: number; revenueSold: number; revenuePaid: number }>;
   topClients: { name: string; revenueSold: number; revenuePaid: number; count: number }[];
@@ -268,9 +270,13 @@ const SalesSpreadsheetUpload = () => {
     const uniqueClients = clientMap.size;
     const uniqueSellers = new Set(validSales.map(s => s.sellerName.toLowerCase().trim()).filter(Boolean)).size;
     
-    // Average ticket is total revenue divided by UNIQUE CLIENTS
-    const averageTicketSold = uniqueClients > 0 ? totalRevenueSold / uniqueClients : 0;
-    const averageTicketPaid = uniqueClients > 0 ? totalRevenuePaid / uniqueClients : 0;
+    // Average ticket per SALE (total revenue / number of sales)
+    const averageTicketSoldPerSale = totalSales > 0 ? totalRevenueSold / totalSales : 0;
+    const averageTicketPaidPerSale = totalSales > 0 ? totalRevenuePaid / totalSales : 0;
+    
+    // Average ticket per CLIENT (total revenue / unique clients)
+    const averageTicketSoldPerClient = uniqueClients > 0 ? totalRevenueSold / uniqueClients : 0;
+    const averageTicketPaidPerClient = uniqueClients > 0 ? totalRevenuePaid / uniqueClients : 0;
     
     // Sales by department
     const salesByDepartment: Record<string, { count: number; revenueSold: number; revenuePaid: number }> = {};
@@ -284,16 +290,30 @@ const SalesSpreadsheetUpload = () => {
       salesByDepartment[dept].revenuePaid += sale.amountPaid;
     }
     
-    // Sales by seller
-    const salesBySeller: Record<string, { count: number; revenueSold: number; revenuePaid: number }> = {};
+    // Sales by seller with unique clients count
+    const salesBySeller: Record<string, { count: number; revenueSold: number; revenuePaid: number; uniqueClients: number; clientSet: Set<string> }> = {};
     for (const sale of validSales) {
       const seller = sale.sellerName?.trim() || 'Não informado';
       if (!salesBySeller[seller]) {
-        salesBySeller[seller] = { count: 0, revenueSold: 0, revenuePaid: 0 };
+        salesBySeller[seller] = { count: 0, revenueSold: 0, revenuePaid: 0, uniqueClients: 0, clientSet: new Set() };
       }
       salesBySeller[seller].count++;
       salesBySeller[seller].revenueSold += sale.amountSold;
       salesBySeller[seller].revenuePaid += sale.amountPaid;
+      if (sale.clientName) {
+        salesBySeller[seller].clientSet.add(normalizeClientName(sale.clientName));
+      }
+    }
+    
+    // Convert clientSet to uniqueClients count and remove the Set from the final object
+    const salesBySellerFinal: Record<string, { count: number; revenueSold: number; revenuePaid: number; uniqueClients: number }> = {};
+    for (const [seller, data] of Object.entries(salesBySeller)) {
+      salesBySellerFinal[seller] = {
+        count: data.count,
+        revenueSold: data.revenueSold,
+        revenuePaid: data.revenuePaid,
+        uniqueClients: data.clientSet.size,
+      };
     }
 
     // Sales by team
@@ -351,12 +371,14 @@ const SalesSpreadsheetUpload = () => {
       totalSales,
       totalRevenueSold,
       totalRevenuePaid,
-      averageTicketSold,
-      averageTicketPaid,
+      averageTicketSoldPerSale,
+      averageTicketPaidPerSale,
+      averageTicketSoldPerClient,
+      averageTicketPaidPerClient,
       uniqueClients,
       uniqueSellers,
       salesByDepartment,
-      salesBySeller,
+      salesBySeller: salesBySellerFinal,
       salesByTeam,
       salesByProcedure,
       topClients,
@@ -1122,54 +1144,60 @@ const SalesSpreadsheetUpload = () => {
       {/* Metrics Dashboard */}
       {metrics && (
         <div className="space-y-6">
-          {/* KPIs */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-primary/20">
-                    <DollarSign className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Valor Recebido</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {metrics.totalRevenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </p>
-                    {metrics.totalRevenueSold > 0 && metrics.totalRevenueSold !== metrics.totalRevenuePaid && (
-                      <p className="text-xs text-muted-foreground">
-                        Vendido: {metrics.totalRevenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
+          {/* KPIs - Valor Vendido vs Recebido */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <div className="p-3 rounded-xl bg-blue-500/20">
                     <TrendingUp className="w-6 h-6 text-blue-500" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Nº de Vendas</p>
-                    <p className="text-2xl font-bold text-foreground">{metrics.totalSales}</p>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground font-medium">💰 Valor Vendido</p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {metrics.totalRevenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                      <span>Ticket/Venda: {metrics.averageTicketSoldPerSale.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                      <span>Ticket/Cliente: {metrics.averageTicketSoldPerClient.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <div className="p-3 rounded-xl bg-green-500/20">
-                    <Award className="w-6 h-6 text-green-500" />
+                    <DollarSign className="w-6 h-6 text-green-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground font-medium">✅ Valor Recebido</p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {metrics.totalRevenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                      <span>Ticket/Venda: {metrics.averageTicketPaidPerSale.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                      <span>Ticket/Cliente: {metrics.averageTicketPaidPerClient.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Secondary KPIs */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-primary/20">
+                    <TrendingUp className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Ticket Médio (Recebido)</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {metrics.averageTicketPaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </p>
+                    <p className="text-sm text-muted-foreground">Nº de Vendas</p>
+                    <p className="text-2xl font-bold text-foreground">{metrics.totalSales}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1198,6 +1226,22 @@ const SalesSpreadsheetUpload = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Vendedores</p>
                     <p className="text-2xl font-bold text-foreground">{metrics.uniqueSellers}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-amber-500/20">
+                    <Award className="w-6 h-6 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Média Vendas/Cliente</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {metrics.uniqueClients > 0 ? (metrics.totalSales / metrics.uniqueClients).toFixed(1) : '0'}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -1301,7 +1345,8 @@ const SalesSpreadsheetUpload = () => {
                     <TableRow>
                       <TableHead>Departamento</TableHead>
                       <TableHead className="text-right">Vendas</TableHead>
-                      <TableHead className="text-right">Faturamento</TableHead>
+                      <TableHead className="text-right">Vendido</TableHead>
+                      <TableHead className="text-right">Recebido</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1311,7 +1356,10 @@ const SalesSpreadsheetUpload = () => {
                         <TableRow key={dept}>
                           <TableCell className="font-medium">{dept}</TableCell>
                           <TableCell className="text-right">{data.count}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right text-blue-600">
+                            {data.revenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </TableCell>
+                          <TableCell className="text-right text-green-600 font-medium">
                             {data.revenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </TableCell>
                         </TableRow>
@@ -1327,36 +1375,44 @@ const SalesSpreadsheetUpload = () => {
                 <CardTitle className="text-lg">Ranking de Vendedores</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vendedor</TableHead>
-                      <TableHead className="text-right">Vendas</TableHead>
-                      <TableHead className="text-right">Faturamento</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(metrics.salesBySeller)
-                      .sort((a, b) => b[1].revenuePaid - a[1].revenuePaid)
-                      .slice(0, 10)
-                      .map(([seller, data], index) => (
-                        <TableRow key={seller}>
-                          <TableCell className="font-medium">
-                            <span className="mr-2">
-                              {index === 0 && '🥇'}
-                              {index === 1 && '🥈'}
-                              {index === 2 && '🥉'}
-                            </span>
-                            {seller}
-                          </TableCell>
-                          <TableCell className="text-right">{data.count}</TableCell>
-                          <TableCell className="text-right">
-                            {data.revenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Vendedor</TableHead>
+                        <TableHead className="text-right">Vendas</TableHead>
+                        <TableHead className="text-right">Clientes</TableHead>
+                        <TableHead className="text-right">Vendido</TableHead>
+                        <TableHead className="text-right">Recebido</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(metrics.salesBySeller)
+                        .sort((a, b) => b[1].revenuePaid - a[1].revenuePaid)
+                        .slice(0, 15)
+                        .map(([seller, data], index) => (
+                          <TableRow key={seller}>
+                            <TableCell className="font-medium">
+                              <span className="mr-2">
+                                {index === 0 && '🥇'}
+                                {index === 1 && '🥈'}
+                                {index === 2 && '🥉'}
+                              </span>
+                              {seller}
+                            </TableCell>
+                            <TableCell className="text-right">{data.count}</TableCell>
+                            <TableCell className="text-right">{data.uniqueClients}</TableCell>
+                            <TableCell className="text-right text-blue-600">
+                              {data.revenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </TableCell>
+                            <TableCell className="text-right text-green-600 font-medium">
+                              {data.revenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1376,7 +1432,8 @@ const SalesSpreadsheetUpload = () => {
                     <TableHead>#</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead className="text-right">Compras</TableHead>
-                    <TableHead className="text-right">Faturamento Total</TableHead>
+                    <TableHead className="text-right">Vendido</TableHead>
+                    <TableHead className="text-right">Recebido</TableHead>
                     <TableHead className="text-right">Ticket Médio</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1390,7 +1447,10 @@ const SalesSpreadsheetUpload = () => {
                       </TableCell>
                       <TableCell className="font-medium">{client.name}</TableCell>
                       <TableCell className="text-right">{client.count}</TableCell>
-                      <TableCell className="text-right font-semibold">
+                      <TableCell className="text-right text-blue-600">
+                        {client.revenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
+                      <TableCell className="text-right text-green-600 font-semibold">
                         {client.revenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
                       <TableCell className="text-right">
