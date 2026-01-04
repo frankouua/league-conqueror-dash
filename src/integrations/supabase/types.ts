@@ -360,6 +360,56 @@ export type Database = {
         }
         Relationships: []
       }
+      executed_records: {
+        Row: {
+          amount: number
+          attributed_to_user_id: string | null
+          counts_for_individual: boolean
+          created_at: string
+          date: string
+          department: string | null
+          id: string
+          notes: string | null
+          registered_by_admin: boolean
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          attributed_to_user_id?: string | null
+          counts_for_individual?: boolean
+          created_at?: string
+          date: string
+          department?: string | null
+          id?: string
+          notes?: string | null
+          registered_by_admin?: boolean
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          attributed_to_user_id?: string | null
+          counts_for_individual?: boolean
+          created_at?: string
+          date?: string
+          department?: string | null
+          id?: string
+          notes?: string | null
+          registered_by_admin?: boolean
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executed_records_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feegow_sync_logs: {
         Row: {
           completed_at: string | null
@@ -1160,6 +1210,7 @@ export type Database = {
           total_revenue_paid: number
           total_revenue_sold: number
           total_rows: number
+          upload_type: string
           uploaded_at: string
           uploaded_by: string
           uploaded_by_name: string
@@ -1178,6 +1229,7 @@ export type Database = {
           total_revenue_paid?: number
           total_revenue_sold?: number
           total_rows?: number
+          upload_type?: string
           uploaded_at?: string
           uploaded_by: string
           uploaded_by_name: string
@@ -1196,6 +1248,7 @@ export type Database = {
           total_revenue_paid?: number
           total_revenue_sold?: number
           total_rows?: number
+          upload_type?: string
           uploaded_at?: string
           uploaded_by?: string
           uploaded_by_name?: string
