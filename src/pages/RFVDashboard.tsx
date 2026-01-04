@@ -254,23 +254,36 @@ const RFVDashboard = () => {
       const worksheet = workbook.Sheets[sheetName];
       
       // First, get all data as array of arrays to find the header row
-      const allRows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+      const allRows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, defval: '' });
       
-      // Find the first row that looks like a header (has text content, not empty or numeric)
+      console.log('Total rows found:', allRows.length);
+      console.log('First 5 rows:', allRows.slice(0, 5));
+      
+      // Find the first row that looks like a header (has text content)
       let headerRowIndex = 0;
-      for (let i = 0; i < Math.min(allRows.length, 10); i++) {
+      for (let i = 0; i < Math.min(allRows.length, 15); i++) {
         const row = allRows[i];
         if (row && row.length > 0) {
+          // Count non-empty text cells in this row
+          const textCells = row.filter((cell: any) => {
+            if (cell === null || cell === undefined || cell === '') return false;
+            if (typeof cell === 'string' && cell.trim().length > 0) return true;
+            return false;
+          });
+          
           // Check if this row contains text that looks like column names
           const hasTextHeaders = row.some((cell: any) => {
             if (typeof cell !== 'string') return false;
-            const lower = cell.toLowerCase();
+            const lower = cell.toLowerCase().trim();
             return lower.includes('nome') || lower.includes('cliente') || lower.includes('paciente') ||
                    lower.includes('data') || lower.includes('valor') || lower.includes('email') ||
-                   lower.includes('telefone') || lower.includes('phone') || lower.includes('total');
+                   lower.includes('telefone') || lower.includes('phone') || lower.includes('total') ||
+                   lower.includes('compra') || lower.includes('faturamento') || lower.includes('procedimento');
           });
-          if (hasTextHeaders) {
+          
+          if (hasTextHeaders && textCells.length >= 2) {
             headerRowIndex = i;
+            console.log('Header row found at index:', headerRowIndex, 'Row content:', row);
             break;
           }
         }
@@ -282,6 +295,8 @@ const RFVDashboard = () => {
         defval: ''
       });
 
+      console.log('Parsed data rows:', jsonData.length);
+      
       if (jsonData.length === 0) {
         toast({
           title: "Planilha vazia",
@@ -292,16 +307,25 @@ const RFVDashboard = () => {
         return;
       }
 
-      // Get columns and filter out empty/invalid ones
-      const columns = Object.keys(jsonData[0]).filter(col => {
-        // Filter out columns that start with __EMPTY or are just numbers
-        if (col.startsWith('__EMPTY')) return false;
-        if (/^\d+$/.test(col)) return false;
-        if (!col.trim()) return false;
+      // Get ALL columns from the first row - don't filter anything yet
+      const allColumns = Object.keys(jsonData[0]);
+      console.log('All columns found:', allColumns);
+      
+      // Filter out only truly invalid columns (empty names or just underscores)
+      const validColumns = allColumns.filter(col => {
+        // Keep columns that have actual meaningful names
+        const trimmed = col.trim();
+        if (!trimmed) return false;
+        // Filter out __EMPTY_X pattern from xlsx
+        if (/^__EMPTY(_\d+)?$/.test(trimmed)) return false;
+        // Filter out columns that are just numbers (likely row indices)
+        if (/^\d+$/.test(trimmed)) return false;
         return true;
       });
       
-      setAvailableColumns(columns);
+      console.log('Valid columns after filtering:', validColumns);
+      
+      setAvailableColumns(validColumns);
       setRawData(jsonData);
 
       // Auto-detect columns
@@ -313,27 +337,29 @@ const RFVDashboard = () => {
         amount: '',
       };
 
-      for (const col of columns) {
+      for (const col of validColumns) {
         const colLower = col.toLowerCase();
-        if (colLower.includes('cliente') || colLower.includes('paciente') || colLower.includes('nome')) {
+        if (!autoMapping.clientName && (colLower.includes('cliente') || colLower.includes('paciente') || colLower.includes('nome'))) {
           autoMapping.clientName = col;
-        } else if (colLower.includes('telefone') || colLower.includes('phone') || colLower.includes('celular')) {
+        } else if (!autoMapping.phone && (colLower.includes('telefone') || colLower.includes('phone') || colLower.includes('celular') || colLower.includes('whatsapp'))) {
           autoMapping.phone = col;
-        } else if (colLower.includes('email') || colLower.includes('e-mail')) {
+        } else if (!autoMapping.email && (colLower.includes('email') || colLower.includes('e-mail'))) {
           autoMapping.email = col;
-        } else if (colLower.includes('data') || colLower.includes('date')) {
+        } else if (!autoMapping.purchaseDate && (colLower.includes('data') || colLower.includes('date'))) {
           autoMapping.purchaseDate = col;
-        } else if (colLower.includes('valor') || colLower.includes('value') || colLower.includes('amount') || colLower.includes('total')) {
+        } else if (!autoMapping.amount && (colLower.includes('valor') || colLower.includes('value') || colLower.includes('amount') || colLower.includes('total') || colLower.includes('faturamento'))) {
           autoMapping.amount = col;
         }
       }
+      
+      console.log('Auto-detected mapping:', autoMapping);
 
       setColumnMapping(autoMapping);
       setShowColumnMapping(true);
       
       toast({
         title: "Arquivo carregado",
-        description: `${jsonData.length} linhas encontradas. Configure o mapeamento.`,
+        description: `${jsonData.length} linhas e ${validColumns.length} colunas encontradas. Configure o mapeamento.`,
       });
     } catch (error) {
       console.error('Error parsing Excel:', error);
