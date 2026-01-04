@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
+  id?: string;
   role: 'user' | 'assistant';
   content: string;
+  is_favorite?: boolean;
 }
 
 interface Conversation {
@@ -109,13 +111,31 @@ export function useCommercialAssistant() {
     enabled: !!profile?.user_id,
   });
 
+  // Fetch favorite messages
+  const { data: favoriteMessages, refetch: refetchFavorites } = useQuery({
+    queryKey: ['ai-favorites', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      const { data, error } = await supabase
+        .from('ai_messages')
+        .select('id, role, content, is_favorite, created_at, conversation_id')
+        .eq('is_favorite', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
   // Load messages for a conversation
   const loadConversation = useCallback(async (conversationId: string) => {
     setCurrentConversationId(conversationId);
     
     const { data, error } = await supabase
       .from('ai_messages')
-      .select('role, content')
+      .select('id, role, content, is_favorite')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
@@ -124,7 +144,12 @@ export function useCommercialAssistant() {
       return;
     }
 
-    setMessages(data?.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })) || []);
+    setMessages(data?.map(m => ({ 
+      id: m.id,
+      role: m.role as 'user' | 'assistant', 
+      content: m.content,
+      is_favorite: m.is_favorite
+    })) || []);
   }, []);
 
   // Create new conversation
@@ -152,19 +177,42 @@ export function useCommercialAssistant() {
   });
 
   // Save message to database
-  const saveMessage = useCallback(async (conversationId: string, role: 'user' | 'assistant', content: string) => {
-    const { error } = await supabase
+  const saveMessage = useCallback(async (conversationId: string, role: 'user' | 'assistant', content: string): Promise<string | null> => {
+    const { data, error } = await supabase
       .from('ai_messages')
       .insert({
         conversation_id: conversationId,
         role,
         content,
-      });
+      })
+      .select('id')
+      .single();
 
     if (error) {
       console.error('Error saving message:', error);
+      return null;
     }
+    return data?.id || null;
   }, []);
+
+  // Toggle favorite on a message
+  const toggleFavorite = useCallback(async (messageId: string, currentState: boolean) => {
+    const { error } = await supabase
+      .from('ai_messages')
+      .update({ is_favorite: !currentState })
+      .eq('id', messageId);
+
+    if (error) {
+      console.error('Error toggling favorite:', error);
+      return;
+    }
+
+    // Update local state
+    setMessages(prev => prev.map(m => 
+      m.id === messageId ? { ...m, is_favorite: !currentState } : m
+    ));
+    refetchFavorites();
+  }, [refetchFavorites]);
 
   // Update conversation title
   const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
@@ -217,7 +265,12 @@ export function useCommercialAssistant() {
     }
 
     // Save user message
-    await saveMessage(conversationId, 'user', input);
+    const userMsgId = await saveMessage(conversationId, 'user', input);
+    if (userMsgId) {
+      setMessages(prev => prev.map((m, i) => 
+        i === prev.length - 1 ? { ...m, id: userMsgId } : m
+      ));
+    }
 
     let assistantContent = '';
 
@@ -311,7 +364,12 @@ export function useCommercialAssistant() {
 
       // Save assistant response
       if (assistantContent && conversationId) {
-        await saveMessage(conversationId, 'assistant', assistantContent);
+        const assistantMsgId = await saveMessage(conversationId, 'assistant', assistantContent);
+        if (assistantMsgId) {
+          setMessages(prev => prev.map((m, i) => 
+            i === prev.length - 1 ? { ...m, id: assistantMsgId } : m
+          ));
+        }
         refetchConversations();
       }
     } catch (err) {
@@ -346,5 +404,8 @@ export function useCommercialAssistant() {
     startNewConversation,
     deleteConversation,
     updateConversationTitle,
+    toggleFavorite,
+    favoriteMessages,
+    refetchFavorites,
   };
 }

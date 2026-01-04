@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Bot, User, Sparkles, Target, TrendingUp, Lightbulb, MessageSquare, Zap, Award, Clock, ArrowLeft, Brain, Heart, Shield, Phone, FileText, BookOpen, Plus, History, MoreVertical, Pencil, X, Check } from 'lucide-react';
+import { Send, Trash2, Bot, User, Sparkles, Target, TrendingUp, Lightbulb, MessageSquare, Zap, Award, Clock, ArrowLeft, Brain, Heart, Shield, Phone, FileText, BookOpen, Plus, History, MoreVertical, Pencil, X, Check, Star, Users, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -10,8 +10,12 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCommercialAssistant } from '@/hooks/useCommercialAssistant';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -56,6 +60,9 @@ export default function CommercialAssistantPage() {
   const [input, setInput] = useState('');
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const { 
     messages, 
     isLoading, 
@@ -69,10 +76,30 @@ export default function CommercialAssistantPage() {
     startNewConversation,
     deleteConversation,
     updateConversationTitle,
+    toggleFavorite,
+    favoriteMessages,
   } = useCommercialAssistant();
   const { profile } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Fetch leads for script generation
+  const { data: leads } = useQuery({
+    queryKey: ['referral-leads-for-script', profile?.team_id],
+    queryFn: async () => {
+      if (!profile?.team_id) return [];
+      const { data, error } = await supabase
+        .from('referral_leads')
+        .select('*')
+        .eq('team_id', profile.team_id)
+        .in('status', ['nova', 'em_contato', 'agendou', 'consultou'])
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.team_id,
+  });
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -110,6 +137,39 @@ export default function CommercialAssistantPage() {
     }
     setEditingTitle(null);
     setNewTitle('');
+  };
+
+  const handleGenerateScriptForLead = (leadId: string) => {
+    const lead = leads?.find(l => l.id === leadId);
+    if (!lead) return;
+    
+    const statusLabels: Record<string, string> = {
+      nova: 'nova (primeiro contato)',
+      em_contato: 'em contato',
+      agendou: 'agendou consulta',
+      consultou: 'já consultou',
+    };
+    
+    const temperatureLabels: Record<string, string> = {
+      hot: 'quente (alta urgência)',
+      warm: 'morno (interesse moderado)',
+      cold: 'frio (baixo interesse)',
+    };
+    
+    const prompt = `Gere um script de abordagem personalizado para este lead:
+
+**Nome do Lead:** ${lead.referred_name}
+**Indicado por:** ${lead.referrer_name}
+**Status atual:** ${statusLabels[lead.status] || lead.status}
+**Temperatura:** ${lead.temperature ? temperatureLabels[lead.temperature] : 'não classificado'}
+${lead.notes ? `**Notas:** ${lead.notes}` : ''}
+${lead.consultation_date ? `**Data da consulta:** ${lead.consultation_date}` : ''}
+
+Por favor, crie um script de WhatsApp ou ligação adequado para este perfil, considerando o estágio atual no funil e a temperatura do lead.`;
+    
+    sendMessage(prompt);
+    setScriptDialogOpen(false);
+    setSelectedLeadId(null);
   };
 
   const progressPercent = sellerContext?.progress || 0;
@@ -151,29 +211,84 @@ export default function CommercialAssistantPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <History className="h-5 w-5 text-amber-500" />
-                    Conversas
+                    {showFavorites ? (
+                      <>
+                        <Star className="h-5 w-5 text-yellow-500" />
+                        Favoritos
+                      </>
+                    ) : (
+                      <>
+                        <History className="h-5 w-5 text-amber-500" />
+                        Conversas
+                      </>
+                    )}
                   </CardTitle>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8"
-                    onClick={startNewConversation}
-                    title="Nova conversa"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant={showFavorites ? "default" : "ghost"}
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => setShowFavorites(!showFavorites)}
+                      title={showFavorites ? "Ver conversas" : "Ver favoritos"}
+                    >
+                      <Star className={cn("h-4 w-4", showFavorites && "text-yellow-400")} />
+                    </Button>
+                    {!showFavorites && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={startNewConversation}
+                        title="Nova conversa"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[calc(100vh-320px)]">
                   <div className="px-4 pb-4 space-y-2">
-                    {conversations?.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        Nenhuma conversa ainda
-                      </p>
+                    {showFavorites ? (
+                      favoriteMessages?.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          Nenhum favorito ainda
+                        </p>
+                      ) : (
+                        favoriteMessages?.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 cursor-pointer hover:bg-yellow-500/20 transition-colors"
+                            onClick={() => {
+                              if (msg.conversation_id) {
+                                loadConversation(msg.conversation_id);
+                                setShowFavorites(false);
+                              }
+                            }}
+                          >
+                            <div className="flex items-start gap-2">
+                              <Star className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm line-clamp-3">{msg.content}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {formatDistanceToNow(new Date(msg.created_at), { 
+                                    addSuffix: true, 
+                                    locale: ptBR 
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )
                     ) : (
-                      conversations?.map((conv) => (
+                      conversations?.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          Nenhuma conversa ainda
+                        </p>
+                      ) : (
+                        conversations?.map((conv) => (
                         <div
                           key={conv.id}
                           className={cn(
@@ -282,7 +397,8 @@ export default function CommercialAssistantPage() {
                             </>
                           )}
                         </div>
-                      ))
+                        ))
+                      )
                     )}
                   </div>
                 </ScrollArea>
@@ -351,9 +467,9 @@ export default function CommercialAssistantPage() {
                     <div className="space-y-4">
                       {messages.map((msg, i) => (
                         <div
-                          key={i}
+                          key={msg.id || i}
                           className={cn(
-                            "flex gap-3",
+                            "flex gap-3 group",
                             msg.role === 'user' ? 'justify-end' : 'justify-start'
                           )}
                         >
@@ -362,15 +478,34 @@ export default function CommercialAssistantPage() {
                               <Bot className="h-5 w-5 text-white" />
                             </div>
                           )}
-                          <div
-                            className={cn(
-                              "max-w-[80%] rounded-lg px-4 py-3",
-                              msg.role === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
+                          <div className="relative max-w-[80%]">
+                            <div
+                              className={cn(
+                                "rounded-lg px-4 py-3",
+                                msg.role === 'user'
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted'
+                              )}
+                            >
+                              <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                            </div>
+                            {msg.id && msg.role === 'assistant' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                  "absolute -right-10 top-0 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity",
+                                  msg.is_favorite && "opacity-100"
+                                )}
+                                onClick={() => toggleFavorite(msg.id!, msg.is_favorite || false)}
+                                title={msg.is_favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                              >
+                                <Star className={cn(
+                                  "h-4 w-4",
+                                  msg.is_favorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"
+                                )} />
+                              </Button>
                             )}
-                          >
-                            <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
                           </div>
                           {msg.role === 'user' && (
                             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shrink-0">
@@ -395,7 +530,7 @@ export default function CommercialAssistantPage() {
                         </div>
                       )}
                     </div>
-                  )}
+                )}
                 </ScrollArea>
 
                 {error && (
@@ -496,6 +631,74 @@ export default function CommercialAssistantPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Script Generator for Leads */}
+                <Dialog open={scriptDialogOpen} onOpenChange={setScriptDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="w-full mb-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                    >
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      Gerar Script para Lead
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Gerar Script Personalizado</DialogTitle>
+                      <DialogDescription>
+                        Selecione um lead para gerar um script de abordagem personalizado baseado no perfil.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                      <Select value={selectedLeadId || ''} onValueChange={setSelectedLeadId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um lead" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {leads?.map((lead) => (
+                            <SelectItem key={lead.id} value={lead.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{lead.referred_name}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {lead.status}
+                                </Badge>
+                                {lead.temperature && (
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={cn(
+                                      "text-xs",
+                                      lead.temperature === 'hot' && "bg-red-500/20 text-red-600",
+                                      lead.temperature === 'warm' && "bg-yellow-500/20 text-yellow-600",
+                                      lead.temperature === 'cold' && "bg-blue-500/20 text-blue-600"
+                                    )}
+                                  >
+                                    {lead.temperature === 'hot' ? '🔥' : lead.temperature === 'warm' ? '🟡' : '🔵'}
+                                  </Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {leads?.length === 0 && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Nenhum lead ativo encontrado.
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setScriptDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button 
+                        disabled={!selectedLeadId}
+                        onClick={() => selectedLeadId && handleGenerateScriptForLead(selectedLeadId)}
+                      >
+                        Gerar Script
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Tabs defaultValue="objections" className="w-full">
                   <TabsList className="grid w-full grid-cols-3 mb-3">
                     <TabsTrigger value="objections" className="text-xs">Objeções</TabsTrigger>
