@@ -12,7 +12,8 @@ interface DepartmentGoalsCardProps {
 
 const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-  const endDate = `${year}-${String(month).padStart(2, "0")}-31`;
+  const lastDay = new Date(year, month, 0).getDate(); // Gets correct last day of month
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   // Fetch department goals
   const { data: departmentGoals, isLoading: goalsLoading } = useQuery({
