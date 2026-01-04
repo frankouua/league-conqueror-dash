@@ -115,6 +115,7 @@ const SalesSpreadsheetUpload = () => {
     failed: number;
     skipped: number;
   } | null>(null);
+  const [importErrors, setImportErrors] = useState<{ sale: ParsedSale; error: string }[]>([]);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
   const [sellerSortBy, setSellerSortBy] = useState<'revenuePaid' | 'revenueSold' | 'count'>('revenuePaid');
   const [lastUpload, setLastUpload] = useState<UploadLog | null>(null);
@@ -733,8 +734,8 @@ const SalesSpreadsheetUpload = () => {
     setIsProcessing(false);
   };
 
-  const importSales = async () => {
-    const validSales = parsedSales.filter(s => s.status === 'matched' && s.matchedUserId && s.matchedTeamId);
+  const importSales = async (salesToImport?: ParsedSale[]) => {
+    const validSales = salesToImport || parsedSales.filter(s => s.status === 'matched' && s.matchedUserId && s.matchedTeamId);
     
     if (validSales.length === 0) {
       toast({
@@ -746,9 +747,11 @@ const SalesSpreadsheetUpload = () => {
     }
 
     setIsImporting(true);
+    setImportErrors([]); // Clear previous errors
     let success = 0;
     let failed = 0;
     let skipped = 0;
+    const errors: { sale: ParsedSale; error: string }[] = [];
 
     try {
       for (const sale of validSales) {
@@ -792,10 +795,13 @@ const SalesSpreadsheetUpload = () => {
         if (error) {
           console.error('Error inserting sale:', error);
           failed++;
+          errors.push({ sale, error: error.message || 'Erro desconhecido' });
         } else {
           success++;
         }
       }
+      
+      setImportErrors(errors);
 
       // Update RFV customer data
       await updateRFVCustomers(validSales);
@@ -1081,6 +1087,27 @@ const SalesSpreadsheetUpload = () => {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              {/* Import Button - Prominent position */}
+              {matchedCount > 0 && !importSuccess && (
+                <Button 
+                  size="sm" 
+                  onClick={() => importSales()}
+                  disabled={isImporting}
+                  className="gap-1 bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg animate-pulse"
+                >
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Importando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      🚀 Importar {matchedCount} Vendas
+                    </>
+                  )}
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -1190,6 +1217,85 @@ const SalesSpreadsheetUpload = () => {
                   Ver Dashboard Principal
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Import Errors Panel */}
+      {importErrors.length > 0 && (
+        <Card className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border-red-500/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              Erros de Importação ({importErrors.length} falhas)
+            </CardTitle>
+            <CardDescription>
+              Algumas vendas não puderam ser importadas. Você pode tentar novamente ou revisar os erros abaixo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button 
+                onClick={() => {
+                  const failedSales = importErrors.map(e => e.sale);
+                  importSales(failedSales);
+                }}
+                disabled={isImporting}
+                className="gap-2 bg-orange-600 hover:bg-orange-700"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Reimportando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Repetir {importErrors.length} Falhas
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setImportErrors([])}
+                className="gap-2"
+              >
+                <X className="w-4 h-4" />
+                Limpar Erros
+              </Button>
+            </div>
+            
+            <div className="max-h-64 overflow-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vendedor</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Erro</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {importErrors.slice(0, 20).map((errItem, idx) => (
+                    <TableRow key={idx} className="bg-red-50/50">
+                      <TableCell className="font-medium">{errItem.sale.sellerName}</TableCell>
+                      <TableCell>{errItem.sale.date}</TableCell>
+                      <TableCell>
+                        {(errItem.sale.amountPaid > 0 ? errItem.sale.amountPaid : errItem.sale.amountSold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
+                      <TableCell className="text-red-600 text-xs max-w-[300px] truncate">
+                        {errItem.error}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {importErrors.length > 20 && (
+                <p className="text-center py-2 text-sm text-muted-foreground">
+                  ... e mais {importErrors.length - 20} erros
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1865,7 +1971,7 @@ const SalesSpreadsheetUpload = () => {
 
             <div className="flex gap-4">
               <Button 
-                onClick={importSales} 
+                onClick={() => importSales()} 
                 disabled={isImporting || matchedCount === 0}
                 className="bg-gradient-gold"
               >
