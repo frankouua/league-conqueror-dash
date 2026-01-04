@@ -1174,6 +1174,26 @@ const SalesSpreadsheetUpload = () => {
       {/* Metrics Dashboard */}
       {metrics && (
         <div className="space-y-6">
+          {/* Reprocess Button */}
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              onClick={processWithMapping} 
+              disabled={isProcessing || rawData.length === 0}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Reprocessando...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Reprocessar Dados
+                </>
+              )}
+            </Button>
+          </div>
           {/* KPIs - Valor Vendido vs Recebido */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
