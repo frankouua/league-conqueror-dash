@@ -1145,6 +1145,63 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_upload_logs: {
+        Row: {
+          date_range_end: string | null
+          date_range_start: string | null
+          error_rows: number
+          file_name: string
+          id: string
+          imported_rows: number
+          notes: string | null
+          sheet_name: string | null
+          skipped_rows: number
+          status: string
+          total_revenue_paid: number
+          total_revenue_sold: number
+          total_rows: number
+          uploaded_at: string
+          uploaded_by: string
+          uploaded_by_name: string
+        }
+        Insert: {
+          date_range_end?: string | null
+          date_range_start?: string | null
+          error_rows?: number
+          file_name: string
+          id?: string
+          imported_rows?: number
+          notes?: string | null
+          sheet_name?: string | null
+          skipped_rows?: number
+          status?: string
+          total_revenue_paid?: number
+          total_revenue_sold?: number
+          total_rows?: number
+          uploaded_at?: string
+          uploaded_by: string
+          uploaded_by_name: string
+        }
+        Update: {
+          date_range_end?: string | null
+          date_range_start?: string | null
+          error_rows?: number
+          file_name?: string
+          id?: string
+          imported_rows?: number
+          notes?: string | null
+          sheet_name?: string | null
+          skipped_rows?: number
+          status?: string
+          total_revenue_paid?: number
+          total_revenue_sold?: number
+          total_rows?: number
+          uploaded_at?: string
+          uploaded_by?: string
+          uploaded_by_name?: string
+        }
+        Relationships: []
+      }
       special_events: {
         Row: {
           applied_by: string
