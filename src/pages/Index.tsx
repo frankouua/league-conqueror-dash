@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target } from "lucide-react";
+import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, LayoutDashboard } from "lucide-react";
 import { MonthlyTeamRankingChart } from "@/components/MonthlyTeamRankingChart";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import { format } from "date-fns";
@@ -25,6 +25,9 @@ import SellerDashboard from "@/components/SellerDashboard";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { HistoricalTrendsPanel } from "@/components/HistoricalTrendsPanel";
 import GoalGapAnalysis from "@/components/GoalGapAnalysis";
+import ExecutiveKPIs from "@/components/ExecutiveKPIs";
+import DailyGoalsPanel from "@/components/DailyGoalsPanel";
+import LeadResponseMetrics from "@/components/LeadResponseMetrics";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -249,6 +252,9 @@ const Index = () => {
 
           {/* TIMES TAB - Team Rankings & General Stats */}
           <TabsContent value="times" className="space-y-8 animate-fade-in">
+            {/* Executive KPIs - Main Numbers */}
+            <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
+
             {/* Team Badges Display */}
             <div className="animate-scale-in">
               <TeamBadgesDisplay 
@@ -316,6 +322,12 @@ const Index = () => {
               </div>
             )}
 
+            {/* Daily Goals & Lead Response Metrics */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
+              <LeadResponseMetrics month={selectedMonth} year={selectedYear} />
+            </div>
+
             {/* Quick Insights & Team Comparison */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <QuickInsightsPanel month={selectedMonth} year={selectedYear} />
@@ -357,7 +369,12 @@ const Index = () => {
 
           {/* O QUE FALTA TAB */}
           <TabsContent value="o-que-falta" className="space-y-8 animate-fade-in">
+            <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
             <GoalGapAnalysis month={selectedMonth} year={selectedYear} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
+              <LeadResponseMetrics month={selectedMonth} year={selectedYear} />
+            </div>
             <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
           </TabsContent>
 
