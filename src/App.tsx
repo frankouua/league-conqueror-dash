@@ -19,12 +19,12 @@ import PatientKanban from "./pages/PatientKanban";
 import OnboardingGoals from "./pages/OnboardingGoals";
 import SalesDashboard from "./pages/SalesDashboard";
 import SalesUpload from "./pages/SalesUpload";
+import RFVDashboard from "./pages/RFVDashboard";
 import TVDisplay from "./pages/TVDisplay";
 import CommercialGuides from "./pages/CommercialGuides";
 import Cancellations from "./pages/Cancellations";
 import CommercialAssistantPage from "./pages/CommercialAssistantPage";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/cancellations" element={<ProtectedRoute><Cancellations /></ProtectedRoute>} />
             <Route path="/assistente-comercial" element={<ProtectedRoute><CommercialAssistantPage /></ProtectedRoute>} />
             <Route path="/sales-upload" element={<ProtectedRoute><SalesUpload /></ProtectedRoute>} />
+            <Route path="/rfv" element={<ProtectedRoute><RFVDashboard /></ProtectedRoute>} />
             <Route path="/sales-dashboard" element={<ProtectedRoute requireAdmin><SalesDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/tv" element={<TVDisplay />} />
