@@ -185,11 +185,32 @@ const RFVDashboard = () => {
   const [selectedSegment, setSelectedSegment] = useState<RFVSegment | 'all'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<RFVCustomer | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [aiStrategy, setAiStrategy] = useState<string | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [uploadLogs, setUploadLogs] = useState<any[]>([]);
+  const [dataReferenceDate, setDataReferenceDate] = useState<string>('');
+  const { profile } = useAuth();
 
-  // Load existing RFV data from database on mount
+  // Load existing RFV data and upload logs on mount
   useEffect(() => {
     loadExistingData();
+    loadUploadLogs();
   }, []);
+
+  const loadUploadLogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rfv_upload_logs')
+        .select('*')
+        .order('uploaded_at', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      setUploadLogs(data || []);
+    } catch (error) {
+      console.error('Error loading upload logs:', error);
+    }
+  };
 
   const loadExistingData = async () => {
     setIsLoadingData(true);
@@ -619,6 +640,23 @@ const RFVDashboard = () => {
 
       setHasUnsavedChanges(false);
       
+      // Save upload log
+      const segmentBreakdown: Record<string, number> = {};
+      customers.forEach(c => {
+        segmentBreakdown[c.segment] = (segmentBreakdown[c.segment] || 0) + 1;
+      });
+
+      await supabase.from('rfv_upload_logs').insert({
+        uploaded_by: user?.id,
+        uploaded_by_name: profile?.full_name || 'Usuário',
+        file_name: file?.name || 'Upload direto',
+        total_customers: customers.length,
+        data_reference_date: dataReferenceDate || null,
+        segment_breakdown: segmentBreakdown,
+      });
+
+      await loadUploadLogs();
+      
       toast({
         title: "Dados salvos com sucesso!",
         description: `${inserted} novos, ${updated} atualizados, ${errors} erros`,
@@ -636,6 +674,50 @@ const RFVDashboard = () => {
     }
 
     setIsSaving(false);
+  };
+
+  // Generate AI Strategy for selected customer
+  const generateAIStrategy = async () => {
+    if (!selectedCustomer) return;
+    
+    setIsLoadingAI(true);
+    setAiStrategy(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('rfv-ai-strategy', {
+        body: {
+          customer: {
+            name: selectedCustomer.name,
+            segment: selectedCustomer.segment,
+            segmentName: RFV_SEGMENTS[selectedCustomer.segment].name,
+            totalPurchases: selectedCustomer.totalPurchases,
+            totalValue: selectedCustomer.totalValue,
+            averageTicket: selectedCustomer.averageTicket,
+            daysSinceLastPurchase: selectedCustomer.daysSinceLastPurchase,
+            recencyScore: selectedCustomer.recencyScore,
+            frequencyScore: selectedCustomer.frequencyScore,
+            valueScore: selectedCustomer.valueScore,
+          }
+        }
+      });
+
+      if (error) throw error;
+      
+      setAiStrategy(data.strategy);
+      toast({
+        title: "Estratégia gerada!",
+        description: "A IA analisou o cliente e criou uma estratégia personalizada.",
+      });
+    } catch (error) {
+      console.error('Error generating AI strategy:', error);
+      toast({
+        title: "Erro ao gerar estratégia",
+        description: "Não foi possível gerar a estratégia com IA.",
+        variant: "destructive",
+      });
+    }
+
+    setIsLoadingAI(false);
   };
 
   const getSegmentStats = () => {
@@ -969,14 +1051,93 @@ const RFVDashboard = () => {
         {hasUnsavedChanges && customers.length > 0 && (
           <Alert className="mb-6 border-primary bg-primary/10">
             <Save className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>Você tem {customers.length} clientes processados. Salve para persistir os dados.</span>
-              <Button onClick={saveToDatabase} disabled={isSaving} className="ml-4">
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
-                Salvar no Banco
-              </Button>
+            <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <span className="flex-1">Você tem {customers.length} clientes processados. Salve para persistir os dados.</span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="dataRef" className="text-xs whitespace-nowrap">Data Ref.:</Label>
+                  <Input
+                    id="dataRef"
+                    type="date"
+                    value={dataReferenceDate}
+                    onChange={(e) => setDataReferenceDate(e.target.value)}
+                    className="w-36 h-8"
+                    placeholder="Data dos dados"
+                  />
+                </div>
+                <Button onClick={saveToDatabase} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
+                  Salvar no Banco
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Upload History */}
+        {uploadLogs.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <History className="h-5 w-5" />
+                Histórico de Uploads da Matriz RFV
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data Upload</TableHead>
+                      <TableHead>Responsável</TableHead>
+                      <TableHead>Arquivo</TableHead>
+                      <TableHead className="text-center">Clientes</TableHead>
+                      <TableHead>Data Ref. Dados</TableHead>
+                      <TableHead>Segmentos</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {uploadLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="whitespace-nowrap">
+                          {new Date(log.uploaded_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </TableCell>
+                        <TableCell>{log.uploaded_by_name}</TableCell>
+                        <TableCell className="max-w-[150px] truncate" title={log.file_name}>
+                          {log.file_name || '-'}
+                        </TableCell>
+                        <TableCell className="text-center font-semibold">
+                          {log.total_customers?.toLocaleString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          {log.data_reference_date 
+                            ? new Date(log.data_reference_date).toLocaleDateString('pt-BR')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {log.segment_breakdown && (
+                            <div className="flex flex-wrap gap-1">
+                              {Object.entries(log.segment_breakdown).map(([seg, count]) => (
+                                <Badge key={seg} variant="outline" className="text-xs">
+                                  {RFV_SEGMENTS[seg as RFVSegment]?.name || seg}: {String(count)}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {isLoadingData && (
@@ -1217,7 +1378,10 @@ const RFVDashboard = () => {
                             <TableRow 
                               key={index} 
                               className={`cursor-pointer ${selectedCustomer?.name === customer.name ? 'bg-muted' : ''}`}
-                              onClick={() => setSelectedCustomer(customer)}
+                              onClick={() => {
+                                setSelectedCustomer(customer);
+                                setAiStrategy(null); // Clear previous AI strategy
+                              }}
                             >
                               <TableCell>
                                 <div>
@@ -1322,9 +1486,45 @@ const RFVDashboard = () => {
                         </ResponsiveContainer>
                       </div>
 
+                      {/* AI Strategy Button */}
+                      <div className="pt-2">
+                        <Button 
+                          onClick={generateAIStrategy} 
+                          disabled={isLoadingAI}
+                          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                        >
+                          {isLoadingAI ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Gerando estratégia...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Gerar Estratégia com IA
+                            </>
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* AI Generated Strategy */}
+                      {aiStrategy && (
+                        <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Sparkles className="h-4 w-4 text-purple-500" />
+                            <h4 className="font-semibold text-sm text-purple-700 dark:text-purple-300">
+                              Estratégia Personalizada (IA)
+                            </h4>
+                          </div>
+                          <div className="prose prose-sm dark:prose-invert max-w-none text-sm whitespace-pre-wrap">
+                            {aiStrategy}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Action Cards */}
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Próximas Ações:</h4>
+                        <h4 className="font-semibold text-sm">Próximas Ações Sugeridas:</h4>
                         {RFV_SEGMENTS[selectedCustomer.segment].actions.slice(0, 3).map((action, index) => (
                           <div 
                             key={index}

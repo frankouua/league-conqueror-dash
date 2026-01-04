@@ -1154,6 +1154,7 @@ export type Database = {
           total_value: number
           updated_at: string
           value_score: number
+          whatsapp: string | null
         }
         Insert: {
           average_ticket?: number
@@ -1173,6 +1174,7 @@ export type Database = {
           total_value?: number
           updated_at?: string
           value_score?: number
+          whatsapp?: string | null
         }
         Update: {
           average_ticket?: number
@@ -1192,6 +1194,46 @@ export type Database = {
           total_value?: number
           updated_at?: string
           value_score?: number
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      rfv_upload_logs: {
+        Row: {
+          created_at: string
+          data_reference_date: string | null
+          file_name: string | null
+          id: string
+          notes: string | null
+          segment_breakdown: Json | null
+          total_customers: number
+          uploaded_at: string
+          uploaded_by: string
+          uploaded_by_name: string
+        }
+        Insert: {
+          created_at?: string
+          data_reference_date?: string | null
+          file_name?: string | null
+          id?: string
+          notes?: string | null
+          segment_breakdown?: Json | null
+          total_customers?: number
+          uploaded_at?: string
+          uploaded_by: string
+          uploaded_by_name: string
+        }
+        Update: {
+          created_at?: string
+          data_reference_date?: string | null
+          file_name?: string | null
+          id?: string
+          notes?: string | null
+          segment_breakdown?: Json | null
+          total_customers?: number
+          uploaded_at?: string
+          uploaded_by?: string
+          uploaded_by_name?: string
         }
         Relationships: []
       }
