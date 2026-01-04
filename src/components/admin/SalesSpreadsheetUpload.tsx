@@ -447,8 +447,10 @@ const SalesSpreadsheetUpload = () => {
       const filteredData = rawData.filter((row) => {
         const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '') : '';
         const sellerName = String(row[columnMapping.sellerName] || '');
+        const dateValue = String(row[columnMapping.date] || '');
         const clientLower = clientName.toLowerCase().trim();
         const sellerLower = sellerName.toLowerCase().trim();
+        const dateLower = dateValue.toLowerCase().trim();
         
         // Skip rows that look like totals/summaries
         const isTotalRow = 
@@ -457,7 +459,11 @@ const SalesSpreadsheetUpload = () => {
           clientLower.includes('subtotal') ||
           sellerLower.includes('total') || 
           sellerLower.includes('soma') ||
-          sellerLower === '' && clientLower === '';
+          // Row with empty date AND (empty client OR empty seller) is likely a total row
+          (dateLower === '' && (clientLower === '' || sellerLower === '')) ||
+          // Row where date field contains text like "total", "soma", etc.
+          dateLower.includes('total') ||
+          dateLower.includes('soma');
         
         return !isTotalRow;
       });
