@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.check-critical-sellers]
 verify_jwt = false
+
+[functions.commercial-ai-assistant]
+verify_jwt = false
