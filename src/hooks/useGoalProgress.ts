@@ -2,13 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export const useGoalProgress = () => {
+export const useGoalProgress = (selectedMonth?: number, selectedYear?: number) => {
   const { user } = useAuth();
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+  
+  // Use current month/year if not specified
+  const currentDate = new Date();
+  const month = selectedMonth ?? (currentDate.getMonth() + 1);
+  const year = selectedYear ?? currentDate.getFullYear();
 
   const { data: goalData } = useQuery({
-    queryKey: ["goal-progress", user?.id, currentMonth, currentYear],
+    queryKey: ["goal-progress", user?.id, month, year],
     queryFn: async () => {
       if (!user?.id) return null;
 
@@ -17,15 +20,15 @@ export const useGoalProgress = () => {
         .from("predefined_goals")
         .select("*")
         .eq("matched_user_id", user.id)
-        .eq("month", currentMonth)
-        .eq("year", currentYear)
+        .eq("month", month)
+        .eq("year", year)
         .maybeSingle();
 
       if (!goals) return null;
 
       // Get user's revenue for the month
-      const startOfMonth = new Date(currentYear, currentMonth - 1, 1).toISOString().split("T")[0];
-      const endOfMonth = new Date(currentYear, currentMonth, 0).toISOString().split("T")[0];
+      const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+      const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
 
       const { data: revenues } = await supabase
         .from("revenue_records")
@@ -44,6 +47,8 @@ export const useGoalProgress = () => {
         progress,
         isNearGoal: progress >= 90 && progress < 100,
         hasReachedGoal: progress >= 100,
+        month,
+        year,
       };
     },
     enabled: !!user?.id,
