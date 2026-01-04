@@ -1,11 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  is_archived: boolean;
 }
 
 interface SellerContext {
@@ -18,13 +26,34 @@ interface SellerContext {
 }
 
 export function useCommercialAssistant() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
+
+  // Fetch conversations list
+  const { data: conversations, refetch: refetchConversations } = useQuery({
+    queryKey: ['ai-conversations', user?.id],
+    queryFn: async (): Promise<Conversation[]> => {
+      if (!user?.id) return [];
+
+      const { data, error } = await supabase
+        .from('ai_conversations')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_archived', false)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   // Fetch seller context
   const { data: sellerContext } = useQuery({
@@ -32,7 +61,6 @@ export function useCommercialAssistant() {
     queryFn: async (): Promise<SellerContext> => {
       if (!profile?.user_id) return {};
 
-      // Get team name
       let teamName = '';
       if (profile.team_id) {
         const { data: team } = await supabase
@@ -43,7 +71,6 @@ export function useCommercialAssistant() {
         teamName = team?.name || '';
       }
 
-      // Get goals
       const { data: goals } = await supabase
         .from('predefined_goals')
         .select('*')
@@ -52,7 +79,6 @@ export function useCommercialAssistant() {
         .eq('year', currentYear)
         .maybeSingle();
 
-      // Get current revenue
       const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
       const endDate = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
 
@@ -67,7 +93,6 @@ export function useCommercialAssistant() {
       const monthlyGoal = goals?.meta1_goal || 0;
       const progress = monthlyGoal > 0 ? (currentRevenue / monthlyGoal) * 100 : 0;
 
-      // Days remaining
       const today = new Date();
       const lastDay = new Date(currentYear, currentMonth, 0);
       const daysRemaining = Math.max(0, lastDay.getDate() - today.getDate() + 1);
@@ -84,13 +109,115 @@ export function useCommercialAssistant() {
     enabled: !!profile?.user_id,
   });
 
+  // Load messages for a conversation
+  const loadConversation = useCallback(async (conversationId: string) => {
+    setCurrentConversationId(conversationId);
+    
+    const { data, error } = await supabase
+      .from('ai_messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error loading conversation:', error);
+      return;
+    }
+
+    setMessages(data?.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })) || []);
+  }, []);
+
+  // Create new conversation
+  const createConversation = useMutation({
+    mutationFn: async (firstMessage: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
+      
+      const { data, error } = await supabase
+        .from('ai_conversations')
+        .insert({
+          user_id: user.id,
+          title,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      refetchConversations();
+    },
+  });
+
+  // Save message to database
+  const saveMessage = useCallback(async (conversationId: string, role: 'user' | 'assistant', content: string) => {
+    const { error } = await supabase
+      .from('ai_messages')
+      .insert({
+        conversation_id: conversationId,
+        role,
+        content,
+      });
+
+    if (error) {
+      console.error('Error saving message:', error);
+    }
+  }, []);
+
+  // Update conversation title
+  const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
+    await supabase
+      .from('ai_conversations')
+      .update({ title: title.slice(0, 50) + (title.length > 50 ? '...' : '') })
+      .eq('id', conversationId);
+    
+    refetchConversations();
+  }, [refetchConversations]);
+
+  // Delete conversation
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    await supabase
+      .from('ai_conversations')
+      .delete()
+      .eq('id', conversationId);
+    
+    if (currentConversationId === conversationId) {
+      setCurrentConversationId(null);
+      setMessages([]);
+    }
+    
+    refetchConversations();
+  }, [currentConversationId, refetchConversations]);
+
+  // Send message
   const sendMessage = useCallback(async (input: string) => {
-    if (!input.trim()) return;
+    if (!input.trim() || !user?.id) return;
 
     const userMsg: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
     setError(null);
+
+    let conversationId = currentConversationId;
+
+    // Create new conversation if needed
+    if (!conversationId) {
+      try {
+        const newConversation = await createConversation.mutateAsync(input);
+        conversationId = newConversation.id;
+        setCurrentConversationId(conversationId);
+      } catch (err) {
+        console.error('Error creating conversation:', err);
+        setError('Erro ao criar conversa');
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // Save user message
+    await saveMessage(conversationId, 'user', input);
 
     let assistantContent = '';
 
@@ -181,20 +308,30 @@ export function useCommercialAssistant() {
           } catch { /* ignore */ }
         }
       }
+
+      // Save assistant response
+      if (assistantContent && conversationId) {
+        await saveMessage(conversationId, 'assistant', assistantContent);
+        refetchConversations();
+      }
     } catch (err) {
       console.error('Commercial AI error:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      // Remove failed user message
       setMessages(prev => prev.filter((_, i) => i !== prev.length - 1));
     } finally {
       setIsLoading(false);
     }
-  }, [messages, sellerContext]);
+  }, [messages, sellerContext, currentConversationId, user?.id, createConversation, saveMessage, refetchConversations]);
 
-  const clearMessages = useCallback(() => {
+  const startNewConversation = useCallback(() => {
+    setCurrentConversationId(null);
     setMessages([]);
     setError(null);
   }, []);
+
+  const clearMessages = useCallback(() => {
+    startNewConversation();
+  }, [startNewConversation]);
 
   return {
     messages,
@@ -203,5 +340,11 @@ export function useCommercialAssistant() {
     sendMessage,
     clearMessages,
     sellerContext,
+    conversations,
+    currentConversationId,
+    loadConversation,
+    startNewConversation,
+    deleteConversation,
+    updateConversationTitle,
   };
 }
