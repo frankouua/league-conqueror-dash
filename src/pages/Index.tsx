@@ -15,6 +15,7 @@ import TeamComparisonCard from "@/components/TeamComparisonCard";
 import TeamBadgesDisplay from "@/components/TeamBadgesDisplay";
 import TeamPrizesDisplay from "@/components/TeamPrizesDisplay";
 import QuickInsightsPanel from "@/components/QuickInsightsPanel";
+import GoalAchievementSummary from "@/components/GoalAchievementSummary";
 import { GoalConfirmationDialog } from "@/components/GoalConfirmationDialog";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
@@ -304,8 +305,13 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Department Goals */}
+        {/* Goal Achievement Summary */}
         <div className="mb-8 animate-slide-up" style={{ animationDelay: "575ms" }}>
+          <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
+        </div>
+
+        {/* Department Goals */}
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: "600ms" }}>
           <DepartmentGoalsCard month={selectedMonth} year={selectedYear} />
         </div>
 
