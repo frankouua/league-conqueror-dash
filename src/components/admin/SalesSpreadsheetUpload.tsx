@@ -112,7 +112,11 @@ const SalesSpreadsheetUpload = () => {
       const workbook = XLSX.read(data);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+
+      // Use defval to keep empty cells so columns don't disappear from the first row
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
+        defval: "",
+      });
 
       if (jsonData.length === 0) {
         toast({
@@ -124,7 +128,10 @@ const SalesSpreadsheetUpload = () => {
         return;
       }
 
-      const columns = Object.keys(jsonData[0]);
+      // Build columns from ALL rows (Feegow exports may have empty cells in the first data row)
+      const columns = Array.from(
+        new Set(jsonData.flatMap((row) => Object.keys(row)))
+      );
       setAvailableColumns(columns);
       setRawData(jsonData);
 
