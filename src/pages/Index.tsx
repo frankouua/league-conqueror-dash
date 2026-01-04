@@ -1,4 +1,5 @@
-import { Loader2, PartyPopper, Clock } from "lucide-react";
+import { useState } from "react";
+import { Loader2, PartyPopper, Clock, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Header from "@/components/Header";
@@ -19,7 +20,13 @@ import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
+
+const MONTHS = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
 
 // Calculate days remaining
 const now = new Date();
@@ -35,7 +42,16 @@ const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (100
 
 const Index = () => {
   const { role, profile } = useAuth();
-  const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores(profile?.team_id);
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  
+  const isCurrentPeriod = selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear();
+  
+  const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores(
+    profile?.team_id,
+    selectedMonth,
+    selectedYear
+  );
   const { pendingGoal } = usePredefinedGoals();
 
   // Get top 2 teams
@@ -85,21 +101,65 @@ const Index = () => {
             Acompanhe a competição em tempo real. Cada atendimento importa. Cada sonho realizado vale ouro.
           </p>
           
+          {/* Period Selector */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
+              <Calendar className="w-4 h-4 text-primary" />
+              <span className="text-sm text-muted-foreground">Período:</span>
+            </div>
+            <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+              <SelectTrigger className="w-[140px] bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border z-50">
+                {MONTHS.map((month, index) => (
+                  <SelectItem key={index + 1} value={String(index + 1)}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+              <SelectTrigger className="w-[100px] bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border z-50">
+                {[2024, 2025, 2026].map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Live Indicator & Last Updated */}
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-            {/* Live Indicator */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-              </span>
-              <span className="text-sm font-medium text-emerald-500">
-                Ao Vivo
-              </span>
-            </div>
+            {/* Live Indicator - only show for current period */}
+            {isCurrentPeriod && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span className="text-sm font-medium text-emerald-500">
+                  Ao Vivo
+                </span>
+              </div>
+            )}
+            
+            {/* Period indicator for past months */}
+            {!isCurrentPeriod && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30">
+                <Clock className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-medium text-amber-500">
+                  {MONTHS[selectedMonth - 1]} {selectedYear}
+                </span>
+              </div>
+            )}
             
             {/* Last Updated */}
-            {lastUpdated && (
+            {lastUpdated && isCurrentPeriod && (
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
                 <Clock className="w-4 h-4 text-primary" />
                 <span className="text-sm text-muted-foreground">
@@ -203,7 +263,7 @@ const Index = () => {
         {/* Quick Insights & Team Comparison */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="animate-slide-up" style={{ animationDelay: "350ms" }}>
-            <QuickInsightsPanel month={now.getMonth() + 1} year={now.getFullYear()} />
+            <QuickInsightsPanel month={selectedMonth} year={selectedYear} />
           </div>
           <div className="animate-slide-up" style={{ animationDelay: "375ms" }}>
             <TeamComparisonCard />
@@ -246,7 +306,7 @@ const Index = () => {
 
         {/* Department Goals */}
         <div className="mb-8 animate-slide-up" style={{ animationDelay: "575ms" }}>
-          <DepartmentGoalsCard month={now.getMonth() + 1} year={now.getFullYear()} />
+          <DepartmentGoalsCard month={selectedMonth} year={selectedYear} />
         </div>
 
         {/* Recent Achievements */}
