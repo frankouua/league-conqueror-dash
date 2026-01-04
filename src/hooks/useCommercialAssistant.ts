@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,38 +37,42 @@ export function useCommercialAssistant() {
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
+  
+  const userId = user?.id;
+  const profileUserId = profile?.user_id;
+  const teamId = profile?.team_id;
 
   // Fetch conversations list
-  const { data: conversations, refetch: refetchConversations } = useQuery({
-    queryKey: ['ai-conversations', user?.id],
+  const { data: conversations = [], refetch: refetchConversations } = useQuery({
+    queryKey: ['ai-conversations', userId],
     queryFn: async (): Promise<Conversation[]> => {
-      if (!user?.id) return [];
+      if (!userId) return [];
 
       const { data, error } = await supabase
         .from('ai_conversations')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('is_archived', false)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!userId,
   });
 
   // Fetch seller context
   const { data: sellerContext } = useQuery({
-    queryKey: ['seller-context', profile?.user_id, currentMonth, currentYear],
+    queryKey: ['seller-context', profileUserId, teamId, currentMonth, currentYear],
     queryFn: async (): Promise<SellerContext> => {
-      if (!profile?.user_id) return {};
+      if (!profileUserId) return {};
 
       let teamName = '';
-      if (profile.team_id) {
+      if (teamId) {
         const { data: team } = await supabase
           .from('teams')
           .select('name')
-          .eq('id', profile.team_id)
+          .eq('id', teamId)
           .single();
         teamName = team?.name || '';
       }
@@ -76,7 +80,7 @@ export function useCommercialAssistant() {
       const { data: goals } = await supabase
         .from('predefined_goals')
         .select('*')
-        .eq('matched_user_id', profile.user_id)
+        .eq('matched_user_id', profileUserId)
         .eq('month', currentMonth)
         .eq('year', currentYear)
         .maybeSingle();
@@ -87,7 +91,7 @@ export function useCommercialAssistant() {
       const { data: revenue } = await supabase
         .from('revenue_records')
         .select('amount')
-        .eq('user_id', profile.user_id)
+        .eq('user_id', profileUserId)
         .gte('date', startDate)
         .lte('date', endDate);
 
@@ -100,7 +104,7 @@ export function useCommercialAssistant() {
       const daysRemaining = Math.max(0, lastDay.getDate() - today.getDate() + 1);
 
       return {
-        sellerName: profile.full_name,
+        sellerName: profile?.full_name,
         teamName,
         monthlyGoal,
         currentRevenue,
@@ -108,14 +112,14 @@ export function useCommercialAssistant() {
         daysRemaining,
       };
     },
-    enabled: !!profile?.user_id,
+    enabled: !!profileUserId,
   });
 
   // Fetch favorite messages
-  const { data: favoriteMessages, refetch: refetchFavorites } = useQuery({
-    queryKey: ['ai-favorites', user?.id],
+  const { data: favoriteMessages = [], refetch: refetchFavorites } = useQuery({
+    queryKey: ['ai-favorites', userId],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!userId) return [];
 
       const { data, error } = await supabase
         .from('ai_messages')
@@ -126,7 +130,7 @@ export function useCommercialAssistant() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!userId,
   });
 
   // Load messages for a conversation
@@ -241,7 +245,7 @@ export function useCommercialAssistant() {
 
   // Send message
   const sendMessage = useCallback(async (input: string) => {
-    if (!input.trim() || !user?.id) return;
+    if (!input.trim() || !userId) return;
 
     const userMsg: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
@@ -379,7 +383,7 @@ export function useCommercialAssistant() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, sellerContext, currentConversationId, user?.id, createConversation, saveMessage, refetchConversations]);
+  }, [messages, sellerContext, currentConversationId, userId, createConversation, saveMessage, refetchConversations]);
 
   const startNewConversation = useCallback(() => {
     setCurrentConversationId(null);
