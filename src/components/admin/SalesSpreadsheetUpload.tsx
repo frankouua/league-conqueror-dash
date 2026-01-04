@@ -30,11 +30,13 @@ const CHART_COLORS = [
 interface ParsedSale {
   date: string;
   department: string;
+  procedure: string;
   clientName: string;
   sellerName: string;
   amount: number;
   matchedUserId: string | null;
   matchedTeamId: string | null;
+  matchedTeamName: string | null;
   status: 'matched' | 'unmatched' | 'error';
   errorMessage?: string;
 }
@@ -42,6 +44,7 @@ interface ParsedSale {
 interface ColumnMapping {
   date: string;
   department: string;
+  procedure: string;
   clientName: string;
   sellerName: string;
   amount: string;
@@ -55,6 +58,8 @@ interface SalesMetrics {
   uniqueSellers: number;
   salesByDepartment: Record<string, { count: number; revenue: number }>;
   salesBySeller: Record<string, { count: number; revenue: number }>;
+  salesByTeam: Record<string, { count: number; revenue: number; teamName: string }>;
+  salesByProcedure: Record<string, { count: number; revenue: number }>;
   topClients: { name: string; revenue: number; count: number }[];
   salesByDate: Record<string, { count: number; revenue: number }>;
 }
@@ -70,6 +75,7 @@ const SalesSpreadsheetUpload = () => {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     date: '',
     department: '',
+    procedure: '',
     clientName: '',
     sellerName: '',
     amount: '',
@@ -121,6 +127,7 @@ const SalesSpreadsheetUpload = () => {
       const autoMapping: ColumnMapping = {
         date: '',
         department: '',
+        procedure: '',
         clientName: '',
         sellerName: '',
         amount: '',
@@ -156,6 +163,13 @@ const SalesSpreadsheetUpload = () => {
             colLower.includes('responsavel') || colLower.includes('atendente') ||
             colLower.includes('consultor') || colLower.includes('profissional')) {
           if (!autoMapping.sellerName) autoMapping.sellerName = col;
+        }
+        
+        // Procedure detection
+        if (colLower === 'procedimento' || colLower.includes('procedure') ||
+            colLower.includes('servico') || colLower.includes('serviço') ||
+            (colLower.includes('nome') && colLower.includes('proc'))) {
+          if (!autoMapping.procedure) autoMapping.procedure = col;
         }
         
         // Amount detection - prioritize "valor pago" over "valor vendido"
@@ -249,6 +263,31 @@ const SalesSpreadsheetUpload = () => {
       salesBySeller[seller].count++;
       salesBySeller[seller].revenue += sale.amount;
     }
+
+    // Sales by team
+    const salesByTeam: Record<string, { count: number; revenue: number; teamName: string }> = {};
+    for (const sale of validSales) {
+      if (sale.matchedTeamId) {
+        const teamKey = sale.matchedTeamId;
+        const teamName = sale.matchedTeamName || 'Time Desconhecido';
+        if (!salesByTeam[teamKey]) {
+          salesByTeam[teamKey] = { count: 0, revenue: 0, teamName };
+        }
+        salesByTeam[teamKey].count++;
+        salesByTeam[teamKey].revenue += sale.amount;
+      }
+    }
+
+    // Sales by procedure
+    const salesByProcedure: Record<string, { count: number; revenue: number }> = {};
+    for (const sale of validSales) {
+      const proc = sale.procedure?.trim() || 'Não informado';
+      if (!salesByProcedure[proc]) {
+        salesByProcedure[proc] = { count: 0, revenue: 0 };
+      }
+      salesByProcedure[proc].count++;
+      salesByProcedure[proc].revenue += sale.amount;
+    }
     
     // Top clients by revenue (using unique client data)
     const topClients = Array.from(clientMap.values())
@@ -280,6 +319,8 @@ const SalesSpreadsheetUpload = () => {
       uniqueSellers,
       salesByDepartment,
       salesBySeller,
+      salesByTeam,
+      salesByProcedure,
       topClients,
       salesByDate,
     };
@@ -298,14 +339,20 @@ const SalesSpreadsheetUpload = () => {
     setIsProcessing(true);
 
     try {
-      const [{ data: mappings }, { data: profiles }] = await Promise.all([
+      const [{ data: mappings }, { data: profiles }, { data: teams }] = await Promise.all([
         supabase.from('feegow_user_mapping').select('feegow_name, user_id'),
         supabase.from('profiles').select('user_id, full_name, team_id').not('team_id', 'is', null),
+        supabase.from('teams').select('id, name'),
       ]);
 
       const mappingByName = new Map<string, string>();
       mappings?.forEach(m => {
         mappingByName.set(m.feegow_name.toLowerCase().trim(), m.user_id);
+      });
+
+      const teamNamesById = new Map<string, string>();
+      teams?.forEach(t => {
+        teamNamesById.set(t.id, t.name);
       });
 
       const profileByUserId = new Map<string, { full_name: string; team_id: string }>();
@@ -344,6 +391,7 @@ const SalesSpreadsheetUpload = () => {
           const sellerName = String(row[columnMapping.sellerName] || '').trim();
           const amountRaw = row[columnMapping.amount];
           const department = columnMapping.department ? String(row[columnMapping.department] || '').trim() : '';
+          const procedure = columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : '';
           const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '';
 
           // Parse date
@@ -368,11 +416,13 @@ const SalesSpreadsheetUpload = () => {
             return {
               date: '',
               department,
+              procedure,
               clientName,
               sellerName,
               amount: 0,
               matchedUserId: null,
               matchedTeamId: null,
+              matchedTeamName: null,
               status: 'error' as const,
               errorMessage: 'Data inválida',
             };
@@ -400,11 +450,13 @@ const SalesSpreadsheetUpload = () => {
             return {
               date: parsedDate,
               department,
+              procedure,
               clientName,
               sellerName,
               amount: 0,
               matchedUserId: null,
               matchedTeamId: null,
+              matchedTeamName: null,
               status: 'error' as const,
               errorMessage: 'Valor inválido ou zero',
             };
@@ -414,6 +466,7 @@ const SalesSpreadsheetUpload = () => {
           const sellerLower = sellerName.toLowerCase().trim();
           let matchedUserId: string | null = null;
           let matchedTeamId: string | null = null;
+          let matchedTeamName: string | null = null;
 
           if (mappingByName.has(sellerLower)) {
             matchedUserId = mappingByName.get(sellerLower)!;
@@ -436,25 +489,34 @@ const SalesSpreadsheetUpload = () => {
             }
           }
 
+          // Get team name if matched
+          if (matchedTeamId) {
+            matchedTeamName = teamNamesById.get(matchedTeamId) || null;
+          }
+
           return {
             date: parsedDate,
             department,
+            procedure,
             clientName,
             sellerName,
             amount,
             matchedUserId,
             matchedTeamId,
+            matchedTeamName,
             status: matchedUserId ? 'matched' as const : 'unmatched' as const,
           };
         } catch {
           return {
             date: '',
             department: '',
+            procedure: '',
             clientName: '',
             sellerName: '',
             amount: 0,
             matchedUserId: null,
             matchedTeamId: null,
+            matchedTeamName: null,
             status: 'error' as const,
             errorMessage: 'Erro ao processar linha',
           };
@@ -517,10 +579,16 @@ const SalesSpreadsheetUpload = () => {
           continue;
         }
 
+        // Build notes with client and procedure info
+        const noteParts: string[] = [];
+        if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
+        if (sale.procedure) noteParts.push(`Procedimento: ${sale.procedure}`);
+        const notes = noteParts.length > 0 ? noteParts.join(' | ') : null;
+
         const { error } = await supabase.from('revenue_records').insert({
           date: sale.date,
           amount: sale.amount,
-          notes: sale.clientName ? `Cliente: ${sale.clientName}` : null,
+          notes,
           department: sale.department || null,
           user_id: sale.matchedUserId!,
           team_id: sale.matchedTeamId!,
@@ -880,6 +948,19 @@ const SalesSpreadsheetUpload = () => {
                 <select
                   value={columnMapping.clientName}
                   onChange={(e) => setColumnMapping(m => ({ ...m, clientName: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não incluir</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Procedimento</Label>
+                <select
+                  value={columnMapping.procedure}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, procedure: e.target.value }))}
                   className="w-full mt-1 p-2 border rounded-md bg-background"
                 >
                   <option value="">Não incluir</option>
