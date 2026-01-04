@@ -667,15 +667,27 @@ const RFVDashboard = () => {
     if (customers.length === 0) return;
 
     setIsSaving(true);
-    let inserted = 0;
-    let updated = 0;
-    let errors = 0;
+    let successCount = 0;
+    let errorCount = 0;
 
     try {
-      for (const customer of customers) {
-        const customerData = {
+      // Process in batches of 100 for better performance
+      const BATCH_SIZE = 100;
+      const batches = [];
+      
+      for (let i = 0; i < customers.length; i += BATCH_SIZE) {
+        batches.push(customers.slice(i, i + BATCH_SIZE));
+      }
+
+      console.log(`Saving ${customers.length} customers in ${batches.length} batches...`);
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        
+        const batchData = batch.map(customer => ({
           name: customer.name.toLowerCase().trim(),
           phone: customer.phone || null,
+          whatsapp: customer.whatsapp || customer.phone || null,
           email: customer.email || null,
           first_purchase_date: customer.firstPurchaseDate || customer.lastPurchaseDate,
           last_purchase_date: customer.lastPurchaseDate,
@@ -688,25 +700,26 @@ const RFVDashboard = () => {
           segment: customer.segment,
           days_since_last_purchase: customer.daysSinceLastPurchase,
           created_by: user?.id,
-        };
+        }));
 
-        // Try to upsert (insert or update on conflict)
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('rfv_customers')
-          .upsert(customerData, { onConflict: 'name' });
+          .upsert(batchData, { 
+            onConflict: 'name',
+            ignoreDuplicates: false 
+          })
+          .select('id');
 
         if (error) {
-          console.error('Error saving customer:', customer.name, error);
-          errors++;
+          console.error(`Batch ${batchIndex + 1} error:`, error);
+          errorCount += batch.length;
         } else {
-          if (customer.id) {
-            updated++;
-          } else {
-            inserted++;
-          }
+          successCount += data?.length || batch.length;
+          console.log(`Batch ${batchIndex + 1}/${batches.length}: ${data?.length || batch.length} saved`);
         }
       }
 
+      console.log(`Save complete: ${successCount} success, ${errorCount} errors`);
       setHasUnsavedChanges(false);
       
       // Save upload log
@@ -715,7 +728,7 @@ const RFVDashboard = () => {
         segmentBreakdown[c.segment] = (segmentBreakdown[c.segment] || 0) + 1;
       });
 
-      await supabase.from('rfv_upload_logs').insert({
+      const { error: logError } = await supabase.from('rfv_upload_logs').insert({
         uploaded_by: user?.id,
         uploaded_by_name: profile?.full_name || 'Usuário',
         file_name: file?.name || 'Upload direto',
@@ -724,11 +737,15 @@ const RFVDashboard = () => {
         segment_breakdown: segmentBreakdown,
       });
 
+      if (logError) {
+        console.error('Error saving upload log:', logError);
+      }
+
       await loadUploadLogs();
       
       toast({
         title: "Dados salvos com sucesso!",
-        description: `${inserted} novos, ${updated} atualizados, ${errors} erros`,
+        description: `${successCount} clientes salvos${errorCount > 0 ? `, ${errorCount} erros` : ''}`,
       });
 
       // Reload data to get IDs
