@@ -54,6 +54,7 @@ const TeamBadgesDisplay = ({
                     team2?.name.toLowerCase().includes("tr") ? team2 : null;
   
   const pointsDifference = team1 && team2 ? Math.abs(team1.totalPoints - team2.totalPoints) : 0;
+  const totalRevenue = (lionessData?.totalRevenue || 0) + (troiaData?.totalRevenue || 0);
 
   // TV-optimized layout for large screens
   if (layout === "tv") {
@@ -133,11 +134,21 @@ const TeamBadgesDisplay = ({
           )}
         </div>
 
-        {/* VS Separator */}
-        <div className="flex flex-col items-center justify-center">
+        {/* VS Separator with Total Revenue */}
+        <div className="flex flex-col items-center justify-center gap-4">
           <span className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-primary animate-pulse">
             VS
           </span>
+          
+          {/* Total Revenue Display */}
+          <div className="flex flex-col items-center bg-gradient-to-b from-primary/20 to-transparent rounded-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 border border-primary/30">
+            <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground font-medium uppercase tracking-wider mb-1">
+              Total Vendido
+            </p>
+            <p className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-gradient-gold">
+              R$ {totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </p>
+          </div>
         </div>
 
         {/* Tróia Team */}
