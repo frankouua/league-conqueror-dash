@@ -300,16 +300,45 @@ const SalesSpreadsheetUpload = () => {
     const averageTicketSoldPerClient = uniqueClients > 0 ? totalRevenueSold / uniqueClients : 0;
     const averageTicketPaidPerClient = uniqueClients > 0 ? totalRevenuePaid / uniqueClients : 0;
     
-    // Sales by department
+    // Departments to exclude from charts (no goals)
+    const excludedDepartments = [
+      'devolução', 'devoluções', 'devolucao', 'devoluçoes',
+      'retoque', 'retoques',
+      'perda', 'perdas',
+      'cancelamento', 'cancelamentos',
+      'outros', 'outro',
+      'não informado',
+    ];
+    
+    const isExcludedDepartment = (dept: string): boolean => {
+      const deptLower = dept.toLowerCase();
+      return excludedDepartments.some(excluded => deptLower.includes(excluded));
+    };
+    
+    // Sales by department (excluding non-goal departments from display)
+    const salesByDepartmentAll: Record<string, { count: number; revenueSold: number; revenuePaid: number }> = {};
     const salesByDepartment: Record<string, { count: number; revenueSold: number; revenuePaid: number }> = {};
+    
     for (const sale of validSales) {
       const dept = sale.department?.trim() || 'Não informado';
-      if (!salesByDepartment[dept]) {
-        salesByDepartment[dept] = { count: 0, revenueSold: 0, revenuePaid: 0 };
+      
+      // Track all departments
+      if (!salesByDepartmentAll[dept]) {
+        salesByDepartmentAll[dept] = { count: 0, revenueSold: 0, revenuePaid: 0 };
       }
-      salesByDepartment[dept].count++;
-      salesByDepartment[dept].revenueSold += sale.amountSold;
-      salesByDepartment[dept].revenuePaid += sale.amountPaid;
+      salesByDepartmentAll[dept].count++;
+      salesByDepartmentAll[dept].revenueSold += sale.amountSold;
+      salesByDepartmentAll[dept].revenuePaid += sale.amountPaid;
+      
+      // Only include in display if not excluded
+      if (!isExcludedDepartment(dept)) {
+        if (!salesByDepartment[dept]) {
+          salesByDepartment[dept] = { count: 0, revenueSold: 0, revenuePaid: 0 };
+        }
+        salesByDepartment[dept].count++;
+        salesByDepartment[dept].revenueSold += sale.amountSold;
+        salesByDepartment[dept].revenuePaid += sale.amountPaid;
+      }
     }
     
     // Sales by seller with unique clients count
