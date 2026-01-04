@@ -16,6 +16,7 @@ import TeamBadgesDisplay from "@/components/TeamBadgesDisplay";
 import TeamPrizesDisplay from "@/components/TeamPrizesDisplay";
 import QuickInsightsPanel from "@/components/QuickInsightsPanel";
 import GoalAchievementSummary from "@/components/GoalAchievementSummary";
+import { SoldVsExecutedPanel } from "@/components/SoldVsExecutedPanel";
 import { GoalConfirmationDialog } from "@/components/GoalConfirmationDialog";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
@@ -305,8 +306,13 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Goal Achievement Summary */}
+        {/* Sold vs Executed Comparison */}
         <div className="mb-8 animate-slide-up" style={{ animationDelay: "575ms" }}>
+          <SoldVsExecutedPanel month={selectedMonth} year={selectedYear} />
+        </div>
+
+        {/* Goal Achievement Summary */}
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: "600ms" }}>
           <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
         </div>
 
