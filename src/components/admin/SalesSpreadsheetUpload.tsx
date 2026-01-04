@@ -1139,6 +1139,23 @@ const SalesSpreadsheetUpload = () => {
                   <History className="w-4 h-4 mr-1" />
                   Histórico
                 </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={refreshAllDashboards}
+                  className="gap-1 border-primary/50 text-primary hover:bg-primary/10"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Atualizar Dashboards
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => navigate("/")}
+                  className="gap-1"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Ver Dashboard
+                </Button>
               </div>
             </div>
           </CardContent>
