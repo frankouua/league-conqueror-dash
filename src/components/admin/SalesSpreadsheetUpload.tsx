@@ -947,6 +947,49 @@ const SalesSpreadsheetUpload = () => {
             </div>
           )}
 
+          {/* Sheet Preview - 5 rows */}
+          {showColumnMapping && rawData.length > 0 && (
+            <div className="space-y-2">
+              <Label>Prévia da aba "{selectedSheet}" (5 primeiras linhas)</Label>
+              <div className="border rounded-md overflow-auto max-h-64">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {availableColumns.slice(0, 8).map((col) => (
+                        <TableHead key={col} className="whitespace-nowrap text-xs">
+                          {col}
+                        </TableHead>
+                      ))}
+                      {availableColumns.length > 8 && (
+                        <TableHead className="text-xs text-muted-foreground">
+                          +{availableColumns.length - 8} colunas
+                        </TableHead>
+                      )}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rawData.slice(0, 5).map((row, idx) => (
+                      <TableRow key={idx}>
+                        {availableColumns.slice(0, 8).map((col) => (
+                          <TableCell key={col} className="whitespace-nowrap text-xs py-1.5">
+                            {String(row[col] ?? '').slice(0, 30)}
+                            {String(row[col] ?? '').length > 30 ? '...' : ''}
+                          </TableCell>
+                        ))}
+                        {availableColumns.length > 8 && (
+                          <TableCell className="text-xs text-muted-foreground">...</TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Verifique se esta aba contém os dados de vendas antes de prosseguir.
+              </p>
+            </div>
+          )}
+
           {isProcessing && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
