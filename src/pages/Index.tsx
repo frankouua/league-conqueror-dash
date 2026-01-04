@@ -20,6 +20,7 @@ import { SoldVsExecutedPanel } from "@/components/SoldVsExecutedPanel";
 import { GoalConfirmationDialog } from "@/components/GoalConfirmationDialog";
 import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 import SellerDashboard from "@/components/SellerDashboard";
+import { DashboardFilters } from "@/components/DashboardFilters";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +51,8 @@ const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [activeTab, setActiveTab] = useState("times");
+  const [filterSeller, setFilterSeller] = useState<string | null>(null);
+  const [filterDepartment, setFilterDepartment] = useState<string | null>(null);
   
   const isCurrentPeriod = selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear();
   
@@ -220,7 +223,17 @@ const Index = () => {
                 <Building2 className="w-4 h-4" />
                 Por Departamento
               </TabsTrigger>
-            </TabsList>
+          </TabsList>
+          
+          {/* Filters - shown for relevant tabs */}
+          {(activeTab === "vendido-executado" || activeTab === "vendedoras" || activeTab === "departamentos") && (
+            <DashboardFilters
+              selectedSeller={filterSeller}
+              selectedDepartment={filterDepartment}
+              onSellerFilterChange={setFilterSeller}
+              onDepartmentFilterChange={setFilterDepartment}
+            />
+          )}
           </div>
 
           {/* TIMES TAB - Team Rankings & General Stats */}
@@ -330,19 +343,33 @@ const Index = () => {
 
           {/* VENDIDO VS EXECUTADO TAB */}
           <TabsContent value="vendido-executado" className="space-y-8 animate-fade-in">
-            <SoldVsExecutedPanel month={selectedMonth} year={selectedYear} />
+            <SoldVsExecutedPanel 
+              month={selectedMonth} 
+              year={selectedYear} 
+              filterSeller={filterSeller}
+              filterDepartment={filterDepartment}
+            />
             <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
             <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
           </TabsContent>
 
           {/* POR VENDEDORA TAB */}
           <TabsContent value="vendedoras" className="space-y-8 animate-fade-in">
-            <SellerDashboard month={selectedMonth} year={selectedYear} />
+            <SellerDashboard 
+              month={selectedMonth} 
+              year={selectedYear} 
+              filterSeller={filterSeller}
+              filterDepartment={filterDepartment}
+            />
           </TabsContent>
 
           {/* POR DEPARTAMENTO TAB */}
           <TabsContent value="departamentos" className="space-y-8 animate-fade-in">
-            <DepartmentGoalsCard month={selectedMonth} year={selectedYear} />
+            <DepartmentGoalsCard 
+              month={selectedMonth} 
+              year={selectedYear} 
+              filterDepartment={filterDepartment}
+            />
           </TabsContent>
         </Tabs>
 

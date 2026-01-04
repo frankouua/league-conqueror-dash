@@ -63,6 +63,8 @@ import { ptBR } from "date-fns/locale";
 interface SellerDashboardProps {
   month: number;
   year: number;
+  filterSeller?: string | null;
+  filterDepartment?: string | null;
 }
 
 interface SellerData {
@@ -99,7 +101,12 @@ const POSITION_LABELS: Record<string, string> = {
   outro: "Outro",
 };
 
-export default function SellerDashboard({ month, year }: SellerDashboardProps) {
+export default function SellerDashboard({ 
+  month, 
+  year, 
+  filterSeller, 
+  filterDepartment 
+}: SellerDashboardProps) {
   const [selectedSeller, setSelectedSeller] = useState<SellerData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -225,7 +232,18 @@ export default function SellerDashboard({ month, year }: SellerDashboardProps) {
 
     const teamMap = new Map(teams.map((t) => [t.id, t.name]));
 
-    return profiles
+    let filteredProfiles = profiles;
+    
+    // Apply filters
+    if (filterSeller) {
+      filteredProfiles = filteredProfiles.filter(p => p.user_id === filterSeller);
+    }
+    
+    if (filterDepartment) {
+      filteredProfiles = filteredProfiles.filter(p => p.department === filterDepartment);
+    }
+
+    return filteredProfiles
       .map((profile) => {
         const goal = predefinedGoals.find((g) => g.matched_user_id === profile.user_id);
         const userRevenue =
@@ -256,7 +274,7 @@ export default function SellerDashboard({ month, year }: SellerDashboardProps) {
       })
       .filter((s) => s.meta1Goal > 0 || s.meta1Actual > 0)
       .sort((a, b) => b.meta1Percent - a.meta1Percent);
-  }, [profiles, teams, predefinedGoals, revenueRecords]);
+  }, [profiles, teams, predefinedGoals, revenueRecords, filterSeller, filterDepartment]);
 
   // Find equivalent seller from other team
   const findEquivalentSeller = (seller: SellerData) => {

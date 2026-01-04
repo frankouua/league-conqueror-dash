@@ -1,22 +1,25 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Building2, TrendingUp, Target, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DEPARTMENTS } from "@/constants/departments";
 
 interface DepartmentGoalsCardProps {
   month: number;
   year: number;
+  filterDepartment?: string | null;
 }
 
-const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
+const DepartmentGoalsCard = ({ month, year, filterDepartment }: DepartmentGoalsCardProps) => {
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate(); // Gets correct last day of month
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   // Fetch department goals
-  const { data: departmentGoals, isLoading: goalsLoading } = useQuery({
+  const { data: departmentGoalsRaw, isLoading: goalsLoading } = useQuery({
     queryKey: ["department-goals", month, year],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -29,6 +32,20 @@ const DepartmentGoalsCard = ({ month, year }: DepartmentGoalsCardProps) => {
       return data;
     },
   });
+
+  // Apply department filter
+  const departmentGoals = useMemo(() => {
+    if (!departmentGoalsRaw) return [];
+    if (!filterDepartment) return departmentGoalsRaw;
+    
+    const deptInfo = DEPARTMENTS.find(d => d.key === filterDepartment);
+    if (!deptInfo) return departmentGoalsRaw;
+    
+    return departmentGoalsRaw.filter(g => 
+      g.department_name.toLowerCase().includes(deptInfo.label.toLowerCase()) ||
+      g.department_name === deptInfo.name
+    );
+  }, [departmentGoalsRaw, filterDepartment]);
 
   // Fetch revenue records by department
   const { data: revenueByDepartment } = useQuery({
