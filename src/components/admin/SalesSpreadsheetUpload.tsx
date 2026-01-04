@@ -546,7 +546,7 @@ const SalesSpreadsheetUpload = () => {
               total_purchases: newPurchaseCount,
               total_value: totalNewAmount,
               average_ticket: avgTicket,
-              recency_score: 3, // Default, will be recalculated
+              recency_score: 3, // Will be recalculated
               frequency_score: 1,
               value_score: 1,
               segment: 'potential',
@@ -557,6 +557,74 @@ const SalesSpreadsheetUpload = () => {
       } catch (error) {
         console.error('Error updating RFV for customer:', clientName, error);
       }
+    }
+
+    // Recalculate all RFV scores after updates
+    await recalculateAllRFVScores();
+  };
+
+  // Function to recalculate RFV scores for all customers
+  const recalculateAllRFVScores = async () => {
+    try {
+      const { data: allCustomers, error } = await supabase
+        .from('rfv_customers')
+        .select('*');
+
+      if (error || !allCustomers || allCustomers.length === 0) return;
+
+      const now = new Date();
+
+      // Update days since last purchase for all
+      const customersWithDays = allCustomers.map(c => ({
+        ...c,
+        days_since_last_purchase: Math.floor(
+          (now.getTime() - new Date(c.last_purchase_date).getTime()) / (1000 * 60 * 60 * 24)
+        ),
+      }));
+
+      // Calculate quintiles
+      const recencyValues = customersWithDays.map(c => c.days_since_last_purchase).sort((a, b) => a - b);
+      const frequencyValues = customersWithDays.map(c => c.total_purchases).sort((a, b) => a - b);
+      const valueValues = customersWithDays.map(c => Number(c.total_value)).sort((a, b) => a - b);
+
+      const getQuintile = (value: number, sortedValues: number[], inverse = false): number => {
+        const index = sortedValues.findIndex(v => v >= value);
+        const percentile = index === -1 ? 1 : (index / sortedValues.length);
+        const score = Math.ceil((inverse ? (1 - percentile) : percentile) * 5);
+        return Math.max(1, Math.min(5, score || 1));
+      };
+
+      const calculateSegment = (r: number, f: number, v: number): string => {
+        if (r >= 4 && f >= 4 && v >= 4) return 'champions';
+        if (r >= 3 && f >= 3 && v >= 3) return 'loyal';
+        if (r >= 4 && f <= 3 && v <= 3) return 'potential';
+        if (r <= 2 && f >= 3 && v >= 3) return 'at_risk';
+        if (r <= 2 && f <= 2 && v >= 2 && v <= 4) return 'hibernating';
+        return 'lost';
+      };
+
+      // Update each customer with new scores
+      for (const customer of customersWithDays) {
+        const recencyScore = getQuintile(customer.days_since_last_purchase, recencyValues, true);
+        const frequencyScore = getQuintile(customer.total_purchases, frequencyValues);
+        const valueScore = getQuintile(Number(customer.total_value), valueValues);
+        const segment = calculateSegment(recencyScore, frequencyScore, valueScore);
+
+        await supabase
+          .from('rfv_customers')
+          .update({
+            days_since_last_purchase: customer.days_since_last_purchase,
+            recency_score: recencyScore,
+            frequency_score: frequencyScore,
+            value_score: valueScore,
+            segment: segment,
+          })
+          .eq('id', customer.id);
+      }
+
+      console.log(`RFV scores recalculated for ${allCustomers.length} customers`);
+    } catch (error) {
+      console.error('Error recalculating RFV scores:', error);
     }
   };
 
