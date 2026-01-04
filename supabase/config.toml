@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.commercial-ai-assistant]
 verify_jwt = false
+
+[functions.rfv-ai-strategy]
+verify_jwt = false
+
+[functions.feegow-patient-search]
+verify_jwt = false
