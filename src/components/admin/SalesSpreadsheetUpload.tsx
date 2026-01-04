@@ -11,6 +11,21 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import * as XLSX from "xlsx";
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
+} from "recharts";
+
+const CHART_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(210, 70%, 50%)',
+  'hsl(150, 60%, 45%)',
+  'hsl(280, 60%, 55%)',
+  'hsl(30, 80%, 55%)',
+  'hsl(350, 70%, 50%)',
+  'hsl(180, 60%, 45%)',
+  'hsl(60, 70%, 45%)',
+];
 
 interface ParsedSale {
   date: string;
@@ -734,9 +749,93 @@ const SalesSpreadsheetUpload = () => {
             </Card>
           </div>
 
-          {/* Vendas por Departamento e Vendedor */}
+          {/* Charts Section */}
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Por Departamento */}
+            {/* Pie Chart - Por Departamento */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Faturamento por Departamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={Object.entries(metrics.salesByDepartment).map(([name, data]) => ({
+                          name,
+                          value: data.revenue,
+                          count: data.count,
+                        }))}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {Object.entries(metrics.salesByDepartment).map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        labelFormatter={(label) => `Departamento: ${label}`}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bar Chart - Top Vendedores */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Top 10 Vendedores (Faturamento)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={Object.entries(metrics.salesBySeller)
+                        .sort((a, b) => b[1].revenue - a[1].revenue)
+                        .slice(0, 10)
+                        .map(([name, data]) => ({
+                          name: name.split(' ')[0], // First name only for chart
+                          fullName: name,
+                          revenue: data.revenue,
+                          count: data.count,
+                        }))}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis 
+                        type="number" 
+                        tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                      />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={80}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName || ''}
+                      />
+                      <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tables Section */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Por Departamento - Table */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Vendas por Departamento</CardTitle>
@@ -767,7 +866,7 @@ const SalesSpreadsheetUpload = () => {
               </CardContent>
             </Card>
 
-            {/* Por Vendedor */}
+            {/* Por Vendedor - Table */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Ranking de Vendedores</CardTitle>
