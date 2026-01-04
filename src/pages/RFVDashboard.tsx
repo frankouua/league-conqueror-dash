@@ -811,7 +811,12 @@ const RFVDashboard = () => {
 
               {showColumnMapping && (
                 <div className="space-y-4 p-4 bg-muted rounded-lg">
-                  <h3 className="font-semibold">Mapeamento de Colunas</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Mapeamento de Colunas</h3>
+                    <Badge variant="outline" className="text-xs">
+                      {availableColumns.length} colunas encontradas
+                    </Badge>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label>Nome do Cliente *</Label>
