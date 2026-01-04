@@ -93,6 +93,7 @@ const SalesSpreadsheetUpload = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
+  const [uploadType, setUploadType] = useState<'vendas' | 'executado'>('vendas');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [parsedSales, setParsedSales] = useState<ParsedSale[]>([]);
@@ -135,6 +136,8 @@ const SalesSpreadsheetUpload = () => {
     queryClient.invalidateQueries({ queryKey: ["individual-goals"] });
     queryClient.invalidateQueries({ queryKey: ["seller-dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["rfv"] });
+    queryClient.invalidateQueries({ queryKey: ["executed"] });
+    queryClient.invalidateQueries({ queryKey: ["executed-by-department"] });
     
     toast({
       title: "✅ Dashboards Atualizados!",
@@ -754,12 +757,16 @@ const SalesSpreadsheetUpload = () => {
     const errors: { sale: ParsedSale; error: string }[] = [];
 
     try {
+      // Determine table name once
+      const tableName = uploadType === 'vendas' ? 'revenue_records' : 'executed_records';
+      
       for (const sale of validSales) {
         // Use amountPaid for the main revenue record (actual payment received)
         const primaryAmount = sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold;
         
+        // Check for duplicates in correct table
         const { data: existing } = await supabase
-          .from('revenue_records')
+          .from(tableName)
           .select('id')
           .eq('date', sale.date)
           .eq('attributed_to_user_id', sale.matchedUserId)
@@ -779,8 +786,8 @@ const SalesSpreadsheetUpload = () => {
           noteParts.push(`Vendido: ${sale.amountSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
         }
         const notes = noteParts.length > 0 ? noteParts.join(' | ') : null;
-
-        const { error } = await supabase.from('revenue_records').insert({
+        
+        const { error } = await supabase.from(tableName).insert({
           date: sale.date,
           amount: primaryAmount,
           notes,
@@ -793,7 +800,7 @@ const SalesSpreadsheetUpload = () => {
         });
 
         if (error) {
-          console.error('Error inserting sale:', error);
+          console.error(`Error inserting ${uploadType}:`, error);
           failed++;
           errors.push({ sale, error: error.message || 'Erro desconhecido' });
         } else {
@@ -803,8 +810,10 @@ const SalesSpreadsheetUpload = () => {
       
       setImportErrors(errors);
 
-      // Update RFV customer data
-      await updateRFVCustomers(validSales);
+      // Update RFV customer data (only for vendas)
+      if (uploadType === 'vendas') {
+        await updateRFVCustomers(validSales);
+      }
 
       // Calculate date range
       const dates = validSales.map(s => s.date).filter(Boolean).sort();
@@ -829,6 +838,7 @@ const SalesSpreadsheetUpload = () => {
         date_range_start: dateRangeStart,
         date_range_end: dateRangeEnd,
         status: 'completed',
+        upload_type: uploadType,
       });
 
       // Refresh upload history
@@ -841,8 +851,8 @@ const SalesSpreadsheetUpload = () => {
       refreshAllDashboards();
       
       toast({
-        title: "🎉 Importação Concluída!",
-        description: `${success} vendas importadas com sucesso! Dashboards atualizados.`,
+        title: uploadType === 'vendas' ? "🎉 Vendas Importadas!" : "✅ Executado Importado!",
+        description: `${success} registros de ${uploadType === 'vendas' ? 'vendas' : 'executado'} importados! Dashboards atualizados.`,
       });
     } catch (error) {
       console.error('Error importing sales:', error);
@@ -1093,7 +1103,11 @@ const SalesSpreadsheetUpload = () => {
                   size="sm" 
                   onClick={() => importSales()}
                   disabled={isImporting}
-                  className="gap-1 bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg animate-pulse"
+                  className={`gap-1 text-white font-semibold shadow-lg animate-pulse ${
+                    uploadType === 'vendas' 
+                      ? 'bg-blue-600 hover:bg-blue-700' 
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
                 >
                   {isImporting ? (
                     <>
@@ -1103,7 +1117,7 @@ const SalesSpreadsheetUpload = () => {
                   ) : (
                     <>
                       <Upload className="w-4 h-4" />
-                      🚀 Importar {matchedCount} Vendas
+                      🚀 Importar {matchedCount} {uploadType === 'vendas' ? 'Vendas' : 'Executado'}
                     </>
                   )}
                 </Button>
@@ -1358,14 +1372,60 @@ const SalesSpreadsheetUpload = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileSpreadsheet className="w-5 h-5" />
-            Upload de Planilha de Vendas
+            Upload de Planilhas
           </CardTitle>
           <CardDescription>
-            Faça upload de uma planilha Excel exportada do Feegow com os dados de vendas.
-            A planilha deve conter: Data, Departamento, Cliente, Vendedor e Valor.
+            Faça upload de planilhas Excel exportadas do Feegow.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Upload Type Selector */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setUploadType('vendas')}
+              className={`p-4 rounded-xl border-2 transition-all text-left ${
+                uploadType === 'vendas' 
+                  ? 'border-blue-500 bg-blue-500/10 shadow-lg' 
+                  : 'border-border hover:border-blue-500/50 hover:bg-blue-500/5'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`p-2 rounded-lg ${uploadType === 'vendas' ? 'bg-blue-500/20' : 'bg-muted'}`}>
+                  <DollarSign className={`w-5 h-5 ${uploadType === 'vendas' ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                </div>
+                <span className={`font-semibold ${uploadType === 'vendas' ? 'text-blue-600' : 'text-foreground'}`}>
+                  Vendas
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Contas a Receber / Competência - O que foi vendido no período
+              </p>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => setUploadType('executado')}
+              className={`p-4 rounded-xl border-2 transition-all text-left ${
+                uploadType === 'executado' 
+                  ? 'border-green-500 bg-green-500/10 shadow-lg' 
+                  : 'border-border hover:border-green-500/50 hover:bg-green-500/5'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`p-2 rounded-lg ${uploadType === 'executado' ? 'bg-green-500/20' : 'bg-muted'}`}>
+                  <CheckCircle2 className={`w-5 h-5 ${uploadType === 'executado' ? 'text-green-500' : 'text-muted-foreground'}`} />
+                </div>
+                <span className={`font-semibold ${uploadType === 'executado' ? 'text-green-600' : 'text-foreground'}`}>
+                  Executado
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O que foi realizado/entregue no período
+              </p>
+            </button>
+          </div>
+
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <Label htmlFor="spreadsheet">Arquivo Excel (.xlsx, .xls)</Label>
@@ -1379,8 +1439,8 @@ const SalesSpreadsheetUpload = () => {
               />
             </div>
             {file && (
-              <Badge variant="outline" className="h-10 px-4">
-                {file.name}
+              <Badge variant={uploadType === 'vendas' ? 'default' : 'secondary'} className={`h-10 px-4 ${uploadType === 'executado' ? 'bg-green-600' : ''}`}>
+                {uploadType === 'vendas' ? '📊 Vendas' : '✅ Executado'}: {file.name}
               </Badge>
             )}
           </div>
@@ -1973,7 +2033,7 @@ const SalesSpreadsheetUpload = () => {
               <Button 
                 onClick={() => importSales()} 
                 disabled={isImporting || matchedCount === 0}
-                className="bg-gradient-gold"
+                className={uploadType === 'vendas' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}
               >
                 {isImporting ? (
                   <>
@@ -1983,7 +2043,7 @@ const SalesSpreadsheetUpload = () => {
                 ) : (
                   <>
                     <Upload className="w-4 h-4 mr-2" />
-                    Importar {matchedCount} Vendas
+                    Importar {matchedCount} {uploadType === 'vendas' ? 'Vendas' : 'Executado'}
                   </>
                 )}
               </Button>
