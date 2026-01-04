@@ -21,6 +21,7 @@ import { GoalConfirmationDialog } from "@/components/GoalConfirmationDialog";
 import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 import SellerDashboard from "@/components/SellerDashboard";
 import { DashboardFilters } from "@/components/DashboardFilters";
+import { HistoricalTrendsPanel } from "@/components/HistoricalTrendsPanel";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -349,6 +350,13 @@ const Index = () => {
               filterSeller={filterSeller}
               filterDepartment={filterDepartment}
             />
+            
+            {/* Historical Trends */}
+            <HistoricalTrendsPanel 
+              currentMonth={selectedMonth} 
+              currentYear={selectedYear} 
+            />
+            
             <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
             <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
           </TabsContent>
