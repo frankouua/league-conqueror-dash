@@ -455,11 +455,14 @@ const SalesSpreadsheetUpload = () => {
         }
       }
 
+      // Update RFV customer data
+      await updateRFVCustomers(validSales);
+
       setImportResults({ success, failed, skipped });
       
       toast({
         title: "Importação concluída",
-        description: `${success} vendas importadas, ${skipped} duplicadas ignoradas, ${failed} erros`,
+        description: `${success} vendas importadas, ${skipped} duplicadas ignoradas, ${failed} erros. Dados RFV atualizados.`,
       });
     } catch (error) {
       console.error('Error importing sales:', error);
@@ -471,6 +474,90 @@ const SalesSpreadsheetUpload = () => {
     }
 
     setIsImporting(false);
+  };
+
+  // Function to update RFV customers based on sales data
+  const updateRFVCustomers = async (sales: ParsedSale[]) => {
+    // Group sales by client name
+    const clientSales: Record<string, { dates: string[]; amounts: number[] }> = {};
+
+    for (const sale of sales) {
+      if (!sale.clientName) continue;
+      const key = sale.clientName.toLowerCase().trim();
+      if (!clientSales[key]) {
+        clientSales[key] = { dates: [], amounts: [] };
+      }
+      clientSales[key].dates.push(sale.date);
+      clientSales[key].amounts.push(sale.amount);
+    }
+
+    const now = new Date();
+
+    for (const [clientName, data] of Object.entries(clientSales)) {
+      try {
+        // Check if customer exists
+        const { data: existing } = await supabase
+          .from('rfv_customers')
+          .select('*')
+          .eq('name', clientName)
+          .maybeSingle();
+
+        const sortedDates = data.dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+        const latestDate = sortedDates[0];
+        const earliestDate = sortedDates[sortedDates.length - 1];
+        const totalNewAmount = data.amounts.reduce((sum, a) => sum + a, 0);
+        const newPurchaseCount = data.dates.length;
+
+        if (existing) {
+          // Update existing customer
+          const newLastPurchase = new Date(latestDate) > new Date(existing.last_purchase_date) 
+            ? latestDate 
+            : existing.last_purchase_date;
+          const newFirstPurchase = new Date(earliestDate) < new Date(existing.first_purchase_date)
+            ? earliestDate
+            : existing.first_purchase_date;
+          const newTotalPurchases = existing.total_purchases + newPurchaseCount;
+          const newTotalValue = Number(existing.total_value) + totalNewAmount;
+          const newAvgTicket = newTotalValue / newTotalPurchases;
+          const daysSince = Math.floor((now.getTime() - new Date(newLastPurchase).getTime()) / (1000 * 60 * 60 * 24));
+
+          await supabase
+            .from('rfv_customers')
+            .update({
+              last_purchase_date: newLastPurchase,
+              first_purchase_date: newFirstPurchase,
+              total_purchases: newTotalPurchases,
+              total_value: newTotalValue,
+              average_ticket: newAvgTicket,
+              days_since_last_purchase: daysSince,
+            })
+            .eq('id', existing.id);
+        } else {
+          // Insert new customer
+          const daysSince = Math.floor((now.getTime() - new Date(latestDate).getTime()) / (1000 * 60 * 60 * 24));
+          const avgTicket = totalNewAmount / newPurchaseCount;
+
+          await supabase
+            .from('rfv_customers')
+            .insert({
+              name: clientName,
+              first_purchase_date: earliestDate,
+              last_purchase_date: latestDate,
+              total_purchases: newPurchaseCount,
+              total_value: totalNewAmount,
+              average_ticket: avgTicket,
+              recency_score: 3, // Default, will be recalculated
+              frequency_score: 1,
+              value_score: 1,
+              segment: 'potential',
+              days_since_last_purchase: daysSince,
+              created_by: user?.id,
+            });
+        }
+      } catch (error) {
+        console.error('Error updating RFV for customer:', clientName, error);
+      }
+    }
   };
 
   const addSellerMapping = async (sellerName: string) => {
