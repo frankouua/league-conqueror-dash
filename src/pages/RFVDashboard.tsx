@@ -191,15 +191,35 @@ const RFVDashboard = () => {
   const loadExistingData = async () => {
     setIsLoadingData(true);
     try {
-      const { data, error } = await supabase
+      // First, get the count of all records
+      const { count } = await supabase
         .from('rfv_customers')
-        .select('*')
-        .order('total_value', { ascending: false });
+        .select('*', { count: 'exact', head: true });
+      
+      // Fetch all records with pagination if needed (Supabase default limit is 1000)
+      let allData: any[] = [];
+      const pageSize = 1000;
+      let offset = 0;
+      
+      while (true) {
+        const { data, error } = await supabase
+          .from('rfv_customers')
+          .select('*')
+          .order('total_value', { ascending: false })
+          .range(offset, offset + pageSize - 1);
 
-      if (error) throw error;
+        if (error) throw error;
+        
+        if (!data || data.length === 0) break;
+        
+        allData = [...allData, ...data];
+        
+        if (data.length < pageSize) break;
+        offset += pageSize;
+      }
 
-      if (data && data.length > 0) {
-        const loadedCustomers: RFVCustomer[] = data.map(row => ({
+      if (allData.length > 0) {
+        const loadedCustomers: RFVCustomer[] = allData.map(row => ({
           id: row.id,
           name: row.name,
           phone: row.phone || undefined,
