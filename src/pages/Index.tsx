@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp } from "lucide-react";
 import { MonthlyTeamRankingChart } from "@/components/MonthlyTeamRankingChart";
+import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Header from "@/components/Header";
@@ -327,11 +328,11 @@ const Index = () => {
 
             {/* Clinic Goals & Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ClinicGoalsCard
+            <ClinicGoalsCard
                 currentRevenue={totalClinicRevenue}
-                goal1={2500000}
-                goal2={2700000}
-                goal3={3000000}
+                goal1={CLINIC_GOALS.META_1}
+                goal2={CLINIC_GOALS.META_2}
+                goal3={CLINIC_GOALS.META_3}
               />
               <EvolutionChart
                 data={chartData}

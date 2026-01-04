@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Target, Trophy, TrendingUp, DollarSign, Info, Users } from "lucide-react";
+import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import {
   Table,
   TableBody,
@@ -31,9 +32,9 @@ const DEPARTMENT_GOALS = [
 ];
 
 const TOTALS = {
-  meta1: 2500000,
-  meta2: 2700000,
-  meta3: 3000000,
+  meta1: CLINIC_GOALS.META_1,
+  meta2: CLINIC_GOALS.META_2,
+  meta3: CLINIC_GOALS.META_3,
 };
 
 const OnboardingGoals = () => {
