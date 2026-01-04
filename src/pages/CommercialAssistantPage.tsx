@@ -1,67 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Bot, User, Sparkles, Target, TrendingUp, Lightbulb, MessageSquare, Zap, Award, Users, Clock, ArrowLeft, Brain, Flame, Heart, Shield, Phone, MessageCircle, FileText, BookOpen } from 'lucide-react';
+import { Send, Trash2, Bot, User, Sparkles, Target, TrendingUp, Lightbulb, MessageSquare, Zap, Award, Clock, ArrowLeft, Brain, Heart, Shield, Phone, FileText, BookOpen, Plus, History, MoreVertical, Pencil, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useCommercialAssistant } from '@/hooks/useCommercialAssistant';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const QUICK_PROMPTS = [
-  { 
-    icon: Target, 
-    label: 'Quebrar objeção "Vou pensar"', 
-    prompt: 'O lead disse que vai pensar. Como quebro essa objeção de forma eficaz?',
-    color: 'text-red-500'
-  },
-  { 
-    icon: TrendingUp, 
-    label: 'Estratégia para bater meta', 
-    prompt: 'Preciso de uma estratégia urgente para bater minha meta esse mês. Analise meu contexto e sugira ações práticas.',
-    color: 'text-green-500'
-  },
-  { 
-    icon: Lightbulb, 
-    label: 'Script de follow-up', 
-    prompt: 'Me dê um script de follow-up criativo para um lead que não responde há 3 dias.',
-    color: 'text-yellow-500'
-  },
-  { 
-    icon: Sparkles, 
-    label: 'Motivação e energia', 
-    prompt: 'Estou desmotivado hoje. Me ajuda a recuperar a energia para vender e bater minha meta?',
-    color: 'text-purple-500'
-  },
-  { 
-    icon: MessageSquare, 
-    label: 'Apresentar Unique Day', 
-    prompt: 'Como apresento o Unique Day de forma irresistível para um lead qualificado?',
-    color: 'text-blue-500'
-  },
-  { 
-    icon: Zap, 
-    label: 'Qualificação BANT', 
-    prompt: 'Me explique como usar o método BANT para qualificar leads de forma rápida e eficiente.',
-    color: 'text-orange-500'
-  },
-  { 
-    icon: Phone, 
-    label: 'Script primeira ligação', 
-    prompt: 'Me dê um script completo para a primeira ligação com um lead novo.',
-    color: 'text-cyan-500'
-  },
-  { 
-    icon: Shield, 
-    label: 'Objeção "está caro"', 
-    prompt: 'O lead disse que está caro. Como mostro o valor e justifico o investimento?',
-    color: 'text-pink-500'
-  },
+  { icon: Target, label: 'Quebrar objeção "Vou pensar"', prompt: 'O lead disse que vai pensar. Como quebro essa objeção de forma eficaz?', color: 'text-red-500' },
+  { icon: TrendingUp, label: 'Estratégia para bater meta', prompt: 'Preciso de uma estratégia urgente para bater minha meta esse mês. Analise meu contexto e sugira ações práticas.', color: 'text-green-500' },
+  { icon: Lightbulb, label: 'Script de follow-up', prompt: 'Me dê um script de follow-up criativo para um lead que não responde há 3 dias.', color: 'text-yellow-500' },
+  { icon: Sparkles, label: 'Motivação e energia', prompt: 'Estou desmotivado hoje. Me ajuda a recuperar a energia para vender e bater minha meta?', color: 'text-purple-500' },
 ];
 
 const CATEGORY_PROMPTS = {
@@ -93,7 +54,22 @@ const CATEGORY_PROMPTS = {
 
 export default function CommercialAssistantPage() {
   const [input, setInput] = useState('');
-  const { messages, isLoading, error, sendMessage, clearMessages, sellerContext } = useCommercialAssistant();
+  const [editingTitle, setEditingTitle] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+  const { 
+    messages, 
+    isLoading, 
+    error, 
+    sendMessage, 
+    clearMessages, 
+    sellerContext,
+    conversations,
+    currentConversationId,
+    loadConversation,
+    startNewConversation,
+    deleteConversation,
+    updateConversationTitle,
+  } = useCommercialAssistant();
   const { profile } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -121,6 +97,19 @@ export default function CommercialAssistantPage() {
 
   const handleQuickPrompt = (prompt: string) => {
     sendMessage(prompt);
+  };
+
+  const handleEditTitle = (conversationId: string, currentTitle: string) => {
+    setEditingTitle(conversationId);
+    setNewTitle(currentTitle);
+  };
+
+  const handleSaveTitle = async (conversationId: string) => {
+    if (newTitle.trim()) {
+      await updateConversationTitle(conversationId, newTitle.trim());
+    }
+    setEditingTitle(null);
+    setNewTitle('');
   };
 
   const progressPercent = sellerContext?.progress || 0;
@@ -155,7 +144,152 @@ export default function CommercialAssistantPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Conversation History Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="h-[calc(100vh-220px)]">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <History className="h-5 w-5 text-amber-500" />
+                    Conversas
+                  </CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={startNewConversation}
+                    title="Nova conversa"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[calc(100vh-320px)]">
+                  <div className="px-4 pb-4 space-y-2">
+                    {conversations?.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Nenhuma conversa ainda
+                      </p>
+                    ) : (
+                      conversations?.map((conv) => (
+                        <div
+                          key={conv.id}
+                          className={cn(
+                            "group relative p-3 rounded-lg cursor-pointer transition-colors",
+                            currentConversationId === conv.id
+                              ? "bg-amber-500/10 border border-amber-500/30"
+                              : "hover:bg-muted/50"
+                          )}
+                          onClick={() => loadConversation(conv.id)}
+                        >
+                          {editingTitle === conv.id ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={newTitle}
+                                onChange={(e) => setNewTitle(e.target.value)}
+                                className="h-7 text-sm"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveTitle(conv.id);
+                                  if (e.key === 'Escape') setEditingTitle(null);
+                                }}
+                                autoFocus
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSaveTitle(conv.id);
+                                }}
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingTitle(null);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-sm font-medium truncate pr-8">{conv.title}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDistanceToNow(new Date(conv.updated_at), { 
+                                  addSuffix: true, 
+                                  locale: ptBR 
+                                })}
+                              </p>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-2 top-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreVertical className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditTitle(conv.id, conv.title);
+                                  }}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Renomear
+                                  </DropdownMenuItem>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem 
+                                        className="text-destructive"
+                                        onSelect={(e) => e.preventDefault()}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Excluir conversa?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Esta ação não pode ser desfeita. A conversa será permanentemente excluída.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          onClick={() => deleteConversation(conv.id)}
+                                        >
+                                          Excluir
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Main Chat Area */}
           <div className="lg:col-span-2">
             <Card className="h-[calc(100vh-220px)] flex flex-col">
@@ -164,7 +298,11 @@ export default function CommercialAssistantPage() {
                   <div className="flex items-center gap-3">
                     <Bot className="h-6 w-6" />
                     <div>
-                      <CardTitle className="text-lg">Chat com Assistente</CardTitle>
+                      <CardTitle className="text-lg">
+                        {currentConversationId 
+                          ? conversations?.find(c => c.id === currentConversationId)?.title || 'Chat'
+                          : 'Nova Conversa'}
+                      </CardTitle>
                       <CardDescription className="text-white/80">
                         Pergunte sobre estratégias, scripts e objeções
                       </CardDescription>
@@ -174,10 +312,10 @@ export default function CommercialAssistantPage() {
                     variant="ghost"
                     size="sm"
                     className="text-white hover:bg-white/20"
-                    onClick={clearMessages}
+                    onClick={startNewConversation}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Limpar
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova
                   </Button>
                 </div>
               </CardHeader>
@@ -195,7 +333,7 @@ export default function CommercialAssistantPage() {
                         quebrar objeções, criar scripts e muito mais.
                       </p>
                       <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-                        {QUICK_PROMPTS.slice(0, 4).map((item, i) => (
+                        {QUICK_PROMPTS.map((item, i) => (
                           <Button
                             key={i}
                             variant="outline"
@@ -273,7 +411,7 @@ export default function CommercialAssistantPage() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Digite sua pergunta... (Enter para enviar, Shift+Enter para nova linha)"
+                      placeholder="Digite sua pergunta... (Enter para enviar)"
                       disabled={isLoading}
                       className="flex-1 min-h-[60px] max-h-[120px] resize-none"
                       rows={2}
@@ -292,7 +430,7 @@ export default function CommercialAssistantPage() {
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Right Sidebar */}
           <div className="space-y-6">
             {/* Context Card */}
             {sellerContext && sellerContext.monthlyGoal && sellerContext.monthlyGoal > 0 && (
@@ -309,8 +447,9 @@ export default function CommercialAssistantPage() {
                       <span className="text-muted-foreground">Progresso da Meta</span>
                       <span className="font-bold">{progressPercent.toFixed(0)}%</span>
                     </div>
-                    <Progress value={Math.min(progressPercent, 100)} className="h-3" />
-                    <div className={cn("h-3 rounded-full -mt-3", getProgressColor())} style={{ width: `${Math.min(progressPercent, 100)}%` }} />
+                    <div className="relative h-3 rounded-full bg-muted overflow-hidden">
+                      <div className={cn("h-full rounded-full transition-all", getProgressColor())} style={{ width: `${Math.min(progressPercent, 100)}%` }} />
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -426,7 +565,7 @@ export default function CommercialAssistantPage() {
                 </Link>
                 <Link to="/patient-kanban">
                   <Button variant="outline" className="w-full justify-start gap-2">
-                    <Users className="h-4 w-4" />
+                    <MessageSquare className="h-4 w-4" />
                     Kanban de Leads
                   </Button>
                 </Link>
