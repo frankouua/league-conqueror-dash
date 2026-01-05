@@ -25,13 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Calendar, Target, ChevronRight, ChevronLeft, 
   Gift, Heart, Sun, Snowflake, Flower2, Users, ShoppingBag, 
   PartyPopper, Star, Clock, MessageSquare, Zap, Syringe, 
   Leaf, Smile, Baby, Ribbon, Gem, RefreshCw, TrendingUp, 
   Activity, Eye, Candy, Copy, Check, Send, Phone, User,
-  FileText, Image, ExternalLink, Sparkles, Settings
+  FileText, Image, ExternalLink, Sparkles, Settings, UserCheck,
+  Download, List, CheckCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -654,6 +656,16 @@ const RFV_SEGMENTS = [
   { value: "lost", label: "Perdidos", count: 60 },
 ];
 
+interface RFVCustomer {
+  id: string;
+  name: string;
+  phone: string | null;
+  whatsapp: string | null;
+  segment: string;
+  average_ticket: number;
+  days_since_last_purchase: number;
+}
+
 const Campaigns = () => {
   const { user, role } = useAuth();
   const navigate = useNavigate();
@@ -666,6 +678,14 @@ const Campaigns = () => {
   const [personalizedMessage, setPersonalizedMessage] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  
+  // Bulk messaging state
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [selectedSegment, setSelectedSegment] = useState<string>("");
+  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set());
+  const [bulkScript, setBulkScript] = useState<any>(null);
+  const [currentBulkIndex, setCurrentBulkIndex] = useState(0);
+  const [bulkSending, setBulkSending] = useState(false);
 
   // Get RFV segments count from DB
   const { data: rfvSegments } = useQuery({
@@ -683,6 +703,23 @@ const Campaigns = () => {
       });
       return counts;
     },
+  });
+
+  // Fetch customers by segment
+  const { data: segmentCustomers = [], isLoading: loadingCustomers } = useQuery({
+    queryKey: ["rfv-customers-segment", selectedSegment],
+    queryFn: async () => {
+      if (!selectedSegment) return [];
+      const { data, error } = await supabase
+        .from("rfv_customers")
+        .select("id, name, phone, whatsapp, segment, average_ticket, days_since_last_purchase")
+        .eq("segment", selectedSegment)
+        .order("average_ticket", { ascending: false });
+      
+      if (error) throw error;
+      return data as RFVCustomer[];
+    },
+    enabled: !!selectedSegment,
   });
 
   const currentMonthData = CAMPAIGNS_2026.find(m => m.month === selectedMonth);
@@ -715,6 +752,107 @@ const Campaigns = () => {
     window.open(whatsappUrl, "_blank");
     toast.success("Abrindo WhatsApp...");
     setShowSendDialog(false);
+  };
+
+  // Bulk messaging functions
+  const handleOpenBulkDialog = (script: any) => {
+    setBulkScript(script);
+    setSelectedCustomers(new Set());
+    setCurrentBulkIndex(0);
+    setBulkSending(false);
+    setShowBulkDialog(true);
+  };
+
+  const handleToggleCustomer = (customerId: string) => {
+    const newSelected = new Set(selectedCustomers);
+    if (newSelected.has(customerId)) {
+      newSelected.delete(customerId);
+    } else {
+      newSelected.add(customerId);
+    }
+    setSelectedCustomers(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedCustomers.size === segmentCustomers.length) {
+      setSelectedCustomers(new Set());
+    } else {
+      setSelectedCustomers(new Set(segmentCustomers.map(c => c.id)));
+    }
+  };
+
+  const getCustomerPhone = (customer: RFVCustomer): string | null => {
+    return customer.whatsapp || customer.phone;
+  };
+
+  const selectedCustomersList = useMemo(() => {
+    return segmentCustomers.filter(c => selectedCustomers.has(c.id));
+  }, [segmentCustomers, selectedCustomers]);
+
+  const customersWithPhone = useMemo(() => {
+    return selectedCustomersList.filter(c => getCustomerPhone(c));
+  }, [selectedCustomersList]);
+
+  const handleSendBulkNext = () => {
+    if (currentBulkIndex >= customersWithPhone.length) {
+      toast.success(`Disparo concluído! ${customersWithPhone.length} mensagens enviadas.`);
+      setShowBulkDialog(false);
+      return;
+    }
+
+    const customer = customersWithPhone[currentBulkIndex];
+    const phone = getCustomerPhone(customer);
+    if (!phone) {
+      setCurrentBulkIndex(prev => prev + 1);
+      return;
+    }
+
+    const message = bulkScript.text.replace("{nome}", customer.name.split(" ")[0]);
+    const cleanPhone = phone.replace(/\D/g, "");
+    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    const whatsappUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
+    
+    window.open(whatsappUrl, "_blank");
+    setCurrentBulkIndex(prev => prev + 1);
+  };
+
+  const handleCopyAllMessages = () => {
+    const messages = customersWithPhone.map(customer => {
+      const phone = getCustomerPhone(customer);
+      const cleanPhone = phone?.replace(/\D/g, "") || "";
+      const firstName = customer.name.split(" ")[0];
+      const message = bulkScript.text.replace("{nome}", firstName);
+      return `📱 ${customer.name} (${phone})\n${message}`;
+    }).join("\n\n---\n\n");
+    
+    navigator.clipboard.writeText(messages);
+    toast.success(`${customersWithPhone.length} mensagens copiadas!`);
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Nome", "Telefone", "Segmento", "Ticket Médio", "Dias sem Compra", "Mensagem"];
+    const rows = selectedCustomersList.map(customer => {
+      const phone = getCustomerPhone(customer) || "";
+      const firstName = customer.name.split(" ")[0];
+      const message = bulkScript.text.replace("{nome}", firstName);
+      return [
+        customer.name,
+        phone,
+        customer.segment,
+        customer.average_ticket.toString(),
+        customer.days_since_last_purchase.toString(),
+        `"${message.replace(/"/g, '""')}"`
+      ];
+    });
+    
+    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `disparo_${selectedSegment}_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    toast.success("Lista exportada com sucesso!");
   };
 
   if (showAdminPanel && role === "admin") {
@@ -1003,23 +1141,52 @@ const Campaigns = () => {
                 </div>
               )}
 
-              {/* RFV Integration */}
+              {/* RFV Integration - Disparo em Massa */}
               <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
-                <h4 className="font-medium mb-3 flex items-center gap-2 text-purple-400">
-                  <Users className="w-4 h-4" />
-                  Base de Pacientes RFV
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium flex items-center gap-2 text-purple-400">
+                    <Users className="w-4 h-4" />
+                    Disparo em Massa - Base RFV
+                  </h4>
+                  {selectedCampaign.scripts.length > 0 && (
+                    <Select
+                      value={bulkScript?.title || ""}
+                      onValueChange={(value) => {
+                        const script = selectedCampaign.scripts.find((s: any) => s.title === value);
+                        if (script) setBulkScript(script);
+                      }}
+                    >
+                      <SelectTrigger className="w-48 h-8 text-xs">
+                        <SelectValue placeholder="Selecione o script" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedCampaign.scripts.map((script: any) => (
+                          <SelectItem key={script.title} value={script.title}>
+                            {script.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                
                 <p className="text-sm text-muted-foreground mb-3">
-                  Selecione um segmento para ver pacientes e enviar mensagens personalizadas
+                  Selecione um segmento para disparar mensagens personalizadas para múltiplos pacientes
                 </p>
+                
                 <div className="flex flex-wrap gap-2">
                   {RFV_SEGMENTS.map(segment => (
                     <Button
                       key={segment.value}
-                      variant="outline"
+                      variant={selectedSegment === segment.value ? "default" : "outline"}
                       size="sm"
                       className="gap-2"
-                      onClick={() => navigate("/rfv-dashboard")}
+                      onClick={() => {
+                        setSelectedSegment(segment.value);
+                        setSelectedCustomers(new Set());
+                        if (bulkScript) setShowBulkDialog(true);
+                        else toast.info("Selecione um script primeiro");
+                      }}
                     >
                       {segment.label}
                       <Badge variant="secondary" className="text-xs">
@@ -1087,6 +1254,195 @@ const Campaigns = () => {
             <Button onClick={handleSendWhatsApp} className="gap-2 bg-green-600 hover:bg-green-700">
               <Phone className="w-4 h-4" />
               Abrir WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Disparo em Massa */}
+      <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-purple-500" />
+              Disparo em Massa - {RFV_SEGMENTS.find(s => s.value === selectedSegment)?.label || selectedSegment}
+            </DialogTitle>
+            <DialogDescription>
+              Selecione os pacientes para enviar mensagens personalizadas via WhatsApp
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4 flex-1 overflow-hidden">
+            {/* Script selecionado */}
+            {bulkScript && (
+              <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="outline">{bulkScript.title}</Badge>
+                  <Select
+                    value={bulkScript.title}
+                    onValueChange={(value) => {
+                      const script = selectedCampaign?.scripts?.find((s: any) => s.title === value);
+                      if (script) setBulkScript(script);
+                    }}
+                  >
+                    <SelectTrigger className="w-40 h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedCampaign?.scripts?.map((script: any) => (
+                        <SelectItem key={script.title} value={script.title}>
+                          {script.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                  {bulkScript.text}
+                </p>
+              </div>
+            )}
+
+            {/* Controles de seleção */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleSelectAll}
+                >
+                  <CheckCheck className="w-4 h-4" />
+                  {selectedCustomers.size === segmentCustomers.length ? "Desmarcar Todos" : "Selecionar Todos"}
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {selectedCustomers.size} de {segmentCustomers.length} selecionados
+                  {customersWithPhone.length < selectedCustomers.size && (
+                    <span className="text-yellow-500 ml-2">
+                      ({customersWithPhone.length} com telefone)
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Lista de Pacientes */}
+            <ScrollArea className="h-[300px] pr-4">
+              {loadingCustomers ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : segmentCustomers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum paciente neste segmento</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {segmentCustomers.map((customer) => {
+                    const phone = getCustomerPhone(customer);
+                    const isSelected = selectedCustomers.has(customer.id);
+                    
+                    return (
+                      <div
+                        key={customer.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          isSelected 
+                            ? "bg-purple-500/10 border-purple-500/30" 
+                            : "bg-secondary/30 border-border hover:bg-secondary/50"
+                        }`}
+                        onClick={() => handleToggleCustomer(customer.id)}
+                      >
+                        <Checkbox checked={isSelected} />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{customer.name}</p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {phone ? (
+                              <span className="flex items-center gap-1 text-green-500">
+                                <Phone className="w-3 h-3" />
+                                {phone}
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-yellow-500">
+                                <Phone className="w-3 h-3" />
+                                Sem telefone
+                              </span>
+                            )}
+                            <span>Ticket: R$ {customer.average_ticket}</span>
+                            <span>{customer.days_since_last_purchase}d sem compra</span>
+                          </div>
+                        </div>
+                        {isSelected && phone && (
+                          <Badge variant="outline" className="text-xs text-green-500 border-green-500/30">
+                            <UserCheck className="w-3 h-3 mr-1" />
+                            Pronto
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+
+            {/* Preview da mensagem */}
+            {customersWithPhone.length > 0 && bulkSending && (
+              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-green-400">
+                    Enviando {currentBulkIndex + 1} de {customersWithPhone.length}
+                  </span>
+                  <Badge variant="outline" className="text-green-500">
+                    {customersWithPhone[currentBulkIndex]?.name}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {bulkScript?.text?.replace("{nome}", customersWithPhone[currentBulkIndex]?.name?.split(" ")[0] || "")}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setShowBulkDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleExportCSV}
+              disabled={selectedCustomers.size === 0}
+            >
+              <Download className="w-4 h-4" />
+              Exportar CSV
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleCopyAllMessages}
+              disabled={customersWithPhone.length === 0 || !bulkScript}
+            >
+              <Copy className="w-4 h-4" />
+              Copiar Todas
+            </Button>
+            <Button
+              className="gap-2 bg-green-600 hover:bg-green-700"
+              onClick={() => {
+                if (!bulkSending) {
+                  setBulkSending(true);
+                  setCurrentBulkIndex(0);
+                }
+                handleSendBulkNext();
+              }}
+              disabled={customersWithPhone.length === 0 || !bulkScript}
+            >
+              <Send className="w-4 h-4" />
+              {bulkSending 
+                ? currentBulkIndex >= customersWithPhone.length 
+                  ? "Concluído!" 
+                  : `Próximo (${currentBulkIndex + 1}/${customersWithPhone.length})`
+                : `Iniciar Disparo (${customersWithPhone.length})`
+              }
             </Button>
           </DialogFooter>
         </DialogContent>
