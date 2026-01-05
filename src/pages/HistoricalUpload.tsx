@@ -28,6 +28,7 @@ interface ParsedHistoricalData {
   clientName: string;
   clientCpf: string;
   clientEmail: string;
+  clientPhone: string;
   clientProntuario: string;
   procedure: string;
 }
@@ -60,6 +61,7 @@ const HistoricalUpload = () => {
     clientName: '',
     clientCpf: '',
     clientEmail: '',
+    clientPhone: '',
     clientProntuario: '',
     procedure: '',
   });
@@ -141,6 +143,13 @@ const HistoricalUpload = () => {
         // Email detection
         if (colLower === 'email' || colLower.includes('e-mail') || colLower.includes('email')) {
           if (!autoMapping.clientEmail) autoMapping.clientEmail = col;
+        }
+        
+        // Phone/WhatsApp detection
+        if (colLower === 'telefone' || colLower === 'celular' || colLower === 'whatsapp' ||
+            colLower.includes('telefone') || colLower.includes('celular') || colLower.includes('whatsapp') ||
+            colLower.includes('fone') || colLower === 'tel' || colLower === 'phone') {
+          if (!autoMapping.clientPhone) autoMapping.clientPhone = col;
         }
         
         // Prontuário detection
@@ -254,6 +263,7 @@ const HistoricalUpload = () => {
         clientName: columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '',
         clientCpf: columnMapping.clientCpf ? String(row[columnMapping.clientCpf] || '').trim() : '',
         clientEmail: columnMapping.clientEmail ? String(row[columnMapping.clientEmail] || '').trim() : '',
+        clientPhone: columnMapping.clientPhone ? String(row[columnMapping.clientPhone] || '').trim() : '',
         clientProntuario: columnMapping.clientProntuario ? String(row[columnMapping.clientProntuario] || '').trim() : '',
         procedure: columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : '',
       });
@@ -609,6 +619,21 @@ const HistoricalUpload = () => {
                       <div className="space-y-1">
                         <Label className="text-xs">E-mail do Cliente</Label>
                         <Select value={columnMapping.clientEmail} onValueChange={(v) => setColumnMapping(prev => ({ ...prev, clientEmail: v }))}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
+                            {availableColumns.map(col => (
+                              <SelectItem key={col} value={col} className="text-xs">{col}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label className="text-xs">📱 Telefone/WhatsApp</Label>
+                        <Select value={columnMapping.clientPhone} onValueChange={(v) => setColumnMapping(prev => ({ ...prev, clientPhone: v }))}>
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
