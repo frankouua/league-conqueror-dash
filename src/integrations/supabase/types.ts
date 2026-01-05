@@ -1481,6 +1481,7 @@ export type Database = {
       rfv_customers: {
         Row: {
           average_ticket: number
+          cpf: string | null
           created_at: string
           created_by: string | null
           days_since_last_purchase: number
@@ -1501,6 +1502,7 @@ export type Database = {
         }
         Insert: {
           average_ticket?: number
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           days_since_last_purchase?: number
@@ -1521,6 +1523,7 @@ export type Database = {
         }
         Update: {
           average_ticket?: number
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           days_since_last_purchase?: number

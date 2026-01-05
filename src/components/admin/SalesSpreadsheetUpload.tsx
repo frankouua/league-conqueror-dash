@@ -50,6 +50,8 @@ interface ParsedSale {
   department: string;
   procedure: string;
   clientName: string;
+  clientCpf: string;       // CPF do cliente
+  clientEmail: string;     // E-mail do cliente
   sellerName: string;
   amountSold: number;      // Valor Vendido
   amountPaid: number;      // Valor Pago/Recebido
@@ -66,6 +68,8 @@ interface ColumnMapping {
   department: string;
   procedure: string;
   clientName: string;
+  clientCpf: string;       // CPF do cliente
+  clientEmail: string;     // E-mail do cliente
   sellerName: string;
   amountSold: string;      // Valor Vendido
   amountPaid: string;      // Valor Pago/Recebido
@@ -112,6 +116,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     department: '',
     procedure: '',
     clientName: '',
+    clientCpf: '',
+    clientEmail: '',
     sellerName: '',
     amountSold: '',
     amountPaid: '',
@@ -235,6 +241,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         department: '',
         procedure: '',
         clientName: '',
+        clientCpf: '',
+        clientEmail: '',
         sellerName: '',
         amountSold: '',
         amountPaid: '',
@@ -297,6 +305,16 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         if (colLower.includes('situação') || colLower.includes('situacao') || 
             colLower === 'status' || colLower.includes('quitado')) {
           if (!autoMapping.status) autoMapping.status = col;
+        }
+        
+        // CPF detection
+        if (colLower === 'cpf' || colLower.includes('cpf') || colLower.includes('documento')) {
+          if (!autoMapping.clientCpf) autoMapping.clientCpf = col;
+        }
+        
+        // Email detection
+        if (colLower === 'email' || colLower.includes('e-mail') || colLower.includes('email')) {
+          if (!autoMapping.clientEmail) autoMapping.clientEmail = col;
         }
       }
 
@@ -612,6 +630,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           const department = columnMapping.department ? String(row[columnMapping.department] || '').trim() : '';
           const procedure = columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : '';
           const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '';
+          const clientCpf = columnMapping.clientCpf ? String(row[columnMapping.clientCpf] || '').trim() : '';
+          const clientEmail = columnMapping.clientEmail ? String(row[columnMapping.clientEmail] || '').trim() : '';
           const paymentStatus = columnMapping.status ? String(row[columnMapping.status] || '').trim() : '';
 
           // Parse date
@@ -638,6 +658,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               department,
               procedure,
               clientName,
+              clientCpf,
+              clientEmail,
               sellerName,
               amountSold: 0,
               amountPaid: 0,
@@ -707,6 +729,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               department,
               procedure,
               clientName,
+              clientCpf,
+              clientEmail,
               sellerName,
               amountSold: 0,
               amountPaid: 0,
@@ -726,6 +750,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             department,
             procedure,
             clientName,
+            clientCpf,
+            clientEmail,
             sellerName,
             amountSold,
             amountPaid,
@@ -741,6 +767,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             department: '',
             procedure: '',
             clientName: '',
+            clientCpf: '',
+            clientEmail: '',
             sellerName: '',
             amountSold: 0,
             amountPaid: 0,
@@ -1226,31 +1254,77 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
   // Function to update RFV customers based on sales data
   const updateRFVCustomers = async (sales: ParsedSale[]) => {
-    // Group sales by client name - use amountPaid for RFV (actual value received)
-    const clientSales: Record<string, { dates: string[]; amounts: number[] }> = {};
+    // Group sales by client - prioritize CPF, fallback to name
+    const clientSales: Record<string, { 
+      dates: string[]; 
+      amounts: number[]; 
+      name: string;
+      cpf: string;
+      email: string;
+    }> = {};
 
     for (const sale of sales) {
-      if (!sale.clientName) continue;
-      const key = sale.clientName.toLowerCase().trim();
+      if (!sale.clientName && !sale.clientCpf) continue;
+      
+      // Use CPF as primary key if available, otherwise use normalized name
+      const key = sale.clientCpf 
+        ? sale.clientCpf.replace(/\D/g, '') // Remove non-digits from CPF
+        : sale.clientName.toLowerCase().trim();
+      
       if (!clientSales[key]) {
-        clientSales[key] = { dates: [], amounts: [] };
+        clientSales[key] = { 
+          dates: [], 
+          amounts: [],
+          name: sale.clientName,
+          cpf: sale.clientCpf,
+          email: sale.clientEmail,
+        };
       }
       clientSales[key].dates.push(sale.date);
       // Use amountSold as primary (valor vendido)
       const amount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
       clientSales[key].amounts.push(amount);
+      
+      // Update contact info if we have newer/better data
+      if (sale.clientCpf && !clientSales[key].cpf) {
+        clientSales[key].cpf = sale.clientCpf;
+      }
+      if (sale.clientEmail && !clientSales[key].email) {
+        clientSales[key].email = sale.clientEmail;
+      }
+      if (sale.clientName && !clientSales[key].name) {
+        clientSales[key].name = sale.clientName;
+      }
     }
 
     const now = new Date();
 
-    for (const [clientName, data] of Object.entries(clientSales)) {
+    for (const [clientKey, data] of Object.entries(clientSales)) {
       try {
-        // Check if customer exists
-        const { data: existing } = await supabase
-          .from('rfv_customers')
-          .select('*')
-          .eq('name', clientName)
-          .maybeSingle();
+        // Check if customer exists by CPF first, then by name
+        let existing: any = null;
+        
+        if (data.cpf) {
+          const cpfClean = data.cpf.replace(/\D/g, '');
+          const { data: byCpf } = await supabase
+            .from('rfv_customers')
+            .select('*')
+            .eq('cpf', cpfClean)
+            .limit(1)
+            .maybeSingle();
+          existing = byCpf;
+        }
+        
+        if (!existing && data.name) {
+          const nameClean = data.name.toLowerCase().trim();
+          const { data: byName } = await supabase
+            .from('rfv_customers')
+            .select('*')
+            .eq('name', nameClean)
+            .limit(1)
+            .maybeSingle();
+          existing = byName;
+        }
 
         const sortedDates = data.dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
         const latestDate = sortedDates[0];
@@ -1271,16 +1345,26 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           const newAvgTicket = newTotalValue / newTotalPurchases;
           const daysSince = Math.floor((now.getTime() - new Date(newLastPurchase).getTime()) / (1000 * 60 * 60 * 24));
 
+          const updateData: Record<string, any> = {
+            last_purchase_date: newLastPurchase,
+            first_purchase_date: newFirstPurchase,
+            total_purchases: newTotalPurchases,
+            total_value: newTotalValue,
+            average_ticket: newAvgTicket,
+            days_since_last_purchase: daysSince,
+          };
+          
+          // Update CPF and email if we have new data and existing doesn't have it
+          if (data.cpf && !existing.cpf) {
+            updateData.cpf = data.cpf.replace(/\D/g, '');
+          }
+          if (data.email && !existing.email) {
+            updateData.email = data.email.toLowerCase().trim();
+          }
+
           await supabase
             .from('rfv_customers')
-            .update({
-              last_purchase_date: newLastPurchase,
-              first_purchase_date: newFirstPurchase,
-              total_purchases: newTotalPurchases,
-              total_value: newTotalValue,
-              average_ticket: newAvgTicket,
-              days_since_last_purchase: daysSince,
-            })
+            .update(updateData)
             .eq('id', existing.id);
         } else {
           // Insert new customer
@@ -1290,7 +1374,9 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           await supabase
             .from('rfv_customers')
             .insert({
-              name: clientName,
+              name: data.name?.toLowerCase().trim() || clientKey,
+              cpf: data.cpf ? data.cpf.replace(/\D/g, '') : null,
+              email: data.email ? data.email.toLowerCase().trim() : null,
               first_purchase_date: earliestDate,
               last_purchase_date: latestDate,
               total_purchases: newPurchaseCount,
@@ -1305,7 +1391,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             });
         }
       } catch (error) {
-        console.error('Error updating RFV for customer:', clientName, error);
+        console.error('Error updating RFV for customer:', clientKey, error);
       }
     }
 
@@ -2009,6 +2095,34 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                     <option key={col} value={col}>{col}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <Label>CPF do Cliente</Label>
+                <select
+                  value={columnMapping.clientCpf}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, clientCpf: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não incluir</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Importante para identificar clientes únicos no RFV</p>
+              </div>
+              <div>
+                <Label>E-mail do Cliente</Label>
+                <select
+                  value={columnMapping.clientEmail}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, clientEmail: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não incluir</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Para contato e campanhas de marketing</p>
               </div>
             </div>
             
