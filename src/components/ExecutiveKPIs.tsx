@@ -147,21 +147,22 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
     const prevTotalRevenue = prevRevenueData?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
     const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
 
-    // Goals
+    // Goals - SEMPRE destacar Meta 3 como objetivo principal
     const meta1 = deptGoals?.reduce((sum, g) => sum + Number(g.meta1_goal), 0) || CLINIC_GOALS.META_1;
     const meta2 = deptGoals?.reduce((sum, g) => sum + Number(g.meta2_goal), 0) || CLINIC_GOALS.META_2;
     const meta3 = deptGoals?.reduce((sum, g) => sum + Number(g.meta3_goal), 0) || CLINIC_GOALS.META_3;
-    const goalProgress = meta1 > 0 ? (totalRevenue / meta1) * 100 : 0;
+    // Progress based on Meta 3 (our main goal)
+    const goalProgress = meta3 > 0 ? (totalRevenue / meta3) * 100 : 0;
 
     // Projections
     const dailyAverage = currentDay > 0 ? totalRevenue / currentDay : 0;
     const projectedTotal = dailyAverage * daysInMonth;
     const projectedGoalLevel = projectedTotal >= meta3 ? 3 : projectedTotal >= meta2 ? 2 : projectedTotal >= meta1 ? 1 : 0;
 
-    // Daily target to hit meta 1
-    const remainingForMeta1 = Math.max(0, meta1 - totalRevenue);
-    const dailyNeeded = daysRemaining > 0 ? remainingForMeta1 / daysRemaining : 0;
-    const dailyNeededBusiness = businessDaysRemaining > 0 ? remainingForMeta1 / businessDaysRemaining : 0;
+    // Daily target to hit META 3 (our main goal)
+    const remainingForMeta3 = Math.max(0, meta3 - totalRevenue);
+    const dailyNeeded = daysRemaining > 0 ? remainingForMeta3 / daysRemaining : 0;
+    const dailyNeededBusiness = businessDaysRemaining > 0 ? remainingForMeta3 / businessDaysRemaining : 0;
 
     // Leads metrics
     const totalLeads = leadsData?.length || 0;
@@ -207,7 +208,7 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
       projectedGoalLevel,
       dailyNeeded,
       dailyNeededBusiness,
-      remainingForMeta1,
+      remainingForMeta3,
       totalLeads,
       hotLeads,
       conversionRate,
@@ -254,7 +255,7 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
             <p className="text-2xl font-black text-primary">{formatCompact(metrics.totalRevenue)}</p>
             <p className="text-xs text-muted-foreground">Faturamento</p>
             <Progress value={Math.min(metrics.goalProgress, 100)} className="h-1.5 mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">{metrics.goalProgress.toFixed(0)}% da Meta 1</p>
+            <p className="text-xs text-muted-foreground mt-1">{metrics.goalProgress.toFixed(0)}% da Meta 3</p>
           </CardContent>
         </Card>
 
@@ -267,9 +268,9 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
             </div>
             <p className="text-2xl font-black">{formatCompact(metrics.projectedTotal)}</p>
             <p className="text-xs text-muted-foreground">Projeção Mês</p>
-            {isCurrentMonth && metrics.remainingForMeta1 > 0 && (
+            {isCurrentMonth && metrics.remainingForMeta3 > 0 && (
               <p className="text-xs text-primary mt-2 font-medium">
-                Falta: {formatCurrency(metrics.remainingForMeta1)}
+                Falta: {formatCurrency(metrics.remainingForMeta3)}
               </p>
             )}
           </CardContent>
