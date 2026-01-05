@@ -31,6 +31,7 @@ import LeadResponseMetrics from "@/components/LeadResponseMetrics";
 import AchievementsBadgesDisplay from "@/components/AchievementsBadgesDisplay";
 import SmartDailyGoals from "@/components/SmartDailyGoals";
 import SalesForecastPanel from "@/components/SalesForecastPanel";
+import MonthComparisonPanel from "@/components/MonthComparisonPanel";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -395,6 +396,12 @@ const Index = () => {
               year={selectedYear} 
               filterSeller={filterSeller}
               filterDepartment={filterDepartment}
+            />
+            
+            {/* Month Comparison */}
+            <MonthComparisonPanel 
+              currentMonth={selectedMonth} 
+              currentYear={selectedYear} 
             />
             
             {/* Historical Trends */}
