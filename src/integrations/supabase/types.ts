@@ -1471,6 +1471,62 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          achievement_name: string
+          achievement_type: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          metadata: Json | null
+          month: number | null
+          points_value: number | null
+          team_id: string | null
+          unlocked_at: string
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          achievement_name: string
+          achievement_type: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          metadata?: Json | null
+          month?: number | null
+          points_value?: number | null
+          team_id?: string | null
+          unlocked_at?: string
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          achievement_name?: string
+          achievement_type?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          metadata?: Json | null
+          month?: number | null
+          points_value?: number | null
+          team_id?: string | null
+          unlocked_at?: string
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
