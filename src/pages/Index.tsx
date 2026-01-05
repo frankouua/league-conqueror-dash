@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, LayoutDashboard, User } from "lucide-react";
+import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, LayoutDashboard, User, History } from "lucide-react";
 import { MonthlyTeamRankingChart } from "@/components/MonthlyTeamRankingChart";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import { format } from "date-fns";
@@ -34,6 +34,7 @@ import SalesForecastPanel from "@/components/SalesForecastPanel";
 import MonthComparisonPanel from "@/components/MonthComparisonPanel";
 import TeamMembersOverview from "@/components/TeamMembersOverview";
 import ProceduresGoalTracker from "@/components/ProceduresGoalTracker";
+import HistoricalComparison from "@/components/HistoricalComparison";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -228,7 +229,7 @@ const Index = () => {
         {/* Main Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-4xl md:mx-auto md:grid-cols-6 gap-1 bg-muted/50 p-1 rounded-xl">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-5xl md:mx-auto md:grid-cols-7 gap-1 bg-muted/50 p-1 rounded-xl">
               <TabsTrigger 
                 value="times" 
                 className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
@@ -270,6 +271,13 @@ const Index = () => {
               >
                 <User className="w-4 h-4" />
                 Minhas Metas
+              </TabsTrigger>
+              <TabsTrigger 
+                value="historico" 
+                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <History className="w-4 h-4" />
+                Histórico
               </TabsTrigger>
           </TabsList>
           
@@ -475,6 +483,11 @@ const Index = () => {
               year={selectedYear} 
               filterDepartment={filterDepartment}
             />
+          </TabsContent>
+
+          {/* HISTÓRICO TAB - Year-over-Year Comparisons */}
+          <TabsContent value="historico" className="space-y-8 animate-fade-in">
+            <HistoricalComparison />
           </TabsContent>
         </Tabs>
 
