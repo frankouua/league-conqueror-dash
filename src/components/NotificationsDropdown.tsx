@@ -81,8 +81,14 @@ const NotificationsDropdown = () => {
         (payload) => {
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
           
-          // Show popup for admin announcements
           const newNotification = payload.new as Notification;
+          
+          // Only show notifications for this user
+          if (newNotification.user_id !== user.id && newNotification.team_id !== profile?.team_id) {
+            return;
+          }
+          
+          // Show popup for admin announcements
           if (
             newNotification.type === "admin_announcement" &&
             newNotification.user_id === user.id &&
@@ -91,11 +97,50 @@ const NotificationsDropdown = () => {
             shownNotifications.current.add(newNotification.id);
             setPopupNotification(newNotification);
             
-            // Also show toast for immediate attention
             toast({
               title: `📢 ${newNotification.title}`,
               description: newNotification.message.substring(0, 100) + (newNotification.message.length > 100 ? "..." : ""),
               duration: 8000,
+            });
+          }
+          
+          // Show toast for lead assignment - IMMEDIATE notification to seller
+          if (
+            newNotification.type === "lead_assigned" &&
+            newNotification.user_id === user.id &&
+            !shownNotifications.current.has(newNotification.id)
+          ) {
+            shownNotifications.current.add(newNotification.id);
+            toast({
+              title: `🎯 ${newNotification.title}`,
+              description: newNotification.message + " Clique no sininho para ver.",
+              duration: 10000,
+            });
+          }
+          
+          // Show toast for new referral leads to the team
+          if (
+            newNotification.type === "new_referral" &&
+            !shownNotifications.current.has(newNotification.id)
+          ) {
+            shownNotifications.current.add(newNotification.id);
+            toast({
+              title: `✨ ${newNotification.title}`,
+              description: newNotification.message,
+              duration: 6000,
+            });
+          }
+          
+          // Show toast for lead milestones (agendou, consultou, operou)
+          if (
+            newNotification.type === "lead_milestone" &&
+            !shownNotifications.current.has(newNotification.id)
+          ) {
+            shownNotifications.current.add(newNotification.id);
+            toast({
+              title: `🏆 ${newNotification.title}`,
+              description: newNotification.message,
+              duration: 6000,
             });
           }
         }
@@ -105,7 +150,7 @@ const NotificationsDropdown = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, queryClient]);
+  }, [user?.id, profile?.team_id, queryClient, navigate]);
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
