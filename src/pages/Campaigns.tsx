@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
@@ -9,14 +9,27 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { 
   Calendar, Target, Trophy, Clock, CheckCircle2, 
-  Gift, TrendingUp, Megaphone, Star, Zap,
-  ChevronRight, Award, Flame
+  Gift, TrendingUp, Megaphone, Star, Zap, Plus,
+  ChevronRight, Award, Flame, Lightbulb, Send, X
 } from "lucide-react";
 import { format, differenceInDays, isPast, isFuture, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Campaign {
   id: string;
@@ -47,6 +60,16 @@ interface ChecklistProgress {
   completed: boolean;
 }
 
+interface CampaignSuggestion {
+  id: string;
+  title: string;
+  description: string | null;
+  suggested_prize: string | null;
+  suggested_goal: string | null;
+  status: string;
+  created_at: string;
+}
+
 const CAMPAIGN_TYPE_CONFIG: Record<string, { label: string; color: string; icon: typeof Trophy }> = {
   mensal: { label: "Mensal", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Calendar },
   relampago: { label: "Relâmpago", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: Zap },
@@ -55,9 +78,26 @@ const CAMPAIGN_TYPE_CONFIG: Record<string, { label: string; color: string; icon:
   especial: { label: "Especial", color: "bg-pink-500/20 text-pink-400 border-pink-500/30", icon: Star },
 };
 
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  pending: { label: "Aguardando", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  approved: { label: "Aprovada", color: "bg-green-500/20 text-green-400 border-green-500/30" },
+  rejected: { label: "Rejeitada", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  implemented: { label: "Implementada", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+};
+
 const Campaigns = () => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("ativas");
+  const [suggestionDialogOpen, setSuggestionDialogOpen] = useState(false);
+  const [suggestionForm, setSuggestionForm] = useState({
+    title: "",
+    description: "",
+    suggested_prize: "",
+    suggested_goal: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   // Fetch campaigns
   const { data: campaigns = [], isLoading } = useQuery({
@@ -104,6 +144,55 @@ const Campaigns = () => {
     },
     enabled: !!user?.id,
   });
+
+  // Fetch user's suggestions
+  const { data: mySuggestions = [] } = useQuery({
+    queryKey: ["my-campaign-suggestions", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from("campaign_suggestions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data as CampaignSuggestion[];
+    },
+    enabled: !!user?.id,
+  });
+
+  const handleSubmitSuggestion = async () => {
+    if (!user?.id || !suggestionForm.title.trim()) {
+      toast.error("Preencha o título da sugestão");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("campaign_suggestions")
+        .insert({
+          user_id: user.id,
+          title: suggestionForm.title,
+          description: suggestionForm.description || null,
+          suggested_prize: suggestionForm.suggested_prize || null,
+          suggested_goal: suggestionForm.suggested_goal || null,
+        });
+
+      if (error) throw error;
+
+      toast.success("Sugestão enviada com sucesso! 🎉");
+      setSuggestionDialogOpen(false);
+      setSuggestionForm({ title: "", description: "", suggested_prize: "", suggested_goal: "" });
+      queryClient.invalidateQueries({ queryKey: ["my-campaign-suggestions"] });
+    } catch (error) {
+      toast.error("Erro ao enviar sugestão");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const now = new Date();
   
@@ -310,17 +399,147 @@ const Campaigns = () => {
       
       <main className="container mx-auto px-4 py-6">
         {/* Hero Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-primary/20">
-              <Megaphone className="w-6 h-6 text-primary" />
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-xl bg-primary/20">
+                <Megaphone className="w-6 h-6 text-primary" />
+              </div>
+              <h1 className="text-3xl font-bold">Campanhas</h1>
             </div>
-            <h1 className="text-3xl font-bold">Campanhas</h1>
+            <p className="text-muted-foreground">
+              Participe das campanhas ativas, acompanhe seu progresso e conquiste premiações!
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Participe das campanhas ativas, acompanhe seu progresso e conquiste premiações!
-          </p>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            {/* Admin: Create Campaign Button */}
+            {role === "admin" && (
+              <Button 
+                onClick={() => navigate("/admin")}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Criar Campanha
+              </Button>
+            )}
+
+            {/* All users: Suggest Campaign Dialog */}
+            <Dialog open={suggestionDialogOpen} onOpenChange={setSuggestionDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Lightbulb className="w-4 h-4" />
+                  Sugerir Campanha
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-yellow-400" />
+                    Sugerir uma Campanha
+                  </DialogTitle>
+                  <DialogDescription>
+                    Tem uma ideia de campanha? Compartilhe com a coordenação!
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Título da Campanha *</Label>
+                    <Input
+                      id="title"
+                      placeholder="Ex: Campanha de Indicações de Verão"
+                      value={suggestionForm.title}
+                      onChange={(e) => setSuggestionForm(prev => ({ ...prev, title: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Descrição da Ideia</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Descreva sua ideia de campanha..."
+                      value={suggestionForm.description}
+                      onChange={(e) => setSuggestionForm(prev => ({ ...prev, description: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="goal">Meta Sugerida</Label>
+                    <Input
+                      id="goal"
+                      placeholder="Ex: 50 indicações convertidas"
+                      value={suggestionForm.suggested_goal}
+                      onChange={(e) => setSuggestionForm(prev => ({ ...prev, suggested_goal: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="prize">Prêmio Sugerido</Label>
+                    <Input
+                      id="prize"
+                      placeholder="Ex: Day off + bônus"
+                      value={suggestionForm.suggested_prize}
+                      onChange={(e) => setSuggestionForm(prev => ({ ...prev, suggested_prize: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSuggestionDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleSubmitSuggestion}
+                    disabled={submitting || !suggestionForm.title.trim()}
+                    className="gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    {submitting ? "Enviando..." : "Enviar Sugestão"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
+
+        {/* My Suggestions (if any) */}
+        {mySuggestions.length > 0 && (
+          <Card className="mb-6 bg-gradient-to-br from-yellow-500/5 to-yellow-500/0 border-yellow-500/20">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-yellow-400" />
+                <CardTitle className="text-base">Minhas Sugestões</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {mySuggestions.map((suggestion) => {
+                  const statusConfig = STATUS_CONFIG[suggestion.status] || STATUS_CONFIG.pending;
+                  return (
+                    <div 
+                      key={suggestion.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-card/50 border border-border"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{suggestion.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Enviada em {format(new Date(suggestion.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
