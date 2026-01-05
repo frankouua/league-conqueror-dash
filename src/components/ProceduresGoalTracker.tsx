@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import { getDepartmentAvgTicket } from "@/constants/departments";
 
 interface ProceduresGoalTrackerProps {
   month: number;
@@ -208,8 +209,10 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
 
       const meta1 = Number(goal.meta1_goal);
       const remaining = Math.max(0, meta1 - deptRevenue);
-      const avgTicket = deptCount > 0 ? deptRevenue / deptCount : 15000;
+      // Use fixed average ticket from constants (ticket médio anual)
+      const avgTicket = getDepartmentAvgTicket(deptName);
       const procsNeeded = avgTicket > 0 ? Math.ceil(remaining / avgTicket) : 0;
+      const metaQtd = avgTicket > 0 ? Math.ceil(meta1 / avgTicket) : 0;
       const percent = meta1 > 0 ? Math.min((deptRevenue / meta1) * 100, 100) : 0;
 
       return {
@@ -220,6 +223,7 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
         meta: meta1,
         remaining,
         procsNeeded,
+        metaQtd,
         avgTicket,
         percent,
         perDay: daysRemaining > 0 ? remaining / daysRemaining : 0,

@@ -19,7 +19,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
-import { DEPARTMENTS } from "@/constants/departments";
+import { DEPARTMENTS, getDepartmentAvgTicket } from "@/constants/departments";
 
 interface GoalGapAnalysisProps {
   month: number;
@@ -251,10 +251,10 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
       const remaining = Math.max(0, meta3 - deptRevenue);
       const percent = meta3 > 0 ? (deptRevenue / meta3) * 100 : 0;
       
-      // Calculate average ticket for this department
-      const avgTicket = deptCount > 0 ? deptRevenue / deptCount : 15000;
+      // Use fixed average ticket from constants (ticket médio anual)
+      const avgTicket = getDepartmentAvgTicket(goal.department_name);
       
-      // Calculate quantity metrics
+      // Calculate quantity metrics using fixed ticket
       const metaQtd = avgTicket > 0 ? Math.ceil(meta3 / avgTicket) : 0; // Meta em quantidade
       const faltaQtd = avgTicket > 0 ? Math.ceil(remaining / avgTicket) : 0; // Falta em quantidade
       const qtdPorDia = businessDaysRemaining > 0 ? faltaQtd / businessDaysRemaining : 0;
