@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
+import uniqueLogo from "@/assets/logo-unique-cpa.png";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
 import ProfileEditDialog from "@/components/ProfileEditDialog";
 import { useGoalNotifications } from "@/hooks/useGoalNotifications";
@@ -146,12 +147,18 @@ const Header = () => {
     <header className="sticky top-0 z-50 glass border-b border-border">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity shrink-0">
+          {/* Logos */}
+          <Link to="/" className="flex items-center gap-2 md:gap-3 hover:opacity-90 transition-opacity shrink-0">
+            <img 
+              src={uniqueLogo} 
+              alt="Unique Cirurgia Plástica Avançada" 
+              className="h-8 md:h-10 w-auto object-contain"
+            />
+            <div className="hidden sm:block h-8 w-px bg-border" />
             <img 
               src={copaLogo} 
               alt="Copa Unique League 2026" 
-              className="h-10 md:h-12 w-auto object-contain"
+              className="h-8 md:h-10 w-auto object-contain"
             />
           </Link>
 
