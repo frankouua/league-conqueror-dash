@@ -793,7 +793,21 @@ const HistoricalComparison = () => {
                       labelFormatter={(label) => `${label}`}
                     />
                     <Legend />
-                    <Bar dataKey="revenue2024" name="2024" fill="hsl(var(--muted-foreground))" opacity={0.4} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue2024" name="2024" fill="hsl(var(--muted-foreground))" opacity={0.6} radius={[4, 4, 0, 0]}>
+                      <LabelList 
+                        dataKey="revenue2024" 
+                        position="top" 
+                        content={(props: any) => {
+                          const { x, y, width, value } = props;
+                          if (!value || value === 0) return null;
+                          return (
+                            <text x={x + width / 2} y={y - 8} fill="hsl(var(--muted-foreground))" textAnchor="middle" fontSize={9}>
+                              {formatMillions(value)}
+                            </text>
+                          );
+                        }} 
+                      />
+                    </Bar>
                     <Bar dataKey="revenue2025" name="2025" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
                       <LabelList 
                         dataKey="revenue2025" 
@@ -872,7 +886,21 @@ const HistoricalComparison = () => {
                       formatter={(value: number, name: string) => [formatFullCurrency(value), name]}
                     />
                     <Legend />
-                    <Area type="monotone" dataKey="executed2024" name="2024" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted-foreground))" fillOpacity={0.2} />
+                    <Area type="monotone" dataKey="executed2024" name="2024" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted-foreground))" fillOpacity={0.2}>
+                      <LabelList 
+                        dataKey="executed2024" 
+                        position="top" 
+                        content={(props: any) => {
+                          const { x, y, value } = props;
+                          if (!value || value === 0) return null;
+                          return (
+                            <text x={x} y={y - 8} fill="hsl(var(--muted-foreground))" textAnchor="middle" fontSize={9}>
+                              {formatMillions(value)}
+                            </text>
+                          );
+                        }} 
+                      />
+                    </Area>
                     <Area type="monotone" dataKey="executed2025" name="2025" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3}>
                       <LabelList 
                         dataKey="executed2025" 
