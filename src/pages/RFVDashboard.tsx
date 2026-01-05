@@ -142,6 +142,8 @@ interface RFVCustomer {
   phone?: string;
   whatsapp?: string;
   email?: string;
+  cpf?: string;
+  prontuario?: string;
   firstPurchaseDate?: string;
   lastPurchaseDate: string;
   totalPurchases: number;
@@ -159,6 +161,8 @@ interface ColumnMapping {
   phone: string;
   whatsapp: string;
   email: string;
+  cpf: string;
+  prontuario: string;
   purchaseDate: string;
   amount: string;
   // Campos adicionais opcionais
@@ -187,6 +191,8 @@ const RFVDashboard = () => {
     phone: '',
     whatsapp: '',
     email: '',
+    cpf: '',
+    prontuario: '',
     purchaseDate: '',
     amount: '',
     firstPurchaseDate: '',
@@ -266,7 +272,10 @@ const RFVDashboard = () => {
           id: row.id,
           name: row.name,
           phone: row.phone || undefined,
+          whatsapp: row.whatsapp || undefined,
           email: row.email || undefined,
+          cpf: row.cpf || undefined,
+          prontuario: row.prontuario || undefined,
           firstPurchaseDate: row.first_purchase_date,
           lastPurchaseDate: row.last_purchase_date,
           totalPurchases: row.total_purchases,
@@ -397,6 +406,8 @@ const RFVDashboard = () => {
         phone: '',
         whatsapp: '',
         email: '',
+        cpf: '',
+        prontuario: '',
         purchaseDate: '',
         amount: '',
         firstPurchaseDate: '',
@@ -420,6 +431,10 @@ const RFVDashboard = () => {
           autoMapping.phone = col;
         } else if (!autoMapping.email && (colLower.includes('email') || colLower.includes('e-mail'))) {
           autoMapping.email = col;
+        } else if (!autoMapping.cpf && colLower.includes('cpf')) {
+          autoMapping.cpf = col;
+        } else if (!autoMapping.prontuario && (colLower.includes('prontuario') || colLower.includes('prontuário') || colLower.includes('registro') || colLower.includes('código'))) {
+          autoMapping.prontuario = col;
         } else if (!autoMapping.purchaseDate && (colLower.includes('data_limite') || colLower.includes('última') || colLower.includes('ultima') || colLower === 'data')) {
           autoMapping.purchaseDate = col;
         } else if (!autoMapping.firstPurchaseDate && (colLower.includes('primeira') || colLower.includes('first'))) {
@@ -516,6 +531,8 @@ const RFVDashboard = () => {
         phone?: string; 
         whatsapp?: string; 
         email?: string;
+        cpf?: string;
+        prontuario?: string;
         firstPurchaseDate?: string;
         totalPurchases?: number;
         totalValue?: number;
@@ -615,6 +632,12 @@ const RFVDashboard = () => {
         if (columnMapping.email && row[columnMapping.email]) {
           customerTransactions[key].email = String(row[columnMapping.email]);
         }
+        if (columnMapping.cpf && row[columnMapping.cpf]) {
+          customerTransactions[key].cpf = String(row[columnMapping.cpf]);
+        }
+        if (columnMapping.prontuario && row[columnMapping.prontuario]) {
+          customerTransactions[key].prontuario = String(row[columnMapping.prontuario]);
+        }
 
         // Pre-calculated values from spreadsheet
         if (columnMapping.firstPurchaseDate && row[columnMapping.firstPurchaseDate]) {
@@ -688,6 +711,8 @@ const RFVDashboard = () => {
           phone: data.phone,
           whatsapp: whatsappNumber,
           email: data.email,
+          cpf: data.cpf,
+          prontuario: data.prontuario,
           daysSinceLastPurchase,
           totalPurchases,
           totalValue,
@@ -748,6 +773,8 @@ const RFVDashboard = () => {
           phone: customer.phone,
           whatsapp: customer.whatsapp,
           email: customer.email,
+          cpf: customer.cpf,
+          prontuario: customer.prontuario,
           firstPurchaseDate: customer.firstPurchaseDate,
           lastPurchaseDate: customer.lastPurchaseDate,
           daysSinceLastPurchase: customer.daysSinceLastPurchase,
@@ -824,6 +851,8 @@ const RFVDashboard = () => {
           phone: customer.phone || null,
           whatsapp: customer.whatsapp || customer.phone || null,
           email: customer.email || null,
+          cpf: customer.cpf || null,
+          prontuario: customer.prontuario || null,
           first_purchase_date: customer.firstPurchaseDate || customer.lastPurchaseDate,
           last_purchase_date: customer.lastPurchaseDate,
           total_purchases: customer.totalPurchases,
@@ -1775,11 +1804,11 @@ const RFVDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Cliente</TableHead>
+                          <TableHead>Contato</TableHead>
+                          <TableHead>Prontuário</TableHead>
                           <TableHead>Segmento</TableHead>
-                          <TableHead className="text-center">R</TableHead>
-                          <TableHead className="text-center">F</TableHead>
-                          <TableHead className="text-center">V</TableHead>
-                          <TableHead className="text-right">Total Gasto</TableHead>
+                          <TableHead className="text-center">RFV</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
                           <TableHead>Última Compra</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1787,22 +1816,53 @@ const RFVDashboard = () => {
                         {pagedCustomers.map((customer, index) => {
                           const segment = RFV_SEGMENTS[customer.segment];
                           const Icon = segment.icon;
+                          const contactPhone = customer.whatsapp || customer.phone;
                           return (
                             <TableRow 
                               key={index} 
                               className={`cursor-pointer ${selectedCustomer?.name === customer.name ? 'bg-muted' : ''}`}
                               onClick={() => {
                                 setSelectedCustomer(customer);
-                                setAiStrategy(null); // Clear previous AI strategy
+                                setAiStrategy(null);
                               }}
                             >
                               <TableCell>
                                 <div>
                                   <p className="font-medium">{customer.name}</p>
-                                  {customer.phone && (
-                                    <p className="text-xs text-muted-foreground">{customer.phone}</p>
+                                  {customer.cpf && (
+                                    <p className="text-xs text-muted-foreground">CPF: {customer.cpf}</p>
                                   )}
                                 </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  {contactPhone ? (
+                                    <a 
+                                      href={`https://wa.me/55${contactPhone.replace(/\D/g, '')}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-xs text-green-600 hover:underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <Phone className="h-3 w-3" />
+                                      {contactPhone}
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">Sem telefone</span>
+                                  )}
+                                  {customer.email && (
+                                    <p className="text-xs text-muted-foreground truncate max-w-[150px]">{customer.email}</p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {customer.prontuario ? (
+                                  <Badge variant="outline" className="text-xs font-mono">
+                                    {customer.prontuario}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">-</span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <Badge className={`${segment.color} text-white`}>
@@ -1811,19 +1871,17 @@ const RFVDashboard = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-center">
-                                <Badge variant={customer.recencyScore >= 4 ? "default" : customer.recencyScore >= 3 ? "secondary" : "outline"}>
-                                  {customer.recencyScore}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Badge variant={customer.frequencyScore >= 4 ? "default" : customer.frequencyScore >= 3 ? "secondary" : "outline"}>
-                                  {customer.frequencyScore}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Badge variant={customer.valueScore >= 4 ? "default" : customer.valueScore >= 3 ? "secondary" : "outline"}>
-                                  {customer.valueScore}
-                                </Badge>
+                                <div className="flex items-center justify-center gap-1">
+                                  <Badge variant={customer.recencyScore >= 4 ? "default" : "outline"} className="text-xs px-1">
+                                    {customer.recencyScore}
+                                  </Badge>
+                                  <Badge variant={customer.frequencyScore >= 4 ? "default" : "outline"} className="text-xs px-1">
+                                    {customer.frequencyScore}
+                                  </Badge>
+                                  <Badge variant={customer.valueScore >= 4 ? "default" : "outline"} className="text-xs px-1">
+                                    {customer.valueScore}
+                                  </Badge>
+                                </div>
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(customer.totalValue)}
@@ -1832,7 +1890,7 @@ const RFVDashboard = () => {
                                 <div className="text-sm">
                                   <p>{new Date(customer.lastPurchaseDate).toLocaleDateString('pt-BR')}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {customer.daysSinceLastPurchase} dias atrás
+                                    {customer.daysSinceLastPurchase}d atrás
                                   </p>
                                 </div>
                               </TableCell>
@@ -1858,25 +1916,74 @@ const RFVDashboard = () => {
                     <>
                       {/* Customer Summary */}
                       <div className={`p-4 rounded-lg ${RFV_SEGMENTS[selectedCustomer.segment].bgLight}`}>
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-3">
                           {(() => {
                             const Icon = RFV_SEGMENTS[selectedCustomer.segment].icon;
                             return <Icon className={`h-5 w-5 ${RFV_SEGMENTS[selectedCustomer.segment].textColor}`} />;
                           })()}
                           <span className="font-semibold">{selectedCustomer.name}</span>
                         </div>
+                        
+                        {/* Contact Info */}
+                        <div className="space-y-2 mb-3 pb-3 border-b border-border/50">
+                          {(selectedCustomer.whatsapp || selectedCustomer.phone) && (
+                            <a 
+                              href={`https://wa.me/55${(selectedCustomer.whatsapp || selectedCustomer.phone)?.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm text-green-600 hover:underline"
+                            >
+                              <Phone className="h-4 w-4" />
+                              {selectedCustomer.whatsapp || selectedCustomer.phone}
+                            </a>
+                          )}
+                          {selectedCustomer.email && (
+                            <a 
+                              href={`mailto:${selectedCustomer.email}`}
+                              className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                            >
+                              <Mail className="h-4 w-4" />
+                              {selectedCustomer.email}
+                            </a>
+                          )}
+                          {selectedCustomer.prontuario && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Database className="h-4 w-4 text-muted-foreground" />
+                              <span>Prontuário: <strong>{selectedCustomer.prontuario}</strong></span>
+                            </div>
+                          )}
+                          {selectedCustomer.cpf && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span>CPF: {selectedCustomer.cpf}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Stats Grid */}
                         <div className="grid grid-cols-3 gap-2 text-sm">
                           <div>
-                            <p className="text-muted-foreground">Compras</p>
+                            <p className="text-muted-foreground text-xs">Compras</p>
                             <p className="font-bold">{selectedCustomer.totalPurchases}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Total</p>
+                            <p className="text-muted-foreground text-xs">Total</p>
                             <p className="font-bold">{formatCurrency(selectedCustomer.totalValue)}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Ticket</p>
+                            <p className="text-muted-foreground text-xs">Ticket</p>
                             <p className="font-bold">{formatCurrency(selectedCustomer.averageTicket)}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Days and Dates */}
+                        <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <p className="text-muted-foreground">Última Compra</p>
+                            <p className="font-medium">{new Date(selectedCustomer.lastPurchaseDate).toLocaleDateString('pt-BR')}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Dias sem Compra</p>
+                            <p className="font-medium">{selectedCustomer.daysSinceLastPurchase}d</p>
                           </div>
                         </div>
                       </div>
