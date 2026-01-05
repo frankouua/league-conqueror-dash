@@ -44,7 +44,8 @@ const getDateRange = (period: PeriodFilter): { start: Date; end: Date } => {
       return { start: startOfYear(now), end: endOfMonth(now) };
     case "all":
     default:
-      return { start: new Date(2020, 0, 1), end: endOfMonth(now) };
+      // Começar a partir de 2026
+      return { start: new Date(2026, 0, 1), end: endOfMonth(now) };
   }
 };
 
