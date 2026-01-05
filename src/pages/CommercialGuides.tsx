@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { ArrowLeft, ArrowRight, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter, Star, StarOff, Crown, BarChart3, Calendar, Wrench, Lightbulb, AlertCircle, ClipboardCheck, UserCheck, PhoneCall, Heart, CalendarDays, ShieldAlert } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Book, Users, Target, FileText, MessageSquare, AlertTriangle, Gift, CreditCard, Copy, Check, ChevronDown, ChevronRight, Phone, Clock, Sparkles, Search, X, Filter, Star, StarOff, Crown, BarChart3, Calendar, Wrench, Lightbulb, AlertCircle, ClipboardCheck, UserCheck, PhoneCall, Heart, CalendarDays, ShieldAlert, ExternalLink } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,7 +16,6 @@ import ReactivationStrategies from "@/components/ReactivationStrategies";
 import EngagementStrategies from "@/components/EngagementStrategies";
 import InfluencerStrategies from "@/components/InfluencerStrategies";
 import LoyaltyStrategies from "@/components/LoyaltyStrategies";
-import { CampaignCalendar } from "@/components/CampaignCalendar";
 import CancellationStrategies from "@/components/CancellationStrategies";
 import CommercialGoalsBanner from "@/components/CommercialGoalsBanner";
 
@@ -42,6 +41,7 @@ const COPY_HISTORY_KEY = "commercial-guides-copy-history";
 const MAX_HISTORY_ITEMS = 10;
 
 const CommercialGuides = () => {
+  const navigate = useNavigate();
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [selectedStage, setSelectedStage] = useState<number | "coordinator">(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -152,7 +152,6 @@ const CommercialGuides = () => {
   const [showEngagement, setShowEngagement] = useState(false);
   const [showInfluencer, setShowInfluencer] = useState(false);
   const [showLoyalty, setShowLoyalty] = useState(false);
-  const [showCampaigns, setShowCampaigns] = useState(false);
   const [showCancellation, setShowCancellation] = useState(false);
 
   const stageColors: Record<number, string> = {
@@ -524,9 +523,9 @@ const CommercialGuides = () => {
               {COMMERCIAL_SCRIPTS.map((stage) => (
                 <button
                   key={stage.stageId}
-                  onClick={() => { setSelectedStage(stage.stageId); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); setShowCampaigns(false); setShowCancellation(false); }}
+                  onClick={() => { setSelectedStage(stage.stageId); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); setShowCancellation(false); }}
                   className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                    selectedStage === stage.stageId && !showReactivation && !showEngagement && !showInfluencer && !showLoyalty && !showCampaigns && !showCancellation
+                    selectedStage === stage.stageId && !showReactivation && !showEngagement && !showInfluencer && !showLoyalty && !showCancellation
                       ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
                       : "border-border hover:border-primary/50 hover:bg-muted/50"
                   }`}
@@ -542,9 +541,9 @@ const CommercialGuides = () => {
               ))}
               {/* Coordinator Button */}
               <button
-                onClick={() => { setSelectedStage("coordinator"); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); setShowCampaigns(false); setShowCancellation(false); }}
+                onClick={() => { setSelectedStage("coordinator"); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); setShowCancellation(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                  selectedStage === "coordinator" && !showReactivation && !showEngagement && !showInfluencer && !showLoyalty && !showCampaigns && !showCancellation
+                  selectedStage === "coordinator" && !showReactivation && !showEngagement && !showInfluencer && !showLoyalty && !showCancellation
                     ? "border-amber-500 bg-amber-500/10 shadow-lg scale-[1.02]"
                     : "border-border hover:border-amber-500/50 hover:bg-muted/50"
                 }`}
@@ -559,7 +558,7 @@ const CommercialGuides = () => {
               </button>
               {/* Cancellation Button */}
               <button
-                onClick={() => { setShowCancellation(true); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); setShowCampaigns(false); }}
+                onClick={() => { setShowCancellation(true); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                   showCancellation
                     ? "border-red-500 bg-red-500/10 shadow-lg scale-[1.02]"
@@ -576,7 +575,7 @@ const CommercialGuides = () => {
               </button>
               {/* Reactivation Button */}
               <button
-                onClick={() => { setShowReactivation(true); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); setShowCampaigns(false); setShowCancellation(false); }}
+                onClick={() => { setShowReactivation(true); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); setShowCancellation(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                   showReactivation
                     ? "border-rose-500 bg-rose-500/10 shadow-lg scale-[1.02]"
@@ -593,7 +592,7 @@ const CommercialGuides = () => {
               </button>
               {/* Engagement Button */}
               <button
-                onClick={() => { setShowEngagement(true); setShowReactivation(false); setShowInfluencer(false); setShowLoyalty(false); setShowCampaigns(false); setShowCancellation(false); }}
+                onClick={() => { setShowEngagement(true); setShowReactivation(false); setShowInfluencer(false); setShowLoyalty(false); setShowCancellation(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                   showEngagement
                     ? "border-emerald-500 bg-emerald-500/10 shadow-lg scale-[1.02]"
@@ -610,7 +609,7 @@ const CommercialGuides = () => {
               </button>
               {/* Influencer Button */}
               <button
-                onClick={() => { setShowInfluencer(true); setShowReactivation(false); setShowEngagement(false); setShowLoyalty(false); setShowCampaigns(false); setShowCancellation(false); }}
+                onClick={() => { setShowInfluencer(true); setShowReactivation(false); setShowEngagement(false); setShowLoyalty(false); setShowCancellation(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                   showInfluencer
                     ? "border-violet-500 bg-violet-500/10 shadow-lg scale-[1.02]"
@@ -627,7 +626,7 @@ const CommercialGuides = () => {
               </button>
               {/* Loyalty Button */}
               <button
-                onClick={() => { setShowLoyalty(true); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowCampaigns(false); setShowCancellation(false); }}
+                onClick={() => { setShowLoyalty(true); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowCancellation(false); }}
                 className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                   showLoyalty
                     ? "border-pink-500 bg-pink-500/10 shadow-lg scale-[1.02]"
@@ -642,19 +641,18 @@ const CommercialGuides = () => {
                   RFV + UniLovers
                 </p>
               </button>
-              {/* Campaigns Calendar Button */}
+              {/* Campaigns Calendar Button - Links to dedicated page */}
               <button
-                onClick={() => { setShowCampaigns(true); setShowReactivation(false); setShowEngagement(false); setShowInfluencer(false); setShowLoyalty(false); setShowCancellation(false); }}
-                className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                  showCampaigns
-                    ? "border-cyan-500 bg-cyan-500/10 shadow-lg scale-[1.02]"
-                    : "border-border hover:border-cyan-500/50 hover:bg-muted/50"
-                }`}
+                onClick={() => navigate("/campanhas")}
+                className="relative p-4 rounded-xl border-2 transition-all duration-300 border-border hover:border-cyan-500/50 hover:bg-muted/50"
               >
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white mb-2">
                   <CalendarDays className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-semibold text-left">Campanhas</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-sm font-semibold text-left">Campanhas</p>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                </div>
                 <p className="text-xs text-muted-foreground text-left truncate">
                   Calendário 2026
                 </p>
@@ -676,10 +674,7 @@ const CommercialGuides = () => {
             {/* Loyalty Content */}
             {showLoyalty && <LoyaltyStrategies />}
 
-            {/* Campaigns Calendar Content */}
-            {showCampaigns && <CampaignCalendar />}
-
-        {currentStage && !showReactivation && !showEngagement && !showInfluencer && !showLoyalty && !showCampaigns && !showCancellation && (
+        {currentStage && !showReactivation && !showEngagement && !showInfluencer && !showLoyalty && !showCancellation && (
           <div className="space-y-6">
             {/* Stage Header */}
             <Card className={`bg-gradient-to-br ${stageColors[currentStage.stageId]} text-white border-0`}>
