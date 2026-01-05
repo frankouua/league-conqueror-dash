@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Copy,
   Sparkles,
+  AlertTriangle,
   BarChart3,
 } from "lucide-react";
 import Header from "@/components/Header";
@@ -719,31 +720,80 @@ const ReferralLeads = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
-                {leadsByStatus[status].map((lead) => (
-                  <div
-                    key={lead.id}
-                    onClick={() => handleOpenEditDialog(lead)}
-                    className="p-3 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors border border-transparent hover:border-primary/30"
-                  >
-                    <p className="font-medium text-foreground text-sm truncate">
-                      {lead.referred_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      Indicado por: {lead.referrer_name}
-                    </p>
-                    {lead.referred_phone && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <Phone className="w-3 h-3" />
-                        {lead.referred_phone}
+                {leadsByStatus[status].map((lead) => {
+                  // Calculate urgency based on last contact
+                  const lastContact = lead.last_contact_at ? new Date(lead.last_contact_at) : new Date(lead.created_at);
+                  const hoursSinceContact = (Date.now() - lastContact.getTime()) / (1000 * 60 * 60);
+                  const isNewLead = lead.status === "nova";
+                  const isActiveStatus = ["nova", "em_contato", "agendou"].includes(lead.status);
+                  
+                  let urgencyLevel: "critical" | "warning" | "attention" | null = null;
+                  let urgencyLabel = "";
+                  
+                  if (isActiveStatus) {
+                    if (hoursSinceContact >= 48) {
+                      urgencyLevel = "critical";
+                      urgencyLabel = "48h+";
+                    } else if (hoursSinceContact >= 24) {
+                      urgencyLevel = "warning";
+                      urgencyLabel = "24h+";
+                    } else if (isNewLead && hoursSinceContact >= 2) {
+                      urgencyLevel = "attention";
+                      urgencyLabel = "2h+";
+                    }
+                  }
+                  
+                  const urgencyStyles = {
+                    critical: "border-red-500 bg-red-500/10 ring-1 ring-red-500/30",
+                    warning: "border-orange-500 bg-orange-500/10 ring-1 ring-orange-500/30",
+                    attention: "border-yellow-500 bg-yellow-500/10 ring-1 ring-yellow-500/30",
+                  };
+                  
+                  return (
+                    <div
+                      key={lead.id}
+                      onClick={() => handleOpenEditDialog(lead)}
+                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                        urgencyLevel 
+                          ? urgencyStyles[urgencyLevel] 
+                          : "bg-secondary/50 hover:bg-secondary border border-transparent hover:border-primary/30"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="font-medium text-foreground text-sm truncate flex-1">
+                          {lead.referred_name}
+                        </p>
+                        {urgencyLevel && (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-[10px] px-1.5 py-0 shrink-0 ${
+                              urgencyLevel === "critical" ? "border-red-500 text-red-500 bg-red-500/20" :
+                              urgencyLevel === "warning" ? "border-orange-500 text-orange-500 bg-orange-500/20" :
+                              "border-yellow-500 text-yellow-500 bg-yellow-500/20"
+                            }`}
+                          >
+                            <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                            {urgencyLabel}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        Indicado por: {lead.referrer_name}
                       </p>
-                    )}
-                    {lead.assigned_profile && (
-                      <Badge variant="outline" className="mt-2 text-xs">
-                        {lead.assigned_profile.full_name.split(" ")[0]}
-                      </Badge>
-                    )}
-                  </div>
-                ))}
+                      {lead.referred_phone && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                          <Phone className="w-3 h-3" />
+                          {lead.referred_phone}
+                        </p>
+                      )}
+                      {lead.assigned_profile && (
+                        <Badge variant="outline" className="mt-2 text-xs">
+                          {lead.assigned_profile.full_name.split(" ")[0]}
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
                 {leadsByStatus[status].length === 0 && (
                   <p className="text-center text-muted-foreground text-xs py-4">
                     Nenhuma indicação
