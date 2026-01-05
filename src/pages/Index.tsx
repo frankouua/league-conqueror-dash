@@ -29,6 +29,7 @@ import ExecutiveKPIs from "@/components/ExecutiveKPIs";
 import DailyGoalsPanel from "@/components/DailyGoalsPanel";
 import LeadResponseMetrics from "@/components/LeadResponseMetrics";
 import AchievementsBadgesDisplay from "@/components/AchievementsBadgesDisplay";
+import SmartDailyGoals from "@/components/SmartDailyGoals";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -374,6 +375,7 @@ const Index = () => {
           {/* O QUE FALTA TAB */}
           <TabsContent value="o-que-falta" className="space-y-8 animate-fade-in">
             <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
+            <SmartDailyGoals month={selectedMonth} year={selectedYear} />
             <GoalGapAnalysis month={selectedMonth} year={selectedYear} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
