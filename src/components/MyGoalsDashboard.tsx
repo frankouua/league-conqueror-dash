@@ -260,6 +260,71 @@ const MyGoalsDashboard = () => {
     enabled: !!user?.id,
   });
 
+  // Fetch colleagues with same position for ranking
+  const { data: colleaguesRanking = [] } = useQuery({
+    queryKey: ["colleagues-ranking", profile?.position, currentMonth, currentYear],
+    queryFn: async () => {
+      if (!profile?.position) return [];
+      
+      // Get all profiles with same position
+      const { data: colleagues, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url, team_id")
+        .eq("position", profile.position);
+      
+      if (profilesError) throw profilesError;
+      if (!colleagues || colleagues.length === 0) return [];
+
+      // Get revenue for each colleague this month
+      const startDate = `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`;
+      const endDate = `${currentYear}-${String(currentMonth).padStart(2, "0")}-31`;
+      
+      const { data: revenues, error: revenueError } = await supabase
+        .from("revenue_records")
+        .select("attributed_to_user_id, amount")
+        .in("attributed_to_user_id", colleagues.map(c => c.user_id))
+        .gte("date", startDate)
+        .lte("date", endDate);
+      
+      if (revenueError) throw revenueError;
+
+      // Calculate total revenue per colleague
+      const revenueByUser: Record<string, number> = {};
+      revenues?.forEach(r => {
+        if (r.attributed_to_user_id) {
+          revenueByUser[r.attributed_to_user_id] = (revenueByUser[r.attributed_to_user_id] || 0) + r.amount;
+        }
+      });
+
+      // Get team names
+      const teamIds = [...new Set(colleagues.map(c => c.team_id).filter(Boolean))];
+      const { data: teams } = await supabase
+        .from("teams")
+        .select("id, name")
+        .in("id", teamIds);
+      
+      const teamMap: Record<string, string> = {};
+      teams?.forEach(t => { teamMap[t.id] = t.name; });
+
+      // Build ranking
+      const ranking = colleagues.map(c => ({
+        user_id: c.user_id,
+        full_name: c.full_name,
+        avatar_url: c.avatar_url,
+        team_name: c.team_id ? teamMap[c.team_id] : null,
+        total_revenue: revenueByUser[c.user_id] || 0,
+        is_current_user: c.user_id === user?.id,
+      }));
+
+      // Sort by revenue descending
+      ranking.sort((a, b) => b.total_revenue - a.total_revenue);
+
+      // Add position
+      return ranking.map((r, idx) => ({ ...r, position: idx + 1 }));
+    },
+    enabled: !!profile?.position && !!user?.id,
+  });
+
   // Calculate totals
   const totalRevenue = revenueRecords.reduce((sum, r) => sum + r.amount, 0);
   const totalExecuted = executedRecords.reduce((sum, r) => sum + r.amount, 0);
@@ -635,6 +700,112 @@ const MyGoalsDashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Personal Ranking Card */}
+          {colleaguesRanking.length > 1 && positionInfo && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  Ranking {positionInfo.label}
+                  <Badge variant="outline" className="ml-auto text-xs">
+                    {colleaguesRanking.length} colegas
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* My Position Highlight */}
+                {(() => {
+                  const myRanking = colleaguesRanking.find(c => c.is_current_user);
+                  if (!myRanking) return null;
+                  
+                  const isTop3 = myRanking.position <= 3;
+                  const positionColors = {
+                    1: 'from-amber-500/20 to-amber-600/10 border-amber-500/30',
+                    2: 'from-slate-400/20 to-slate-500/10 border-slate-400/30',
+                    3: 'from-orange-600/20 to-orange-700/10 border-orange-600/30',
+                  };
+                  
+                  return (
+                    <div className={`p-4 rounded-xl mb-4 bg-gradient-to-r ${isTop3 ? positionColors[myRanking.position as 1 | 2 | 3] || 'from-primary/10 to-primary/5 border-primary/20' : 'from-primary/10 to-primary/5 border-primary/20'} border`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-2xl ${
+                          myRanking.position === 1 ? 'bg-amber-500 text-white' :
+                          myRanking.position === 2 ? 'bg-slate-400 text-white' :
+                          myRanking.position === 3 ? 'bg-orange-600 text-white' :
+                          'bg-primary/20 text-primary'
+                        }`}>
+                          {myRanking.position}º
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-lg">Sua Posição</p>
+                          <p className="text-sm text-muted-foreground">
+                            R$ {myRanking.total_revenue.toLocaleString('pt-BR')} vendidos
+                          </p>
+                        </div>
+                        {myRanking.position === 1 && (
+                          <div className="text-amber-500">
+                            <Medal className="w-8 h-8" />
+                          </div>
+                        )}
+                      </div>
+                      {myRanking.position > 1 && (
+                        <div className="mt-3 pt-3 border-t border-border/50 text-sm text-muted-foreground">
+                          <span className="text-primary font-medium">
+                            R$ {(colleaguesRanking[myRanking.position - 2].total_revenue - myRanking.total_revenue).toLocaleString('pt-BR')}
+                          </span>
+                          {' '}para alcançar a {myRanking.position - 1}ª posição
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Full Ranking List */}
+                <ScrollArea className="max-h-64">
+                  <div className="space-y-2">
+                    {colleaguesRanking.map((colleague, idx) => (
+                      <div 
+                        key={colleague.user_id}
+                        className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                          colleague.is_current_user 
+                            ? 'bg-primary/10 border border-primary/20' 
+                            : 'hover:bg-muted/50'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          idx === 0 ? 'bg-amber-500 text-white' :
+                          idx === 1 ? 'bg-slate-400 text-white' :
+                          idx === 2 ? 'bg-orange-600 text-white' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {colleague.position}º
+                        </div>
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={colleague.avatar_url || undefined} />
+                          <AvatarFallback className="text-xs">
+                            {colleague.full_name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm truncate ${colleague.is_current_user ? 'font-bold text-primary' : ''}`}>
+                            {colleague.full_name}
+                            {colleague.is_current_user && ' (Você)'}
+                          </p>
+                          {colleague.team_name && (
+                            <p className="text-xs text-muted-foreground truncate">{colleague.team_name}</p>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium text-right">
+                          R$ {colleague.total_revenue.toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Team Info */}
           {team && (
