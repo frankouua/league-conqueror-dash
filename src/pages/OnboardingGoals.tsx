@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Target, Trophy, TrendingUp, DollarSign, Info, Users } from "lucide-react";
+import { Target, Trophy, Users, Briefcase } from "lucide-react";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import {
   Table,
@@ -19,9 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 // Metas por departamento (valores de referência)
-// Proporções baseadas nos totais: Meta 1 = R$ 2.500.000, Meta 2 = R$ 2.750.000, Meta 3 = R$ 3.000.000
 const DEPARTMENT_GOALS = [
   { department: "Cirurgia Plástica", meta1: 1785662, meta2: 1964228, meta3: 2142795 },
   { department: "Consulta Cirurgia Plástica", meta1: 43505, meta2: 47856, meta3: 52206 },
@@ -39,48 +36,58 @@ const TOTALS = {
   meta3: CLINIC_GOALS.META_3,
 };
 
+// Mapeamento de posição para nome amigável
+const POSITION_LABELS: Record<string, string> = {
+  sdr: "SDR",
+  comercial_1_captacao: "Social Selling",
+  comercial_2_closer: "Closer",
+  comercial_3_experiencia: "Customer Success",
+  comercial_4_farmer: "Farmer",
+};
+
+// Mapeamento de posição para área comercial
+const POSITION_AREA: Record<string, string> = {
+  sdr: "Comercial 1 - SDR",
+  comercial_1_captacao: "Comercial 1 - Social Selling",
+  comercial_2_closer: "Comercial 2 - Closer",
+  comercial_3_experiencia: "Comercial 3 - Customer Success",
+  comercial_4_farmer: "Comercial 4 - Farmer",
+};
+
 const OnboardingGoals = () => {
   const { user, profile, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
 
-  const [goalForm, setGoalForm] = useState({
-    meta1: "",
-    meta2: "",
-    meta3: "",
-  });
-
-  // Buscar soma das metas da equipe
-  const { data: teamGoalsSum } = useQuery({
-    queryKey: ["team-goals-sum", profile?.team_id, currentMonth, currentYear],
+  // Buscar metas predefinidas de todos os comerciais
+  const { data: predefinedGoals, isLoading: goalsLoading } = useQuery({
+    queryKey: ["all-predefined-goals", currentMonth, currentYear],
     queryFn: async () => {
-      if (!profile?.team_id) return null;
-
       const { data, error } = await supabase
-        .from("individual_goals")
-        .select("revenue_goal, meta2_goal, meta3_goal")
-        .eq("team_id", profile.team_id)
+        .from("predefined_goals")
+        .select("*")
         .eq("month", currentMonth)
-        .eq("year", currentYear);
+        .eq("year", currentYear)
+        .order("position", { ascending: true })
+        .order("first_name", { ascending: true });
 
       if (error) throw error;
-
-      const sum = {
-        meta1: data?.reduce((acc, g) => acc + (Number(g.revenue_goal) || 0), 0) || 0,
-        meta2: data?.reduce((acc, g) => acc + (Number(g.meta2_goal) || 0), 0) || 0,
-        meta3: data?.reduce((acc, g) => acc + (Number(g.meta3_goal) || 0), 0) || 0,
-        count: data?.length || 0,
-      };
-
-      return sum;
+      return data || [];
     },
-    enabled: !!profile?.team_id,
-    refetchInterval: 5000, // Atualiza a cada 5 segundos
   });
+
+  // Agrupar vendedores por área comercial
+  const groupedGoals = predefinedGoals?.reduce((acc, goal) => {
+    const area = POSITION_AREA[goal.position] || goal.position;
+    if (!acc[area]) {
+      acc[area] = [];
+    }
+    acc[area].push(goal);
+    return acc;
+  }, {} as Record<string, typeof predefinedGoals>);
 
   // Redirecionar se não estiver logado
   useEffect(() => {
@@ -89,76 +96,14 @@ const OnboardingGoals = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Não redirecionar mais - permitir que todos vejam a página de metas
-
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-  const parseCurrencyInput = (value: string) => {
-    return parseFloat(value.replace(/\./g, "").replace(",", ".")) || 0;
-  };
-
-  const saveGoalsMutation = useMutation({
-    mutationFn: async () => {
-      if (!user?.id || !profile?.team_id) {
-        throw new Error("Usuário não autenticado ou sem equipe");
-      }
-
-      const payload = {
-        user_id: user.id,
-        team_id: profile.team_id,
-        month: currentMonth,
-        year: currentYear,
-        revenue_goal: parseCurrencyInput(goalForm.meta1),
-        meta2_goal: parseCurrencyInput(goalForm.meta2),
-        meta3_goal: parseCurrencyInput(goalForm.meta3),
-        nps_goal: 0,
-        testimonials_goal: 0,
-        referrals_goal: 0,
-      };
-
-      const { error } = await supabase
-        .from("individual_goals")
-        .insert(payload);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ 
-        title: "Metas definidas com sucesso!", 
-        description: "Bem-vindo à Copa Unique League!" 
-      });
-      navigate("/");
-    },
-    onError: (error) => {
-      toast({ 
-        title: "Erro ao salvar metas", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!goalForm.meta1 || !goalForm.meta2 || !goalForm.meta3) {
-      toast({
-        title: "Preencha todas as metas",
-        description: "Você precisa definir valores para Meta 1, Meta 2 e Meta 3",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    saveGoalsMutation.mutate();
-  };
-
-  const handleSkip = () => {
+  const handleGoToDashboard = () => {
     navigate("/");
   };
 
-  if (authLoading) {
+  if (authLoading || goalsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -169,7 +114,7 @@ const OnboardingGoals = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
       <Header />
-      <div className="container mx-auto max-w-4xl py-8 px-4">
+      <div className="container mx-auto max-w-5xl py-8 px-4">
         {/* Header */}
         <div className="text-center mb-8 animate-slide-up">
           <div className="inline-flex items-center justify-center p-4 rounded-2xl bg-gradient-gold-shine shadow-gold mb-4">
@@ -179,52 +124,11 @@ const OnboardingGoals = () => {
             Bem-vindo à Copa Unique League!
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Para começar, defina suas metas individuais de faturamento. 
-            A somatória das metas de todos os colaboradores formará a meta da equipe.
+            Confira as metas individuais de cada comercial e as metas por departamento para {currentMonth}/{currentYear}.
           </p>
         </div>
 
-        {/* Card de Soma da Equipe */}
-        {teamGoalsSum && (
-          <Card className="mb-8 border-green-500/30 bg-green-500/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="w-5 h-5 text-green-500" />
-                Soma das Metas da Sua Equipe (Tempo Real)
-              </CardTitle>
-              <CardDescription>
-                {teamGoalsSum.count} colaborador(es) já definiram suas metas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-3 rounded-lg bg-background/50">
-                  <p className="text-xs text-muted-foreground mb-1">Soma Meta 1</p>
-                  <p className="text-lg font-bold text-green-600">{formatCurrency(teamGoalsSum.meta1)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    de {formatCurrency(TOTALS.meta1)}
-                  </p>
-                </div>
-                <div className="text-center p-3 rounded-lg bg-background/50">
-                  <p className="text-xs text-muted-foreground mb-1">Soma Meta 2</p>
-                  <p className="text-lg font-bold text-yellow-600">{formatCurrency(teamGoalsSum.meta2)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    de {formatCurrency(TOTALS.meta2)}
-                  </p>
-                </div>
-                <div className="text-center p-3 rounded-lg bg-background/50">
-                  <p className="text-xs text-muted-foreground mb-1">Soma Meta 3</p>
-                  <p className="text-lg font-bold text-primary">{formatCurrency(teamGoalsSum.meta3)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    de {formatCurrency(TOTALS.meta3)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Tabela de Referência */}
+        {/* Tabela de Referência por Departamento */}
         <Card className="mb-8 border-primary/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -232,7 +136,7 @@ const OnboardingGoals = () => {
               Metas por Departamento (Referência)
             </CardTitle>
             <CardDescription>
-              Use esses valores como referência para definir sua contribuição individual
+              Metas gerais da clínica por grupo de procedimento
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -267,100 +171,126 @@ const OnboardingGoals = () => {
           </CardContent>
         </Card>
 
-        {/* Formulário de Metas Individuais */}
-        <Card className="border-primary/30">
+        {/* Metas por Área Comercial e Vendedor */}
+        <Card className="mb-8 border-primary/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              Defina Suas Metas Individuais
+              <Users className="w-5 h-5 text-primary" />
+              Metas Individuais por Comercial
             </CardTitle>
-            <CardDescription className="flex items-start gap-2">
-              <Info className="w-4 h-4 mt-0.5 shrink-0 text-blue-500" />
-              <span>
-                Informe o valor que você pretende contribuir para cada meta. 
-                A soma de todos os colaboradores deve atingir ou superar os totais acima.
-              </span>
+            <CardDescription>
+              Metas de cada vendedor(a) organizadas por área comercial
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="meta1" className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-green-500" />
-                    Minha Meta 1
-                  </Label>
-                  <Input
-                    id="meta1"
-                    type="text"
-                    placeholder="Ex: 50.000"
-                    value={goalForm.meta1}
-                    onChange={(e) => setGoalForm({ ...goalForm, meta1: e.target.value })}
-                    className="text-lg"
-                  />
-                  <p className="text-xs text-muted-foreground">Meta base</p>
+          <CardContent className="space-y-6">
+            {groupedGoals && Object.entries(groupedGoals).map(([area, sellers]) => (
+              <div key={area} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-primary" />
+                  <h3 className="font-bold text-lg text-primary">{area}</h3>
+                  <Badge variant="secondary" className="ml-2">
+                    {sellers?.length || 0} {sellers?.length === 1 ? 'vendedor' : 'vendedores'}
+                  </Badge>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="meta2" className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-yellow-500" />
-                    Minha Meta 2
-                  </Label>
-                  <Input
-                    id="meta2"
-                    type="text"
-                    placeholder="Ex: 60.000"
-                    value={goalForm.meta2}
-                    onChange={(e) => setGoalForm({ ...goalForm, meta2: e.target.value })}
-                    className="text-lg"
-                  />
-                  <p className="text-xs text-muted-foreground">Meta intermediária</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="meta3" className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Minha Meta 3
-                  </Label>
-                  <Input
-                    id="meta3"
-                    type="text"
-                    placeholder="Ex: 75.000"
-                    value={goalForm.meta3}
-                    onChange={(e) => setGoalForm({ ...goalForm, meta3: e.target.value })}
-                    className="text-lg"
-                  />
-                  <p className="text-xs text-muted-foreground">Meta desafio</p>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="font-bold">Vendedor(a)</TableHead>
+                        <TableHead className="text-right font-bold text-green-600">Meta 1</TableHead>
+                        <TableHead className="text-right font-bold text-yellow-600">Meta 2</TableHead>
+                        <TableHead className="text-right font-bold text-primary">Meta 3</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sellers?.map((seller) => (
+                        <TableRow 
+                          key={seller.id} 
+                          className={`hover:bg-muted/50 ${
+                            profile?.full_name?.toLowerCase().startsWith(seller.first_name.toLowerCase()) 
+                              ? 'bg-primary/10 border-l-4 border-l-primary' 
+                              : ''
+                          }`}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {seller.first_name}
+                              {profile?.full_name?.toLowerCase().startsWith(seller.first_name.toLowerCase()) && (
+                                <Badge className="bg-primary text-primary-foreground text-xs">Você</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right text-green-600 font-semibold">
+                            {formatCurrency(Number(seller.meta1_goal))}
+                          </TableCell>
+                          <TableCell className="text-right text-yellow-600 font-semibold">
+                            {formatCurrency(Number(seller.meta2_goal))}
+                          </TableCell>
+                          <TableCell className="text-right text-primary font-semibold">
+                            {formatCurrency(Number(seller.meta3_goal))}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {/* Subtotal da área */}
+                      <TableRow className="bg-muted/30 font-bold border-t-2">
+                        <TableCell>Subtotal {area.split(' - ')[0]}</TableCell>
+                        <TableCell className="text-right text-green-600">
+                          {formatCurrency(sellers?.reduce((sum, s) => sum + Number(s.meta1_goal), 0) || 0)}
+                        </TableCell>
+                        <TableCell className="text-right text-yellow-600">
+                          {formatCurrency(sellers?.reduce((sum, s) => sum + Number(s.meta2_goal), 0) || 0)}
+                        </TableCell>
+                        <TableCell className="text-right text-primary">
+                          {formatCurrency(sellers?.reduce((sum, s) => sum + Number(s.meta3_goal), 0) || 0)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
+            ))}
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button
-                  type="submit"
-                  className="flex-1 bg-gradient-gold-shine text-primary-foreground font-bold hover:opacity-90"
-                  disabled={saveGoalsMutation.isPending}
-                >
-                  {saveGoalsMutation.isPending ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                      Salvando...
-                    </span>
-                  ) : (
-                    "Salvar Minhas Metas"
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleSkip}
-                  className="sm:w-auto"
-                >
-                  Definir Depois
-                </Button>
+            {/* Total Geral */}
+            {predefinedGoals && predefinedGoals.length > 0 && (
+              <div className="mt-6 p-4 bg-gradient-gold-shine/10 rounded-lg border border-primary/30">
+                <div className="grid grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Vendedores</p>
+                    <p className="text-2xl font-bold text-primary">{predefinedGoals.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Meta 1</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {formatCurrency(predefinedGoals.reduce((sum, g) => sum + Number(g.meta1_goal), 0))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Meta 2</p>
+                    <p className="text-lg font-bold text-yellow-600">
+                      {formatCurrency(predefinedGoals.reduce((sum, g) => sum + Number(g.meta2_goal), 0))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Meta 3</p>
+                    <p className="text-lg font-bold text-primary">
+                      {formatCurrency(predefinedGoals.reduce((sum, g) => sum + Number(g.meta3_goal), 0))}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </form>
+            )}
           </CardContent>
         </Card>
+
+        {/* Botão para ir ao Dashboard */}
+        <div className="flex justify-center">
+          <Button
+            onClick={handleGoToDashboard}
+            className="bg-gradient-gold-shine text-primary-foreground font-bold hover:opacity-90 px-8 py-6 text-lg"
+          >
+            Ir para o Dashboard
+          </Button>
+        </div>
       </div>
     </div>
   );
