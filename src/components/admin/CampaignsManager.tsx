@@ -13,13 +13,14 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Plus, Trash2, Edit, Loader2, Target, ChevronDown, ChevronUp, GripVertical, Trophy, Bookmark, BarChart3, FileText } from "lucide-react";
+import { Calendar, Plus, Trash2, Edit, Loader2, Target, ChevronDown, ChevronUp, GripVertical, Trophy, Bookmark, BarChart3, FileText, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import CampaignTemplates from "./CampaignTemplates";
 import CampaignMaterials from "./CampaignMaterials";
 import CampaignResultsDashboard from "@/components/CampaignResultsDashboard";
+import CampaignHistory from "@/components/CampaignHistory";
 
 interface Campaign {
   id: string;
@@ -358,6 +359,10 @@ const CampaignsManager = () => {
           <TabsTrigger value="results" className="gap-1">
             <BarChart3 className="w-3 h-3" />
             Resultados
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-1">
+            <History className="w-3 h-3" />
+            Histórico
           </TabsTrigger>
         </TabsList>
       </div>
@@ -698,6 +703,10 @@ const CampaignsManager = () => {
 
       <TabsContent value="results">
         <CampaignResultsDashboard />
+      </TabsContent>
+
+      <TabsContent value="history">
+        <CampaignHistory />
       </TabsContent>
     </Tabs>
   );
