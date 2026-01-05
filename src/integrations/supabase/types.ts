@@ -1212,6 +1212,155 @@ export type Database = {
           },
         ]
       }
+      protocol_offers: {
+        Row: {
+          converted_at: string | null
+          converted_value: number | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          customer_segment: string | null
+          id: string
+          message_sent: string | null
+          offer_channel: string | null
+          offered_by: string
+          offered_by_name: string | null
+          protocol_id: string
+          response_notes: string | null
+          scheduled_date: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          converted_at?: string | null
+          converted_value?: number | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          customer_segment?: string | null
+          id?: string
+          message_sent?: string | null
+          offer_channel?: string | null
+          offered_by: string
+          offered_by_name?: string | null
+          protocol_id: string
+          response_notes?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          converted_at?: string | null
+          converted_value?: number | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_segment?: string | null
+          id?: string
+          message_sent?: string | null
+          offer_channel?: string | null
+          offered_by?: string
+          offered_by_name?: string | null
+          protocol_id?: string
+          response_notes?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_offers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "rfv_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_offers_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocols: {
+        Row: {
+          benefits: string[] | null
+          campaign_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          duration_days: number | null
+          id: string
+          included_items: string[] | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          materials: Json | null
+          name: string
+          price: number | null
+          promotional_price: number | null
+          protocol_type: string
+          sales_script: string | null
+          target_audience: string | null
+          target_segments: string[] | null
+          updated_at: string
+          whatsapp_scripts: Json | null
+        }
+        Insert: {
+          benefits?: string[] | null
+          campaign_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          duration_days?: number | null
+          id?: string
+          included_items?: string[] | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          materials?: Json | null
+          name: string
+          price?: number | null
+          promotional_price?: number | null
+          protocol_type: string
+          sales_script?: string | null
+          target_audience?: string | null
+          target_segments?: string[] | null
+          updated_at?: string
+          whatsapp_scripts?: Json | null
+        }
+        Update: {
+          benefits?: string[] | null
+          campaign_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          duration_days?: number | null
+          id?: string
+          included_items?: string[] | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          materials?: Json | null
+          name?: string
+          price?: number | null
+          promotional_price?: number | null
+          protocol_type?: string
+          sales_script?: string | null
+          target_audience?: string | null
+          target_segments?: string[] | null
+          updated_at?: string
+          whatsapp_scripts?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocols_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_lead_history: {
         Row: {
           changed_by: string
