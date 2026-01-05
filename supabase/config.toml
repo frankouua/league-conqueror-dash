@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.sales-forecast]
 verify_jwt = false
+
+[functions.weekly-report]
+verify_jwt = false
+
+[functions.pace-alert]
+verify_jwt = false
