@@ -62,11 +62,12 @@ const OnboardingGoals = () => {
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
 
-  // Buscar metas predefinidas de todos os comerciais
+  // Buscar metas predefinidas de todos os comerciais com informação do time
   const { data: predefinedGoals, isLoading: goalsLoading } = useQuery({
     queryKey: ["all-predefined-goals", currentMonth, currentYear],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Buscar metas predefinidas
+      const { data: goals, error } = await supabase
         .from("predefined_goals")
         .select("*")
         .eq("month", currentMonth)
@@ -75,7 +76,33 @@ const OnboardingGoals = () => {
         .order("first_name", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+
+      // Buscar profiles com team info para os usuários vinculados
+      const matchedUserIds = goals?.filter(g => g.matched_user_id).map(g => g.matched_user_id) || [];
+      
+      let profilesWithTeams: Record<string, string> = {};
+      
+      if (matchedUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, team_id, teams(name)")
+          .in("user_id", matchedUserIds);
+
+        if (profiles) {
+          for (const p of profiles) {
+            const teamName = (p.teams as any)?.name || null;
+            if (teamName) {
+              profilesWithTeams[p.user_id] = teamName;
+            }
+          }
+        }
+      }
+
+      // Adicionar nome do time a cada meta
+      return goals?.map(goal => ({
+        ...goal,
+        team_name: goal.matched_user_id ? profilesWithTeams[goal.matched_user_id] : null
+      })) || [];
     },
   });
 
@@ -197,6 +224,7 @@ const OnboardingGoals = () => {
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead className="font-bold">Vendedor(a)</TableHead>
+                        <TableHead className="font-bold">Time</TableHead>
                         <TableHead className="text-right font-bold text-green-600">Meta 1</TableHead>
                         <TableHead className="text-right font-bold text-yellow-600">Meta 2</TableHead>
                         <TableHead className="text-right font-bold text-primary">Meta 3</TableHead>
@@ -220,6 +248,22 @@ const OnboardingGoals = () => {
                               )}
                             </div>
                           </TableCell>
+                          <TableCell>
+                            {seller.team_name ? (
+                              <Badge 
+                                variant="outline" 
+                                className={`text-xs ${
+                                  seller.team_name.toLowerCase().includes('lioness') 
+                                    ? 'border-amber-500 text-amber-500' 
+                                    : 'border-emerald-500 text-emerald-500'
+                                }`}
+                              >
+                                {seller.team_name}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Não vinculado</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right text-green-600 font-semibold">
                             {formatCurrency(Number(seller.meta1_goal))}
                           </TableCell>
@@ -233,7 +277,7 @@ const OnboardingGoals = () => {
                       ))}
                       {/* Subtotal da área */}
                       <TableRow className="bg-muted/30 font-bold border-t-2">
-                        <TableCell>Subtotal {area.split(' - ')[0]}</TableCell>
+                        <TableCell colSpan={2}>Subtotal {area.split(' - ')[0]}</TableCell>
                         <TableCell className="text-right text-green-600">
                           {formatCurrency(sellers?.reduce((sum, s) => sum + Number(s.meta1_goal), 0) || 0)}
                         </TableCell>
