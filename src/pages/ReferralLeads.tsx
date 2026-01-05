@@ -889,31 +889,54 @@ const ReferralLeads = () => {
                   <Sparkles className="w-4 h-4 text-primary" />
                   Scripts Rápidos
                 </Label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {REFERRAL_SCRIPTS.map((script) => (
-                    <Badge
-                      key={script.id}
-                      className={`${script.color} cursor-pointer hover:opacity-80 transition-opacity`}
-                      onClick={async () => {
-                        const message = script.template(
-                          editingLead.referrer_name,
-                          editingLead.referred_name
-                        );
-                        await navigator.clipboard.writeText(message);
-                        toast({
-                          title: "Script copiado!",
-                          description: `"${script.label}" pronto para enviar`,
-                        });
-                      }}
-                    >
-                      <Copy className="w-3 h-3 mr-1" />
-                      {script.label}
-                    </Badge>
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                  {REFERRAL_SCRIPTS.map((script) => {
+                    const message = script.template(
+                      editingLead.referrer_name,
+                      editingLead.referred_name
+                    );
+                    const phone = editingLead.referred_phone?.replace(/\D/g, "");
+                    const whatsappUrl = phone 
+                      ? `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`
+                      : null;
+
+                    return (
+                      <div
+                        key={script.id}
+                        className={`p-2 rounded-lg border ${script.color} flex flex-col gap-1`}
+                      >
+                        <span className="text-xs font-medium">{script.label}</span>
+                        <div className="flex gap-1">
+                          {whatsappUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 flex-1 text-green-500 hover:bg-green-500/10"
+                              onClick={() => window.open(whatsappUrl, "_blank")}
+                            >
+                              <MessageSquare className="w-3 h-3 mr-1" />
+                              Enviar
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(message);
+                              toast({
+                                title: "Copiado!",
+                                description: `"${script.label}" pronto`,
+                              });
+                            }}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Clique em um script para copiar a mensagem personalizada com o nome do lead
-                </p>
               </div>
 
               {/* Status and Change */}
