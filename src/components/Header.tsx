@@ -28,6 +28,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
 import uniqueLogo from "@/assets/logo-unique-cpa.png";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
+import AnnouncementsDropdown from "@/components/AnnouncementsDropdown";
+import CampaignsWidget from "@/components/CampaignsWidget";
 import ProfileEditDialog from "@/components/ProfileEditDialog";
 import { useGoalNotifications } from "@/hooks/useGoalNotifications";
 import { useUserTeamStats } from "@/hooks/useUserTeamStats";
@@ -307,6 +309,12 @@ const Header = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Campaigns */}
+                <CampaignsWidget />
+
+                {/* Announcements */}
+                <AnnouncementsDropdown />
 
                 {/* Notifications */}
                 <NotificationsDropdown />

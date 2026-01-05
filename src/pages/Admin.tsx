@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +13,8 @@ import ContestationAdmin from "@/components/admin/ContestationAdmin";
 import RecordsEditor from "@/components/admin/RecordsEditor";
 import GoalNotifications from "@/components/admin/GoalNotifications";
 import PrizeForm from "@/components/admin/PrizeForm";
-import AdminAnnouncements from "@/components/admin/AdminAnnouncements";
+import AnnouncementsManager from "@/components/admin/AnnouncementsManager";
+import CampaignsManager from "@/components/admin/CampaignsManager";
 import SalesSpreadsheetUpload from "@/components/admin/SalesSpreadsheetUpload";
 
 const Admin = () => {
@@ -63,85 +64,98 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="cards" className="max-w-5xl mx-auto">
-          <TabsList className="grid grid-cols-10 h-auto bg-secondary/50 p-1 rounded-xl mb-8">
-            <TabsTrigger
-              value="cards"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <Award className="w-5 h-5" />
-              <span className="hidden sm:block">Cartões</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="announcements"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <Megaphone className="w-5 h-5" />
-              <span className="hidden sm:block">Avisos</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="prizes"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <Trophy className="w-5 h-5" />
-              <span className="hidden sm:block">Prêmios</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="events"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <Zap className="w-5 h-5" />
-              <span className="hidden sm:block">Eventos</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="records"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <FileEdit className="w-5 h-5" />
-              <span className="hidden sm:block">Registros</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="sales-upload"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <FileSpreadsheet className="w-5 h-5" />
-              <span className="hidden sm:block">Vendas</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="goals"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <Target className="w-5 h-5" />
-              <span className="hidden sm:block">Metas</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="contestations"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <AlertCircle className="w-5 h-5" />
-              <span className="hidden sm:block">Contestações</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <Shield className="w-5 h-5" />
-              <span className="hidden sm:block">Histórico</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="users"
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-            >
-              <Users className="w-5 h-5" />
-              <span className="hidden sm:block">Usuários</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 mb-8">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-11 h-auto bg-secondary/50 p-1 rounded-xl gap-1">
+              <TabsTrigger
+                value="cards"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Award className="w-4 h-4" />
+                <span className="text-[10px]">Cartões</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="announcements"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Megaphone className="w-4 h-4" />
+                <span className="text-[10px]">Avisos</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="campaigns"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="text-[10px]">Campanhas</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="prizes"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Trophy className="w-4 h-4" />
+                <span className="text-[10px]">Prêmios</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="events"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Zap className="w-4 h-4" />
+                <span className="text-[10px]">Eventos</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="records"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <FileEdit className="w-4 h-4" />
+                <span className="text-[10px]">Registros</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="sales-upload"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span className="text-[10px]">Vendas</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="goals"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Target className="w-4 h-4" />
+                <span className="text-[10px]">Metas</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="contestations"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-[10px]">Contest.</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Shield className="w-4 h-4" />
+                <span className="text-[10px]">Histórico</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="users"
+                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <Users className="w-4 h-4" />
+                <span className="text-[10px]">Usuários</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="cards" className="animate-scale-in">
             <CardForm />
           </TabsContent>
 
           <TabsContent value="announcements" className="animate-scale-in">
-            <AdminAnnouncements />
+            <AnnouncementsManager />
+          </TabsContent>
+
+          <TabsContent value="campaigns" className="animate-scale-in">
+            <CampaignsManager />
           </TabsContent>
 
           <TabsContent value="prizes" className="animate-scale-in">
