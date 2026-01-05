@@ -236,31 +236,46 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
     };
   }, [revenueRecords, executedRecords, cancellations, departmentGoals, currentDay, daysInMonth, daysRemaining]);
 
-  // Department breakdown
+  // Department breakdown with quantity metrics
   const departmentBreakdown = useMemo(() => {
     if (!departmentGoals || !revenueRecords) return [];
 
     return departmentGoals.map((goal) => {
-      const deptRevenue = revenueRecords
-        .filter((r) => normalizeDepartmentName(r.department) === goal.department_name)
-        .reduce((sum, r) => sum + Number(r.amount), 0);
+      const deptRecords = revenueRecords.filter(
+        (r) => normalizeDepartmentName(r.department) === goal.department_name
+      );
+      const deptRevenue = deptRecords.reduce((sum, r) => sum + Number(r.amount), 0);
+      const deptCount = deptRecords.length; // Quantidade vendida
 
-      const meta1 = Number(goal.meta1_goal);
-      const remaining = Math.max(0, meta1 - deptRevenue);
-      const percent = meta1 > 0 ? (deptRevenue / meta1) * 100 : 0;
+      const meta3 = Number(goal.meta3_goal);
+      const remaining = Math.max(0, meta3 - deptRevenue);
+      const percent = meta3 > 0 ? (deptRevenue / meta3) * 100 : 0;
+      
+      // Calculate average ticket for this department
+      const avgTicket = deptCount > 0 ? deptRevenue / deptCount : 15000;
+      
+      // Calculate quantity metrics
+      const metaQtd = avgTicket > 0 ? Math.ceil(meta3 / avgTicket) : 0; // Meta em quantidade
+      const faltaQtd = avgTicket > 0 ? Math.ceil(remaining / avgTicket) : 0; // Falta em quantidade
+      const qtdPorDia = businessDaysRemaining > 0 ? faltaQtd / businessDaysRemaining : 0;
 
       return {
         name: goal.department_name,
         revenue: deptRevenue,
-        meta1,
+        count: deptCount, // Quantidade vendida
+        meta1: Number(goal.meta1_goal),
         meta2: Number(goal.meta2_goal),
-        meta3: Number(goal.meta3_goal),
+        meta3,
         remaining,
         percent: Math.min(percent, 100),
         status: percent >= 100 ? "atingida" : percent >= 70 ? "encaminhada" : "precisa_atenção",
+        avgTicket,
+        metaQtd, // Meta em quantidade de procedimentos
+        faltaQtd, // Falta em quantidade
+        qtdPorDia, // Quantidade por dia útil
       };
     }).sort((a, b) => a.percent - b.percent); // Sort by lowest percent first (priority)
-  }, [departmentGoals, revenueRecords]);
+  }, [departmentGoals, revenueRecords, businessDaysRemaining]);
 
   // Position labels mapping
   const POSITION_LABELS: Record<string, string> = {
@@ -599,44 +614,136 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
           </div>
         )}
 
-        {/* Department Breakdown */}
+        {/* Department Breakdown with Quantity */}
         {departmentBreakdown.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h4 className="font-semibold flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />
-              Por Departamento - O Que Falta
+              Por Departamento - Quantidade e Valores (Meta 3)
             </h4>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {departmentBreakdown.map((dept) => (
+            
+            {/* Summary Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-primary/30 bg-muted/30">
+                    <th className="text-left py-2 px-2 font-bold">Departamento</th>
+                    <th className="text-center py-2 px-2 font-bold text-blue-600">Meta QTD</th>
+                    <th className="text-center py-2 px-2 font-bold text-emerald-600">Vendidos</th>
+                    <th className="text-center py-2 px-2 font-bold text-destructive">Falta QTD</th>
+                    <th className="text-center py-2 px-2 font-bold text-primary">Por Dia</th>
+                    <th className="text-center py-2 px-2 font-bold">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {departmentBreakdown.map((dept) => (
+                    <tr
+                      key={dept.name}
+                      className={`border-b border-border/50 hover:bg-muted/50 ${
+                        dept.status === "atingida"
+                          ? "bg-success/5"
+                          : dept.status === "precisa_atenção"
+                          ? "bg-destructive/5"
+                          : ""
+                      }`}
+                    >
+                      <td className="py-2 px-2">
+                        <div className="flex items-center gap-2">
+                          {dept.status === "atingida" && <CheckCircle2 className="w-4 h-4 text-success" />}
+                          {dept.status === "precisa_atenção" && <AlertTriangle className="w-4 h-4 text-destructive" />}
+                          <span className="font-medium truncate max-w-[150px]">{dept.name}</span>
+                        </div>
+                      </td>
+                      <td className="text-center py-2 px-2">
+                        <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/20 text-blue-600 font-bold">
+                          {dept.metaQtd}
+                        </span>
+                      </td>
+                      <td className="text-center py-2 px-2">
+                        <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-600 font-bold">
+                          {dept.count}
+                        </span>
+                      </td>
+                      <td className="text-center py-2 px-2">
+                        {dept.faltaQtd > 0 ? (
+                          <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-destructive/20 text-destructive font-black text-lg">
+                            {dept.faltaQtd}
+                          </span>
+                        ) : (
+                          <span className="text-success font-bold">✓</span>
+                        )}
+                      </td>
+                      <td className="text-center py-2 px-2">
+                        {dept.faltaQtd > 0 ? (
+                          <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-primary/20 text-primary font-bold">
+                            {dept.qtdPorDia.toFixed(1)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="text-center py-2 px-2">
+                        <span className={`font-bold ${getStatusColor(dept.percent)}`}>
+                          {dept.percent.toFixed(0)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-primary/50 bg-primary/5 font-bold">
+                    <td className="py-2 px-2">TOTAL</td>
+                    <td className="text-center py-2 px-2 text-blue-600">
+                      {departmentBreakdown.reduce((sum, d) => sum + d.metaQtd, 0)}
+                    </td>
+                    <td className="text-center py-2 px-2 text-emerald-600">
+                      {departmentBreakdown.reduce((sum, d) => sum + d.count, 0)}
+                    </td>
+                    <td className="text-center py-2 px-2 text-destructive">
+                      {departmentBreakdown.reduce((sum, d) => sum + d.faltaQtd, 0)}
+                    </td>
+                    <td className="text-center py-2 px-2 text-primary">
+                      {(departmentBreakdown.reduce((sum, d) => sum + d.faltaQtd, 0) / Math.max(businessDaysRemaining, 1)).toFixed(1)}
+                    </td>
+                    <td className="text-center py-2 px-2">-</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Visual Cards for Critical Departments */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {departmentBreakdown.filter(d => d.faltaQtd > 0).slice(0, 3).map((dept) => (
                 <div
                   key={dept.name}
-                  className={`p-3 rounded-lg border ${
-                    dept.status === "atingida"
-                      ? "bg-success/10 border-success/30"
-                      : dept.status === "encaminhada"
-                      ? "bg-amber-500/10 border-amber-500/30"
-                      : "bg-destructive/10 border-destructive/30"
-                  }`}
+                  className="p-4 rounded-xl bg-gradient-to-br from-card to-muted/30 border-2 border-destructive/30"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm flex items-center gap-2">
-                      {dept.status === "atingida" && <CheckCircle2 className="w-4 h-4 text-success" />}
-                      {dept.status === "precisa_atenção" && <AlertTriangle className="w-4 h-4 text-destructive" />}
-                      {dept.name}
-                    </span>
-                    <span className={`text-sm font-bold ${getStatusColor(dept.percent)}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-bold text-sm truncate">{dept.name.split(' ').slice(0, 2).join(' ')}</span>
+                    <Badge variant="destructive" className="text-xs">
                       {dept.percent.toFixed(0)}%
-                    </span>
+                    </Badge>
                   </div>
-                  <Progress value={dept.percent} className="h-1.5 mb-1" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Fechado: {formatCurrency(dept.revenue)}</span>
-                    <span>
-                      {dept.remaining > 0 ? (
-                        <span className="text-destructive font-medium">Faltam: {formatCurrency(dept.remaining)}</span>
-                      ) : (
-                        <span className="text-success font-medium">✓ Atingida</span>
-                      )}
+                  
+                  <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <div className="text-xl font-black text-blue-600">{dept.metaQtd}</div>
+                      <div className="text-xs text-muted-foreground">Meta</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-emerald-500/10">
+                      <div className="text-xl font-black text-emerald-600">{dept.count}</div>
+                      <div className="text-xs text-muted-foreground">Vendidos</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-destructive/10">
+                      <div className="text-xl font-black text-destructive">{dept.faltaQtd}</div>
+                      <div className="text-xs text-muted-foreground">Falta</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 p-2 rounded-lg bg-primary/20 border border-primary/50">
+                    <ChevronRight className="w-4 h-4 text-primary" />
+                    <span className="font-bold text-primary text-sm">
+                      {dept.qtdPorDia.toFixed(1)} por dia útil
                     </span>
                   </div>
                 </div>
