@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.referral-lead-notifications]
 verify_jwt = false
+
+[functions.sales-forecast]
+verify_jwt = false
