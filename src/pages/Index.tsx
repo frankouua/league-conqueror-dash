@@ -41,6 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
+import uniqueLogo from "@/assets/logo-unique-cpa.png";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -465,13 +466,20 @@ const Index = () => {
         </Tabs>
 
         {/* Footer */}
-        <footer className="mt-16 pb-8 text-center">
-          <p className="text-primary font-medium mb-1">
-            Copa Unique League 2026
-          </p>
-          <p className="text-muted-foreground text-sm">
-            A Disputa pela Excelência CPI • © Unique
-          </p>
+        <footer className="mt-16 pb-8">
+          <div className="flex flex-col items-center gap-4">
+            <img 
+              src={uniqueLogo} 
+              alt="Unique Cirurgia Plástica Avançada" 
+              className="h-12 md:h-16 w-auto object-contain"
+            />
+            <p className="text-primary font-medium">
+              Copa Unique League 2026
+            </p>
+            <p className="text-muted-foreground text-sm text-center">
+              A Disputa pela Excelência CPI • © {new Date().getFullYear()} Unique Cirurgia Plástica Avançada
+            </p>
+          </div>
         </footer>
       </main>
     </div>
