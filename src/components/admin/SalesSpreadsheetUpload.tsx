@@ -133,6 +133,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [selectedErrorRows, setSelectedErrorRows] = useState<Set<number>>(new Set());
   const [statusFilter, setStatusFilter] = useState<'all' | 'quitado' | 'em_aberto'>('all');
+  const [importMode, setImportMode] = useState<'replace' | 'add_new'>('replace');
+  const [existingRecordsCount, setExistingRecordsCount] = useState<number>(0);
 
   // Function to refresh all dashboard data
   const refreshAllDashboards = () => {
@@ -962,71 +964,128 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     let success = 0;
     let failed = 0;
     let skipped = 0;
+    let deleted = 0;
     const errors: { sale: ParsedSale; error: string }[] = [];
 
     try {
       // Determine table name once
       const tableName = uploadType === 'vendas' ? 'revenue_records' : 'executed_records';
       
+      // Calculate date range from sales
+      const dates = validSales.map(s => s.date).filter(Boolean).sort();
+      const dateRangeStart = dates[0];
+      const dateRangeEnd = dates[dates.length - 1];
+      
+      // If "replace" mode, delete existing records for this date range first
+      if (importMode === 'replace' && dateRangeStart && dateRangeEnd) {
+        // Get unique user IDs from the sales we're about to import
+        const userIds = [...new Set(validSales.map(s => s.matchedUserId).filter(Boolean))];
+        
+        // Delete existing records for these users in this date range
+        const { data: deletedData, error: deleteError } = await supabase
+          .from(tableName)
+          .delete()
+          .gte('date', dateRangeStart)
+          .lte('date', dateRangeEnd)
+          .in('attributed_to_user_id', userIds)
+          .select('id');
+        
+        if (deleteError) {
+          console.error('Error deleting existing records:', deleteError);
+        } else {
+          deleted = deletedData?.length || 0;
+          console.log(`Deleted ${deleted} existing records for date range ${dateRangeStart} to ${dateRangeEnd}`);
+        }
+      }
+      
       // Batch insert for better performance - prepare records first
       const recordsToInsert: any[] = [];
       const salesToCheck = [...validSales];
       
-      // First, check for duplicates in batch (using parallel promises)
+      // First, check for duplicates in batch (using parallel promises) - only if "add_new" mode
       const BATCH_SIZE = 50;
-      const duplicateChecks: Promise<{ sale: ParsedSale; exists: boolean }>[] = [];
       
-      for (const sale of salesToCheck) {
-        // Always use amountSold as primary (valor vendido)
-        const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
+      if (importMode === 'add_new') {
+        const duplicateChecks: Promise<{ sale: ParsedSale; exists: boolean }>[] = [];
         
-        const checkPromise = (async () => {
-          const { data } = await supabase
-            .from(tableName)
-            .select('id')
-            .eq('date', sale.date)
-            .eq('attributed_to_user_id', sale.matchedUserId)
-            .eq('amount', primaryAmount)
-            .maybeSingle();
-          return { sale, exists: !!data };
-        })();
-        
-        duplicateChecks.push(checkPromise);
-      }
-      
-      // Process duplicate checks in batches
-      const duplicateResults = await Promise.all(duplicateChecks);
-      
-      for (const { sale, exists } of duplicateResults) {
-        if (exists) {
-          skipped++;
-          continue;
+        for (const sale of salesToCheck) {
+          // Always use amountSold as primary (valor vendido)
+          const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
+          
+          const checkPromise = (async () => {
+            const { data } = await supabase
+              .from(tableName)
+              .select('id')
+              .eq('date', sale.date)
+              .eq('attributed_to_user_id', sale.matchedUserId)
+              .eq('amount', primaryAmount)
+              .maybeSingle();
+            return { sale, exists: !!data };
+          })();
+          
+          duplicateChecks.push(checkPromise);
         }
         
-        // Always use amountSold as primary (valor vendido)
-        const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
+        // Process duplicate checks in batches
+        const duplicateResults = await Promise.all(duplicateChecks);
         
-        // Build notes with client, procedure and amounts info
-        const noteParts: string[] = [];
-        if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
-        if (sale.procedure) noteParts.push(`Procedimento: ${sale.procedure}`);
-        if (sale.amountPaid > 0 && sale.amountSold !== sale.amountPaid) {
-          noteParts.push(`Recebido: ${sale.amountPaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+        for (const { sale, exists } of duplicateResults) {
+          if (exists) {
+            skipped++;
+            continue;
+          }
+          
+          // Always use amountSold as primary (valor vendido)
+          const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
+          
+          // Build notes with client, procedure and amounts info
+          const noteParts: string[] = [];
+          if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
+          if (sale.procedure) noteParts.push(`Procedimento: ${sale.procedure}`);
+          if (sale.amountPaid > 0 && sale.amountSold !== sale.amountPaid) {
+            noteParts.push(`Recebido: ${sale.amountPaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+          }
+          const notes = noteParts.length > 0 ? noteParts.join(' | ') : null;
+          
+          recordsToInsert.push({
+            date: sale.date,
+            amount: primaryAmount,
+            notes,
+            department: sale.department || null,
+            user_id: sale.matchedUserId!,
+            team_id: sale.matchedTeamId!,
+            attributed_to_user_id: sale.matchedUserId,
+            counts_for_individual: true,
+            registered_by_admin: false,
+            _originalSale: sale, // Keep reference for error tracking
+          });
         }
-        const notes = noteParts.length > 0 ? noteParts.join(' | ') : null;
-        
-        recordsToInsert.push({
-          date: sale.date,
-          amount: primaryAmount,
-          notes,
-          department: sale.department || null,
-          user_id: sale.matchedUserId!,
-          team_id: sale.matchedTeamId!,
-          attributed_to_user_id: sale.matchedUserId,
-          counts_for_individual: true,
-          registered_by_admin: false,
-          _originalSale: sale, // Keep reference for error tracking
-        });
+      } else {
+        // Replace mode - insert all without checking duplicates (already deleted)
+        for (const sale of salesToCheck) {
+          const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
+          
+          const noteParts: string[] = [];
+          if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
+          if (sale.procedure) noteParts.push(`Procedimento: ${sale.procedure}`);
+          if (sale.amountPaid > 0 && sale.amountSold !== sale.amountPaid) {
+            noteParts.push(`Recebido: ${sale.amountPaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+          }
+          const notes = noteParts.length > 0 ? noteParts.join(' | ') : null;
+          
+          recordsToInsert.push({
+            date: sale.date,
+            amount: primaryAmount,
+            notes,
+            department: sale.department || null,
+            user_id: sale.matchedUserId!,
+            team_id: sale.matchedTeamId!,
+            attributed_to_user_id: sale.matchedUserId,
+            counts_for_individual: true,
+            registered_by_admin: false,
+            _originalSale: sale,
+          });
+        }
       }
       
       // Insert in batches for better performance
@@ -1055,10 +1114,10 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         await updateRFVCustomers(validSales);
       }
 
-      // Calculate date range
-      const dates = validSales.map(s => s.date).filter(Boolean).sort();
-      const dateRangeStart = dates[0] || null;
-      const dateRangeEnd = dates[dates.length - 1] || null;
+      // Calculate date range for log
+      const logDates = validSales.map(s => s.date).filter(Boolean).sort();
+      const logDateStart = logDates[0] || null;
+      const logDateEnd = logDates[logDates.length - 1] || null;
 
       // Save upload log
       const totalRevenueSold = validSales.reduce((sum, s) => sum + s.amountSold, 0);
@@ -1075,8 +1134,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         error_rows: failed,
         total_revenue_sold: totalRevenueSold,
         total_revenue_paid: totalRevenuePaid,
-        date_range_start: dateRangeStart,
-        date_range_end: dateRangeEnd,
+        date_range_start: logDateStart,
+        date_range_end: logDateEnd,
         status: 'completed',
         upload_type: uploadType,
       });
@@ -2322,6 +2381,64 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                   <X className="w-4 h-4 mr-2" />
                   {errorCount} erros
                 </Badge>
+              )}
+            </div>
+
+            {/* Import Mode Selection */}
+            <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+              <Label className="font-semibold text-base">Modo de Importação:</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setImportMode('replace')}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${
+                    importMode === 'replace' 
+                      ? 'border-primary bg-primary/10 shadow-md' 
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <RefreshCw className={`w-5 h-5 ${importMode === 'replace' ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className={`font-semibold ${importMode === 'replace' ? 'text-primary' : ''}`}>
+                      🔄 Substituir Período
+                    </span>
+                    <Badge variant="secondary" className="ml-auto text-xs">Recomendado</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Remove dados antigos do período e insere os novos. Ideal para atualizações diárias - sem duplicatas!
+                  </p>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setImportMode('add_new')}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${
+                    importMode === 'add_new' 
+                      ? 'border-amber-500 bg-amber-500/10 shadow-md' 
+                      : 'border-border hover:border-amber-500/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Upload className={`w-5 h-5 ${importMode === 'add_new' ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                    <span className={`font-semibold ${importMode === 'add_new' ? 'text-amber-600' : ''}`}>
+                      ➕ Apenas Novos
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Só adiciona registros que não existem (verifica duplicatas). Pode perder atualizações.
+                  </p>
+                </button>
+              </div>
+              
+              {importMode === 'replace' && matchedCount > 0 && (
+                <Alert className="border-primary/50 bg-primary/5">
+                  <RefreshCw className="w-4 h-4 text-primary" />
+                  <AlertDescription className="text-sm">
+                    <strong>Período detectado:</strong> {parsedSales.filter(s => s.status === 'matched').map(s => s.date).sort()[0]} a {parsedSales.filter(s => s.status === 'matched').map(s => s.date).sort().pop()}
+                    <br />
+                    Os dados deste período para os vendedores mapeados serão substituídos pela planilha atual.
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
 
