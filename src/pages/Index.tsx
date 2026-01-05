@@ -105,101 +105,120 @@ const Index = () => {
         />
       )}
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
-        <div className="text-center mb-8 animate-slide-up">
-          <img 
-            src={copaLogo} 
-            alt="Copa Unique League 2026" 
-            className="h-24 md:h-32 mx-auto mb-4 trophy-glow"
-          />
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gradient-gold mb-2">
-            Dashboard Central
-          </h1>
-          <p className="text-primary font-semibold text-lg mb-2">
-            Copa Unique League 2026
-          </p>
-          
-          {/* Period Selector */}
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
-              <Calendar className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Período:</span>
+      <main className="container mx-auto px-4 py-4">
+        {/* Compact Hero Section - Optimized for TV */}
+        <div className="text-center mb-4 animate-slide-up">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-3">
+            <img 
+              src={copaLogo} 
+              alt="Copa Unique League 2026" 
+              className="h-16 md:h-20 trophy-glow"
+            />
+            <div className="text-left">
+              <h1 className="text-2xl md:text-3xl font-black text-gradient-gold">
+                Dashboard Central
+              </h1>
+              <p className="text-primary font-semibold text-sm">
+                Copa Unique League 2026
+              </p>
             </div>
-            <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
-              <SelectTrigger className="w-[140px] bg-background border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-border z-50">
-                {MONTHS.map((month, index) => (
-                  <SelectItem key={index + 1} value={String(index + 1)}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-              <SelectTrigger className="w-[100px] bg-background border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-border z-50">
-                {[2024, 2025, 2026].map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
+          
+          {/* Compact Controls Row */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {/* Period Selector - More compact */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
+              <Calendar className="w-3.5 h-3.5 text-primary" />
+              <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+                <SelectTrigger className="w-[100px] h-7 bg-transparent border-0 text-sm px-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-border z-50">
+                  {MONTHS.map((month, index) => (
+                    <SelectItem key={index + 1} value={String(index + 1)}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                <SelectTrigger className="w-[70px] h-7 bg-transparent border-0 text-sm px-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-border z-50">
+                  {[2024, 2025, 2026].map((year) => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Live Indicator & Last Updated */}
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+            {/* Live Indicator */}
             {isCurrentPeriod && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-                <span className="relative flex h-3 w-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="text-sm font-medium text-emerald-500">
-                  Ao Vivo
-                </span>
+                <span className="text-xs font-medium text-emerald-500">Ao Vivo</span>
               </div>
             )}
             
             {!isCurrentPeriod && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30">
-                <Clock className="w-4 h-4 text-amber-500" />
-                <span className="text-sm font-medium text-amber-500">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30">
+                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                <span className="text-xs font-medium text-amber-500">
                   {MONTHS[selectedMonth - 1]} {selectedYear}
                 </span>
               </div>
             )}
             
             {lastUpdated && isCurrentPeriod && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border">
-                <Clock className="w-4 h-4 text-primary" />
-                <span className="text-sm text-muted-foreground">
-                  Atualizado:{" "}
-                  <span className="text-foreground font-medium">
-                    {format(lastUpdated, "HH:mm", { locale: ptBR })}
-                  </span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs text-muted-foreground">
+                  {format(lastUpdated, "HH:mm", { locale: ptBR })}
                 </span>
               </div>
             )}
-          </div>
 
-          {/* Celebration Test Button - Admin Only */}
-          {role === "admin" && (
-            <div className="mt-4 flex justify-center gap-2">
+            {/* Admin Celebration Button */}
+            {role === "admin" && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => triggerCelebration("goal")}
-                className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                className="h-7 gap-1.5 px-3 text-xs border-primary/30 text-primary hover:bg-primary/10"
               >
-                <PartyPopper className="w-4 h-4" />
-                Celebrar!
+                <PartyPopper className="w-3.5 h-3.5" />
+                Celebrar
               </Button>
+            )}
+          </div>
+
+          {/* Goals Achievement Banner - Shows when metas are reached */}
+          {totalClinicRevenue > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              {totalClinicRevenue >= CLINIC_GOALS.META_1 && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 animate-pulse">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold text-amber-500">META 1 ✓</span>
+                </div>
+              )}
+              {totalClinicRevenue >= CLINIC_GOALS.META_2 && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 animate-pulse">
+                  <Trophy className="w-4 h-4 text-emerald-500" />
+                  <span className="text-xs font-bold text-emerald-500">META 2 ✓</span>
+                </div>
+              )}
+              {totalClinicRevenue >= CLINIC_GOALS.META_3 && (
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-gold-shine border-2 border-primary shadow-gold animate-bounce">
+                  <Trophy className="w-5 h-5 text-primary-foreground" />
+                  <span className="text-sm font-black text-primary-foreground">META 3 🏆 CAMPEÕES!</span>
+                </div>
+              )}
             </div>
           )}
         </div>
