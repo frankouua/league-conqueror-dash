@@ -52,6 +52,7 @@ interface ParsedSale {
   clientName: string;
   clientCpf: string;       // CPF do cliente
   clientEmail: string;     // E-mail do cliente
+  clientProntuario: string; // Prontuário Feegow
   sellerName: string;
   amountSold: number;      // Valor Vendido
   amountPaid: number;      // Valor Pago/Recebido
@@ -70,6 +71,7 @@ interface ColumnMapping {
   clientName: string;
   clientCpf: string;       // CPF do cliente
   clientEmail: string;     // E-mail do cliente
+  clientProntuario: string; // Prontuário Feegow
   sellerName: string;
   amountSold: string;      // Valor Vendido
   amountPaid: string;      // Valor Pago/Recebido
@@ -118,6 +120,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     clientName: '',
     clientCpf: '',
     clientEmail: '',
+    clientProntuario: '',
     sellerName: '',
     amountSold: '',
     amountPaid: '',
@@ -243,6 +246,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         clientName: '',
         clientCpf: '',
         clientEmail: '',
+        clientProntuario: '',
         sellerName: '',
         amountSold: '',
         amountPaid: '',
@@ -315,6 +319,14 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         // Email detection
         if (colLower === 'email' || colLower.includes('e-mail') || colLower.includes('email')) {
           if (!autoMapping.clientEmail) autoMapping.clientEmail = col;
+        }
+        
+        // Prontuário detection (Feegow patient ID)
+        if (colLower === 'prontuário' || colLower === 'prontuario' || 
+            colLower.includes('prontuário') || colLower.includes('prontuario') ||
+            colLower === 'id paciente' || colLower === 'id_paciente' ||
+            colLower === 'patient_id' || colLower.includes('id conta')) {
+          if (!autoMapping.clientProntuario) autoMapping.clientProntuario = col;
         }
       }
 
@@ -632,6 +644,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '';
           const clientCpf = columnMapping.clientCpf ? String(row[columnMapping.clientCpf] || '').trim() : '';
           const clientEmail = columnMapping.clientEmail ? String(row[columnMapping.clientEmail] || '').trim() : '';
+          const clientProntuario = columnMapping.clientProntuario ? String(row[columnMapping.clientProntuario] || '').trim() : '';
           const paymentStatus = columnMapping.status ? String(row[columnMapping.status] || '').trim() : '';
 
           // Parse date
@@ -660,6 +673,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               clientName,
               clientCpf,
               clientEmail,
+              clientProntuario,
               sellerName,
               amountSold: 0,
               amountPaid: 0,
@@ -731,6 +745,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               clientName,
               clientCpf,
               clientEmail,
+              clientProntuario,
               sellerName,
               amountSold: 0,
               amountPaid: 0,
@@ -752,6 +767,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             clientName,
             clientCpf,
             clientEmail,
+            clientProntuario,
             sellerName,
             amountSold,
             amountPaid,
@@ -769,6 +785,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             clientName: '',
             clientCpf: '',
             clientEmail: '',
+            clientProntuario: '',
             sellerName: '',
             amountSold: 0,
             amountPaid: 0,
@@ -1261,15 +1278,18 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       name: string;
       cpf: string;
       email: string;
+      prontuario: string;
     }> = {};
 
     for (const sale of sales) {
-      if (!sale.clientName && !sale.clientCpf) continue;
+      if (!sale.clientName && !sale.clientCpf && !sale.clientProntuario) continue;
       
-      // Use CPF as primary key if available, otherwise use normalized name
-      const key = sale.clientCpf 
-        ? sale.clientCpf.replace(/\D/g, '') // Remove non-digits from CPF
-        : sale.clientName.toLowerCase().trim();
+      // Use Prontuario as primary key if available, then CPF, then name
+      const key = sale.clientProntuario 
+        ? `pront_${sale.clientProntuario.trim()}`
+        : sale.clientCpf 
+          ? sale.clientCpf.replace(/\D/g, '') // Remove non-digits from CPF
+          : sale.clientName.toLowerCase().trim();
       
       if (!clientSales[key]) {
         clientSales[key] = { 
@@ -1278,6 +1298,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           name: sale.clientName,
           cpf: sale.clientCpf,
           email: sale.clientEmail,
+          prontuario: sale.clientProntuario,
         };
       }
       clientSales[key].dates.push(sale.date);
@@ -1295,16 +1316,29 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       if (sale.clientName && !clientSales[key].name) {
         clientSales[key].name = sale.clientName;
       }
+      if (sale.clientProntuario && !clientSales[key].prontuario) {
+        clientSales[key].prontuario = sale.clientProntuario;
+      }
     }
 
     const now = new Date();
 
     for (const [clientKey, data] of Object.entries(clientSales)) {
       try {
-        // Check if customer exists by CPF first, then by name
+        // Check if customer exists by Prontuario first, then CPF, then name
         let existing: any = null;
         
-        if (data.cpf) {
+        if (data.prontuario) {
+          const { data: byPront } = await supabase
+            .from('rfv_customers')
+            .select('*')
+            .eq('prontuario', data.prontuario.trim())
+            .limit(1)
+            .maybeSingle();
+          existing = byPront;
+        }
+        
+        if (!existing && data.cpf) {
           const cpfClean = data.cpf.replace(/\D/g, '');
           const { data: byCpf } = await supabase
             .from('rfv_customers')
@@ -1354,12 +1388,15 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             days_since_last_purchase: daysSince,
           };
           
-          // Update CPF and email if we have new data and existing doesn't have it
+          // Update CPF, email, prontuario if we have new data and existing doesn't have it
           if (data.cpf && !existing.cpf) {
             updateData.cpf = data.cpf.replace(/\D/g, '');
           }
           if (data.email && !existing.email) {
             updateData.email = data.email.toLowerCase().trim();
+          }
+          if (data.prontuario && !existing.prontuario) {
+            updateData.prontuario = data.prontuario.trim();
           }
 
           await supabase
@@ -1377,6 +1414,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               name: data.name?.toLowerCase().trim() || clientKey,
               cpf: data.cpf ? data.cpf.replace(/\D/g, '') : null,
               email: data.email ? data.email.toLowerCase().trim() : null,
+              prontuario: data.prontuario ? data.prontuario.trim() : null,
               first_purchase_date: earliestDate,
               last_purchase_date: latestDate,
               total_purchases: newPurchaseCount,
@@ -2123,6 +2161,20 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">Para contato e campanhas de marketing</p>
+              </div>
+              <div>
+                <Label>Prontuário (Feegow)</Label>
+                <select
+                  value={columnMapping.clientProntuario}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, clientProntuario: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não incluir</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">ID do paciente para integração Feegow</p>
               </div>
             </div>
             
