@@ -65,6 +65,47 @@ const FULL_MONTHS = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
+// Função para normalizar nomes de departamentos
+const normalizeDepartment = (dept: string | null): string => {
+  if (!dept) return 'Outros';
+  
+  const normalized = dept.toLowerCase().trim();
+  
+  // Mapeamento de variações para nomes padronizados
+  const mappings: Record<string, string> = {
+    'cirurgia_plastica': '01 - CIRURGIA PLÁSTICA',
+    'cirurgia plastica': '01 - CIRURGIA PLÁSTICA',
+    'comercial': '01 - CIRURGIA PLÁSTICA', // Dados antigos de 2024
+    'consulta': '02 - CONSULTA CIRURGIA PLÁSTICA',
+    'consultas': '02 - CONSULTA CIRURGIA PLÁSTICA',
+    'atendimento': '02 - CONSULTA CIRURGIA PLÁSTICA', // Dados antigos de 2024
+    'pos_operatorio': '03 - PÓS OPERATÓRIO',
+    'pós operatório': '03 - PÓS OPERATÓRIO',
+    'clinico': '03 - PÓS OPERATÓRIO', // Dados antigos de 2024 (pós-op e procedimentos clínicos)
+    'soroterapia': '04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS',
+    'harmonizacao': '08 - HARMONIZAÇÃO FACIAL E CORPORAL',
+    'harmonização': '08 - HARMONIZAÇÃO FACIAL E CORPORAL',
+    'spa_estetica': '09 - SPA E ESTÉTICA',
+    'spa e estética': '09 - SPA E ESTÉTICA',
+    'protocolos_nutricionais': '12 - PROTOCOLOS NUTRICIONAIS',
+    'produtos_luxskin': '21 - PRODUTOS LUXSKIN',
+    'luxskin': '21 - PRODUTOS LUXSKIN',
+    '25 -unique travel experience': '25 - UNIQUE TRAVEL EXPERIENCE', // Corrige falta de espaço
+  };
+  
+  // Verifica se há mapeamento direto
+  if (mappings[normalized]) {
+    return mappings[normalized];
+  }
+  
+  // Se já está no formato padrão (começa com número)
+  if (/^\d{2} - /.test(dept)) {
+    return dept;
+  }
+  
+  return dept;
+};
+
 const DEPARTMENT_COLORS: Record<string, string> = {
   "01 - CIRURGIA PLÁSTICA": "#8b5cf6",
   "02 - CONSULTA CIRURGIA PLÁSTICA": "#06b6d4",
@@ -73,6 +114,7 @@ const DEPARTMENT_COLORS: Record<string, string> = {
   "08 - HARMONIZAÇÃO FACIAL E CORPORAL": "#ec4899",
   "09 - SPA E ESTÉTICA": "#6366f1",
   "12 - PROTOCOLOS NUTRICIONAIS": "#84cc16",
+  "16 - OUTROS": "#94a3b8",
   "21 - PRODUTOS LUXSKIN": "#f97316",
   "25 - UNIQUE TRAVEL EXPERIENCE": "#14b8a6",
 };
@@ -85,6 +127,7 @@ const DEPARTMENT_SHORT_NAMES: Record<string, string> = {
   "08 - HARMONIZAÇÃO FACIAL E CORPORAL": "Harmonização",
   "09 - SPA E ESTÉTICA": "SPA/Estética",
   "12 - PROTOCOLOS NUTRICIONAIS": "Protocolos",
+  "16 - OUTROS": "Outros",
   "21 - PRODUTOS LUXSKIN": "LuxSkin",
   "25 - UNIQUE TRAVEL EXPERIENCE": "Travel",
 };
@@ -193,7 +236,7 @@ const HistoricalComparison = () => {
     
     revenueRecords.forEach(record => {
       const year = new Date(record.date).getFullYear();
-      const dept = record.department || 'Outros';
+      const dept = normalizeDepartment(record.department);
       
       if (!dataByYear.has(year)) {
         dataByYear.set(year, new Map());
@@ -209,7 +252,7 @@ const HistoricalComparison = () => {
     
     executedRecords.forEach(record => {
       const year = new Date(record.date).getFullYear();
-      const dept = record.department || 'Outros';
+      const dept = normalizeDepartment(record.department);
       
       if (!dataByYear.has(year)) {
         dataByYear.set(year, new Map());
