@@ -65,7 +65,7 @@ const Index = () => {
   const { role, profile } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [activeTab, setActiveTab] = useState("minhas-metas");
+  const [activeTab, setActiveTab] = useState("times");
   const [filterSeller, setFilterSeller] = useState<string | null>(null);
   const [filterDepartment, setFilterDepartment] = useState<string | null>(null);
   
@@ -230,13 +230,6 @@ const Index = () => {
           <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
             <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-4xl md:mx-auto md:grid-cols-6 gap-1 bg-muted/50 p-1 rounded-xl">
               <TabsTrigger 
-                value="minhas-metas" 
-                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
-              >
-                <User className="w-4 h-4" />
-                Minhas Metas
-              </TabsTrigger>
-              <TabsTrigger 
                 value="times" 
                 className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
               >
@@ -270,6 +263,13 @@ const Index = () => {
               >
                 <Building2 className="w-4 h-4" />
                 Departamentos
+              </TabsTrigger>
+              <TabsTrigger 
+                value="minhas-metas" 
+                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <User className="w-4 h-4" />
+                Minhas Metas
               </TabsTrigger>
           </TabsList>
           
