@@ -1643,6 +1643,145 @@ const RFVDashboard = () => {
               </Card>
             </div>
 
+            {/* Quick Filter Presets */}
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  Filtros Rápidos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedSegment === 'champions' ? "default" : "outline"}
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      clearFilters();
+                      setSelectedSegment('champions');
+                    }}
+                  >
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                    Campeões
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-emerald-500/50 hover:bg-emerald-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setFilterMinValue('5000');
+                      setSelectedSegment('all');
+                    }}
+                  >
+                    <DollarSign className="h-4 w-4 text-emerald-500" />
+                    Premium (+R$5.000)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-blue-500/50 hover:bg-blue-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setFilterMinValue('10000');
+                      setSelectedSegment('all');
+                    }}
+                  >
+                    <Star className="h-4 w-4 text-blue-500" />
+                    VIP (+R$10.000)
+                  </Button>
+                  <Button
+                    variant={selectedSegment === 'at_risk' ? "default" : "outline"}
+                    size="sm"
+                    className="gap-2 border-orange-500/50 hover:bg-orange-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setSelectedSegment('at_risk');
+                    }}
+                  >
+                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                    Em Risco
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-red-500/50 hover:bg-red-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setFilterMinDays('90');
+                      setSelectedSegment('all');
+                    }}
+                  >
+                    <Clock className="h-4 w-4 text-red-500" />
+                    Inativos (+90 dias)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-purple-500/50 hover:bg-purple-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setFilterMinDays('180');
+                      setSelectedSegment('all');
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4 text-purple-500" />
+                    Hibernando (+180 dias)
+                  </Button>
+                  <Button
+                    variant={selectedSegment === 'lost' ? "default" : "outline"}
+                    size="sm"
+                    className="gap-2 border-gray-500/50 hover:bg-gray-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setSelectedSegment('lost');
+                    }}
+                  >
+                    <Users className="h-4 w-4 text-gray-500" />
+                    Perdidos
+                  </Button>
+                  <Button
+                    variant={selectedSegment === 'loyal' ? "default" : "outline"}
+                    size="sm"
+                    className="gap-2 border-blue-500/50 hover:bg-blue-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setSelectedSegment('loyal');
+                    }}
+                  >
+                    <Heart className="h-4 w-4 text-blue-500" />
+                    Fiéis
+                  </Button>
+                  <Button
+                    variant={selectedSegment === 'potential' ? "default" : "outline"}
+                    size="sm"
+                    className="gap-2 border-amber-500/50 hover:bg-amber-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setSelectedSegment('potential');
+                    }}
+                  >
+                    <TrendingUp className="h-4 w-4 text-amber-500" />
+                    Potenciais
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-green-500/50 hover:bg-green-500/10"
+                    onClick={() => {
+                      clearFilters();
+                      setFilterMaxDays('30');
+                      setSelectedSegment('all');
+                    }}
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Recentes (-30 dias)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Advanced Filters */}
             <Card className="mb-6">
               <CardHeader className="pb-3">
