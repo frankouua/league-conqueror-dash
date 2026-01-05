@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, LayoutDashboard } from "lucide-react";
+import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, LayoutDashboard, User } from "lucide-react";
 import { MonthlyTeamRankingChart } from "@/components/MonthlyTeamRankingChart";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import { format } from "date-fns";
@@ -37,6 +37,7 @@ import ProceduresGoalTracker from "@/components/ProceduresGoalTracker";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
+import MyGoalsDashboard from "@/components/MyGoalsDashboard";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -64,7 +65,7 @@ const Index = () => {
   const { role, profile } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [activeTab, setActiveTab] = useState("times");
+  const [activeTab, setActiveTab] = useState("minhas-metas");
   const [filterSeller, setFilterSeller] = useState<string | null>(null);
   const [filterDepartment, setFilterDepartment] = useState<string | null>(null);
   
@@ -227,7 +228,14 @@ const Index = () => {
         {/* Main Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-3xl md:mx-auto md:grid-cols-5 gap-1 bg-muted/50 p-1 rounded-xl">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-4xl md:mx-auto md:grid-cols-6 gap-1 bg-muted/50 p-1 rounded-xl">
+              <TabsTrigger 
+                value="minhas-metas" 
+                className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+              >
+                <User className="w-4 h-4" />
+                Minhas Metas
+              </TabsTrigger>
               <TabsTrigger 
                 value="times" 
                 className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
@@ -275,6 +283,11 @@ const Index = () => {
             />
           )}
           </div>
+
+          {/* MINHAS METAS TAB - Individual Performance */}
+          <TabsContent value="minhas-metas" className="animate-fade-in">
+            <MyGoalsDashboard />
+          </TabsContent>
 
           {/* TIMES TAB - Team Rankings & General Stats */}
           <TabsContent value="times" className="space-y-8 animate-fade-in">
