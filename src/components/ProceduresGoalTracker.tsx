@@ -442,63 +442,200 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
         </CardContent>
       </Card>
 
-      {/* Department Breakdown - META 3 Focus */}
+      {/* Department Breakdown - QUANTITATIVO - DESTAQUE */}
       {deptBreakdown.length > 0 && (
-        <Card className="border-primary/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Users className="w-5 h-5 text-primary" />
-              O Que Falta por Departamento
-              <Badge className="ml-auto bg-primary/20 text-primary">Meta 3</Badge>
+        <Card className="border-2 border-blue-500/40 bg-gradient-to-br from-blue-500/5 to-background">
+          <CardHeader className="pb-3 border-b border-border/50">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <div className="p-2 rounded-xl bg-blue-500/20">
+                <Stethoscope className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <span>Quantidade de Procedimentos por Grupo</span>
+                <p className="text-sm text-muted-foreground font-normal mt-1">
+                  Quantos vendemos, quantos faltam e quantos por dia
+                </p>
+              </div>
+              <Badge className="ml-auto bg-primary text-primary-foreground px-3 py-1">Meta 3</Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {deptBreakdown.map((dept) => (
-                <div 
-                  key={dept.name}
-                  className={`p-4 rounded-xl border transition-all ${
-                    dept.percent >= 100 
-                      ? "bg-emerald-500/10 border-emerald-500/30" 
-                      : dept.percent >= 70 
-                      ? "bg-amber-500/5 border-amber-500/30" 
-                      : "bg-destructive/5 border-destructive/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-sm truncate">{dept.shortName}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {dept.percent.toFixed(0)}%
-                    </Badge>
+          <CardContent className="pt-6">
+            {/* Tabela de Quantitativos */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-primary/30">
+                    <th className="text-left py-3 px-2 font-bold text-sm">Grupo</th>
+                    <th className="text-center py-3 px-2 font-bold text-sm bg-blue-500/10">
+                      <div className="flex items-center justify-center gap-1">
+                        <Target className="w-4 h-4" />
+                        Meta QTD
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 font-bold text-sm bg-emerald-500/10">
+                      <div className="flex items-center justify-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Vendidos
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 font-bold text-sm bg-destructive/10">
+                      <div className="flex items-center justify-center gap-1">
+                        <AlertTriangle className="w-4 h-4" />
+                        Falta
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 font-bold text-sm bg-primary/10">
+                      <div className="flex items-center justify-center gap-1">
+                        <Zap className="w-4 h-4" />
+                        Por Dia
+                      </div>
+                    </th>
+                    <th className="text-center py-3 px-2 font-bold text-sm">Progresso</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deptBreakdown.map((dept) => {
+                    // Calcular meta de quantidade estimada (baseado no ticket médio histórico)
+                    const metaQtd = dept.avgTicket > 0 ? Math.ceil(dept.meta / dept.avgTicket) : 0;
+                    const faltaQtd = dept.procsNeeded;
+                    const porDia = businessDaysRemaining > 0 ? (faltaQtd / businessDaysRemaining) : 0;
+                    
+                    return (
+                      <tr 
+                        key={dept.name}
+                        className={`border-b border-border/50 hover:bg-muted/50 transition-colors ${
+                          dept.percent >= 100 ? "bg-emerald-500/5" : ""
+                        }`}
+                      >
+                        <td className="py-4 px-2">
+                          <div className="font-semibold">{dept.shortName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Ticket: {formatCurrency(dept.avgTicket)}
+                          </div>
+                        </td>
+                        <td className="text-center py-4 px-2">
+                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-500/20 border-2 border-blue-500/50">
+                            <span className="text-lg font-black text-blue-600">{metaQtd}</span>
+                          </div>
+                        </td>
+                        <td className="text-center py-4 px-2">
+                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50">
+                            <span className="text-lg font-black text-emerald-600">{dept.count}</span>
+                          </div>
+                        </td>
+                        <td className="text-center py-4 px-2">
+                          {faltaQtd > 0 ? (
+                            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-destructive/20 border-2 border-destructive/50">
+                              <span className="text-xl font-black text-destructive">{faltaQtd}</span>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/30 border-2 border-emerald-500">
+                              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                            </div>
+                          )}
+                        </td>
+                        <td className="text-center py-4 px-2">
+                          {faltaQtd > 0 ? (
+                            <div className="space-y-1">
+                              <div className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-primary/20 border border-primary/50">
+                                <span className="text-lg font-black text-primary">{porDia.toFixed(1)}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">proc/dia</div>
+                            </div>
+                          ) : (
+                            <span className="text-emerald-600 font-bold">✓</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-2 w-32">
+                          <div className="space-y-1">
+                            <Progress value={dept.percent} className="h-2" />
+                            <div className="text-xs text-center font-medium">
+                              {dept.percent.toFixed(0)}%
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-primary/50 bg-primary/5">
+                    <td className="py-4 px-2 font-bold">TOTAL</td>
+                    <td className="text-center py-4 px-2">
+                      <span className="text-xl font-black text-blue-600">
+                        {deptBreakdown.reduce((sum, d) => sum + (d.avgTicket > 0 ? Math.ceil(d.meta / d.avgTicket) : 0), 0)}
+                      </span>
+                    </td>
+                    <td className="text-center py-4 px-2">
+                      <span className="text-xl font-black text-emerald-600">
+                        {deptBreakdown.reduce((sum, d) => sum + d.count, 0)}
+                      </span>
+                    </td>
+                    <td className="text-center py-4 px-2">
+                      <span className="text-xl font-black text-destructive">
+                        {deptBreakdown.reduce((sum, d) => sum + d.procsNeeded, 0)}
+                      </span>
+                    </td>
+                    <td className="text-center py-4 px-2">
+                      <span className="text-xl font-black text-primary">
+                        {(deptBreakdown.reduce((sum, d) => sum + d.procsNeeded, 0) / Math.max(businessDaysRemaining, 1)).toFixed(1)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-2">
+                      <div className="text-center text-sm font-bold text-primary">
+                        {(deptBreakdown.reduce((sum, d) => sum + d.meta, 0) > 0 
+                          ? ((deptBreakdown.reduce((sum, d) => sum + d.revenue, 0) / deptBreakdown.reduce((sum, d) => sum + d.meta, 0)) * 100).toFixed(0)
+                          : 0
+                        )}%
+                      </div>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Cards de Destaque por Grupo - Visual Alternativo */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {deptBreakdown.filter(d => d.procsNeeded > 0).slice(0, 6).map((dept) => {
+                const metaQtd = dept.avgTicket > 0 ? Math.ceil(dept.meta / dept.avgTicket) : 0;
+                const porDia = businessDaysRemaining > 0 ? (dept.procsNeeded / businessDaysRemaining) : 0;
+                
+                return (
+                  <div 
+                    key={dept.name}
+                    className="p-5 rounded-2xl bg-gradient-to-br from-card to-muted/30 border-2 border-border hover:border-primary/50 transition-all"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="font-bold text-lg">{dept.shortName}</span>
+                      <Badge variant={dept.percent >= 70 ? "default" : "destructive"}>
+                        {dept.percent.toFixed(0)}%
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="text-center p-2 rounded-lg bg-blue-500/10">
+                        <div className="text-2xl font-black text-blue-600">{metaQtd}</div>
+                        <div className="text-xs text-muted-foreground">Meta</div>
+                      </div>
+                      <div className="text-center p-2 rounded-lg bg-emerald-500/10">
+                        <div className="text-2xl font-black text-emerald-600">{dept.count}</div>
+                        <div className="text-xs text-muted-foreground">Vendidos</div>
+                      </div>
+                      <div className="text-center p-2 rounded-lg bg-destructive/10">
+                        <div className="text-2xl font-black text-destructive">{dept.procsNeeded}</div>
+                        <div className="text-xs text-muted-foreground">Falta</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-primary/20 border border-primary/50">
+                      <ArrowRight className="w-4 h-4 text-primary" />
+                      <span className="font-bold text-primary">
+                        {porDia.toFixed(1)} por dia útil
+                      </span>
+                    </div>
                   </div>
-                  
-                  <Progress value={dept.percent} className="h-1.5 mb-3" />
-                  
-                  {dept.remaining > 0 ? (
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Falta (Meta 3):</span>
-                        <span className="font-bold">{formatCurrency(dept.remaining)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Procedimentos:</span>
-                        <span className="font-bold text-primary">{dept.procsNeeded}</span>
-                      </div>
-                      <div className="flex justify-between pt-1 border-t border-border/50 mt-1">
-                        <span className="text-muted-foreground">Por dia útil:</span>
-                        <span className="font-bold text-primary">
-                          {formatCurrency(dept.perDay)} ({dept.procsPerDay.toFixed(1)} proc.)
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-emerald-600 text-xs font-medium">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Meta 3 atingida!
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
