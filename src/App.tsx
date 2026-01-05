@@ -14,7 +14,7 @@ import Admin from "./pages/Admin";
 import DataReports from "./pages/DataReports";
 import Guides from "./pages/Guides";
 import ReferralLeads from "./pages/ReferralLeads";
-import PatientKanban from "./pages/PatientKanban";
+
 import OnboardingGoals from "./pages/OnboardingGoals";
 import SalesDashboard from "./pages/SalesDashboard";
 import SalesUpload from "./pages/SalesUpload";
@@ -42,7 +42,7 @@ const App = () => (
             <Route path="/data-reports" element={<ProtectedRoute><DataReports /></ProtectedRoute>} />
             <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
             <Route path="/referral-leads" element={<ProtectedRoute><ReferralLeads /></ProtectedRoute>} />
-            <Route path="/patient-kanban" element={<ProtectedRoute><PatientKanban /></ProtectedRoute>} />
+            
             <Route path="/guias-comerciais" element={<ProtectedRoute><CommercialGuides /></ProtectedRoute>} />
             <Route path="/cancellations" element={<ProtectedRoute><Cancellations /></ProtectedRoute>} />
             <Route path="/assistente-comercial" element={<ProtectedRoute><CommercialAssistantPage /></ProtectedRoute>} />
