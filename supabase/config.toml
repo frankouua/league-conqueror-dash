@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.pace-alert]
 verify_jwt = false
+
+[functions.campaign-alerts]
+verify_jwt = false
