@@ -368,25 +368,32 @@ const HistoricalComparison = () => {
     }
     
     // Best performing month
-    const best2025 = comparisonChartData.reduce((best, curr) => 
-      curr.revenue2025 > best.revenue2025 ? curr : best
-    );
-    result.push({
-      type: 'info',
-      title: `Melhor Mês de 2025: ${best2025.fullMonthName}`,
-      description: `Faturamento de R$ ${(best2025.revenue2025/1000000).toFixed(2)}M. Analise o que foi feito diferente neste mês para replicar.`
-    });
+    if (comparisonChartData.length > 0) {
+      const best2025 = comparisonChartData.reduce((best, curr) => 
+        curr.revenue2025 > best.revenue2025 ? curr : best
+      );
+      if (best2025.revenue2025 > 0) {
+        result.push({
+          type: 'info',
+          title: `Melhor Mês de 2025: ${best2025.fullMonthName}`,
+          description: `Faturamento de R$ ${(best2025.revenue2025/1000000).toFixed(2)}M. Analise o que foi feito diferente neste mês para replicar.`
+        });
+      }
     
-    // Worst performing month
-    const worst2025 = comparisonChartData.filter(d => d.revenue2025 > 0).reduce((worst, curr) => 
-      curr.revenue2025 < worst.revenue2025 ? curr : worst
-    );
-    if (worst2025.revenue2025 > 0) {
-      result.push({
-        type: 'warning',
-        title: `Mês de Atenção: ${worst2025.fullMonthName}`,
-        description: `Menor faturamento: R$ ${(worst2025.revenue2025/1000000).toFixed(2)}M. Considere campanhas especiais para este período em 2026.`
-      });
+      // Worst performing month
+      const filteredForWorst = comparisonChartData.filter(d => d.revenue2025 > 0);
+      if (filteredForWorst.length > 0) {
+        const worst2025 = filteredForWorst.reduce((worst, curr) => 
+          curr.revenue2025 < worst.revenue2025 ? curr : worst
+        );
+        if (worst2025.revenue2025 > 0) {
+          result.push({
+            type: 'warning',
+            title: `Mês de Atenção: ${worst2025.fullMonthName}`,
+            description: `Menor faturamento: R$ ${(worst2025.revenue2025/1000000).toFixed(2)}M. Considere campanhas especiais para este período em 2026.`
+          });
+        }
+      }
     }
     
     // Department insights
@@ -395,7 +402,7 @@ const HistoricalComparison = () => {
       result.push({
         type: 'success',
         title: `Departamento Líder: ${topDept.shortName}`,
-        description: `Representa ${((topDept.revenue2025 / rev2025) * 100).toFixed(1)}% do faturamento. ${topDept.revenueGrowth > 0 ? `Crescimento de +${topDept.revenueGrowth.toFixed(1)}%` : `Queda de ${topDept.revenueGrowth.toFixed(1)}%`} vs 2024.`
+        description: `Representa ${((topDept.revenue2025 / (rev2025 || 1)) * 100).toFixed(1)}% do faturamento. ${topDept.revenueGrowth > 0 ? `Crescimento de +${topDept.revenueGrowth.toFixed(1)}%` : `Queda de ${topDept.revenueGrowth.toFixed(1)}%`} vs 2024.`
       });
     }
     
@@ -410,22 +417,24 @@ const HistoricalComparison = () => {
     });
     
     // Seasonality strategies
-    const bestQuarter = seasonalityData.reduce((best, curr) => 
-      curr.revenue2025 > best.revenue2025 ? curr : best
-    );
-    const worstQuarter = seasonalityData.reduce((worst, curr) => 
-      curr.revenue2025 < worst.revenue2025 ? curr : worst
-    );
-    
-    result.push({
-      type: 'strategy',
-      title: `Sazonalidade: ${bestQuarter.name} é o período mais forte`,
-      description: `Prepare-se para o próximo ${bestQuarter.name} com estoque, equipe e campanhas. ${worstQuarter.name} precisa de estratégias especiais para atrair clientes.`
-    });
+    if (seasonalityData.length > 0) {
+      const bestQuarter = seasonalityData.reduce((best, curr) => 
+        curr.revenue2025 > best.revenue2025 ? curr : best
+      );
+      const worstQuarter = seasonalityData.reduce((worst, curr) => 
+        curr.revenue2025 < worst.revenue2025 ? curr : worst
+      );
+      
+      result.push({
+        type: 'strategy',
+        title: `Sazonalidade: ${bestQuarter.name} é o período mais forte`,
+        description: `Prepare-se para o próximo ${bestQuarter.name} com estoque, equipe e campanhas. ${worstQuarter.name} precisa de estratégias especiais para atrair clientes.`
+      });
+    }
     
     // June strategy (typically weak)
     const june2025 = comparisonChartData.find(d => d.month === 6);
-    if (june2025 && june2025.revenue2025 < rev2025 / 12) {
+    if (june2025 && rev2025 > 0 && june2025.revenue2025 < rev2025 / 12) {
       result.push({
         type: 'strategy',
         title: 'Estratégia para Junho',
@@ -435,7 +444,7 @@ const HistoricalComparison = () => {
     
     // Execution gap
     const execRate2025 = rev2025 > 0 ? ((yearTotals[2025]?.executed || 0) / rev2025) * 100 : 0;
-    if (execRate2025 < 60) {
+    if (execRate2025 < 60 && execRate2025 > 0) {
       result.push({
         type: 'warning',
         title: `Taxa de Execução: ${execRate2025.toFixed(1)}%`,
@@ -628,11 +637,15 @@ const HistoricalComparison = () => {
                   <Sparkles className="w-5 h-5 text-amber-500" />
                 </div>
                 <p className="text-2xl font-bold">
-                  {comparisonChartData.reduce((best, curr) => curr.revenue2025 > best.revenue2025 ? curr : best).monthName}
+                  {comparisonChartData.length > 0 
+                    ? comparisonChartData.reduce((best, curr) => curr.revenue2025 > best.revenue2025 ? curr : best).monthName 
+                    : '-'}
                 </p>
                 <p className="text-xs text-muted-foreground">Melhor Mês 2025</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {formatMillions(comparisonChartData.reduce((best, curr) => curr.revenue2025 > best.revenue2025 ? curr : best).revenue2025)}
+                  {comparisonChartData.length > 0 
+                    ? formatMillions(comparisonChartData.reduce((best, curr) => curr.revenue2025 > best.revenue2025 ? curr : best).revenue2025) 
+                    : 'R$ 0'}
                 </p>
               </CardContent>
             </Card>
@@ -1018,7 +1031,7 @@ const HistoricalComparison = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              {(() => {
+              {seasonalityData.length > 0 ? (() => {
                 const best = seasonalityData.reduce((a, b) => a.revenue2025 > b.revenue2025 ? a : b);
                 const worst = seasonalityData.reduce((a, b) => a.revenue2025 < b.revenue2025 ? a : b);
                 return (
@@ -1041,7 +1054,9 @@ const HistoricalComparison = () => {
                     </p>
                   </>
                 );
-              })()}
+              })() : (
+                <p className="text-muted-foreground">Carregando dados de sazonalidade...</p>
+              )}
             </CardContent>
           </Card>
         </>
