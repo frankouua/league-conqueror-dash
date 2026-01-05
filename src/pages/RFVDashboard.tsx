@@ -365,6 +365,14 @@ const RFVDashboard = () => {
   const [selectedScriptType, setSelectedScriptType] = useState<string>('');
   const [customMessage, setCustomMessage] = useState('');
   const [copiedScript, setCopiedScript] = useState(false);
+  
+  // Bulk WhatsApp Action states
+  const [showBulkAction, setShowBulkAction] = useState(false);
+  const [bulkScriptType, setBulkScriptType] = useState<string>('');
+  const [bulkMessage, setBulkMessage] = useState('');
+  const [bulkProgress, setBulkProgress] = useState(0);
+  const [isSendingBulk, setIsSendingBulk] = useState(false);
+  const [bulkSentCount, setBulkSentCount] = useState(0);
 
   // Get scripts for customer segment
   const getScriptsForCustomer = (customer: RFVCustomer) => {
@@ -438,6 +446,143 @@ const RFVDashboard = () => {
     window.open(whatsappUrl, '_blank');
     toast({ title: "Abrindo WhatsApp..." });
     setShowQuickAction(false);
+  };
+
+  // Get a generic script for bulk messaging
+  const getBulkScripts = (segment: RFVSegment | 'all') => {
+    const currentCampaign = getCurrentMonthCampaign();
+    
+    const scripts = [
+      {
+        key: 'relationship',
+        title: "💙 Relacionamento",
+        text: "Olá {nome}! 💕 A Unique sente sua falta! Queremos saber como você está. Temos novidades incríveis esperando por você!",
+      },
+      {
+        key: 'referral',
+        title: "🎁 Indicação",
+        text: "Oi {nome}! ✨ Você sabia que indicando uma amiga para a Unique, vocês duas ganham benefícios especiais? É nossa forma de agradecer sua confiança!",
+      },
+      {
+        key: 'campaign',
+        title: `📣 Campanha: ${currentCampaign.name}`,
+        text: `Oi {nome}! 🔥 ${currentCampaign.script} ${currentCampaign.offer}. Quer saber mais?`,
+      },
+      {
+        key: 'reactivation',
+        title: "💫 Reativação",
+        text: "Olá {nome}! 🌸 Faz tempo que não nos vemos e sentimos sua falta! Preparamos condições especiais para seu retorno. Vamos conversar?",
+      },
+      {
+        key: 'promo',
+        title: "🏷️ Promoção",
+        text: "Oi {nome}! 🎁 Temos uma promoção exclusiva para você! Condições especiais só para clientes especiais como você. Posso contar mais?",
+      },
+      {
+        key: 'upsell',
+        title: "✨ Novos Procedimentos",
+        text: "Olá {nome}! 🌟 Temos novidades incríveis que combinam perfeitamente com você! Novos tratamentos e resultados ainda melhores. Quer conhecer?",
+      },
+    ];
+    
+    return scripts;
+  };
+
+  const handleSelectBulkScript = (scriptKey: string, scriptText: string) => {
+    setBulkScriptType(scriptKey);
+    setBulkMessage(scriptText);
+  };
+
+  const getCustomersWithPhone = () => {
+    return filteredCustomers.filter(c => c.whatsapp || c.phone);
+  };
+
+  const handleBulkWhatsAppOpen = async () => {
+    const customersWithPhone = getCustomersWithPhone();
+    
+    if (customersWithPhone.length === 0) {
+      toast({ title: "Nenhum cliente com telefone", description: "Os clientes filtrados não possuem telefone cadastrado.", variant: "destructive" });
+      return;
+    }
+
+    if (!bulkMessage) {
+      toast({ title: "Mensagem vazia", description: "Selecione ou escreva uma mensagem para enviar.", variant: "destructive" });
+      return;
+    }
+
+    setIsSendingBulk(true);
+    setBulkProgress(0);
+    setBulkSentCount(0);
+
+    // Log bulk action start
+    try {
+      await supabase.from('rfv_action_history').insert({
+        customer_name: `Disparo em massa para ${customersWithPhone.length} clientes`,
+        action_type: `bulk_${bulkScriptType || 'custom'}`,
+        notes: `Mensagem: ${bulkMessage.substring(0, 200)}...`,
+        performed_by: user?.id || '',
+        performed_by_name: profile?.full_name || 'Usuário',
+      });
+    } catch (error) {
+      console.error('Error logging bulk action:', error);
+    }
+
+    // Open WhatsApp links one by one with delay
+    for (let i = 0; i < customersWithPhone.length; i++) {
+      const customer = customersWithPhone[i];
+      const phone = customer.whatsapp || customer.phone;
+      if (!phone) continue;
+
+      const cleanPhone = phone.replace(/\D/g, '');
+      const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      const personalizedMessage = bulkMessage.replace(/{nome}/g, customer.name.split(' ')[0]);
+      const whatsappUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(personalizedMessage)}`;
+
+      // Save individual action
+      try {
+        await supabase.from('rfv_action_history').insert({
+          customer_id: customer.id,
+          customer_name: customer.name,
+          action_type: `bulk_${bulkScriptType || 'custom'}`,
+          notes: personalizedMessage.substring(0, 500),
+          performed_by: user?.id || '',
+          performed_by_name: profile?.full_name || 'Usuário',
+        });
+      } catch (error) {
+        console.error('Error saving action:', error);
+      }
+
+      window.open(whatsappUrl, '_blank');
+      
+      setBulkSentCount(i + 1);
+      setBulkProgress(Math.round(((i + 1) / customersWithPhone.length) * 100));
+
+      // Wait 2 seconds between each to avoid overwhelming
+      if (i < customersWithPhone.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
+    setIsSendingBulk(false);
+    toast({ 
+      title: "Disparo concluído!", 
+      description: `${customersWithPhone.length} clientes foram adicionados para contato.` 
+    });
+  };
+
+  const handleCopyBulkLinks = () => {
+    const customersWithPhone = getCustomersWithPhone();
+    const links = customersWithPhone.map(customer => {
+      const phone = customer.whatsapp || customer.phone;
+      if (!phone) return null;
+      const cleanPhone = phone.replace(/\D/g, '');
+      const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      const personalizedMessage = bulkMessage.replace(/{nome}/g, customer.name.split(' ')[0]);
+      return `${customer.name}: https://wa.me/${fullPhone}?text=${encodeURIComponent(personalizedMessage)}`;
+    }).filter(Boolean).join('\n\n');
+
+    navigator.clipboard.writeText(links);
+    toast({ title: "Links copiados!", description: `${customersWithPhone.length} links de WhatsApp copiados.` });
   };
 
   // Load existing RFV data and upload logs on mount
@@ -2117,7 +2262,26 @@ const RFVDashboard = () => {
                     </span>
 
                     <div className="flex flex-col items-start sm:items-end gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button 
+                          size="sm" 
+                          className="gap-2 bg-green-600 hover:bg-green-700"
+                          onClick={() => {
+                            setBulkScriptType('');
+                            setBulkMessage('');
+                            setBulkProgress(0);
+                            setBulkSentCount(0);
+                            setIsSendingBulk(false);
+                            setShowBulkAction(true);
+                          }}
+                          disabled={getCustomersWithPhone().length === 0}
+                        >
+                          <Send className="h-4 w-4" />
+                          Disparo em Massa
+                          <Badge variant="secondary" className="bg-white/20 text-white">
+                            {getCustomersWithPhone().length}
+                          </Badge>
+                        </Button>
                         <Button variant="outline" size="sm" onClick={exportToExcel}>
                           <FileSpreadsheet className="h-4 w-4 mr-2" />
                           Exportar Excel
@@ -2732,6 +2896,166 @@ const RFVDashboard = () => {
             >
               <Send className="h-4 w-4" />
               Abrir WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk WhatsApp Action Dialog */}
+      <Dialog open={showBulkAction} onOpenChange={setShowBulkAction}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-green-500" />
+              Disparo em Massa - WhatsApp
+            </DialogTitle>
+            <DialogDescription className="flex items-center gap-2">
+              <Badge variant="secondary" className="gap-1">
+                <Users className="h-3 w-3" />
+                {getCustomersWithPhone().length} clientes com telefone
+              </Badge>
+              {selectedSegment !== 'all' && (
+                <Badge className={`${RFV_SEGMENTS[selectedSegment].color} text-white`}>
+                  {RFV_SEGMENTS[selectedSegment].name}
+                </Badge>
+              )}
+              {hasActiveFilters && (
+                <Badge variant="outline">Filtros ativos</Badge>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4 flex-1 overflow-hidden">
+            {/* Script Selection */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Escolha o tipo de mensagem:</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {getBulkScripts(selectedSegment).map(script => (
+                  <Button
+                    key={script.key}
+                    variant={bulkScriptType === script.key ? "default" : "outline"}
+                    size="sm"
+                    className="gap-2 justify-start text-left h-auto py-2"
+                    onClick={() => handleSelectBulkScript(script.key, script.text)}
+                  >
+                    <span className="text-sm">{script.title}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Message Editor */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">
+                  Mensagem (use {'{nome}'} para personalizar):
+                </Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 h-7"
+                  onClick={() => {
+                    navigator.clipboard.writeText(bulkMessage);
+                    toast({ title: "Mensagem copiada!" });
+                  }}
+                  disabled={!bulkMessage}
+                >
+                  <Copy className="h-3 w-3" />
+                  Copiar
+                </Button>
+              </div>
+              <Textarea
+                placeholder="Selecione um script acima ou escreva sua mensagem... Use {nome} para personalizar com o nome do cliente."
+                value={bulkMessage}
+                onChange={(e) => setBulkMessage(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+
+            {/* Preview */}
+            {bulkMessage && (
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <Label className="text-xs text-muted-foreground">Preview (primeiro cliente):</Label>
+                <p className="text-sm mt-1">
+                  {bulkMessage.replace(/{nome}/g, getCustomersWithPhone()[0]?.name.split(' ')[0] || 'Cliente')}
+                </p>
+              </div>
+            )}
+
+            {/* Stats Summary */}
+            <div className="p-4 rounded-lg bg-muted/50 border border-border">
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Total Filtrados</p>
+                  <p className="font-bold text-lg">{filteredCustomers.length}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Com Telefone</p>
+                  <p className="font-bold text-lg text-green-600">{getCustomersWithPhone().length}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Sem Telefone</p>
+                  <p className="font-bold text-lg text-red-500">{filteredCustomers.length - getCustomersWithPhone().length}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress */}
+            {isSendingBulk && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Enviando mensagens...</span>
+                  <span className="font-medium">{bulkSentCount} de {getCustomersWithPhone().length}</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-3">
+                  <div 
+                    className="bg-green-500 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${bulkProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Warning */}
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                O disparo abrirá uma nova aba do WhatsApp para cada cliente com intervalo de 2 segundos. 
+                Mantenha a janela aberta até concluir. Recomendamos enviar em lotes menores para não sobrecarregar.
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          <DialogFooter className="gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setShowBulkAction(false)} disabled={isSendingBulk}>
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleCopyBulkLinks}
+              disabled={!bulkMessage || getCustomersWithPhone().length === 0}
+            >
+              <Copy className="h-4 w-4" />
+              Copiar Links
+            </Button>
+            <Button
+              className="gap-2 bg-green-600 hover:bg-green-700"
+              onClick={handleBulkWhatsAppOpen}
+              disabled={!bulkMessage || getCustomersWithPhone().length === 0 || isSendingBulk}
+            >
+              {isSendingBulk ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Iniciar Disparo ({getCustomersWithPhone().length})
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
