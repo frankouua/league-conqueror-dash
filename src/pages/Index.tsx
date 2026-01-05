@@ -32,6 +32,7 @@ import AchievementsBadgesDisplay from "@/components/AchievementsBadgesDisplay";
 import SmartDailyGoals from "@/components/SmartDailyGoals";
 import SalesForecastPanel from "@/components/SalesForecastPanel";
 import MonthComparisonPanel from "@/components/MonthComparisonPanel";
+import TeamMembersOverview from "@/components/TeamMembersOverview";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -325,6 +326,9 @@ const Index = () => {
                 </p>
               </div>
             )}
+
+            {/* Team Members Overview - NEW */}
+            <TeamMembersOverview month={selectedMonth} year={selectedYear} />
 
             {/* Daily Goals & Lead Response Metrics */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
