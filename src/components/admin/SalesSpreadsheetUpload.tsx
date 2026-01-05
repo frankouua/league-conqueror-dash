@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History, RefreshCw, LayoutDashboard, CheckCircle2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History, RefreshCw, LayoutDashboard, CheckCircle2, Trash2, CheckSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -127,6 +127,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [uploadHistory, setUploadHistory] = useState<UploadLog[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [selectedErrorRows, setSelectedErrorRows] = useState<Set<number>>(new Set());
 
   // Function to refresh all dashboard data
   const refreshAllDashboards = () => {
@@ -761,10 +763,158 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       }
       return updated;
     });
+    // Clear from selection
+    setSelectedErrorRows(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(index);
+      return newSet;
+    });
     // Recalculate metrics
     setTimeout(() => {
       setMetrics(calculateMetrics(parsedSales));
     }, 100);
+  };
+
+  // Function to validate multiple error rows at once
+  const validateSelectedErrorRows = () => {
+    if (selectedErrorRows.size === 0) return;
+    
+    setParsedSales(prev => {
+      const updated = [...prev];
+      selectedErrorRows.forEach(index => {
+        const sale = updated[index];
+        if (sale?.status === 'error' && sale.errorMessage === 'Valor zero') {
+          if (sale.matchedUserId && sale.matchedTeamId) {
+            updated[index] = { ...sale, status: 'matched', errorMessage: undefined };
+          } else {
+            updated[index] = { ...sale, status: 'unmatched', errorMessage: undefined };
+          }
+        }
+      });
+      return updated;
+    });
+    
+    toast({
+      title: "✅ Linhas validadas",
+      description: `${selectedErrorRows.size} linhas foram marcadas como válidas.`,
+    });
+    
+    setSelectedErrorRows(new Set());
+    
+    // Recalculate metrics
+    setTimeout(() => {
+      setMetrics(calculateMetrics(parsedSales));
+    }, 100);
+  };
+
+  // Function to toggle selection of an error row
+  const toggleErrorRowSelection = (index: number) => {
+    setSelectedErrorRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  // Function to select all "Valor zero" error rows
+  const selectAllZeroValueErrors = () => {
+    const zeroValueIndices = parsedSales
+      .slice(0, 50)
+      .map((sale, index) => ({ sale, index }))
+      .filter(({ sale }) => sale.status === 'error' && sale.errorMessage === 'Valor zero')
+      .map(({ index }) => index);
+    
+    setSelectedErrorRows(new Set(zeroValueIndices));
+  };
+
+  // Function to delete an upload and its records
+  const deleteUpload = async (uploadId: string, uploadLog: UploadLog) => {
+    const confirmDelete = window.confirm(
+      `⚠️ Atenção!\n\nVocê está prestes a excluir a importação de:\n` +
+      `📅 ${format(new Date(uploadLog.uploaded_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\n` +
+      `📊 ${uploadLog.imported_rows} registros\n` +
+      `💰 ${Number(uploadLog.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} vendido\n\n` +
+      `Isso irá excluir TODOS os registros de vendas/executado importados neste upload.\n\n` +
+      `Deseja continuar?`
+    );
+    
+    if (!confirmDelete) return;
+    
+    setIsDeleting(uploadId);
+    
+    try {
+      // Determine the date range to delete
+      const dateStart = uploadLog.date_range_start;
+      const dateEnd = uploadLog.date_range_end;
+      
+      if (dateStart && dateEnd) {
+        // Delete from revenue_records for that date range
+        // We need to match by uploaded time approximately - delete records created around that time
+        const uploadTime = new Date(uploadLog.uploaded_at);
+        const startWindow = new Date(uploadTime.getTime() - 5 * 60 * 1000); // 5 min before
+        const endWindow = new Date(uploadTime.getTime() + 5 * 60 * 1000); // 5 min after
+        
+        // Delete revenue_records that match the date range and were created around upload time
+        const { error: revenueError } = await supabase
+          .from('revenue_records')
+          .delete()
+          .gte('date', dateStart)
+          .lte('date', dateEnd)
+          .gte('created_at', startWindow.toISOString())
+          .lte('created_at', endWindow.toISOString());
+        
+        if (revenueError) {
+          console.error('Error deleting revenue records:', revenueError);
+        }
+        
+        // Also try executed_records
+        const { error: executedError } = await supabase
+          .from('executed_records')
+          .delete()
+          .gte('date', dateStart)
+          .lte('date', dateEnd)
+          .gte('created_at', startWindow.toISOString())
+          .lte('created_at', endWindow.toISOString());
+        
+        if (executedError) {
+          console.error('Error deleting executed records:', executedError);
+        }
+      }
+      
+      // Delete the upload log itself
+      const { error: logError } = await supabase
+        .from('sales_upload_logs')
+        .delete()
+        .eq('id', uploadId);
+      
+      if (logError) {
+        throw logError;
+      }
+      
+      // Refresh history
+      await fetchUploadHistory();
+      
+      // Refresh dashboards
+      refreshAllDashboards();
+      
+      toast({
+        title: "🗑️ Upload Excluído",
+        description: `A importação e seus ${uploadLog.imported_rows} registros foram removidos.`,
+      });
+    } catch (error) {
+      console.error('Error deleting upload:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o upload. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+    
+    setIsDeleting(null);
   };
 
   const importSales = async (salesToImport?: ParsedSale[]) => {
@@ -1395,6 +1545,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                     <TableHead className="text-right">Importadas</TableHead>
                     <TableHead className="text-right">Vendido</TableHead>
                     <TableHead className="text-right">Recebido</TableHead>
+                    <TableHead className="text-center">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1411,6 +1562,21 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                       </TableCell>
                       <TableCell className="text-right text-green-600">
                         {Number(log.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteUpload(log.id, log)}
+                          disabled={isDeleting === log.id}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          {isDeleting === log.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -2116,16 +2282,46 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       {parsedSales.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Prévia dos Dados</CardTitle>
-            <CardDescription>
-              Primeiras 50 linhas. Vendas sem vendedor mapeado podem ser corrigidas clicando no botão de adicionar.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Prévia dos Dados</CardTitle>
+                <CardDescription>
+                  Primeiras 50 linhas. Vendas sem vendedor mapeado podem ser corrigidas clicando no botão de adicionar.
+                </CardDescription>
+              </div>
+              
+              {/* Mass validation controls */}
+              {parsedSales.slice(0, 50).some(s => s.status === 'error' && s.errorMessage === 'Valor zero') && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={selectAllZeroValueErrors}
+                    className="gap-2"
+                  >
+                    <CheckSquare className="w-4 h-4" />
+                    Selecionar Todos
+                  </Button>
+                  {selectedErrorRows.size > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={validateSelectedErrorRows}
+                      className="gap-2 bg-green-600 hover:bg-green-700"
+                    >
+                      <Check className="w-4 h-4" />
+                      Validar {selectedErrorRows.size} selecionados
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="max-h-[500px] overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Departamento</TableHead>
@@ -2138,6 +2334,16 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                 <TableBody>
                   {parsedSales.slice(0, 50).map((sale, index) => (
                     <TableRow key={index} className={sale.status === 'error' ? 'bg-destructive/10' : ''}>
+                      <TableCell>
+                        {sale.status === 'error' && sale.errorMessage === 'Valor zero' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedErrorRows.has(index)}
+                            onChange={() => toggleErrorRowSelection(index)}
+                            className="w-4 h-4 rounded border-border cursor-pointer"
+                          />
+                        )}
+                      </TableCell>
                       <TableCell>
                         {sale.status === 'matched' && (
                           <Badge variant="default" className="bg-green-600">
