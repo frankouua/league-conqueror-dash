@@ -201,6 +201,7 @@ const ReferralLeads = () => {
   // New lead dialog
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
   const [newLead, setNewLead] = useState({
     referrer_name: "",
     referrer_phone: "",
@@ -209,6 +210,7 @@ const ReferralLeads = () => {
     referred_email: "",
     assigned_to: "",
     notes: "",
+    team_id: "", // For admins without team_id
   });
 
   // Edit lead dialog
@@ -285,10 +287,19 @@ const ReferralLeads = () => {
     if (data) setTeamMembers(data);
   };
 
+  const fetchTeams = async () => {
+    const { data } = await supabase
+      .from("teams")
+      .select("id, name")
+      .order("name");
+    if (data) setTeams(data);
+  };
+
   useEffect(() => {
     if (role === "admin" || profile?.team_id) {
       fetchLeads();
       fetchTeamMembers();
+      if (role === "admin") fetchTeams();
     }
   }, [profile?.team_id, role]);
 
@@ -341,7 +352,16 @@ const ReferralLeads = () => {
   };
 
   const handleCreateLead = async () => {
-    if (!user || !profile?.team_id) return;
+    if (!user) return;
+    
+    // Determine team_id: use profile.team_id or newLead.team_id for admins
+    const teamId = profile?.team_id || newLead.team_id;
+    
+    if (!teamId) {
+      toast({ title: "Erro", description: "Selecione um time para a indicação", variant: "destructive" });
+      return;
+    }
+    
     if (!newLead.referrer_name || !newLead.referred_name) {
       toast({ title: "Erro", description: "Preencha os campos obrigatórios", variant: "destructive" });
       return;
@@ -351,7 +371,7 @@ const ReferralLeads = () => {
 
     try {
       const { data, error } = await supabase.from("referral_leads").insert({
-        team_id: profile.team_id,
+        team_id: teamId,
         referrer_name: newLead.referrer_name,
         referrer_phone: newLead.referrer_phone || null,
         referred_name: newLead.referred_name,
@@ -371,7 +391,7 @@ const ReferralLeads = () => {
           lead_id: data.id,
           lead_name: newLead.referred_name,
           referrer_name: newLead.referrer_name,
-          team_id: profile.team_id,
+          team_id: teamId,
           assigned_to: newLead.assigned_to || undefined,
           registered_by: user.id,
         });
@@ -387,6 +407,7 @@ const ReferralLeads = () => {
         referred_email: "",
         assigned_to: "",
         notes: "",
+        team_id: "",
       });
       fetchLeads();
     } catch (error: any) {
@@ -792,6 +813,28 @@ const ReferralLeads = () => {
                 </div>
               </div>
             </div>
+
+            {/* Team selector for admins without team_id */}
+            {role === "admin" && !profile?.team_id && (
+              <div>
+                <Label className="text-foreground">Time *</Label>
+                <Select
+                  value={newLead.team_id}
+                  onValueChange={(value) => setNewLead({ ...newLead, team_id: value })}
+                >
+                  <SelectTrigger className="bg-secondary border-border">
+                    <SelectValue placeholder="Selecione o time" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div>
               <Label className="text-foreground">Responsável pelo contato</Label>
