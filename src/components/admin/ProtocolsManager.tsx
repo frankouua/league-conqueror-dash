@@ -31,9 +31,18 @@ import {
   Plus, Syringe, Package, Route, Edit2, Trash2, Send, 
   Users, Target, DollarSign, Clock, MessageSquare, Copy,
   Check, Star, TrendingUp, FileText, Crown, Heart, Zap,
-  AlertTriangle, RefreshCw, Loader2, ExternalLink, Eye
+  AlertTriangle, RefreshCw, Loader2, ExternalLink, Eye,
+  Upload, Image, Link, File, X, Download
 } from "lucide-react";
 import { toast } from "sonner";
+
+interface ProtocolMaterial {
+  id: string;
+  type: 'pdf' | 'image' | 'link';
+  title: string;
+  url: string;
+  file_name?: string;
+}
 
 const PROTOCOL_TYPES = [
   { value: 'procedimento', label: 'Procedimento', icon: Syringe, color: 'bg-blue-500' },
@@ -84,6 +93,7 @@ interface ProtocolFormData {
   included_items: string;
   sales_script: string;
   whatsapp_scripts: Record<string, string>;
+  materials: ProtocolMaterial[];
   is_active: boolean;
   is_featured: boolean;
 }
@@ -101,6 +111,7 @@ const emptyFormData: ProtocolFormData = {
   included_items: '',
   sales_script: '',
   whatsapp_scripts: {},
+  materials: [],
   is_active: true,
   is_featured: false,
 };
@@ -189,6 +200,7 @@ const ProtocolsManager = () => {
         included_items: data.included_items ? data.included_items.split('\n').filter(i => i.trim()) : null,
         sales_script: data.sales_script || null,
         whatsapp_scripts: data.whatsapp_scripts,
+        materials: JSON.parse(JSON.stringify(data.materials)),
         is_active: data.is_active,
         is_featured: data.is_featured,
         created_by: user?.id || '',
@@ -258,6 +270,7 @@ const ProtocolsManager = () => {
       included_items: protocol.included_items?.join('\n') || '',
       sales_script: protocol.sales_script || '',
       whatsapp_scripts: protocol.whatsapp_scripts || {},
+      materials: (protocol.materials as ProtocolMaterial[]) || [],
       is_active: protocol.is_active,
       is_featured: protocol.is_featured,
     });
@@ -527,6 +540,14 @@ const ProtocolsManager = () => {
                     </div>
                   </div>
 
+                  {/* Materials Badge */}
+                  {protocol.materials && (protocol.materials as ProtocolMaterial[]).length > 0 && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <FileText className="h-3 w-3" />
+                      <span>{(protocol.materials as ProtocolMaterial[]).length} materiais de apoio</span>
+                    </div>
+                  )}
+
                   {/* Actions */}
                   <div className="flex gap-2 pt-2 border-t">
                     <Button 
@@ -582,10 +603,11 @@ const ProtocolsManager = () => {
 
           <ScrollArea className="flex-1 pr-4">
             <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 <TabsTrigger value="details">Detalhes</TabsTrigger>
                 <TabsTrigger value="scripts">Scripts</TabsTrigger>
+                <TabsTrigger value="materials">Materiais</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info" className="space-y-4 mt-4">
@@ -779,6 +801,187 @@ const ProtocolsManager = () => {
                   })}
                 </div>
               </TabsContent>
+
+              <TabsContent value="materials" className="space-y-4 mt-4">
+                {/* Add Link Material */}
+                <div className="space-y-3">
+                  <Label>Adicionar Material de Apoio</Label>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    {/* Link Form */}
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Link className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm font-medium">Link Externo</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          id="link-title"
+                          placeholder="Título do link"
+                          className="flex-1"
+                        />
+                        <Input
+                          id="link-url"
+                          placeholder="https://..."
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const titleInput = document.getElementById('link-title') as HTMLInputElement;
+                            const urlInput = document.getElementById('link-url') as HTMLInputElement;
+                            if (titleInput.value && urlInput.value) {
+                              const newMaterial: ProtocolMaterial = {
+                                id: crypto.randomUUID(),
+                                type: 'link',
+                                title: titleInput.value,
+                                url: urlInput.value,
+                              };
+                              setFormData({
+                                ...formData,
+                                materials: [...formData.materials, newMaterial],
+                              });
+                              titleInput.value = '';
+                              urlInput.value = '';
+                              toast.success('Link adicionado!');
+                            }
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* File Upload */}
+                    <div className="p-3 rounded-lg border bg-muted/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Upload className="h-4 w-4 text-green-500" />
+                        <span className="text-sm font-medium">Upload de Arquivo (PDF ou Imagem)</span>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          id="file-title"
+                          placeholder="Título do arquivo"
+                          className="flex-1"
+                        />
+                        <Input
+                          id="file-upload"
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
+                          className="flex-1"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            const titleInput = document.getElementById('file-title') as HTMLInputElement;
+                            if (!file) return;
+                            
+                            const title = titleInput.value || file.name;
+                            const fileExt = file.name.split('.').pop()?.toLowerCase();
+                            const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(fileExt || '');
+                            const fileName = `${Date.now()}-${file.name}`;
+                            
+                            toast.loading('Enviando arquivo...', { id: 'upload' });
+                            
+                            const { data: uploadData, error: uploadError } = await supabase.storage
+                              .from('protocol-materials')
+                              .upload(fileName, file);
+                            
+                            if (uploadError) {
+                              toast.error('Erro no upload: ' + uploadError.message, { id: 'upload' });
+                              return;
+                            }
+                            
+                            const { data: { publicUrl } } = supabase.storage
+                              .from('protocol-materials')
+                              .getPublicUrl(fileName);
+                            
+                            const newMaterial: ProtocolMaterial = {
+                              id: crypto.randomUUID(),
+                              type: isImage ? 'image' : 'pdf',
+                              title,
+                              url: publicUrl,
+                              file_name: fileName,
+                            };
+                            
+                            setFormData({
+                              ...formData,
+                              materials: [...formData.materials, newMaterial],
+                            });
+                            
+                            e.target.value = '';
+                            titleInput.value = '';
+                            toast.success('Arquivo enviado!', { id: 'upload' });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Materials List */}
+                <div className="space-y-2">
+                  <Label>Materiais Adicionados ({formData.materials.length})</Label>
+                  {formData.materials.length === 0 ? (
+                    <div className="text-center py-6 border rounded-lg bg-muted/20">
+                      <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Nenhum material adicionado</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {formData.materials.map((material, index) => (
+                        <div 
+                          key={material.id}
+                          className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                        >
+                          <div className="p-2 rounded-lg bg-muted">
+                            {material.type === 'pdf' && <FileText className="h-4 w-4 text-red-500" />}
+                            {material.type === 'image' && <Image className="h-4 w-4 text-green-500" />}
+                            {material.type === 'link' && <Link className="h-4 w-4 text-blue-500" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{material.title}</p>
+                            <p className="text-xs text-muted-foreground truncate">{material.url}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              asChild
+                            >
+                              <a href={material.url} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={async () => {
+                                // If it's a file, delete from storage
+                                if (material.file_name) {
+                                  await supabase.storage
+                                    .from('protocol-materials')
+                                    .remove([material.file_name]);
+                                }
+                                setFormData({
+                                  ...formData,
+                                  materials: formData.materials.filter(m => m.id !== material.id),
+                                });
+                                toast.success('Material removido');
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
           </ScrollArea>
 
@@ -823,6 +1026,32 @@ const ProtocolsManager = () => {
           </DialogHeader>
 
           <div className="space-y-4 py-4 flex-1 overflow-hidden">
+            {/* Materials Section */}
+            {selectedProtocol && (selectedProtocol.materials as ProtocolMaterial[])?.length > 0 && (
+              <div className="p-3 rounded-lg bg-muted/50 border">
+                <Label className="text-sm font-medium mb-2 block">Materiais de Apoio</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedProtocol.materials as ProtocolMaterial[]).map(material => (
+                    <Button
+                      key={material.id}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      asChild
+                    >
+                      <a href={material.url} target="_blank" rel="noopener noreferrer">
+                        {material.type === 'pdf' && <FileText className="h-3 w-3 text-red-500" />}
+                        {material.type === 'image' && <Image className="h-3 w-3 text-green-500" />}
+                        {material.type === 'link' && <Link className="h-3 w-3 text-blue-500" />}
+                        {material.title}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Segment Selection */}
             <div>
               <Label className="mb-2 block">Selecione o segmento RFV:</Label>
