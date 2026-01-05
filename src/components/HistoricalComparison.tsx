@@ -137,15 +137,18 @@ interface MonthlyData {
   year: number;
   revenue: number;
   executed: number;
-  quantity: number;
-  avgTicket: number;
+  qtdSold: number;      // Quantidade de procedimentos vendidos
+  qtdExecuted: number;  // Quantidade de procedimentos executados
+  avgTicketSold: number;
+  avgTicketExecuted: number;
 }
 
 interface DepartmentData {
   department: string;
   revenue: number;
   executed: number;
-  quantity: number;
+  qtdSold: number;
+  qtdExecuted: number;
 }
 
 const HistoricalComparison = () => {
@@ -154,7 +157,7 @@ const HistoricalComparison = () => {
   
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [compareYear, setCompareYear] = useState(currentYear - 1);
-  const [viewMode, setViewMode] = useState<'overview' | 'departments' | 'seasonality' | 'insights'>('overview');
+  const [viewMode, setViewMode] = useState<'overview' | 'procedures' | 'departments' | 'seasonality' | 'insights'>('overview');
 
   // Fetch all revenue records
   const { data: revenueRecords = [], isLoading: loadingRevenue } = useQuery({
@@ -203,11 +206,11 @@ const HistoricalComparison = () => {
       const key = `${year}-${month}`;
       
       if (!dataMap.has(key)) {
-        dataMap.set(key, { month, year, revenue: 0, executed: 0, quantity: 0, avgTicket: 0 });
+        dataMap.set(key, { month, year, revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0, avgTicketSold: 0, avgTicketExecuted: 0 });
       }
       const data = dataMap.get(key)!;
       data.revenue += record.amount;
-      data.quantity += 1;
+      data.qtdSold += 1;
     });
     
     executedRecords.forEach(record => {
@@ -217,14 +220,16 @@ const HistoricalComparison = () => {
       const key = `${year}-${month}`;
       
       if (!dataMap.has(key)) {
-        dataMap.set(key, { month, year, revenue: 0, executed: 0, quantity: 0, avgTicket: 0 });
+        dataMap.set(key, { month, year, revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0, avgTicketSold: 0, avgTicketExecuted: 0 });
       }
       const data = dataMap.get(key)!;
       data.executed += record.amount;
+      data.qtdExecuted += 1;
     });
     
     dataMap.forEach(data => {
-      data.avgTicket = data.quantity > 0 ? data.revenue / data.quantity : 0;
+      data.avgTicketSold = data.qtdSold > 0 ? data.revenue / data.qtdSold : 0;
+      data.avgTicketExecuted = data.qtdExecuted > 0 ? data.executed / data.qtdExecuted : 0;
     });
     
     return dataMap;
@@ -244,10 +249,10 @@ const HistoricalComparison = () => {
       const yearData = dataByYear.get(year)!;
       
       if (!yearData.has(dept)) {
-        yearData.set(dept, { department: dept, revenue: 0, executed: 0, quantity: 0 });
+        yearData.set(dept, { department: dept, revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 });
       }
       yearData.get(dept)!.revenue += record.amount;
-      yearData.get(dept)!.quantity += 1;
+      yearData.get(dept)!.qtdSold += 1;
     });
     
     executedRecords.forEach(record => {
@@ -260,9 +265,10 @@ const HistoricalComparison = () => {
       const yearData = dataByYear.get(year)!;
       
       if (!yearData.has(dept)) {
-        yearData.set(dept, { department: dept, revenue: 0, executed: 0, quantity: 0 });
+        yearData.set(dept, { department: dept, revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 });
       }
       yearData.get(dept)!.executed += record.amount;
+      yearData.get(dept)!.qtdExecuted += 1;
     });
     
     return dataByYear;
@@ -270,16 +276,17 @@ const HistoricalComparison = () => {
 
   // Year totals
   const yearTotals = useMemo(() => {
-    const totals: Record<number, { revenue: number; executed: number; quantity: number }> = {};
+    const totals: Record<number, { revenue: number; executed: number; qtdSold: number; qtdExecuted: number }> = {};
     
     monthlyData.forEach((data, key) => {
       const year = data.year;
       if (!totals[year]) {
-        totals[year] = { revenue: 0, executed: 0, quantity: 0 };
+        totals[year] = { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
       }
       totals[year].revenue += data.revenue;
       totals[year].executed += data.executed;
-      totals[year].quantity += data.quantity;
+      totals[year].qtdSold += data.qtdSold;
+      totals[year].qtdExecuted += data.qtdExecuted;
     });
     
     return totals;
@@ -290,12 +297,16 @@ const HistoricalComparison = () => {
     const result = [];
     
     for (let m = 1; m <= 12; m++) {
-      const data2024 = monthlyData.get(`2024-${m}`) || { revenue: 0, executed: 0 };
-      const data2025 = monthlyData.get(`2025-${m}`) || { revenue: 0, executed: 0 };
-      const data2026 = monthlyData.get(`2026-${m}`) || { revenue: 0, executed: 0 };
+      const data2024 = monthlyData.get(`2024-${m}`) || { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
+      const data2025 = monthlyData.get(`2025-${m}`) || { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
+      const data2026 = monthlyData.get(`2026-${m}`) || { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
       
       const growth2425 = data2024.revenue > 0 
         ? ((data2025.revenue - data2024.revenue) / data2024.revenue) * 100 
+        : 0;
+      
+      const qtdGrowth2425 = data2024.qtdSold > 0 
+        ? ((data2025.qtdSold - data2024.qtdSold) / data2024.qtdSold) * 100 
         : 0;
       
       result.push({
@@ -308,7 +319,14 @@ const HistoricalComparison = () => {
         executed2024: data2024.executed,
         executed2025: data2025.executed,
         executed2026: data2026.executed,
+        qtdSold2024: data2024.qtdSold,
+        qtdSold2025: data2025.qtdSold,
+        qtdSold2026: data2026.qtdSold,
+        qtdExecuted2024: data2024.qtdExecuted,
+        qtdExecuted2025: data2025.qtdExecuted,
+        qtdExecuted2026: data2026.qtdExecuted,
         growth2425,
+        qtdGrowth2425,
       });
     }
     
@@ -324,9 +342,9 @@ const HistoricalComparison = () => {
     const allDepts = new Set([...dept2024.keys(), ...dept2025.keys(), ...dept2026.keys()]);
     
     return Array.from(allDepts).map(dept => {
-      const d2024 = dept2024.get(dept) || { revenue: 0, executed: 0, quantity: 0 };
-      const d2025 = dept2025.get(dept) || { revenue: 0, executed: 0, quantity: 0 };
-      const d2026 = dept2026.get(dept) || { revenue: 0, executed: 0, quantity: 0 };
+      const d2024 = dept2024.get(dept) || { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
+      const d2025 = dept2025.get(dept) || { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
+      const d2026 = dept2026.get(dept) || { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
       
       const revenueGrowth = d2024.revenue > 0 
         ? ((d2025.revenue - d2024.revenue) / d2024.revenue) * 100 
@@ -340,6 +358,10 @@ const HistoricalComparison = () => {
         ? ((d2026.revenue - d2025.revenue) / d2025.revenue) * 100 
         : d2026.revenue > 0 ? 100 : 0;
       
+      const qtdGrowth = d2024.qtdSold > 0 
+        ? ((d2025.qtdSold - d2024.qtdSold) / d2024.qtdSold) * 100 
+        : d2025.qtdSold > 0 ? 100 : 0;
+      
       return {
         department: dept,
         shortName: DEPARTMENT_SHORT_NAMES[dept] || dept.slice(0, 15),
@@ -350,9 +372,16 @@ const HistoricalComparison = () => {
         executed2024: d2024.executed,
         executed2025: d2025.executed,
         executed2026: d2026.executed,
+        qtdSold2024: d2024.qtdSold,
+        qtdSold2025: d2025.qtdSold,
+        qtdSold2026: d2026.qtdSold,
+        qtdExecuted2024: d2024.qtdExecuted,
+        qtdExecuted2025: d2025.qtdExecuted,
+        qtdExecuted2026: d2026.qtdExecuted,
         revenueGrowth,
         executedGrowth,
         revenueGrowth2526,
+        qtdGrowth,
       };
     }).sort((a, b) => b.revenue2025 - a.revenue2025);
   }, [departmentData]);
@@ -581,6 +610,7 @@ const HistoricalComparison = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="overview">📊 Visão Geral</SelectItem>
+                  <SelectItem value="procedures">📋 Procedimentos</SelectItem>
                   <SelectItem value="departments">🏢 Por Departamento</SelectItem>
                   <SelectItem value="seasonality">📅 Sazonalidade</SelectItem>
                   <SelectItem value="insights">💡 Insights</SelectItem>
@@ -594,8 +624,8 @@ const HistoricalComparison = () => {
       {/* Year Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[2024, 2025, 2026].map(year => {
-          const data = yearTotals[year] || { revenue: 0, executed: 0, quantity: 0 };
-          const prevData = yearTotals[year - 1] || { revenue: 0, executed: 0, quantity: 0 };
+          const data = yearTotals[year] || { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
+          const prevData = yearTotals[year - 1] || { revenue: 0, executed: 0, qtdSold: 0, qtdExecuted: 0 };
           const growth = prevData.revenue > 0 ? ((data.revenue - prevData.revenue) / prevData.revenue) * 100 : 0;
           const is2026 = year === 2026;
           
@@ -859,6 +889,276 @@ const HistoricalComparison = () => {
                 </div>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {viewMode === 'procedures' && (
+        <>
+          {/* Procedures KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Users className="w-5 h-5 text-purple-500" />
+                  {yearTotals[2024]?.qtdSold > 0 && (
+                    <GrowthBadge value={((yearTotals[2025]?.qtdSold - yearTotals[2024]?.qtdSold) / yearTotals[2024]?.qtdSold) * 100} />
+                  )}
+                </div>
+                <p className="text-2xl font-bold">{(yearTotals[2025]?.qtdSold || 0).toLocaleString('pt-BR')}</p>
+                <p className="text-xs text-muted-foreground">Procedimentos Vendidos 2025</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  vs {(yearTotals[2024]?.qtdSold || 0).toLocaleString('pt-BR')} em 2024
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Target className="w-5 h-5 text-blue-500" />
+                  {yearTotals[2024]?.qtdExecuted > 0 && (
+                    <GrowthBadge value={((yearTotals[2025]?.qtdExecuted - yearTotals[2024]?.qtdExecuted) / yearTotals[2024]?.qtdExecuted) * 100} />
+                  )}
+                </div>
+                <p className="text-2xl font-bold">{(yearTotals[2025]?.qtdExecuted || 0).toLocaleString('pt-BR')}</p>
+                <p className="text-xs text-muted-foreground">Procedimentos Executados 2025</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  vs {(yearTotals[2024]?.qtdExecuted || 0).toLocaleString('pt-BR')} em 2024
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingDown className="w-5 h-5 text-amber-500" />
+                </div>
+                <p className="text-2xl font-bold">
+                  {comparisonChartData.filter(d => d.qtdSold2025 > 0).length > 0 
+                    ? comparisonChartData.filter(d => d.qtdSold2025 > 0).reduce((min, curr) => curr.qtdSold2025 < min.qtdSold2025 ? curr : min).monthName 
+                    : '-'}
+                </p>
+                <p className="text-xs text-muted-foreground">Mês com Menos Vendas</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {comparisonChartData.filter(d => d.qtdSold2025 > 0).length > 0 
+                    ? `${comparisonChartData.filter(d => d.qtdSold2025 > 0).reduce((min, curr) => curr.qtdSold2025 < min.qtdSold2025 ? curr : min).qtdSold2025} proc.`
+                    : '-'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-teal-500/10 to-teal-500/5 border-teal-500/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-5 h-5 text-teal-500" />
+                </div>
+                <p className="text-2xl font-bold">
+                  {yearTotals[2025]?.qtdSold > 0 
+                    ? formatCurrency(yearTotals[2025]?.revenue / yearTotals[2025]?.qtdSold) 
+                    : 'R$ 0'}
+                </p>
+                <p className="text-xs text-muted-foreground">Ticket Médio 2025</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  vs {yearTotals[2024]?.qtdSold > 0 
+                    ? formatCurrency(yearTotals[2024]?.revenue / yearTotals[2024]?.qtdSold) 
+                    : 'R$ 0'} em 2024
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Procedures Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-500" />
+                Quantidade de Procedimentos por Mês
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={comparisonChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="monthName" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="qtdSold2024" name="Vendidos 2024" fill="hsl(var(--muted-foreground))" opacity={0.4} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="qtdSold2025" name="Vendidos 2025" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="qtdSold2026" name="Vendidos 2026" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                    <Line type="monotone" dataKey="qtdExecuted2025" name="Executados 2025" stroke="#3b82f6" strokeWidth={3} dot />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Executed vs Sold Comparison */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Target className="w-4 h-4 text-blue-500" />
+                Vendidos vs Executados (2025)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={comparisonChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="monthName" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="qtdSold2025" name="Vendidos" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="qtdExecuted2025" name="Executados" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Procedures by Department */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Quantidade por Departamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={departmentComparisonData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} />
+                    <YAxis dataKey="shortName" type="category" tick={{ fontSize: 10 }} width={100} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="qtdSold2024" name="Vendidos 2024" fill="hsl(var(--muted-foreground))" opacity={0.5} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="qtdSold2025" name="Vendidos 2025" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="qtdExecuted2025" name="Executados 2025" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Procedures Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Detalhamento de Procedimentos por Mês</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="w-full">
+                <div className="min-w-[900px]">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-2">Mês</th>
+                        <th className="text-right py-2 px-2">Vend. 2024</th>
+                        <th className="text-right py-2 px-2">Vend. 2025</th>
+                        <th className="text-right py-2 px-2">Var.</th>
+                        <th className="text-right py-2 px-2">Exec. 2024</th>
+                        <th className="text-right py-2 px-2">Exec. 2025</th>
+                        <th className="text-right py-2 px-2 bg-teal-500/10">Vend. 2026</th>
+                        <th className="text-right py-2 px-2 bg-teal-500/10">Exec. 2026</th>
+                        <th className="text-right py-2 px-2">Ticket Médio</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {comparisonChartData.map((row, idx) => (
+                        <tr key={idx} className="border-b border-border/50 hover:bg-muted/30">
+                          <td className="py-2 px-2 font-medium">{row.fullMonthName}</td>
+                          <td className="text-right py-2 px-2 text-muted-foreground">{row.qtdSold2024}</td>
+                          <td className="text-right py-2 px-2">{row.qtdSold2025}</td>
+                          <td className="text-right py-2 px-2">
+                            <GrowthBadge value={row.qtdGrowth2425} />
+                          </td>
+                          <td className="text-right py-2 px-2 text-muted-foreground">{row.qtdExecuted2024}</td>
+                          <td className="text-right py-2 px-2">{row.qtdExecuted2025}</td>
+                          <td className="text-right py-2 px-2 bg-teal-500/5">{row.qtdSold2026 > 0 ? row.qtdSold2026 : '-'}</td>
+                          <td className="text-right py-2 px-2 bg-teal-500/5">{row.qtdExecuted2026 > 0 ? row.qtdExecuted2026 : '-'}</td>
+                          <td className="text-right py-2 px-2">
+                            {row.qtdSold2025 > 0 ? formatCurrency(row.revenue2025 / row.qtdSold2025) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="font-bold bg-muted/30">
+                        <td className="py-2 px-2">TOTAL</td>
+                        <td className="text-right py-2 px-2">{yearTotals[2024]?.qtdSold || 0}</td>
+                        <td className="text-right py-2 px-2">{yearTotals[2025]?.qtdSold || 0}</td>
+                        <td className="text-right py-2 px-2">
+                          {yearTotals[2024]?.qtdSold > 0 && (
+                            <GrowthBadge value={((yearTotals[2025]?.qtdSold - yearTotals[2024]?.qtdSold) / yearTotals[2024]?.qtdSold) * 100} />
+                          )}
+                        </td>
+                        <td className="text-right py-2 px-2">{yearTotals[2024]?.qtdExecuted || 0}</td>
+                        <td className="text-right py-2 px-2">{yearTotals[2025]?.qtdExecuted || 0}</td>
+                        <td className="text-right py-2 px-2 bg-teal-500/10">{yearTotals[2026]?.qtdSold || 0}</td>
+                        <td className="text-right py-2 px-2 bg-teal-500/10">{yearTotals[2026]?.qtdExecuted || 0}</td>
+                        <td className="text-right py-2 px-2">
+                          {yearTotals[2025]?.qtdSold > 0 ? formatCurrency(yearTotals[2025]?.revenue / yearTotals[2025]?.qtdSold) : '-'}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Trend Insights */}
+          <Card className="bg-gradient-to-r from-purple-500/5 to-purple-500/10 border-purple-500/20">
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-purple-500" />
+                Análise de Tendências de Procedimentos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {(() => {
+                const filteredData = comparisonChartData.filter(d => d.qtdSold2025 > 0);
+                if (filteredData.length === 0) return <p className="text-muted-foreground">Sem dados suficientes para análise.</p>;
+                
+                const minMonth = filteredData.reduce((min, curr) => curr.qtdSold2025 < min.qtdSold2025 ? curr : min);
+                const maxMonth = filteredData.reduce((max, curr) => curr.qtdSold2025 > max.qtdSold2025 ? curr : max);
+                const avgSold = yearTotals[2025]?.qtdSold ? yearTotals[2025].qtdSold / 12 : 0;
+                const lowMonths = filteredData.filter(d => d.qtdSold2025 < avgSold * 0.8);
+                
+                return (
+                  <>
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <strong className="text-emerald-500">Melhor mês:</strong> {maxMonth.fullMonthName} com {maxMonth.qtdSold2025} procedimentos vendidos.
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                      <strong className="text-rose-500">Pior mês:</strong> {minMonth.fullMonthName} com apenas {minMonth.qtdSold2025} procedimentos. Considere campanhas promocionais.
+                    </p>
+                    {lowMonths.length > 0 && (
+                      <p className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <strong className="text-amber-500">Meses abaixo da média:</strong> {lowMonths.map(m => m.monthName).join(', ')}. Planeje ações específicas.
+                      </p>
+                    )}
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      <strong className="text-blue-500">Média mensal:</strong> {avgSold.toFixed(0)} procedimentos vendidos por mês.
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                      <strong className="text-purple-500">Taxa de execução:</strong> {yearTotals[2025]?.qtdSold > 0 
+                        ? ((yearTotals[2025]?.qtdExecuted / yearTotals[2025]?.qtdSold) * 100).toFixed(1) 
+                        : 0}% dos procedimentos vendidos foram executados.
+                    </p>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         </>
