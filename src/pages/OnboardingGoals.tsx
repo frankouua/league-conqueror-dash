@@ -47,12 +47,21 @@ const POSITION_LABELS: Record<string, string> = {
 
 // Mapeamento de posição para área comercial
 const POSITION_AREA: Record<string, string> = {
-  sdr: "Comercial 1 - SDR",
   comercial_1_captacao: "Comercial 1 - Social Selling",
+  sdr: "Comercial 1 - SDR",
   comercial_2_closer: "Comercial 2 - Closer",
   comercial_3_experiencia: "Comercial 3 - Customer Success",
   comercial_4_farmer: "Comercial 4 - Farmer",
 };
+
+// Ordem de exibição das áreas comerciais
+const AREA_ORDER = [
+  "Comercial 1 - Social Selling",
+  "Comercial 1 - SDR", 
+  "Comercial 2 - Closer",
+  "Comercial 3 - Customer Success",
+  "Comercial 4 - Farmer",
+];
 
 const OnboardingGoals = () => {
   const { user, profile, isLoading: authLoading } = useAuth();
@@ -210,7 +219,9 @@ const OnboardingGoals = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {groupedGoals && Object.entries(groupedGoals).map(([area, sellers]) => (
+            {groupedGoals && AREA_ORDER.filter(area => groupedGoals[area]).map((area) => {
+              const sellers = groupedGoals[area];
+              return (
               <div key={area} className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Briefcase className="w-4 h-4 text-primary" />
@@ -292,7 +303,8 @@ const OnboardingGoals = () => {
                   </Table>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {/* Total Geral */}
             {predefinedGoals && predefinedGoals.length > 0 && (
