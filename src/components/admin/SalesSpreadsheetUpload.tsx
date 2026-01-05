@@ -135,6 +135,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [statusFilter, setStatusFilter] = useState<'all' | 'quitado' | 'em_aberto'>('all');
   const [importMode, setImportMode] = useState<'replace' | 'add_new'>('replace');
   const [existingRecordsCount, setExistingRecordsCount] = useState<number>(0);
+  const [isCheckingExisting, setIsCheckingExisting] = useState(false);
 
   // Function to refresh all dashboard data
   const refreshAllDashboards = () => {
@@ -772,6 +773,61 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
     setIsProcessing(false);
   };
+
+  // Function to check how many existing records will be replaced
+  const checkExistingRecords = async () => {
+    const matchedSales = parsedSales.filter(s => s.status === 'matched' && s.matchedUserId);
+    if (matchedSales.length === 0 || importMode !== 'replace') {
+      setExistingRecordsCount(0);
+      return;
+    }
+
+    setIsCheckingExisting(true);
+    try {
+      const tableName = uploadType === 'vendas' ? 'revenue_records' : 'executed_records';
+      
+      // Calculate date range from matched sales
+      const dates = matchedSales.map(s => s.date).filter(Boolean).sort();
+      const dateRangeStart = dates[0];
+      const dateRangeEnd = dates[dates.length - 1];
+      
+      if (!dateRangeStart || !dateRangeEnd) {
+        setExistingRecordsCount(0);
+        return;
+      }
+
+      // Get unique user IDs from the sales
+      const userIds = [...new Set(matchedSales.map(s => s.matchedUserId).filter(Boolean))] as string[];
+
+      // Count existing records for these users in this date range
+      const { count, error } = await supabase
+        .from(tableName)
+        .select('id', { count: 'exact', head: true })
+        .gte('date', dateRangeStart)
+        .lte('date', dateRangeEnd)
+        .in('attributed_to_user_id', userIds);
+
+      if (error) {
+        console.error('Error checking existing records:', error);
+        setExistingRecordsCount(0);
+      } else {
+        setExistingRecordsCount(count || 0);
+      }
+    } catch (error) {
+      console.error('Error checking existing records:', error);
+      setExistingRecordsCount(0);
+    }
+    setIsCheckingExisting(false);
+  };
+
+  // Effect to check existing records when mode changes or parsed sales change
+  useEffect(() => {
+    if (parsedSales.length > 0 && importMode === 'replace') {
+      checkExistingRecords();
+    } else {
+      setExistingRecordsCount(0);
+    }
+  }, [parsedSales, importMode, uploadType]);
 
   // Function to manually validate an error row (mark as matched)
   const validateErrorRow = (index: number) => {
@@ -2431,12 +2487,22 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               </div>
               
               {importMode === 'replace' && matchedCount > 0 && (
-                <Alert className="border-primary/50 bg-primary/5">
-                  <RefreshCw className="w-4 h-4 text-primary" />
+                <Alert className={existingRecordsCount > 0 ? "border-amber-500/50 bg-amber-500/5" : "border-primary/50 bg-primary/5"}>
+                  <RefreshCw className={`w-4 h-4 ${existingRecordsCount > 0 ? 'text-amber-500' : 'text-primary'} ${isCheckingExisting ? 'animate-spin' : ''}`} />
                   <AlertDescription className="text-sm">
                     <strong>Período detectado:</strong> {parsedSales.filter(s => s.status === 'matched').map(s => s.date).sort()[0]} a {parsedSales.filter(s => s.status === 'matched').map(s => s.date).sort().pop()}
                     <br />
-                    Os dados deste período para os vendedores mapeados serão substituídos pela planilha atual.
+                    {isCheckingExisting ? (
+                      <span className="text-muted-foreground">Verificando registros existentes...</span>
+                    ) : existingRecordsCount > 0 ? (
+                      <span className="text-amber-600 font-medium">
+                        ⚠️ {existingRecordsCount} registro{existingRecordsCount !== 1 ? 's' : ''} existente{existingRecordsCount !== 1 ? 's' : ''} será{existingRecordsCount !== 1 ? 'ão' : ''} substituído{existingRecordsCount !== 1 ? 's' : ''} por {matchedCount} novo{matchedCount !== 1 ? 's' : ''}.
+                      </span>
+                    ) : (
+                      <span className="text-green-600">
+                        ✅ Nenhum registro existente no período. {matchedCount} novo{matchedCount !== 1 ? 's' : ''} registro{matchedCount !== 1 ? 's' : ''} será{matchedCount !== 1 ? 'ão' : ''} inserido{matchedCount !== 1 ? 's' : ''}.
+                      </span>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
