@@ -303,6 +303,51 @@ export type Database = {
           },
         ]
       }
+      campaign_suggestions: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          description: string | null
+          id: string
+          responded_at: string | null
+          responded_by: string | null
+          status: string
+          suggested_goal: string | null
+          suggested_prize: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          suggested_goal?: string | null
+          suggested_prize?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          suggested_goal?: string | null
+          suggested_prize?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           alert_days_before: number | null
