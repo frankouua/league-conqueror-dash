@@ -207,20 +207,20 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
                normalizeDeptName(r.department) === deptName
       ).length;
 
-      const meta1 = Number(goal.meta1_goal);
-      const remaining = Math.max(0, meta1 - deptRevenue);
+      const meta3 = Number(goal.meta3_goal);
+      const remaining = Math.max(0, meta3 - deptRevenue);
       // Use fixed average ticket from constants (ticket médio anual)
       const avgTicket = getDepartmentAvgTicket(deptName);
       const procsNeeded = avgTicket > 0 ? Math.ceil(remaining / avgTicket) : 0;
-      const metaQtd = avgTicket > 0 ? Math.ceil(meta1 / avgTicket) : 0;
-      const percent = meta1 > 0 ? Math.min((deptRevenue / meta1) * 100, 100) : 0;
+      const metaQtd = avgTicket > 0 ? Math.ceil(meta3 / avgTicket) : 0;
+      const percent = meta3 > 0 ? Math.min((deptRevenue / meta3) * 100, 100) : 0;
 
       return {
         name: deptName,
         shortName: deptName.split(" ").slice(0, 2).join(" "),
         revenue: deptRevenue,
         count: deptCount,
-        meta: meta1,
+        meta: meta3,
         remaining,
         procsNeeded,
         metaQtd,
