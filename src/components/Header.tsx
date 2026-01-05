@@ -1,7 +1,7 @@
 import { 
   LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
-  ChevronDown, Settings, AlertCircle, Route, UserPlus, MessageSquareText,
+  ChevronDown, Settings, AlertCircle, UserPlus, MessageSquareText,
   ShieldAlert, Flame, Bot, FileSpreadsheet
 } from "lucide-react";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
@@ -74,19 +74,34 @@ const Header = () => {
 
   const currentMonth = MONTH_NAMES[new Date().getMonth()];
 
-  const navLinks = [
+  // Main navigation items (simplified)
+  const mainNavLinks = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/onboarding-goals", label: "Metas", icon: TrendingUp, showBadge: goalProgress?.isNearGoal || goalProgress?.hasReachedGoal },
     { path: "/register", label: "Registrar", icon: Plus },
+  ];
+
+  // Dropdown: Comercial (Vendas, RFV, Indicações, Cancelamentos)
+  const comercialLinks = [
     { path: "/sales-upload", label: "Vendas", icon: FileSpreadsheet },
-    { path: "/rfv", label: "RFV", icon: Target },
+    { path: "/rfv", label: "Clientes RFV", icon: Target },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
-    { path: "/patient-kanban", label: "Jornada", icon: Route },
     { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
+  ];
+
+  // Dropdown: Recursos (Relatórios, Guias, Scripts, IA Coach)
+  const recursosLinks = [
     { path: "/data-reports", label: "Relatórios", icon: FileText },
-    { path: "/guides", label: "Guias", icon: BookOpen },
-    { path: "/guias-comerciais", label: "Scripts", icon: MessageSquareText },
+    { path: "/guides", label: "Guias do Time", icon: BookOpen },
+    { path: "/guias-comerciais", label: "Scripts Comerciais", icon: MessageSquareText },
     { path: "/assistente-comercial", label: "IA Coach", icon: Bot },
+  ];
+
+  // For mobile menu - all links flat
+  const allNavLinks = [
+    ...mainNavLinks,
+    ...comercialLinks,
+    ...recursosLinks,
   ];
 
   const NavItem = ({ path, label, icon: Icon, onClick, showBadge }: { path: string; label: string; icon: any; onClick?: () => void; showBadge?: boolean }) => (
@@ -143,7 +158,8 @@ const Header = () => {
           {/* Desktop Navigation */}
           {user && (
             <nav className="hidden lg:flex items-center gap-1">
-              {navLinks.map((link) => (
+              {/* Main Links */}
+              {mainNavLinks.map((link) => (
                 <Link key={link.path} to={link.path} className="relative">
                   <Button
                     variant="ghost"
@@ -155,7 +171,7 @@ const Header = () => {
                     }`}
                   >
                     <link.icon className="w-4 h-4" />
-                    <span className="hidden xl:inline">{link.label}</span>
+                    <span>{link.label}</span>
                     {link.showBadge && (
                       <Badge 
                         variant="default" 
@@ -172,6 +188,75 @@ const Header = () => {
                   </Button>
                 </Link>
               ))}
+
+              {/* Comercial Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`gap-1 ${
+                      comercialLinks.some(l => location.pathname === l.path)
+                        ? "text-primary bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Comercial</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48 bg-card border-border">
+                  {comercialLinks.map((link) => (
+                    <DropdownMenuItem key={link.path} asChild>
+                      <Link 
+                        to={link.path} 
+                        className={`flex items-center gap-2 cursor-pointer ${
+                          location.pathname === link.path ? "text-primary bg-primary/10" : ""
+                        }`}
+                      >
+                        <link.icon className="w-4 h-4" />
+                        {link.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Recursos Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`gap-1 ${
+                      recursosLinks.some(l => location.pathname === l.path)
+                        ? "text-primary bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>Recursos</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-52 bg-card border-border">
+                  {recursosLinks.map((link) => (
+                    <DropdownMenuItem key={link.path} asChild>
+                      <Link 
+                        to={link.path} 
+                        className={`flex items-center gap-2 cursor-pointer ${
+                          location.pathname === link.path ? "text-primary bg-primary/10" : ""
+                        }`}
+                      >
+                        <link.icon className="w-4 h-4" />
+                        {link.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               {role === "admin" && (
                 <Link to="/admin">
                   <Button
@@ -184,7 +269,7 @@ const Header = () => {
                     }`}
                   >
                     <Shield className="w-4 h-4" />
-                    <span className="hidden xl:inline">Admin</span>
+                    <span>Admin</span>
                   </Button>
                 </Link>
               )}
@@ -308,7 +393,7 @@ const Header = () => {
 
                     {/* Navigation */}
                     <div className="p-4 space-y-1">
-                      {navLinks.map((link) => (
+                      {allNavLinks.map((link) => (
                         <NavItem 
                           key={link.path} 
                           {...link} 
