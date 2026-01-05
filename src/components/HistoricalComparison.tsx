@@ -53,7 +53,38 @@ import {
   PolarRadiusAxis,
   Radar,
   ReferenceLine,
+  LabelList,
 } from "recharts";
+
+// Custom label renderer for bar charts with growth percentage
+const renderCustomBarLabel = (props: any, yearData: any[], compareKey: string, currentKey: string, formatValue: (v: number) => string) => {
+  const { x, y, width, height, index, value } = props;
+  if (!value || value === 0) return null;
+  
+  const entry = yearData[index];
+  const compareValue = entry?.[compareKey] || 0;
+  const growth = compareValue > 0 ? ((value - compareValue) / compareValue) * 100 : 0;
+  
+  return (
+    <g>
+      <text x={x + width / 2} y={y - 20} fill="currentColor" textAnchor="middle" fontSize={10} className="fill-foreground">
+        {formatValue(value)}
+      </text>
+      {compareValue > 0 && (
+        <text 
+          x={x + width / 2} 
+          y={y - 8} 
+          fill={growth >= 0 ? '#10b981' : '#ef4444'} 
+          textAnchor="middle" 
+          fontSize={9} 
+          fontWeight="bold"
+        >
+          {growth >= 0 ? '+' : ''}{growth.toFixed(0)}%
+        </text>
+      )}
+    </g>
+  );
+};
 
 const MONTHS = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
@@ -746,11 +777,14 @@ const HistoricalComparison = () => {
                 <BarChart3 className="w-4 h-4 text-primary" />
                 Comparativo de Vendas: 2024 vs 2025 vs 2026
               </CardTitle>
+              <CardDescription className="text-xs">
+                Valores em milhões • Percentual comparado ao mesmo mês do ano anterior
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={comparisonChartData}>
+                  <ComposedChart data={comparisonChartData} margin={{ top: 40, right: 10, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="monthName" tick={{ fontSize: 12 }} />
                     <YAxis tickFormatter={(v) => `${(v/1000000).toFixed(1)}M`} tick={{ fontSize: 12 }} />
@@ -760,8 +794,56 @@ const HistoricalComparison = () => {
                     />
                     <Legend />
                     <Bar dataKey="revenue2024" name="2024" fill="hsl(var(--muted-foreground))" opacity={0.4} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="revenue2025" name="2025" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="revenue2026" name="2026" fill="#14b8a6" opacity={0.7} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue2025" name="2025" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                      <LabelList 
+                        dataKey="revenue2025" 
+                        position="top" 
+                        content={(props: any) => {
+                          const { x, y, width, index, value } = props;
+                          if (!value || value === 0) return null;
+                          const entry = comparisonChartData[index];
+                          const compareValue = entry?.revenue2024 || 0;
+                          const growth = compareValue > 0 ? ((value - compareValue) / compareValue) * 100 : 0;
+                          return (
+                            <g>
+                              <text x={x + width / 2} y={y - 18} fill="currentColor" textAnchor="middle" fontSize={9} className="fill-muted-foreground">
+                                {formatMillions(value)}
+                              </text>
+                              {compareValue > 0 && (
+                                <text x={x + width / 2} y={y - 6} fill={growth >= 0 ? '#10b981' : '#ef4444'} textAnchor="middle" fontSize={8} fontWeight="bold">
+                                  {growth >= 0 ? '+' : ''}{growth.toFixed(0)}%
+                                </text>
+                              )}
+                            </g>
+                          );
+                        }} 
+                      />
+                    </Bar>
+                    <Bar dataKey="revenue2026" name="2026" fill="#14b8a6" opacity={0.7} radius={[4, 4, 0, 0]}>
+                      <LabelList 
+                        dataKey="revenue2026" 
+                        position="top" 
+                        content={(props: any) => {
+                          const { x, y, width, index, value } = props;
+                          if (!value || value === 0) return null;
+                          const entry = comparisonChartData[index];
+                          const compareValue = entry?.revenue2025 || 0;
+                          const growth = compareValue > 0 ? ((value - compareValue) / compareValue) * 100 : 0;
+                          return (
+                            <g>
+                              <text x={x + width / 2} y={y - 18} fill="#14b8a6" textAnchor="middle" fontSize={9}>
+                                {formatMillions(value)}
+                              </text>
+                              {compareValue > 0 && (
+                                <text x={x + width / 2} y={y - 6} fill={growth >= 0 ? '#10b981' : '#ef4444'} textAnchor="middle" fontSize={8} fontWeight="bold">
+                                  {growth >= 0 ? '+' : ''}{growth.toFixed(0)}%
+                                </text>
+                              )}
+                            </g>
+                          );
+                        }} 
+                      />
+                    </Bar>
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -775,11 +857,14 @@ const HistoricalComparison = () => {
                 <Target className="w-4 h-4 text-blue-500" />
                 Comparativo de Execução: 2024 vs 2025 vs 2026
               </CardTitle>
+              <CardDescription className="text-xs">
+                Valores em milhões • Percentual comparado ao mesmo mês do ano anterior
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={comparisonChartData}>
+                  <ComposedChart data={comparisonChartData} margin={{ top: 40, right: 10, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="monthName" tick={{ fontSize: 12 }} />
                     <YAxis tickFormatter={(v) => `${(v/1000000).toFixed(1)}M`} tick={{ fontSize: 12 }} />
@@ -788,9 +873,57 @@ const HistoricalComparison = () => {
                     />
                     <Legend />
                     <Area type="monotone" dataKey="executed2024" name="2024" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted-foreground))" fillOpacity={0.2} />
-                    <Area type="monotone" dataKey="executed2025" name="2025" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
-                    <Area type="monotone" dataKey="executed2026" name="2026" stroke="#14b8a6" fill="#14b8a6" fillOpacity={0.3} />
-                  </AreaChart>
+                    <Area type="monotone" dataKey="executed2025" name="2025" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3}>
+                      <LabelList 
+                        dataKey="executed2025" 
+                        position="top" 
+                        content={(props: any) => {
+                          const { x, y, index, value } = props;
+                          if (!value || value === 0) return null;
+                          const entry = comparisonChartData[index];
+                          const compareValue = entry?.executed2024 || 0;
+                          const growth = compareValue > 0 ? ((value - compareValue) / compareValue) * 100 : 0;
+                          return (
+                            <g>
+                              <text x={x} y={y - 18} fill="#3b82f6" textAnchor="middle" fontSize={9}>
+                                {formatMillions(value)}
+                              </text>
+                              {compareValue > 0 && (
+                                <text x={x} y={y - 6} fill={growth >= 0 ? '#10b981' : '#ef4444'} textAnchor="middle" fontSize={8} fontWeight="bold">
+                                  {growth >= 0 ? '+' : ''}{growth.toFixed(0)}%
+                                </text>
+                              )}
+                            </g>
+                          );
+                        }} 
+                      />
+                    </Area>
+                    <Area type="monotone" dataKey="executed2026" name="2026" stroke="#14b8a6" fill="#14b8a6" fillOpacity={0.3}>
+                      <LabelList 
+                        dataKey="executed2026" 
+                        position="top" 
+                        content={(props: any) => {
+                          const { x, y, index, value } = props;
+                          if (!value || value === 0) return null;
+                          const entry = comparisonChartData[index];
+                          const compareValue = entry?.executed2025 || 0;
+                          const growth = compareValue > 0 ? ((value - compareValue) / compareValue) * 100 : 0;
+                          return (
+                            <g>
+                              <text x={x} y={y - 18} fill="#14b8a6" textAnchor="middle" fontSize={9}>
+                                {formatMillions(value)}
+                              </text>
+                              {compareValue > 0 && (
+                                <text x={x} y={y - 6} fill={growth >= 0 ? '#10b981' : '#ef4444'} textAnchor="middle" fontSize={8} fontWeight="bold">
+                                  {growth >= 0 ? '+' : ''}{growth.toFixed(0)}%
+                                </text>
+                              )}
+                            </g>
+                          );
+                        }} 
+                      />
+                    </Area>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
@@ -803,15 +936,26 @@ const HistoricalComparison = () => {
                 <TrendingUp className="w-4 h-4 text-emerald-500" />
                 Taxa de Crescimento Mensal (2024 → 2025)
               </CardTitle>
+              <CardDescription className="text-xs">
+                Percentual de variação comparando cada mês com o mesmo período do ano anterior
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-64">
+              <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={comparisonChartData}>
+                  <BarChart data={comparisonChartData} margin={{ top: 30, right: 10, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="monthName" tick={{ fontSize: 12 }} />
                     <YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(value: number) => [`${value.toFixed(1)}%`, 'Crescimento']} />
+                    <Tooltip 
+                      formatter={(value: number, name: string, props: any) => {
+                        const entry = props.payload;
+                        return [
+                          `${value.toFixed(1)}% (${formatMillions(entry.revenue2024)} → ${formatMillions(entry.revenue2025)})`,
+                          'Crescimento'
+                        ];
+                      }} 
+                    />
                     <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
                     <Bar 
                       dataKey="growth2425" 
@@ -825,6 +969,26 @@ const HistoricalComparison = () => {
                           fill={entry.growth2425 >= 0 ? '#10b981' : '#ef4444'} 
                         />
                       ))}
+                      <LabelList 
+                        dataKey="growth2425" 
+                        position="top" 
+                        content={(props: any) => {
+                          const { x, y, width, value } = props;
+                          if (value === 0 || value === undefined) return null;
+                          return (
+                            <text 
+                              x={x + width / 2} 
+                              y={value >= 0 ? y - 8 : y + 16} 
+                              fill={value >= 0 ? '#10b981' : '#ef4444'} 
+                              textAnchor="middle" 
+                              fontSize={10} 
+                              fontWeight="bold"
+                            >
+                              {value >= 0 ? '+' : ''}{value.toFixed(0)}%
+                            </text>
+                          );
+                        }} 
+                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
