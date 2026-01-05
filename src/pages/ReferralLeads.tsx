@@ -68,6 +68,15 @@ interface ReferralLead {
   registered_profile?: { full_name: string } | null;
 }
 
+interface LeadHistoryEntry {
+  id: string;
+  old_status: ReferralLeadStatus | null;
+  new_status: ReferralLeadStatus;
+  note: string | null;
+  created_at: string;
+  changed_by_profile?: { full_name: string } | null;
+}
+
 interface TeamMember {
   user_id: string;
   full_name: string;
@@ -115,7 +124,9 @@ const ReferralLeads = () => {
   // Edit lead dialog
   const [editingLead, setEditingLead] = useState<ReferralLead | null>(null);
   const [statusNote, setStatusNote] = useState("");
-
+  const [leadHistory, setLeadHistory] = useState<LeadHistoryEntry[]>([]);
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [newNote, setNewNote] = useState("");
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -383,6 +394,80 @@ const ReferralLeads = () => {
     }
   };
 
+  // Fetch lead history when editing a lead
+  const fetchLeadHistory = async (leadId: string) => {
+    const { data, error } = await supabase
+      .from("referral_lead_history")
+      .select("id, old_status, new_status, note, created_at, changed_by")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error("Error fetching lead history:", error);
+      return;
+    }
+
+    // Fetch profiles for changedBy
+    const userIds = [...new Set((data || []).map(h => h.changed_by).filter(Boolean))];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      
+      setLeadHistory((data || []).map(h => ({
+        ...h,
+        changed_by_profile: h.changed_by ? profileMap.get(h.changed_by) || null : null,
+      })));
+    } else {
+      setLeadHistory(data || []);
+    }
+  };
+
+  // Add a note without changing status
+  const handleAddNote = async () => {
+    if (!editingLead || !user || !newNote.trim()) return;
+    setIsSaving(true);
+
+    try {
+      // Add history entry with note only (same status)
+      await supabase.from("referral_lead_history").insert({
+        lead_id: editingLead.id,
+        old_status: editingLead.status,
+        new_status: editingLead.status,
+        changed_by: user.id,
+        note: newNote.trim(),
+      });
+
+      // Update last_contact_at
+      await supabase
+        .from("referral_leads")
+        .update({ last_contact_at: new Date().toISOString() })
+        .eq("id", editingLead.id);
+
+      toast({ title: "Observação adicionada" });
+      setNewNote("");
+      setShowAddNote(false);
+      fetchLeadHistory(editingLead.id);
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // When opening edit dialog, fetch history
+  const handleOpenEditDialog = (lead: ReferralLead) => {
+    setEditingLead(lead);
+    setStatusNote("");
+    setNewNote("");
+    setShowAddNote(false);
+    fetchLeadHistory(lead.id);
+  };
+
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
       lead.referrer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -520,7 +605,7 @@ const ReferralLeads = () => {
                 {leadsByStatus[status].map((lead) => (
                   <div
                     key={lead.id}
-                    onClick={() => setEditingLead(lead)}
+                    onClick={() => handleOpenEditDialog(lead)}
                     className="p-3 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors border border-transparent hover:border-primary/30"
                   >
                     <p className="font-medium text-foreground text-sm truncate">
@@ -665,62 +750,103 @@ const ReferralLeads = () => {
 
       {/* Edit Lead Dialog */}
       <Dialog open={!!editingLead} onOpenChange={(open) => !open && setEditingLead(null)}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground">Detalhes da Indicação</DialogTitle>
           </DialogHeader>
           {editingLead && (
             <div className="space-y-4">
               {/* Lead Info */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Pessoa indicada</span>
-                  <span className="font-medium text-foreground">{editingLead.referred_name}</span>
-                </div>
-                {editingLead.referred_phone && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Telefone</span>
-                    <a href={`tel:${editingLead.referred_phone}`} className="text-primary flex items-center gap-1">
-                      <Phone className="w-4 h-4" />
-                      {editingLead.referred_phone}
-                    </a>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Pessoa indicada</span>
+                    <p className="font-medium text-foreground">{editingLead.referred_name}</p>
                   </div>
+                  {editingLead.referred_phone && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Telefone</span>
+                      <a href={`tel:${editingLead.referred_phone}`} className="text-primary flex items-center gap-1">
+                        <Phone className="w-4 h-4" />
+                        {editingLead.referred_phone}
+                      </a>
+                    </div>
+                  )}
+                  {editingLead.referred_email && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Email</span>
+                      <a href={`mailto:${editingLead.referred_email}`} className="text-primary flex items-center gap-1">
+                        <Mail className="w-4 h-4" />
+                        {editingLead.referred_email}
+                      </a>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Indicado por</span>
+                    <p className="text-foreground">{editingLead.referrer_name}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Registrado em</span>
+                    <p className="text-foreground text-sm">
+                      {format(new Date(editingLead.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                  {editingLead.last_contact_at && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Último contato</span>
+                      <p className="text-foreground text-sm">
+                        {format(new Date(editingLead.last_contact_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Contact Buttons */}
+              <div className="flex gap-2">
+                {editingLead.referred_phone && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 border-green-500/30 text-green-500 hover:bg-green-500/10"
+                    onClick={() => {
+                      const phone = editingLead.referred_phone?.replace(/\D/g, "");
+                      window.open(`https://wa.me/55${phone}`, "_blank");
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    WhatsApp
+                  </Button>
                 )}
                 {editingLead.referred_email && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Email</span>
-                    <a href={`mailto:${editingLead.referred_email}`} className="text-primary flex items-center gap-1">
-                      <Mail className="w-4 h-4" />
-                      {editingLead.referred_email}
-                    </a>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 border-blue-500/30 text-blue-500 hover:bg-blue-500/10"
+                    onClick={() => {
+                      window.open(`mailto:${editingLead.referred_email}`, "_blank");
+                    }}
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Email
+                  </Button>
                 )}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Indicado por</span>
-                  <span className="text-foreground">{editingLead.referrer_name}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Registrado em</span>
-                  <span className="text-foreground">
-                    {format(new Date(editingLead.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </span>
-                </div>
               </div>
 
-              {/* Status */}
+              {/* Status and Change */}
               <div className="border-t border-border pt-4">
-                <Label className="text-foreground mb-2 block">Status atual</Label>
-                <Badge className={STATUS_CONFIG[editingLead.status].color}>
-                  {STATUS_CONFIG[editingLead.status].icon}
-                  <span className="ml-1">{STATUS_CONFIG[editingLead.status].label}</span>
-                </Badge>
-              </div>
-
-              {/* Change Status */}
-              <div>
-                <Label className="text-foreground mb-2 block">Atualizar status</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {STATUS_ORDER.filter(s => s !== editingLead.status).map((status) => (
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-foreground">Status atual</Label>
+                  <Badge className={STATUS_CONFIG[editingLead.status].color}>
+                    {STATUS_CONFIG[editingLead.status].icon}
+                    <span className="ml-1">{STATUS_CONFIG[editingLead.status].label}</span>
+                  </Badge>
+                </div>
+                <Label className="text-foreground mb-2 block text-sm">Atualizar para:</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {STATUS_ORDER.filter(s => s !== editingLead.status).slice(0, 8).map((status) => (
                     <Button
                       key={status}
                       variant="outline"
@@ -738,7 +864,7 @@ const ReferralLeads = () => {
 
               {/* Assign */}
               <div>
-                <Label className="text-foreground">Responsável</Label>
+                <Label className="text-foreground">Responsável pelo contato</Label>
                 <Select
                   value={editingLead.assigned_to || "_none"}
                   onValueChange={(value) => handleUpdateAssignment(editingLead.id, value === "_none" ? "" : value)}
@@ -757,29 +883,98 @@ const ReferralLeads = () => {
                 </Select>
               </div>
 
-              {/* Notes */}
+              {/* Add Note Section */}
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-foreground flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Histórico de Acompanhamento
+                  </Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddNote(!showAddNote)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Adicionar Nota
+                  </Button>
+                </div>
+
+                {showAddNote && (
+                  <div className="space-y-2 mb-4 p-3 rounded-lg bg-secondary/50 border border-border">
+                    <Textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="Escreva uma observação sobre o contato, interesse do lead, próximos passos..."
+                      className="bg-background border-border resize-none"
+                      rows={3}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setShowAddNote(false); setNewNote(""); }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleAddNote}
+                        disabled={isSaving || !newNote.trim()}
+                      >
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Nota"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* History List */}
+                <div className="max-h-[200px] overflow-y-auto space-y-2">
+                  {leadHistory.length > 0 ? (
+                    leadHistory.map((entry) => (
+                      <div key={entry.id} className="p-3 rounded-lg bg-secondary/30 border border-border/50 text-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-foreground">
+                            {entry.changed_by_profile?.full_name || "Usuário"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(entry.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
+                        {entry.old_status !== entry.new_status ? (
+                          <div className="flex items-center gap-2 text-xs mb-1">
+                            <Badge variant="outline" className={`${STATUS_CONFIG[entry.old_status || 'nova'].color} text-xs`}>
+                              {STATUS_CONFIG[entry.old_status || 'nova'].label}
+                            </Badge>
+                            <ChevronRight className="w-3 h-3" />
+                            <Badge variant="outline" className={`${STATUS_CONFIG[entry.new_status].color} text-xs`}>
+                              {STATUS_CONFIG[entry.new_status].label}
+                            </Badge>
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="text-xs mb-1">Observação</Badge>
+                        )}
+                        {entry.note && (
+                          <p className="text-muted-foreground mt-1 whitespace-pre-wrap">{entry.note}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground text-sm py-4">
+                      Nenhum histórico registrado ainda
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Initial Notes */}
               {editingLead.notes && (
-                <div>
-                  <Label className="text-foreground">Observações</Label>
-                  <p className="text-sm text-muted-foreground bg-secondary/50 p-3 rounded-lg">
+                <div className="border-t border-border pt-4">
+                  <Label className="text-foreground">Observações Iniciais</Label>
+                  <p className="text-sm text-muted-foreground bg-secondary/50 p-3 rounded-lg mt-1">
                     {editingLead.notes}
                   </p>
                 </div>
-              )}
-
-              {/* WhatsApp */}
-              {editingLead.referred_phone && (
-                <Button
-                  variant="outline"
-                  className="w-full border-green-500/30 text-green-500 hover:bg-green-500/10"
-                  onClick={() => {
-                    const phone = editingLead.referred_phone?.replace(/\D/g, "");
-                    window.open(`https://wa.me/55${phone}`, "_blank");
-                  }}
-                >
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Abrir WhatsApp
-                </Button>
               )}
             </div>
           )}
