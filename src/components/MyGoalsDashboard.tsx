@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { 
   User, 
   Target, 
@@ -25,10 +27,18 @@ import {
   MessageSquare,
   Lightbulb,
   Flame,
-  Medal
+  Medal,
+  Calendar,
+  BookOpen,
+  ClipboardList,
+  FileText,
+  Heart,
+  Copy
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { POSITION_DETAILS } from "@/constants/positionDetails";
+import { useToast } from "@/hooks/use-toast";
 
 const POSITION_LABELS: Record<string, { label: string; description: string; focus: string[] }> = {
   comercial_1_captacao: { 
@@ -272,8 +282,10 @@ const MyGoalsDashboard = () => {
   const referralsProgress = referralsGoal > 0 ? Math.min(100, (totalReferrals / referralsGoal) * 100) : 0;
   const testimonialsProgress = testimonialsGoal > 0 ? Math.min(100, (totalTestimonials / testimonialsGoal) * 100) : 0;
 
-  // Position info
+  // Position info - use detailed info
   const positionInfo = profile?.position ? POSITION_LABELS[profile.position] : null;
+  const positionDetails = profile?.position ? POSITION_DETAILS[profile.position] : null;
+  const { toast } = useToast();
 
   // Daily target
   const dailyTarget = daysRemaining > 0 && revenueGoal > 0
@@ -652,27 +664,174 @@ const MyGoalsDashboard = () => {
 
         {/* Foco Tab */}
         <TabsContent value="foco" className="space-y-6">
-          {/* Position Focus */}
-          {positionInfo && (
-            <Card className="border-primary/30 bg-primary/5">
+          {/* Mission Card */}
+          {positionDetails && (
+            <Card className="border-primary/30 bg-gradient-to-r from-primary/10 to-primary/5">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Lightbulb className="w-5 h-5 text-primary" />
-                  Seu Foco como {positionInfo.label}
+                  <Target className="w-5 h-5 text-primary" />
+                  {positionDetails.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-background/50 border border-primary/20">
+                  <p className="text-sm font-medium text-primary mb-1">Sua Missão</p>
+                  <p className="text-muted-foreground">{positionDetails.mission}</p>
+                </div>
+                <p className="text-muted-foreground">{positionDetails.description}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Values */}
+          {positionDetails && positionDetails.values.length > 0 && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-rose-500" />
+                  Valores do Seu Cargo
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground mb-4">{positionInfo.description}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {positionDetails.values.map((value, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-muted/50 text-sm">
+                      {value}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* KPIs */}
+          {positionDetails && positionDetails.kpis.length > 0 && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  Seus KPIs (Indicadores de Sucesso)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {positionDetails.kpis.map((kpi, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-muted/30 border border-border text-center">
+                      <p className="text-lg font-bold text-primary">{kpi.target}</p>
+                      <p className="text-xs text-muted-foreground">{kpi.metric}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Daily Schedule */}
+          {positionDetails && positionDetails.dailySchedule.length > 0 && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-500" />
+                  Agenda de Sucesso
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Principais áreas de foco:</p>
-                  <ul className="space-y-2">
-                    {positionInfo.focus.map((item, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
+                  {positionDetails.dailySchedule.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="w-28 flex-shrink-0">
+                        <Badge variant="outline" className="text-xs font-mono">
+                          {item.time}
+                        </Badge>
+                      </div>
+                      <p className="text-sm">{item.activity}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Best Practices */}
+          {positionDetails && positionDetails.bestPractices.length > 0 && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-purple-500" />
+                  Melhores Práticas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {positionDetails.bestPractices.map((practice, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      {practice}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Scripts */}
+          {positionDetails && positionDetails.scripts.length > 0 && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-amber-500" />
+                  Scripts do Seu Cargo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  {positionDetails.scripts.map((script, idx) => (
+                    <AccordionItem key={idx} value={`script-${idx}`}>
+                      <AccordionTrigger className="text-sm hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-primary" />
+                          {script.title}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="relative">
+                          <pre className="p-4 rounded-lg bg-muted/50 text-sm whitespace-pre-wrap font-sans">
+                            {script.content}
+                          </pre>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(script.content);
+                              toast({ title: "Script copiado!", description: "Cole onde precisar." });
+                            }}
+                            className="absolute top-2 right-2 p-2 rounded-lg bg-background/80 hover:bg-background border border-border transition-colors"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Focus Areas */}
+          {positionDetails && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-primary" />
+                  Áreas de Foco Principal
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {positionDetails.focus.map((item, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                      <p className="text-sm font-medium">{item}</p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -683,7 +842,7 @@ const MyGoalsDashboard = () => {
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
                 <Zap className="w-4 h-4 text-amber-500" />
-                Dicas Rápidas
+                Dicas Rápidas Para Hoje
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -711,12 +870,25 @@ const MyGoalsDashboard = () => {
                 )}
                 <div className="p-3 rounded-lg bg-muted/50 border border-border">
                   <p className="text-sm">
-                    📚 Acesse os <strong>Scripts Comerciais</strong> no menu para dicas de abordagem e vendas.
+                    📚 Acesse os <strong>Guias Comerciais</strong> no menu para mais scripts e estratégias avançadas.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* No position set */}
+          {!positionDetails && (
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardContent className="p-6 text-center">
+                <Lightbulb className="w-10 h-10 mx-auto mb-3 text-amber-500" />
+                <p className="font-medium mb-2">Cargo não definido</p>
+                <p className="text-sm text-muted-foreground">
+                  Peça ao seu coordenador para definir seu cargo no sistema para ver informações personalizadas.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
