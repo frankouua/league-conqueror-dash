@@ -161,6 +161,16 @@ interface ColumnMapping {
   email: string;
   purchaseDate: string;
   amount: string;
+  // Campos adicionais opcionais
+  firstPurchaseDate: string;
+  totalPurchases: string;
+  totalValue: string;
+  averageTicket: string;
+  daysSinceLastPurchase: string;
+  recencyScore: string;
+  frequencyScore: string;
+  valueScore: string;
+  segment: string;
 }
 
 const RFVDashboard = () => {
@@ -179,6 +189,15 @@ const RFVDashboard = () => {
     email: '',
     purchaseDate: '',
     amount: '',
+    firstPurchaseDate: '',
+    totalPurchases: '',
+    totalValue: '',
+    averageTicket: '',
+    daysSinceLastPurchase: '',
+    recencyScore: '',
+    frequencyScore: '',
+    valueScore: '',
+    segment: '',
   });
   const [showColumnMapping, setShowColumnMapping] = useState(false);
   const [rawData, setRawData] = useState<Record<string, any>[]>([]);
@@ -380,6 +399,15 @@ const RFVDashboard = () => {
         email: '',
         purchaseDate: '',
         amount: '',
+        firstPurchaseDate: '',
+        totalPurchases: '',
+        totalValue: '',
+        averageTicket: '',
+        daysSinceLastPurchase: '',
+        recencyScore: '',
+        frequencyScore: '',
+        valueScore: '',
+        segment: '',
       };
 
       for (const col of validColumns) {
@@ -392,10 +420,28 @@ const RFVDashboard = () => {
           autoMapping.phone = col;
         } else if (!autoMapping.email && (colLower.includes('email') || colLower.includes('e-mail'))) {
           autoMapping.email = col;
-        } else if (!autoMapping.purchaseDate && (colLower.includes('data') || colLower.includes('date'))) {
+        } else if (!autoMapping.purchaseDate && (colLower.includes('data_limite') || colLower.includes('última') || colLower.includes('ultima') || colLower === 'data')) {
           autoMapping.purchaseDate = col;
-        } else if (!autoMapping.amount && (colLower.includes('valor') || colLower.includes('value') || colLower.includes('amount') || colLower.includes('total') || colLower.includes('faturamento'))) {
+        } else if (!autoMapping.firstPurchaseDate && (colLower.includes('primeira') || colLower.includes('first'))) {
+          autoMapping.firstPurchaseDate = col;
+        } else if (!autoMapping.totalPurchases && (colLower.includes('qtd') || colLower.includes('quantidade') || colLower.includes('compras') || colLower.includes('frequencia') || colLower.includes('frequência'))) {
+          autoMapping.totalPurchases = col;
+        } else if (!autoMapping.totalValue && (colLower.includes('total') || colLower.includes('ltv') || colLower.includes('faturamento'))) {
+          autoMapping.totalValue = col;
+        } else if (!autoMapping.averageTicket && (colLower.includes('ticket') || colLower.includes('médio') || colLower.includes('medio'))) {
+          autoMapping.averageTicket = col;
+        } else if (!autoMapping.amount && (colLower.includes('valor') || colLower.includes('value') || colLower.includes('score_valor'))) {
           autoMapping.amount = col;
+        } else if (!autoMapping.daysSinceLastPurchase && (colLower.includes('dias') || colLower.includes('days'))) {
+          autoMapping.daysSinceLastPurchase = col;
+        } else if (!autoMapping.recencyScore && colLower.includes('recencia') || colLower.includes('recência') || colLower === 'r') {
+          autoMapping.recencyScore = col;
+        } else if (!autoMapping.frequencyScore && (colLower.includes('frequencia') || colLower.includes('frequência') || colLower === 'f')) {
+          autoMapping.frequencyScore = col;
+        } else if (!autoMapping.valueScore && (colLower.includes('score_valor') || colLower === 'v')) {
+          autoMapping.valueScore = col;
+        } else if (!autoMapping.segment && (colLower.includes('segmento') || colLower.includes('segment') || colLower.includes('rfv'))) {
+          autoMapping.segment = col;
         }
       }
       
@@ -440,10 +486,10 @@ const RFVDashboard = () => {
   };
 
   const processWithMapping = async () => {
-    if (!columnMapping.clientName || !columnMapping.purchaseDate || !columnMapping.amount) {
+    if (!columnMapping.clientName || (!columnMapping.purchaseDate && !columnMapping.daysSinceLastPurchase) || (!columnMapping.amount && !columnMapping.totalValue)) {
       toast({
         title: "Mapeamento incompleto",
-        description: "Configure pelo menos Nome, Data e Valor.",
+        description: "Configure pelo menos Nome, Data (ou Dias Sem Compra) e Valor Total.",
         variant: "destructive",
       });
       return;
@@ -459,8 +505,27 @@ const RFVDashboard = () => {
       let skippedNoAmount = 0;
       let processedRows = 0;
 
-      // Group transactions by customer
-      const customerTransactions: Record<string, { dates: Date[]; amounts: number[]; phone?: string; whatsapp?: string; email?: string }> = {};
+      // Check if we have pre-calculated data from spreadsheet
+      const hasPreCalculatedData = columnMapping.recencyScore || columnMapping.frequencyScore || columnMapping.valueScore;
+      
+      // Process each row as a unique customer (for pre-calculated data)
+      // or group by customer name (for raw transaction data)
+      const customerTransactions: Record<string, { 
+        dates: Date[]; 
+        amounts: number[]; 
+        phone?: string; 
+        whatsapp?: string; 
+        email?: string;
+        firstPurchaseDate?: string;
+        totalPurchases?: number;
+        totalValue?: number;
+        averageTicket?: number;
+        daysSinceLastPurchase?: number;
+        recencyScore?: number;
+        frequencyScore?: number;
+        valueScore?: number;
+        segment?: string;
+      }> = {};
 
       for (const row of rawData) {
         totalRows++;
@@ -470,8 +535,9 @@ const RFVDashboard = () => {
           continue;
         }
 
-        const dateValue = row[columnMapping.purchaseDate];
+        // Parse date
         let parsedDate: Date | null = null;
+        const dateValue = row[columnMapping.purchaseDate];
 
         if (dateValue) {
           if (typeof dateValue === 'number') {
@@ -485,17 +551,13 @@ const RFVDashboard = () => {
             }
           } else if (typeof dateValue === 'string') {
             const dateStr = dateValue.trim();
-            // Try different date formats
             const parts = dateStr.split(/[-\/\.]/);
             if (parts.length === 3) {
               if (parts[0].length === 4) {
-                // YYYY-MM-DD or YYYY/MM/DD
                 parsedDate = new Date(parts.join('-'));
               } else if (parts[2].length === 4) {
-                // DD/MM/YYYY or DD-MM-YYYY
                 parsedDate = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
               } else if (parts[2].length === 2) {
-                // DD/MM/YY - assume 20XX
                 const year = parseInt(parts[2]) > 50 ? `19${parts[2]}` : `20${parts[2]}`;
                 parsedDate = new Date(`${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
               }
@@ -505,55 +567,45 @@ const RFVDashboard = () => {
           }
         }
 
-        // If no valid date, use a default old date so we can still include the customer
         if (!parsedDate || isNaN(parsedDate.getTime())) {
-          // Use January 1, 2020 as default for customers without valid date
           parsedDate = new Date('2020-01-01');
           skippedNoDate++;
         }
 
+        // Parse amount
         let amount = 0;
-        const amountRaw = row[columnMapping.amount];
+        const amountRaw = row[columnMapping.amount] || row[columnMapping.totalValue];
         if (typeof amountRaw === 'number') {
           amount = amountRaw;
         } else if (typeof amountRaw === 'string') {
-          // Handle various number formats: R$ 1.234,56 or 1234.56 or 1,234.56
           let cleaned = amountRaw.replace(/[R$\s]/g, '');
-          // Check if it uses comma as decimal separator (Brazilian format)
           if (cleaned.includes(',') && cleaned.includes('.')) {
-            // 1.234,56 format
             cleaned = cleaned.replace(/\./g, '').replace(',', '.');
           } else if (cleaned.includes(',') && !cleaned.includes('.')) {
-            // Could be 1234,56 (decimal) or 1,234 (thousands)
             const parts = cleaned.split(',');
             if (parts.length === 2 && parts[1].length <= 2) {
-              // Likely decimal separator
               cleaned = cleaned.replace(',', '.');
             } else {
-              // Likely thousands separator
               cleaned = cleaned.replace(/,/g, '');
             }
           }
           amount = parseFloat(cleaned) || 0;
         }
 
-        // Allow zero amount - customer might just be a contact without purchase history
-        if (amount < 0) {
-          amount = 0;
-        }
-        if (amount === 0) {
-          skippedNoAmount++;
-        }
+        if (amount < 0) amount = 0;
+        if (amount === 0) skippedNoAmount++;
 
         processedRows++;
         const key = clientName.toLowerCase();
+        
         if (!customerTransactions[key]) {
-          customerTransactions[key] = { dates: [], amounts: [], phone: undefined, whatsapp: undefined, email: undefined };
+          customerTransactions[key] = { dates: [], amounts: [] };
         }
         
         customerTransactions[key].dates.push(parsedDate);
         customerTransactions[key].amounts.push(amount);
         
+        // Contact info
         if (columnMapping.phone && row[columnMapping.phone]) {
           customerTransactions[key].phone = String(row[columnMapping.phone]);
         }
@@ -562,6 +614,49 @@ const RFVDashboard = () => {
         }
         if (columnMapping.email && row[columnMapping.email]) {
           customerTransactions[key].email = String(row[columnMapping.email]);
+        }
+
+        // Pre-calculated values from spreadsheet
+        if (columnMapping.firstPurchaseDate && row[columnMapping.firstPurchaseDate]) {
+          customerTransactions[key].firstPurchaseDate = String(row[columnMapping.firstPurchaseDate]);
+        }
+        if (columnMapping.totalPurchases && row[columnMapping.totalPurchases]) {
+          customerTransactions[key].totalPurchases = Number(row[columnMapping.totalPurchases]) || 0;
+        }
+        if (columnMapping.totalValue && row[columnMapping.totalValue]) {
+          const tv = row[columnMapping.totalValue];
+          if (typeof tv === 'number') {
+            customerTransactions[key].totalValue = tv;
+          } else if (typeof tv === 'string') {
+            let cleaned = tv.replace(/[R$\s]/g, '');
+            if (cleaned.includes(',')) cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+            customerTransactions[key].totalValue = parseFloat(cleaned) || 0;
+          }
+        }
+        if (columnMapping.averageTicket && row[columnMapping.averageTicket]) {
+          const at = row[columnMapping.averageTicket];
+          if (typeof at === 'number') {
+            customerTransactions[key].averageTicket = at;
+          } else if (typeof at === 'string') {
+            let cleaned = at.replace(/[R$\s]/g, '');
+            if (cleaned.includes(',')) cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+            customerTransactions[key].averageTicket = parseFloat(cleaned) || 0;
+          }
+        }
+        if (columnMapping.daysSinceLastPurchase && row[columnMapping.daysSinceLastPurchase]) {
+          customerTransactions[key].daysSinceLastPurchase = Number(row[columnMapping.daysSinceLastPurchase]) || 0;
+        }
+        if (columnMapping.recencyScore && row[columnMapping.recencyScore]) {
+          customerTransactions[key].recencyScore = Number(row[columnMapping.recencyScore]) || 0;
+        }
+        if (columnMapping.frequencyScore && row[columnMapping.frequencyScore]) {
+          customerTransactions[key].frequencyScore = Number(row[columnMapping.frequencyScore]) || 0;
+        }
+        if (columnMapping.valueScore && row[columnMapping.valueScore]) {
+          customerTransactions[key].valueScore = Number(row[columnMapping.valueScore]) || 0;
+        }
+        if (columnMapping.segment && row[columnMapping.segment]) {
+          customerTransactions[key].segment = String(row[columnMapping.segment]);
         }
       }
 
@@ -578,10 +673,12 @@ const RFVDashboard = () => {
       const allCustomerData = Object.entries(customerTransactions).map(([name, data]) => {
         const sortedDates = data.dates.sort((a, b) => b.getTime() - a.getTime());
         const lastPurchaseDate = sortedDates[0];
-        const daysSinceLastPurchase = Math.floor((now.getTime() - lastPurchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-        const totalPurchases = data.dates.length;
-        const totalValue = data.amounts.reduce((sum, a) => sum + a, 0);
-        const averageTicket = totalValue / totalPurchases;
+        
+        // Use pre-calculated values if available, otherwise calculate
+        const daysSinceLastPurchase = data.daysSinceLastPurchase ?? Math.floor((now.getTime() - lastPurchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+        const totalPurchases = data.totalPurchases ?? data.dates.length;
+        const totalValue = data.totalValue ?? data.amounts.reduce((sum, a) => sum + a, 0);
+        const averageTicket = data.averageTicket ?? (totalValue / Math.max(totalPurchases, 1));
 
         // Use whatsapp if available, otherwise use phone
         const whatsappNumber = data.whatsapp || data.phone;
@@ -596,10 +693,16 @@ const RFVDashboard = () => {
           totalValue,
           averageTicket,
           lastPurchaseDate: lastPurchaseDate.toISOString().split('T')[0],
+          firstPurchaseDate: data.firstPurchaseDate,
+          // Pre-calculated scores (if available)
+          preRecencyScore: data.recencyScore,
+          preFrequencyScore: data.frequencyScore,
+          preValueScore: data.valueScore,
+          preSegment: data.segment,
         };
       });
 
-      // Calculate quintiles for RFV scoring
+      // Calculate quintiles for RFV scoring (only if not pre-calculated)
       const recencyValues = allCustomerData.map(c => c.daysSinceLastPurchase).sort((a, b) => a - b);
       const frequencyValues = allCustomerData.map(c => c.totalPurchases).sort((a, b) => a - b);
       const valueValues = allCustomerData.map(c => c.totalValue).sort((a, b) => a - b);
@@ -611,14 +714,46 @@ const RFVDashboard = () => {
         return Math.max(1, Math.min(5, score || 1));
       };
 
+      // Map segment names from spreadsheet to our segment keys
+      const mapSegmentName = (segmentName?: string): RFVSegment | null => {
+        if (!segmentName) return null;
+        const lower = segmentName.toLowerCase();
+        if (lower.includes('campe') || lower.includes('champion')) return 'champions';
+        if (lower.includes('fiel') || lower.includes('loyal')) return 'loyal';
+        if (lower.includes('potencial') || lower.includes('potential')) return 'potential';
+        if (lower.includes('risco') || lower.includes('risk')) return 'at_risk';
+        if (lower.includes('hibern') || lower.includes('dormindo')) return 'hibernating';
+        if (lower.includes('perdido') || lower.includes('lost')) return 'lost';
+        return null;
+      };
+
       const rfvCustomers: RFVCustomer[] = allCustomerData.map(customer => {
-        const recencyScore = getQuintile(customer.daysSinceLastPurchase, recencyValues, true); // inverse - less days = higher score
-        const frequencyScore = getQuintile(customer.totalPurchases, frequencyValues);
-        const valueScore = getQuintile(customer.totalValue, valueValues);
-        const segment = calculateRFVSegment(recencyScore, frequencyScore, valueScore);
+        // Use pre-calculated scores if available and valid (1-5)
+        const recencyScore = (customer.preRecencyScore && customer.preRecencyScore >= 1 && customer.preRecencyScore <= 5) 
+          ? customer.preRecencyScore 
+          : getQuintile(customer.daysSinceLastPurchase, recencyValues, true);
+        const frequencyScore = (customer.preFrequencyScore && customer.preFrequencyScore >= 1 && customer.preFrequencyScore <= 5)
+          ? customer.preFrequencyScore
+          : getQuintile(customer.totalPurchases, frequencyValues);
+        const valueScore = (customer.preValueScore && customer.preValueScore >= 1 && customer.preValueScore <= 5)
+          ? customer.preValueScore
+          : getQuintile(customer.totalValue, valueValues);
+        
+        // Use pre-calculated segment if available, otherwise calculate
+        const mappedSegment = mapSegmentName(customer.preSegment);
+        const segment = mappedSegment ?? calculateRFVSegment(recencyScore, frequencyScore, valueScore);
 
         return {
-          ...customer,
+          name: customer.name,
+          phone: customer.phone,
+          whatsapp: customer.whatsapp,
+          email: customer.email,
+          firstPurchaseDate: customer.firstPurchaseDate,
+          lastPurchaseDate: customer.lastPurchaseDate,
+          daysSinceLastPurchase: customer.daysSinceLastPurchase,
+          totalPurchases: customer.totalPurchases,
+          totalValue: customer.totalValue,
+          averageTicket: customer.averageTicket,
           recencyScore,
           frequencyScore,
           valueScore,
@@ -1069,84 +1204,213 @@ const RFVDashboard = () => {
                       {availableColumns.length} colunas encontradas
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Nome do Cliente *</Label>
-                      <select
-                        className="w-full p-2 border rounded-md bg-background"
-                        value={columnMapping.clientName}
-                        onChange={(e) => setColumnMapping({ ...columnMapping, clientName: e.target.value })}
-                      >
-                        <option value="">Selecione...</option>
-                        {availableColumns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
+                  {/* Campos obrigatórios */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Campos Obrigatórios</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Nome do Cliente *</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.clientName}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, clientName: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Última Compra (Data) *</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.purchaseDate}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, purchaseDate: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Valor Total / LTV *</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.totalValue}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, totalValue: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <Label>Data da Compra *</Label>
-                      <select
-                        className="w-full p-2 border rounded-md bg-background"
-                        value={columnMapping.purchaseDate}
-                        onChange={(e) => setColumnMapping({ ...columnMapping, purchaseDate: e.target.value })}
-                      >
-                        <option value="">Selecione...</option>
-                        {availableColumns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
+                  </div>
+
+                  {/* Dados de Contato */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Dados de Contato</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Telefone</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.phone}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, phone: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>WhatsApp</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.whatsapp}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, whatsapp: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Email</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.email}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, email: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <Label>Valor *</Label>
-                      <select
-                        className="w-full p-2 border rounded-md bg-background"
-                        value={columnMapping.amount}
-                        onChange={(e) => setColumnMapping({ ...columnMapping, amount: e.target.value })}
-                      >
-                        <option value="">Selecione...</option>
-                        {availableColumns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
+                  </div>
+
+                  {/* Dados de Histórico */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Histórico de Compras</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <Label>Primeira Compra</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.firstPurchaseDate}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, firstPurchaseDate: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Qtd. Compras</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.totalPurchases}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, totalPurchases: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Ticket Médio</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.averageTicket}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, averageTicket: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Dias Sem Compra</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.daysSinceLastPurchase}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, daysSinceLastPurchase: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <Label>Telefone</Label>
-                      <select
-                        className="w-full p-2 border rounded-md bg-background"
-                        value={columnMapping.phone}
-                        onChange={(e) => setColumnMapping({ ...columnMapping, phone: e.target.value })}
-                      >
-                        <option value="">Selecione...</option>
-                        {availableColumns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label>WhatsApp</Label>
-                      <select
-                        className="w-full p-2 border rounded-md bg-background"
-                        value={columnMapping.whatsapp}
-                        onChange={(e) => setColumnMapping({ ...columnMapping, whatsapp: e.target.value })}
-                      >
-                        <option value="">Selecione...</option>
-                        {availableColumns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label>Email</Label>
-                      <select
-                        className="w-full p-2 border rounded-md bg-background"
-                        value={columnMapping.email}
-                        onChange={(e) => setColumnMapping({ ...columnMapping, email: e.target.value })}
-                      >
-                        <option value="">Selecione...</option>
-                        {availableColumns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
+                  </div>
+
+                  {/* Scores RFV */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Scores RFV (se já calculados)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <Label>Score Recência (R)</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.recencyScore}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, recencyScore: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Score Frequência (F)</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.frequencyScore}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, frequencyScore: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Score Valor (V)</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.valueScore}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, valueScore: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Segmento RFV</Label>
+                        <select
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={columnMapping.segment}
+                          onChange={(e) => setColumnMapping({ ...columnMapping, segment: e.target.value })}
+                        >
+                          <option value="">Selecione...</option>
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                   <Button onClick={processWithMapping} disabled={isProcessing}>
