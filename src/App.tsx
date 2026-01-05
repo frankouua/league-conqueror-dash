@@ -17,7 +17,6 @@ import ReferralLeads from "./pages/ReferralLeads";
 import Campaigns from "./pages/Campaigns";
 import OnboardingGoals from "./pages/OnboardingGoals";
 import SalesDashboard from "./pages/SalesDashboard";
-import SalesUpload from "./pages/SalesUpload";
 import HistoricalUpload from "./pages/HistoricalUpload";
 import RFVDashboard from "./pages/RFVDashboard";
 import TVDisplay from "./pages/TVDisplay";
@@ -48,8 +47,6 @@ const App = () => (
             <Route path="/guias-comerciais" element={<ProtectedRoute><CommercialGuides /></ProtectedRoute>} />
             <Route path="/cancellations" element={<ProtectedRoute><Cancellations /></ProtectedRoute>} />
             <Route path="/assistente-comercial" element={<ProtectedRoute><CommercialAssistantPage /></ProtectedRoute>} />
-            <Route path="/sales-upload" element={<ProtectedRoute><SalesUpload /></ProtectedRoute>} />
-            <Route path="/historico" element={<ProtectedRoute requireAdmin><HistoricalUpload /></ProtectedRoute>} />
             <Route path="/rfv" element={<ProtectedRoute><RFVDashboard /></ProtectedRoute>} />
             <Route path="/sales-dashboard" element={<ProtectedRoute requireAdmin><SalesDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
