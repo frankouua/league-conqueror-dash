@@ -1,8 +1,8 @@
 import { 
-  LogIn, LogOut, User, Plus, Home, Shield, History, BarChart3, 
+  LogIn, LogOut, User, Plus, Home, Shield, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
   ChevronDown, Settings, AlertCircle, UserPlus, MessageSquareText,
-  ShieldAlert, Flame, Bot, FileSpreadsheet, Megaphone
+  ShieldAlert, Flame, Bot, Megaphone
 } from "lucide-react";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { Button } from "@/components/ui/button";
@@ -85,10 +85,8 @@ const Header = () => {
     { path: "/register", label: "Registrar", icon: Plus },
   ];
 
-  // Dropdown: Comercial (Vendas, RFV, Indicações, Cancelamentos)
+  // Dropdown: Comercial (RFV, Indicações, Cancelamentos)
   const comercialLinks = [
-    { path: "/sales-upload", label: "Vendas", icon: FileSpreadsheet },
-    { path: "/historico", label: "Histórico", icon: History, adminOnly: true },
     { path: "/rfv", label: "Clientes RFV", icon: Target },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
@@ -218,9 +216,7 @@ const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48 bg-card border-border">
-                  {comercialLinks
-                    .filter(link => !link.adminOnly || role === 'admin')
-                    .map((link) => (
+                  {comercialLinks.map((link) => (
                     <DropdownMenuItem key={link.path} asChild>
                       <Link 
                         to={link.path} 
