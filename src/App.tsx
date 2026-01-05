@@ -14,7 +14,7 @@ import Admin from "./pages/Admin";
 import DataReports from "./pages/DataReports";
 import Guides from "./pages/Guides";
 import ReferralLeads from "./pages/ReferralLeads";
-
+import Campaigns from "./pages/Campaigns";
 import OnboardingGoals from "./pages/OnboardingGoals";
 import SalesDashboard from "./pages/SalesDashboard";
 import SalesUpload from "./pages/SalesUpload";
@@ -43,6 +43,7 @@ const App = () => (
             <Route path="/data-reports" element={<ProtectedRoute><DataReports /></ProtectedRoute>} />
             <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
             <Route path="/referral-leads" element={<ProtectedRoute><ReferralLeads /></ProtectedRoute>} />
+            <Route path="/campanhas" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
             
             <Route path="/guias-comerciais" element={<ProtectedRoute><CommercialGuides /></ProtectedRoute>} />
             <Route path="/cancellations" element={<ProtectedRoute><Cancellations /></ProtectedRoute>} />
