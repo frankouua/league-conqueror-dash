@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DollarSign, Users, Star, ThumbsUp, Heart, XCircle, AlertCircle, FileSpreadsheet, PenLine, Upload, TrendingUp, CheckCircle } from "lucide-react";
+import { DollarSign, Star, ThumbsUp, Heart, XCircle, AlertCircle, FileSpreadsheet, PenLine, Upload, CheckCircle } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import RevenueForm from "@/components/forms/RevenueForm";
-import ReferralForm from "@/components/forms/ReferralForm";
 import TestimonialForm from "@/components/forms/TestimonialForm";
 import NPSForm from "@/components/forms/NPSForm";
 import OtherIndicatorsForm from "@/components/forms/OtherIndicatorsForm";
@@ -195,14 +194,10 @@ const Register = () => {
         <Tabs defaultValue="revenue" className="max-w-5xl mx-auto">
           {/* Mobile: scrollable horizontal tabs */}
           <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 mb-6 sm:mb-8">
-            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-7 h-auto bg-secondary/50 p-1 rounded-xl gap-1">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-6 h-auto bg-secondary/50 p-1 rounded-xl gap-1">
               <TabsTrigger value="revenue" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap">
                 <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-[10px] sm:text-xs">Fat.</span>
-              </TabsTrigger>
-              <TabsTrigger value="referrals" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap">
-                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-[10px] sm:text-xs">Ind.</span>
               </TabsTrigger>
               <TabsTrigger value="testimonials" className="flex flex-col items-center gap-1 py-2 sm:py-3 px-3 sm:px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap">
                 <Star className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -228,7 +223,6 @@ const Register = () => {
           </div>
 
           <TabsContent value="revenue" className="animate-scale-in"><RevenueContent /></TabsContent>
-          <TabsContent value="referrals" className="animate-scale-in"><ReferralForm /></TabsContent>
           <TabsContent value="testimonials" className="animate-scale-in"><TestimonialForm /></TabsContent>
           <TabsContent value="nps" className="animate-scale-in"><NPSForm /></TabsContent>
           <TabsContent value="other" className="animate-scale-in"><OtherIndicatorsForm /></TabsContent>
