@@ -17,6 +17,8 @@ import {
   Stethoscope,
   Loader2,
   MessageSquare,
+  Copy,
+  Sparkles,
 } from "lucide-react";
 import Header from "@/components/Header";
 import { ReferralConversionReport } from "@/components/ReferralConversionReport";
@@ -81,6 +83,52 @@ interface TeamMember {
   user_id: string;
   full_name: string;
 }
+
+// Scripts rápidos para contato de indicações
+const REFERRAL_SCRIPTS = [
+  {
+    id: "first_contact",
+    label: "1º Contato",
+    color: "bg-green-500/20 text-green-400 border-green-500/30",
+    template: (referrerName: string, leadName: string) => 
+      `Oi ${leadName.split(" ")[0]}! Tudo bem? 😊\n\nQuem está falando é [SEU NOME] da Unique Plástica.\n\nA ${referrerName.split(" ")[0]} falou de você pra gente e disse que você pode estar pensando em fazer uma transformação especial! 💜\n\nPosso te contar mais sobre como funciona?`,
+  },
+  {
+    id: "follow_up",
+    label: "Follow-up",
+    color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    template: (referrerName: string, leadName: string) => 
+      `Oi ${leadName.split(" ")[0]}! 😊\n\nPassando pra saber se você viu minha mensagem anterior?\n\nA ${referrerName.split(" ")[0]} me disse que você tinha interesse em conhecer a Unique.\n\nQuando podemos conversar?`,
+  },
+  {
+    id: "schedule",
+    label: "Agendar Consulta",
+    color: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    template: (referrerName: string, leadName: string) => 
+      `${leadName.split(" ")[0]}, que maravilha! 🌟\n\nComo você veio através da ${referrerName.split(" ")[0]}, você tem um benefício especial!\n\nTenho horários essa semana para o seu Unique Day. Prefere presencial ou online?\n\n🗓 Terça às 10h\n🗓 Quinta às 14h\n\nQual fica melhor pra você?`,
+  },
+  {
+    id: "no_response",
+    label: "Sem Resposta",
+    color: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+    template: (referrerName: string, leadName: string) => 
+      `${leadName.split(" ")[0]}, essa é minha última tentativa! 😊\n\nRespeito seu tempo, mas não quero que você perca a chance de realizar seu sonho.\n\nA ${referrerName.split(" ")[0]} ficou tão feliz com o resultado dela e me disse que você merece viver isso também!\n\nSe mudar de ideia, é só me chamar. Vou arquivar nossa conversa por enquanto, ok?\n\nUm abraço! 💜`,
+  },
+  {
+    id: "reminder",
+    label: "Lembrete Consulta",
+    color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    template: (referrerName: string, leadName: string) => 
+      `Oi ${leadName.split(" ")[0]}! 💜\n\nTudo certo pra sua consulta amanhã?\n\nLembrando: [HORÁRIO] - [LOCAL/LINK]\n\nQualquer dúvida, estou por aqui! Vai ser incrível! ✨`,
+  },
+  {
+    id: "post_consultation",
+    label: "Pós-Consulta",
+    color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+    template: (referrerName: string, leadName: string) => 
+      `${leadName.split(" ")[0]}! Como foi sua experiência no Unique Day? 🌟\n\nEspero que tenha gostado! O que achou do plano personalizado?\n\nEstou aqui pra te ajudar no próximo passo! 💜`,
+  },
+];
 
 const STATUS_CONFIG: Record<ReferralLeadStatus, { label: string; color: string; icon: React.ReactNode }> = {
   nova: { label: "Nova", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: <Plus className="w-3 h-3" /> },
@@ -833,6 +881,39 @@ const ReferralLeads = () => {
                     Email
                   </Button>
                 )}
+              </div>
+
+              {/* Quick Scripts / Estratégias */}
+              <div className="border-t border-border pt-4">
+                <Label className="text-foreground flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Scripts Rápidos
+                </Label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {REFERRAL_SCRIPTS.map((script) => (
+                    <Badge
+                      key={script.id}
+                      className={`${script.color} cursor-pointer hover:opacity-80 transition-opacity`}
+                      onClick={async () => {
+                        const message = script.template(
+                          editingLead.referrer_name,
+                          editingLead.referred_name
+                        );
+                        await navigator.clipboard.writeText(message);
+                        toast({
+                          title: "Script copiado!",
+                          description: `"${script.label}" pronto para enviar`,
+                        });
+                      }}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      {script.label}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Clique em um script para copiar a mensagem personalizada com o nome do lead
+                </p>
               </div>
 
               {/* Status and Change */}
