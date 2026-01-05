@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Target, ChevronRight, CheckCircle2, Circle, Clock, Flame, Trophy, Star } from "lucide-react";
+import { Calendar, Target, ChevronRight, CheckCircle2, Circle, Clock, Flame, Trophy, Star, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,8 @@ interface Campaign {
   goal_value: number | null;
   goal_metric: string | null;
   is_active: boolean;
+  prize_description: string | null;
+  prize_value: number | null;
 }
 
 interface CampaignAction {
@@ -113,6 +115,22 @@ const CampaignsWidget = () => {
         .order("order_index", { ascending: true });
       if (error) throw error;
       return data as CampaignAction[];
+    },
+    enabled: !!selectedCampaign,
+  });
+
+  // Fetch materials for selected campaign
+  const { data: campaignMaterials = [] } = useQuery({
+    queryKey: ["campaign-materials-widget", selectedCampaign?.id],
+    queryFn: async () => {
+      if (!selectedCampaign) return [];
+      const { data, error } = await supabase
+        .from("campaign_materials")
+        .select("*")
+        .eq("campaign_id", selectedCampaign.id)
+        .order("order_index", { ascending: true });
+      if (error) throw error;
+      return data;
     },
     enabled: !!selectedCampaign,
   });
@@ -334,6 +352,46 @@ const CampaignsWidget = () => {
                       )}
                     </CardContent>
                   </Card>
+                )}
+
+                {/* Prize Display */}
+                {(selectedCampaign.prize_description || selectedCampaign.prize_value) && (
+                  <Card className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border-amber-500/30">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <Trophy className="w-6 h-6 text-amber-500" />
+                      <div>
+                        <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Premiação</p>
+                        <p className="font-bold">
+                          {selectedCampaign.prize_value 
+                            ? `R$ ${selectedCampaign.prize_value.toLocaleString('pt-BR')}`
+                            : selectedCampaign.prize_description
+                          }
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Materials */}
+                {campaignMaterials.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-primary" />
+                      Materiais da Campanha
+                    </h4>
+                    <div className="grid gap-2">
+                      {campaignMaterials.map((material: any) => (
+                        <div
+                          key={material.id}
+                          className="flex items-center justify-between p-2 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => material.url && window.open(material.url, "_blank")}
+                        >
+                          <span className="text-sm">{material.title}</span>
+                          {material.url && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 {/* Checklist */}
