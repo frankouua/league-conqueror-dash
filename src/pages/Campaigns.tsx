@@ -1,14 +1,11 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -19,31 +16,35 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
-  Calendar, Target, Trophy, Clock, CheckCircle2, 
-  Gift, TrendingUp, Megaphone, Star, Zap, Plus,
-  ChevronRight, Award, Flame, Lightbulb, Send, X,
-  ChevronLeft, Eye, Heart, Sun, Snowflake, Flower2,
-  Users, ShoppingBag, PartyPopper, MessageSquare,
-  Syringe, Leaf, Smile, Baby, Ribbon, Gem, RefreshCw,
-  Activity, Candy, Settings, List
+  Calendar, Target, ChevronRight, ChevronLeft, 
+  Gift, Heart, Sun, Snowflake, Flower2, Users, ShoppingBag, 
+  PartyPopper, Star, Clock, MessageSquare, Zap, Syringe, 
+  Leaf, Smile, Baby, Ribbon, Gem, RefreshCw, TrendingUp, 
+  Activity, Eye, Candy, Copy, Check, Send, Phone, User,
+  FileText, Image, ExternalLink, Sparkles, Settings
 } from "lucide-react";
-import { format, differenceInDays, isPast, isFuture, isToday } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import CampaignsManager from "@/components/admin/CampaignsManager";
 
-// ==================== MASTER CALENDAR DATA ====================
+// ==================== CAMPANHAS 2026 ====================
 const CAMPAIGNS_2026 = [
   {
     month: 1,
     monthName: "Janeiro",
     campaigns: [
       {
+        id: "unique-reset",
         name: "UNIQUE RESET",
         date: "01-31 Jan",
         type: "mensal",
@@ -51,21 +52,47 @@ const CAMPAIGNS_2026 = [
         color: "bg-cyan-500",
         concept: "Saúde, recuperação e reequilíbrio pós-festas",
         focus: "Soroterapia (Imunidade, Detox, Energia)",
-        actions: ["Posts sobre recuperação pós-festas", "Destaque Soroterapia", "Foco em energia e imunidade"],
-        status: "pendente"
+        offer: "Soroterapia com 20% OFF + Avaliação Nutricional Grátis",
+        scripts: [
+          {
+            title: "Abordagem Inicial",
+            text: "Olá {nome}! 🌟 Começou 2026 e é hora de cuidar de você! Temos uma condição especial de Soroterapia para renovar suas energias. Posso te contar mais?"
+          },
+          {
+            title: "Oferta Especial",
+            text: "Ei {nome}! 💚 Campanha UNIQUE RESET: Soroterapia com 20% OFF + Avaliação Nutricional GRÁTIS! Válido até 31/01. Quer agendar sua sessão?"
+          },
+          {
+            title: "Follow-up",
+            text: "{nome}, vi que você demonstrou interesse na nossa campanha de janeiro! 🔋 A Soroterapia é perfeita para repor vitaminas e ter mais energia. Que tal agendarmos?"
+          }
+        ],
+        materials: [
+          { type: "image", title: "Banner Stories", url: "#" },
+          { type: "image", title: "Post Feed", url: "#" },
+          { type: "doc", title: "Protocolo Detox", url: "#" }
+        ]
       },
       {
+        id: "ano-novo",
         name: "Ano Novo",
         date: "01 Jan",
         type: "visibilidade",
         icon: PartyPopper,
         color: "bg-violet-500",
         concept: "Celebração do novo ano",
-        focus: "Conteúdo motivacional e metas",
-        actions: ["Post de celebração", "Mensagem de ano novo", "Metas de autocuidado 2026"],
-        status: "pendente"
+        focus: "Conteúdo motivacional e metas de autocuidado",
+        offer: null,
+        scripts: [
+          {
+            title: "Mensagem de Ano Novo",
+            text: "Feliz Ano Novo, {nome}! 🎉✨ Que 2026 seja repleto de conquistas e muito autocuidado. A Unique está aqui para te acompanhar nessa jornada!"
+          }
+        ],
+        materials: []
       },
       {
+        id: "botox-day-jan",
         name: "BOTOX DAY",
         date: "Jan/Fev",
         type: "day_especial",
@@ -73,8 +100,20 @@ const CAMPAIGNS_2026 = [
         color: "bg-purple-500",
         concept: "DAY Especial de alto volume",
         focus: "Aplicação de Toxina Botulínica",
-        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Oportunidade de upsell"],
-        status: "pendente"
+        offer: "Botox a partir de R$ 890 | Pacote 3 áreas: R$ 2.190",
+        scripts: [
+          {
+            title: "Convite BOTOX DAY",
+            text: "Oi {nome}! 💜 Dia especial na Unique: BOTOX DAY com condições imperdíveis! Botox a partir de R$ 890. Vagas limitadas. Reservo a sua?"
+          },
+          {
+            title: "Urgência",
+            text: "{nome}, restam poucas vagas para o BOTOX DAY! 🔥 Preços especiais só neste dia. Você não vai querer perder, né? Me confirma que reservo!"
+          }
+        ],
+        materials: [
+          { type: "image", title: "Arte BOTOX DAY", url: "#" }
+        ]
       }
     ]
   },
@@ -83,6 +122,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Fevereiro",
     campaigns: [
       {
+        id: "unique-balance",
         name: "UNIQUE BALANCE",
         date: "01-28 Fev",
         type: "mensal",
@@ -90,10 +130,21 @@ const CAMPAIGNS_2026 = [
         color: "bg-green-500",
         concept: "Disciplina, constância e autocuidado",
         focus: "Protocolos nutricionais e emagrecimento estratégico",
-        actions: ["Conteúdo sobre disciplina", "Protocolos nutricionais", "Emagrecimento estratégico"],
-        status: "pendente"
+        offer: "Protocolo Emagrecimento: 6 sessões por R$ 2.400 (de R$ 3.000)",
+        scripts: [
+          {
+            title: "Abordagem Emagrecimento",
+            text: "Olá {nome}! 💪 Fevereiro é o mês do EQUILÍBRIO na Unique! Nosso protocolo de emagrecimento está com condição especial. Posso te explicar como funciona?"
+          },
+          {
+            title: "Resultado",
+            text: "{nome}, já pensou em perder medidas de forma saudável e duradoura? 🎯 Nosso protocolo combina nutrição + procedimentos. Condição especial este mês!"
+          }
+        ],
+        materials: []
       },
       {
+        id: "carnaval",
         name: "Carnaval",
         date: "14-17 Fev",
         type: "visibilidade",
@@ -101,8 +152,18 @@ const CAMPAIGNS_2026 = [
         color: "bg-yellow-500",
         concept: "Preparação e recuperação pós-carnaval",
         focus: "Cuidados pré e pós-folia",
-        actions: ["Dicas pré-carnaval", "Cuidados com a pele", "Recuperação pós-folia", "Hidratação"],
-        status: "pendente"
+        offer: "Glow Up Pré-Carnaval: Hidratação + Vitamina C por R$ 350",
+        scripts: [
+          {
+            title: "Pré-Carnaval",
+            text: "Ei {nome}! 🎭 O Carnaval tá chegando! Que tal um Glow Up para arrasar na folia? Hidratação facial + Vitamina C por apenas R$ 350!"
+          },
+          {
+            title: "Pós-Carnaval",
+            text: "{nome}, sobreviveu ao Carnaval? 😅 Agora é hora de recuperar! Temos protocolos de revitalização para você voltar 100%. Vamos agendar?"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -111,6 +172,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Março",
     campaigns: [
       {
+        id: "unique-woman",
         name: "UNIQUE WOMAN",
         date: "01-31 Mar",
         type: "comemorativo",
@@ -118,10 +180,21 @@ const CAMPAIGNS_2026 = [
         color: "bg-pink-500",
         concept: "Autonomia e autoestima feminina (Dia da Mulher)",
         focus: "Planejamento e cirurgia plástica corporal",
-        actions: ["Campanha Dia da Mulher (08/03)", "Empoderamento feminino", "Cirurgias corporais"],
-        status: "pendente"
+        offer: "Mês da Mulher: Consulta + Exames pré-op com 50% OFF",
+        scripts: [
+          {
+            title: "Homenagem",
+            text: "Olá {nome}! 💕 Março é o mês de celebrar VOCÊ! Na Unique, acreditamos que toda mulher merece se sentir incrível. Temos condições especiais esperando por você!"
+          },
+          {
+            title: "Oferta Cirurgia",
+            text: "{nome}, março é o momento perfeito para realizar aquele sonho! ✨ Consulta + Exames pré-operatórios com 50% OFF. Que tal agendar uma avaliação?"
+          }
+        ],
+        materials: []
       },
       {
+        id: "dia-mulher",
         name: "Dia da Mulher",
         date: "08 Mar",
         type: "visibilidade",
@@ -129,19 +202,32 @@ const CAMPAIGNS_2026 = [
         color: "bg-pink-600",
         concept: "Dia Internacional da Mulher",
         focus: "Empoderamento e autoestima",
-        actions: ["Homenagem às mulheres", "Stories especiais", "Depoimentos de pacientes", "Lives"],
-        status: "pendente"
+        offer: null,
+        scripts: [
+          {
+            title: "Felicitação",
+            text: "Feliz Dia da Mulher, {nome}! 🌸 Você é única, forte e inspiradora. A Unique celebra você hoje e sempre! 💕"
+          }
+        ],
+        materials: []
       },
       {
+        id: "bioplastia-day",
         name: "BIOPLASTIA DAY",
         date: "Mar/Abr",
         type: "day_especial",
-        icon: Zap,
+        icon: Sparkles,
         color: "bg-rose-500",
         concept: "DAY Especial de alto volume",
         focus: "Preenchimento Facial Leve",
-        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Conversão para cirurgia: 10%"],
-        status: "pendente"
+        offer: "Ácido Hialurônico 1ml: R$ 1.290 | 2ml: R$ 2.290",
+        scripts: [
+          {
+            title: "Convite",
+            text: "Oi {nome}! ✨ BIOPLASTIA DAY chegando! Preenchimento com ácido hialurônico em condições especiais. 1ml por R$ 1.290! Vagas limitadas. Reservo a sua?"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -150,6 +236,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Abril",
     campaigns: [
       {
+        id: "unique-harmony",
         name: "UNIQUE HARMONY",
         date: "01-30 Abr",
         type: "mensal",
@@ -157,10 +244,17 @@ const CAMPAIGNS_2026 = [
         color: "bg-amber-500",
         concept: "Naturalidade, equilíbrio e elegância",
         focus: "Harmonização facial e procedimentos não cirúrgicos",
-        actions: ["Destaque harmonização facial", "Procedimentos não cirúrgicos", "Elegância natural"],
-        status: "pendente"
+        offer: "Harmonização Facial Completa: 12x de R$ 416",
+        scripts: [
+          {
+            title: "Harmonização",
+            text: "Olá {nome}! 😊 Abril é o mês da HARMONIA! Que tal realçar sua beleza natural com uma harmonização facial? Parcelamos em até 12x. Vamos conversar?"
+          }
+        ],
+        materials: []
       },
       {
+        id: "pascoa",
         name: "Páscoa",
         date: "05 Abr",
         type: "visibilidade",
@@ -168,8 +262,14 @@ const CAMPAIGNS_2026 = [
         color: "bg-amber-400",
         concept: "Celebração da Páscoa",
         focus: "Renovação e cuidados",
-        actions: ["Post temático", "Mensagem de renovação", "Brindes especiais clínica"],
-        status: "pendente"
+        offer: null,
+        scripts: [
+          {
+            title: "Páscoa",
+            text: "Feliz Páscoa, {nome}! 🐣 Que esta data traga renovação e muita paz para você e sua família. Um abraço da equipe Unique! 💛"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -178,6 +278,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Maio",
     campaigns: [
       {
+        id: "unique-essence",
         name: "UNIQUE ESSENCE",
         date: "01-31 Mai",
         type: "comemorativo",
@@ -185,10 +286,21 @@ const CAMPAIGNS_2026 = [
         color: "bg-rose-500",
         concept: "A mulher além da maternidade (Dia das Mães)",
         focus: "Cirurgias corporais e combinadas (Mommy Makeover)",
-        actions: ["Campanha Dia das Mães (10/05)", "Mommy Makeover", "Pacotes especiais mães"],
-        status: "pendente"
+        offer: "Mommy Makeover: Lipo + Abdominoplastia em até 24x",
+        scripts: [
+          {
+            title: "Para Mães",
+            text: "Olá {nome}! 💝 Maio é especial para todas as mães! Você que se dedicou tanto, merece se cuidar. Temos condições exclusivas para Mommy Makeover!"
+          },
+          {
+            title: "Presente Mães",
+            text: "{nome}, que tal presentear sua mãe com autocuidado? 🌹 Temos vouchers especiais para procedimentos. Ela vai amar! Quer saber mais?"
+          }
+        ],
+        materials: []
       },
       {
+        id: "dia-maes",
         name: "Dia das Mães",
         date: "10 Mai",
         type: "visibilidade",
@@ -196,10 +308,17 @@ const CAMPAIGNS_2026 = [
         color: "bg-rose-600",
         concept: "Celebração do Dia das Mães",
         focus: "Homenagem e presentes",
-        actions: ["Vouchers presente", "Stories emocionais", "Depoimentos mães", "Sorteios"],
-        status: "pendente"
+        offer: "Vouchers presente a partir de R$ 200",
+        scripts: [
+          {
+            title: "Felicitação",
+            text: "Feliz Dia das Mães, {nome}! 💐 Que seu dia seja repleto de amor e carinho. Você merece todo o cuidado do mundo! Com carinho, Unique. 💕"
+          }
+        ],
+        materials: []
       },
       {
+        id: "soroterapia-day",
         name: "SOROTERAPIA DAY",
         date: "Mai/Jun",
         type: "day_especial",
@@ -207,8 +326,14 @@ const CAMPAIGNS_2026 = [
         color: "bg-yellow-500",
         concept: "DAY Especial de alto volume",
         focus: "Protocolos de Energia e Imunidade",
-        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Foco em energia"],
-        status: "pendente"
+        offer: "Soro Energia + Imunidade: R$ 290 (de R$ 450)",
+        scripts: [
+          {
+            title: "Convite",
+            text: "Oi {nome}! ⚡ SOROTERAPIA DAY: Protocolo Energia + Imunidade por apenas R$ 290! Perfeito para quem precisa de um up. Agenda vai lotar! Reservo sua vaga?"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -217,6 +342,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Junho",
     campaigns: [
       {
+        id: "unique-desire",
         name: "UNIQUE DESIRE",
         date: "01-30 Jun",
         type: "comemorativo",
@@ -224,10 +350,17 @@ const CAMPAIGNS_2026 = [
         color: "bg-red-500",
         concept: "Confiança, sensualidade e conexão (Dia dos Namorados)",
         focus: "Procedimentos e cirurgias para casais",
-        actions: ["Pacotes de casal", "Descontos progressivos", "Consultas conjuntas"],
-        status: "pendente"
+        offer: "Pacote Casal: 2 procedimentos com 30% OFF",
+        scripts: [
+          {
+            title: "Casais",
+            text: "Olá {nome}! 💕 Junho é o mês do amor! Que tal um presente especial para vocês dois? Pacote Casal com 30% OFF em procedimentos. Bora cuidar juntos?"
+          }
+        ],
+        materials: []
       },
       {
+        id: "dia-namorados",
         name: "Dia dos Namorados",
         date: "12 Jun",
         type: "visibilidade",
@@ -235,19 +368,14 @@ const CAMPAIGNS_2026 = [
         color: "bg-red-600",
         concept: "Celebração do amor",
         focus: "Casais e presentes",
-        actions: ["Pacotes românticos", "Vouchers de presente", "Conteúdo de casal"],
-        status: "pendente"
-      },
-      {
-        name: "Festa Junina",
-        date: "24 Jun",
-        type: "visibilidade",
-        icon: PartyPopper,
-        color: "bg-orange-500",
-        concept: "Festas juninas",
-        focus: "Conteúdo temático",
-        actions: ["Posts temáticos", "Decoração clínica", "Engajamento redes"],
-        status: "pendente"
+        offer: "Vouchers presente para o amor da sua vida",
+        scripts: [
+          {
+            title: "Felicitação",
+            text: "Feliz Dia dos Namorados, {nome}! ❤️ Que o amor esteja sempre presente na sua vida! A Unique deseja um dia especial para você! 💕"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -256,6 +384,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Julho",
     campaigns: [
       {
+        id: "unique-care",
         name: "UNIQUE CARE",
         date: "01-31 Jul",
         type: "mensal",
@@ -263,21 +392,17 @@ const CAMPAIGNS_2026 = [
         color: "bg-blue-400",
         concept: "Cuidado silencioso e sofisticado",
         focus: "Pós-operatório, recuperação e soroterapia de cicatrização",
-        actions: ["Foco em pós-operatório", "Recuperação de pacientes", "Soroterapia cicatrização"],
-        status: "pendente"
+        offer: "Protocolo Pós-Op: 3 sessões por R$ 890",
+        scripts: [
+          {
+            title: "Pós-Operatório",
+            text: "Olá {nome}! ❄️ Julho é perfeito para procedimentos com mais tranquilidade. Nosso protocolo de recuperação está com condição especial!"
+          }
+        ],
+        materials: []
       },
       {
-        name: "Férias de Inverno",
-        date: "01-31 Jul",
-        type: "visibilidade",
-        icon: Snowflake,
-        color: "bg-blue-500",
-        concept: "Férias escolares de inverno",
-        focus: "Procedimentos aproveitando férias",
-        actions: ["Recuperação em casa", "Pacotes férias", "Cirurgias planejadas"],
-        status: "pendente"
-      },
-      {
+        id: "laser-day",
         name: "LASER DAY",
         date: "Jul/Ago",
         type: "day_especial",
@@ -285,8 +410,14 @@ const CAMPAIGNS_2026 = [
         color: "bg-orange-500",
         concept: "DAY Especial de alto volume",
         focus: "Rejuvenescimento a Laser",
-        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Conversão para cirurgia"],
-        status: "pendente"
+        offer: "Laser Rejuvenescedor: R$ 590 por sessão",
+        scripts: [
+          {
+            title: "Convite",
+            text: "Oi {nome}! ☀️ LASER DAY chegando! Rejuvenescimento a laser com preço especial. R$ 590 por sessão! Inverno é a época perfeita. Agenda disponível?"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -295,6 +426,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Agosto",
     campaigns: [
       {
+        id: "unique-prep",
         name: "UNIQUE PREP",
         date: "01-31 Ago",
         type: "mensal",
@@ -302,10 +434,17 @@ const CAMPAIGNS_2026 = [
         color: "bg-indigo-500",
         concept: "Organização e antecipação para o verão",
         focus: "Protocolos nutricionais e planejamento corporal",
-        actions: ["Planejamento verão", "Protocolos nutricionais", "Antecipação de procedimentos"],
-        status: "pendente"
+        offer: "Planejamento Verão: Consulta + Protocolo personalizado",
+        scripts: [
+          {
+            title: "Planejamento",
+            text: "Olá {nome}! 📈 Agosto é hora de PLANEJAR o verão! Que tal começar agora para chegar linda em dezembro? Temos protocolos sob medida para você!"
+          }
+        ],
+        materials: []
       },
       {
+        id: "dia-pais",
         name: "Dia dos Pais",
         date: "09 Ago",
         type: "visibilidade",
@@ -313,8 +452,14 @@ const CAMPAIGNS_2026 = [
         color: "bg-blue-600",
         concept: "Celebração do Dia dos Pais",
         focus: "Procedimentos masculinos",
-        actions: ["Pacotes masculinos", "Vouchers para pais", "Harmonização masc."],
-        status: "pendente"
+        offer: "Harmonização Masculina: condições especiais",
+        scripts: [
+          {
+            title: "Felicitação",
+            text: "Feliz Dia dos Pais, {nome}! 💙 Homens também merecem se cuidar! Temos procedimentos especiais para eles. Que tal presentear seu pai?"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -323,6 +468,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Setembro",
     campaigns: [
       {
+        id: "unique-bloom",
         name: "UNIQUE BLOOM",
         date: "01-30 Set",
         type: "sazonal",
@@ -330,21 +476,17 @@ const CAMPAIGNS_2026 = [
         color: "bg-green-500",
         concept: "Florescer com naturalidade (Primavera)",
         focus: "Harmonização facial e procedimentos refinados",
-        actions: ["Início da primavera (22/09)", "Procedimentos refinados", "Renovação natural"],
-        status: "pendente"
+        offer: "Skincare Premium + Harmonização: 15% OFF",
+        scripts: [
+          {
+            title: "Primavera",
+            text: "Olá {nome}! 🌸 Primavera chegando! É tempo de florescer e renovar. Nossos tratamentos faciais estão com condições especiais. Vamos agendar?"
+          }
+        ],
+        materials: []
       },
       {
-        name: "Primavera",
-        date: "22 Set",
-        type: "visibilidade",
-        icon: Flower2,
-        color: "bg-green-400",
-        concept: "Início da Primavera",
-        focus: "Renovação e florescimento",
-        actions: ["Conteúdo sobre renovação", "Preparação para verão", "Skincare primavera"],
-        status: "pendente"
-      },
-      {
+        id: "harmonizacao-day",
         name: "HARMONIZAÇÃO DAY",
         date: "Set/Out",
         type: "day_especial",
@@ -352,8 +494,14 @@ const CAMPAIGNS_2026 = [
         color: "bg-violet-500",
         concept: "DAY Especial de alto volume",
         focus: "Harmonização Facial Completa",
-        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Pacote completo"],
-        status: "pendente"
+        offer: "Harmonização Completa: R$ 4.990 (de R$ 6.500)",
+        scripts: [
+          {
+            title: "Convite",
+            text: "Oi {nome}! 💎 HARMONIZAÇÃO DAY! Pacote completo por R$ 4.990 (economia de R$ 1.510!). Data única! Vagas super limitadas. Reservo a sua?"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -362,6 +510,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Outubro",
     campaigns: [
       {
+        id: "unique-rosa",
         name: "UNIQUE ROSA",
         date: "01-31 Out",
         type: "comemorativo",
@@ -369,30 +518,14 @@ const CAMPAIGNS_2026 = [
         color: "bg-pink-500",
         concept: "Saúde da mulher e prevenção (Outubro Rosa)",
         focus: "Conteúdo educativo, avaliações e suporte nutricional",
-        actions: ["Outubro Rosa", "Conteúdo educativo", "Avaliações especiais"],
-        status: "pendente"
-      },
-      {
-        name: "Dia das Crianças",
-        date: "12 Out",
-        type: "visibilidade",
-        icon: Baby,
-        color: "bg-cyan-500",
-        concept: "Dia das Crianças",
-        focus: "Famílias e crianças",
-        actions: ["Conteúdo família", "Ações para mães", "Engajamento redes"],
-        status: "pendente"
-      },
-      {
-        name: "Halloween",
-        date: "31 Out",
-        type: "visibilidade",
-        icon: Candy,
-        color: "bg-orange-600",
-        concept: "Halloween",
-        focus: "Conteúdo criativo",
-        actions: ["Posts criativos", "Stories temáticos", "Engajamento divertido"],
-        status: "pendente"
+        offer: "Check-up Saúde da Mulher: avaliação completa",
+        scripts: [
+          {
+            title: "Outubro Rosa",
+            text: "Olá {nome}! 🎀 Outubro Rosa: mês de conscientização! A Unique apoia essa causa. Cuide-se! Estamos aqui para você. 💕"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -401,6 +534,7 @@ const CAMPAIGNS_2026 = [
     monthName: "Novembro",
     campaigns: [
       {
+        id: "unique-confidence",
         name: "UNIQUE CONFIDENCE",
         date: "01-30 Nov",
         type: "mensal",
@@ -408,10 +542,17 @@ const CAMPAIGNS_2026 = [
         color: "bg-amber-600",
         concept: "Autoestima e confiança feminina pré-verão",
         focus: "Procedimentos corporais e faciais não cirúrgicos",
-        actions: ["Preparação verão", "Procedimentos não cirúrgicos", "Autoestima feminina"],
-        status: "pendente"
+        offer: "Pacote Verão: Lipo HD + Abdominoplastia em condições especiais",
+        scripts: [
+          {
+            title: "Pré-Verão",
+            text: "Olá {nome}! ⭐ Novembro é o último mês para garantir o corpo dos sonhos para o verão! Temos condições exclusivas. Vamos conversar?"
+          }
+        ],
+        materials: []
       },
       {
+        id: "black-friday",
         name: "Black Friday",
         date: "27 Nov",
         type: "visibilidade",
@@ -419,10 +560,21 @@ const CAMPAIGNS_2026 = [
         color: "bg-gray-900",
         concept: "Principal data promocional do ano",
         focus: "Descontos e promoções agressivas",
-        actions: ["Descontos especiais", "Pacotes exclusivos", "Urgência e escassez"],
-        status: "pendente"
+        offer: "Descontos de até 40% em procedimentos selecionados",
+        scripts: [
+          {
+            title: "Black Friday",
+            text: "🖤 BLACK FRIDAY UNIQUE! {nome}, os maiores descontos do ano! Até 40% OFF em procedimentos. SÓ HOJE! Corre que vai acabar! 🏃‍♀️"
+          },
+          {
+            title: "Urgência",
+            text: "{nome}, últimas horas de BLACK FRIDAY! 🖤 Já garantiu seu procedimento com desconto? Não deixa passar! Me chama agora!"
+          }
+        ],
+        materials: []
       },
       {
+        id: "skincare-day",
         name: "SKINCARE DAY",
         date: "Nov/Dez",
         type: "day_especial",
@@ -430,8 +582,14 @@ const CAMPAIGNS_2026 = [
         color: "bg-emerald-500",
         concept: "DAY Especial de alto volume",
         focus: "Protocolo de Skincare Premium",
-        actions: ["Preço especial", "Meta: 30 pacientes/dia", "Skincare completo"],
-        status: "pendente"
+        offer: "Protocolo Glow: 3 sessões por R$ 890",
+        scripts: [
+          {
+            title: "Convite",
+            text: "Oi {nome}! 🌿 SKINCARE DAY! Protocolo Glow com 3 sessões por R$ 890! Pele renovada para as festas de fim de ano. Reservo sua vaga?"
+          }
+        ],
+        materials: []
       }
     ]
   },
@@ -440,17 +598,25 @@ const CAMPAIGNS_2026 = [
     monthName: "Dezembro",
     campaigns: [
       {
+        id: "unique-closure",
         name: "UNIQUE CLOSURE",
         date: "01-31 Dez",
         type: "comemorativo",
         icon: Gift,
         color: "bg-red-600",
         concept: "Gratidão, vínculo e encerramento de ciclos",
-        focus: "Planejamento cirúrgico e soroterapia de energia",
-        actions: ["Encerramento do ano", "Planejamento 2027", "Gratidão aos pacientes"],
-        status: "pendente"
+        focus: "Planejamento cirúrgico 2027 e soroterapia de energia",
+        offer: "Planejamento 2027: Consulta + Plano personalizado",
+        scripts: [
+          {
+            title: "Fim de Ano",
+            text: "Olá {nome}! 🎄 Dezembro chegou! Que tal planejar 2027 com a Unique? Agende sua avaliação e comece o ano novo realizando seus sonhos!"
+          }
+        ],
+        materials: []
       },
       {
+        id: "natal",
         name: "Natal",
         date: "25 Dez",
         type: "visibilidade",
@@ -458,438 +624,113 @@ const CAMPAIGNS_2026 = [
         color: "bg-red-500",
         concept: "Celebração do Natal",
         focus: "Presentes e família",
-        actions: ["Mensagem de Natal", "Vouchers presente", "Agradecimento pacientes"],
-        status: "pendente"
-      },
-      {
-        name: "Réveillon",
-        date: "31 Dez",
-        type: "visibilidade",
-        icon: PartyPopper,
-        color: "bg-purple-600",
-        concept: "Virada de ano",
-        focus: "Preparação para festas",
-        actions: ["Procedimentos express", "Glow up fim de ano", "Mensagem de despedida"],
-        status: "pendente"
+        offer: null,
+        scripts: [
+          {
+            title: "Natal",
+            text: "Feliz Natal, {nome}! 🎄✨ Que esta data traga paz, amor e muita saúde para você e sua família! Com carinho, Unique. 🎁"
+          }
+        ],
+        materials: []
       }
     ]
   }
 ];
 
-const CAMPAIGN_TYPE_CONFIG: Record<string, { label: string; color: string; icon: typeof Trophy }> = {
-  mensal: { label: "Campanha Mensal", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Calendar },
-  comemorativo: { label: "Data Comemorativa", color: "bg-pink-500/20 text-pink-400 border-pink-500/30", icon: Heart },
-  sazonal: { label: "Sazonal", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: Sun },
-  day_especial: { label: "DAY Especial", color: "bg-purple-500/20 text-purple-400 border-purple-500/30", icon: Zap },
-  visibilidade: { label: "Visibilidade", color: "bg-orange-500/20 text-orange-400 border-orange-500/30", icon: Eye },
-  relampago: { label: "Relâmpago", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: Zap },
-  trimestral: { label: "Trimestral", color: "bg-purple-500/20 text-purple-400 border-purple-500/30", icon: Target },
-  semestral: { label: "Semestral", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: Trophy },
-  especial: { label: "Especial", color: "bg-pink-500/20 text-pink-400 border-pink-500/30", icon: Star },
+const CAMPAIGN_TYPE_CONFIG: Record<string, { label: string; color: string; textColor: string }> = {
+  mensal: { label: "Campanha Mensal", color: "bg-blue-500/20", textColor: "text-blue-400" },
+  comemorativo: { label: "Data Comemorativa", color: "bg-pink-500/20", textColor: "text-pink-400" },
+  sazonal: { label: "Sazonal", color: "bg-green-500/20", textColor: "text-green-400" },
+  day_especial: { label: "DAY Especial", color: "bg-purple-500/20", textColor: "text-purple-400" },
+  visibilidade: { label: "Visibilidade", color: "bg-orange-500/20", textColor: "text-orange-400" },
 };
 
-const DAYS_ESPECIAIS = [
-  { periodo: "Jan/Fev", nome: "BOTOX DAY", procedimento: "Aplicação de Toxina Botulínica" },
-  { periodo: "Mar/Abr", nome: "BIOPLASTIA DAY", procedimento: "Preenchimento Facial Leve" },
-  { periodo: "Mai/Jun", nome: "SOROTERAPIA DAY", procedimento: "Protocolos de Energia e Imunidade" },
-  { periodo: "Jul/Ago", nome: "LASER DAY", procedimento: "Rejuvenescimento a Laser" },
-  { periodo: "Set/Out", nome: "HARMONIZAÇÃO DAY", procedimento: "Harmonização Facial Completa" },
-  { periodo: "Nov/Dez", nome: "SKINCARE DAY", procedimento: "Protocolo de Skincare Premium" }
+const RFV_SEGMENTS = [
+  { value: "champions", label: "Champions", count: 19 },
+  { value: "loyal", label: "Leais", count: 35 },
+  { value: "potential", label: "Potenciais", count: 21 },
+  { value: "at_risk", label: "Em Risco", count: 14 },
+  { value: "hibernating", label: "Hibernando", count: 23 },
+  { value: "lost", label: "Perdidos", count: 60 },
 ];
-
-const DATAS_VISIBILIDADE = [
-  { data: "01 Jan", nome: "Ano Novo", tipo: "Celebração" },
-  { data: "14-17 Fev", nome: "Carnaval", tipo: "Feriado" },
-  { data: "08 Mar", nome: "Dia da Mulher", tipo: "Comemorativo" },
-  { data: "05 Abr", nome: "Páscoa", tipo: "Feriado" },
-  { data: "10 Mai", nome: "Dia das Mães", tipo: "Comemorativo" },
-  { data: "12 Jun", nome: "Dia dos Namorados", tipo: "Comemorativo" },
-  { data: "24 Jun", nome: "Festa Junina", tipo: "Cultural" },
-  { data: "09 Ago", nome: "Dia dos Pais", tipo: "Comemorativo" },
-  { data: "22 Set", nome: "Primavera", tipo: "Sazonal" },
-  { data: "12 Out", nome: "Dia das Crianças", tipo: "Comemorativo" },
-  { data: "31 Out", nome: "Halloween", tipo: "Cultural" },
-  { data: "27 Nov", nome: "Black Friday", tipo: "Promocional" },
-  { data: "25 Dez", nome: "Natal", tipo: "Feriado" },
-  { data: "31 Dez", nome: "Réveillon", tipo: "Celebração" }
-];
-
-// ==================== DB TYPES ====================
-interface Campaign {
-  id: string;
-  name: string;
-  description: string | null;
-  campaign_type: string;
-  start_date: string;
-  end_date: string;
-  goal_value: number | null;
-  goal_metric: string | null;
-  goal_description: string | null;
-  prize_value: number | null;
-  prize_description: string | null;
-  is_active: boolean;
-}
-
-interface CampaignAction {
-  id: string;
-  campaign_id: string;
-  title: string;
-  description: string | null;
-  is_required: boolean;
-  order_index: number;
-}
-
-interface ChecklistProgress {
-  action_id: string;
-  completed: boolean;
-}
-
-interface CampaignSuggestion {
-  id: string;
-  title: string;
-  description: string | null;
-  suggested_prize: string | null;
-  suggested_goal: string | null;
-  status: string;
-  created_at: string;
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pending: { label: "Aguardando", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  approved: { label: "Aprovada", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-  rejected: { label: "Rejeitada", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-  implemented: { label: "Implementada", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-};
 
 const Campaigns = () => {
   const { user, role } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [mainTab, setMainTab] = useState("campanhas");
-  const [activeTab, setActiveTab] = useState("ativas");
-  const [calendarTab, setCalendarTab] = useState("visao-geral");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [suggestionDialogOpen, setSuggestionDialogOpen] = useState(false);
-  const [suggestionForm, setSuggestionForm] = useState({
-    title: "",
-    description: "",
-    suggested_prize: "",
-    suggested_goal: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [selectedScript, setSelectedScript] = useState<any>(null);
+  const [patientName, setPatientName] = useState("");
+  const [patientPhone, setPatientPhone] = useState("");
+  const [personalizedMessage, setPersonalizedMessage] = useState("");
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // Fetch campaigns from DB
-  const { data: dbCampaigns = [], isLoading } = useQuery({
-    queryKey: ["campaigns-page"],
+  // Get RFV segments count from DB
+  const { data: rfvSegments } = useQuery({
+    queryKey: ["rfv-segments-count"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("campaigns")
-        .select("*")
-        .eq("is_template", false)
-        .order("start_date", { ascending: false });
+        .from("rfv_customers")
+        .select("segment");
       
       if (error) throw error;
-      return data as Campaign[];
+      
+      const counts: Record<string, number> = {};
+      data.forEach(customer => {
+        counts[customer.segment] = (counts[customer.segment] || 0) + 1;
+      });
+      return counts;
     },
   });
 
-  // Fetch campaign actions
-  const { data: allActions = [] } = useQuery({
-    queryKey: ["campaign-actions-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("campaign_actions")
-        .select("*")
-        .order("order_index");
-      
-      if (error) throw error;
-      return data as CampaignAction[];
-    },
-  });
+  const currentMonthData = CAMPAIGNS_2026.find(m => m.month === selectedMonth);
 
-  // Fetch user's checklist progress
-  const { data: checklistProgress = [], refetch: refetchProgress } = useQuery({
-    queryKey: ["checklist-progress", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from("campaign_checklist_progress")
-        .select("action_id, completed")
-        .eq("user_id", user.id);
-      
-      if (error) throw error;
-      return data as ChecklistProgress[];
-    },
-    enabled: !!user?.id,
-  });
+  const handleCopyScript = (text: string, index: number) => {
+    const message = text.replace("{nome}", patientName || "[Nome]");
+    navigator.clipboard.writeText(message);
+    setCopiedIndex(index);
+    toast.success("Script copiado!");
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
 
-  // Fetch user's suggestions
-  const { data: mySuggestions = [] } = useQuery({
-    queryKey: ["my-campaign-suggestions", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from("campaign_suggestions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data as CampaignSuggestion[];
-    },
-    enabled: !!user?.id,
-  });
+  const handlePrepareMessage = (script: any) => {
+    setSelectedScript(script);
+    setPersonalizedMessage(script.text);
+    setShowSendDialog(true);
+  };
 
-  const handleSubmitSuggestion = async () => {
-    if (!user?.id || !suggestionForm.title.trim()) {
-      toast.error("Preencha o título da sugestão");
+  const handleSendWhatsApp = () => {
+    if (!patientPhone) {
+      toast.error("Informe o telefone do paciente");
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const { error } = await supabase
-        .from("campaign_suggestions")
-        .insert({
-          user_id: user.id,
-          title: suggestionForm.title,
-          description: suggestionForm.description || null,
-          suggested_prize: suggestionForm.suggested_prize || null,
-          suggested_goal: suggestionForm.suggested_goal || null,
-        });
-
-      if (error) throw error;
-
-      toast.success("Sugestão enviada com sucesso! 🎉");
-      setSuggestionDialogOpen(false);
-      setSuggestionForm({ title: "", description: "", suggested_prize: "", suggested_goal: "" });
-      queryClient.invalidateQueries({ queryKey: ["my-campaign-suggestions"] });
-    } catch (error) {
-      toast.error("Erro ao enviar sugestão");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const now = new Date();
-  
-  // DB Campaigns filtering
-  const activeCampaigns = dbCampaigns.filter(c => {
-    const start = new Date(c.start_date);
-    const end = new Date(c.end_date);
-    return c.is_active && start <= now && end >= now;
-  });
-
-  const upcomingCampaigns = dbCampaigns.filter(c => {
-    const start = new Date(c.start_date);
-    return c.is_active && start > now;
-  });
-
-  const pastCampaigns = dbCampaigns.filter(c => {
-    const end = new Date(c.end_date);
-    return end < now;
-  });
-
-  const completedCampaigns = pastCampaigns.filter(c => {
-    const actions = allActions.filter(a => a.campaign_id === c.id);
-    if (actions.length === 0) return false;
-    const completed = actions.filter(a => 
-      checklistProgress.some(p => p.action_id === a.id && p.completed)
-    ).length;
-    return completed === actions.length;
-  });
-
-  // Master Calendar filtering
-  const currentMonthData = CAMPAIGNS_2026.find(m => m.month === selectedMonth);
-  
-  const filteredCalendarCampaigns = selectedType 
-    ? CAMPAIGNS_2026.map(m => ({
-        ...m,
-        campaigns: m.campaigns.filter(c => c.type === selectedType)
-      })).filter(m => m.campaigns.length > 0)
-    : CAMPAIGNS_2026;
-
-  const allCalendarCampaigns = CAMPAIGNS_2026.flatMap(m => 
-    m.campaigns.map(c => ({ ...c, month: m.month, monthName: m.monthName }))
-  );
-
-  const upcomingCalendarCampaigns = allCalendarCampaigns
-    .filter(c => c.month >= new Date().getMonth() + 1)
-    .slice(0, 10);
-
-  const toggleAction = async (actionId: string, campaignId: string, currentlyCompleted: boolean) => {
-    if (!user?.id) return;
-
-    try {
-      if (currentlyCompleted) {
-        await supabase
-          .from("campaign_checklist_progress")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("action_id", actionId);
-      } else {
-        await supabase
-          .from("campaign_checklist_progress")
-          .upsert({
-            user_id: user.id,
-            campaign_id: campaignId,
-            action_id: actionId,
-            completed: true,
-            completed_at: new Date().toISOString(),
-          });
-      }
-      
-      refetchProgress();
-      toast.success(currentlyCompleted ? "Ação desmarcada" : "Ação concluída! 🎉");
-    } catch (error) {
-      toast.error("Erro ao atualizar progresso");
-    }
-  };
-
-  const getCampaignProgress = (campaignId: string) => {
-    const actions = allActions.filter(a => a.campaign_id === campaignId);
-    if (actions.length === 0) return 0;
+    const message = personalizedMessage.replace("{nome}", patientName || "");
+    const phone = patientPhone.replace(/\D/g, "");
+    const fullPhone = phone.startsWith("55") ? phone : `55${phone}`;
+    const whatsappUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
     
-    const completed = actions.filter(a => 
-      checklistProgress.some(p => p.action_id === a.id && p.completed)
-    ).length;
-    
-    return Math.round((completed / actions.length) * 100);
+    window.open(whatsappUrl, "_blank");
+    toast.success("Abrindo WhatsApp...");
+    setShowSendDialog(false);
   };
 
-  const CampaignCard = ({ campaign, showActions = true }: { campaign: Campaign; showActions?: boolean }) => {
-    const config = CAMPAIGN_TYPE_CONFIG[campaign.campaign_type] || CAMPAIGN_TYPE_CONFIG.mensal;
-    const Icon = config?.icon || Calendar;
-    const actions = allActions.filter(a => a.campaign_id === campaign.id);
-    const progress = getCampaignProgress(campaign.id);
-    const daysLeft = differenceInDays(new Date(campaign.end_date), now);
-    const isActive = new Date(campaign.start_date) <= now && new Date(campaign.end_date) >= now;
-    const isUpcoming = new Date(campaign.start_date) > now;
-
+  if (showAdminPanel && role === "admin") {
     return (
-      <Card className="bg-card/50 border-border hover:border-primary/30 transition-all duration-300">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${config?.color?.split(' ')[0] || 'bg-primary/20'}`}>
-                <Icon className={`w-5 h-5 ${config?.color?.split(' ')[1] || 'text-primary'}`} />
-              </div>
-              <div>
-                <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                {campaign.description && (
-                  <CardDescription className="mt-1">{campaign.description}</CardDescription>
-                )}
-              </div>
-            </div>
-            <Badge className={config?.color || ''}>{config?.label || campaign.campaign_type}</Badge>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold">Gerenciar Campanhas</h1>
+            <Button variant="outline" onClick={() => setShowAdminPanel(false)}>
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Voltar ao Calendário
+            </Button>
           </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>
-                {format(new Date(campaign.start_date), "dd/MM", { locale: ptBR })} - {format(new Date(campaign.end_date), "dd/MM/yyyy", { locale: ptBR })}
-              </span>
-            </div>
-            {isActive && daysLeft >= 0 && (
-              <Badge variant="outline" className={daysLeft <= 3 ? "border-red-500/50 text-red-400" : "border-green-500/50 text-green-400"}>
-                <Clock className="w-3 h-3 mr-1" />
-                {daysLeft === 0 ? "Último dia!" : `${daysLeft} dias restantes`}
-              </Badge>
-            )}
-            {isUpcoming && (
-              <Badge variant="outline" className="border-blue-500/50 text-blue-400">
-                Começa em {differenceInDays(new Date(campaign.start_date), now)} dias
-              </Badge>
-            )}
-          </div>
-
-          {campaign.goal_description && (
-            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-              <div className="flex items-center gap-2 text-primary mb-1">
-                <Target className="w-4 h-4" />
-                <span className="font-medium text-sm">Meta da Campanha</span>
-              </div>
-              <p className="text-sm text-foreground">{campaign.goal_description}</p>
-              {campaign.goal_value && (
-                <p className="text-lg font-bold text-primary mt-1">
-                  {campaign.goal_metric === "revenue" ? `R$ ${campaign.goal_value.toLocaleString("pt-BR")}` : campaign.goal_value}
-                </p>
-              )}
-            </div>
-          )}
-
-          {campaign.prize_description && (
-            <div className="p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
-              <div className="flex items-center gap-2 text-yellow-400 mb-1">
-                <Gift className="w-4 h-4" />
-                <span className="font-medium text-sm">Premiação</span>
-              </div>
-              <p className="text-sm text-foreground">{campaign.prize_description}</p>
-              {campaign.prize_value && (
-                <p className="text-lg font-bold text-yellow-400 mt-1">
-                  R$ {campaign.prize_value.toLocaleString("pt-BR")}
-                </p>
-              )}
-            </div>
-          )}
-
-          {showActions && actions.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Seu progresso</span>
-                <span className="text-sm font-bold text-primary">{progress}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              
-              <div className="space-y-2 mt-3">
-                {actions.map((action) => {
-                  const isCompleted = checklistProgress.some(p => p.action_id === action.id && p.completed);
-                  return (
-                    <div 
-                      key={action.id}
-                      className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-all ${
-                        isCompleted ? "bg-green-500/10" : "bg-muted/30 hover:bg-muted/50"
-                      }`}
-                      onClick={() => toggleAction(action.id, campaign.id, isCompleted)}
-                    >
-                      <Checkbox 
-                        checked={isCompleted}
-                        className={isCompleted ? "border-green-500 bg-green-500" : ""}
-                      />
-                      <div className="flex-1">
-                        <p className={`text-sm ${isCompleted ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                          {action.title}
-                        </p>
-                        {action.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
-                        )}
-                      </div>
-                      {action.is_required && (
-                        <Badge variant="outline" className="text-xs border-red-500/30 text-red-400">
-                          Obrigatório
-                        </Badge>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <CampaignsManager />
+        </main>
       </div>
     );
   }
@@ -898,643 +739,358 @@ const Campaigns = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-6">
-        {/* Hero Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/20">
-                <Megaphone className="w-6 h-6 text-primary" />
+                <Calendar className="w-6 h-6 text-primary" />
               </div>
-              <h1 className="text-3xl font-bold">Campanhas</h1>
-            </div>
-            <p className="text-muted-foreground">
-              Participe das campanhas ativas, acompanhe seu progresso e conquiste premiações!
+              Campanhas 2026
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Clique em um mês para ver campanhas, scripts e materiais
             </p>
           </div>
+          
+          {role === "admin" && (
+            <Button onClick={() => setShowAdminPanel(true)} variant="outline" className="gap-2">
+              <Settings className="w-4 h-4" />
+              Gerenciar
+            </Button>
+          )}
+        </div>
 
-          <div className="flex gap-3 flex-wrap">
-            {role === "admin" && (
-              <Button onClick={() => setMainTab("gerenciar")} variant={mainTab === "gerenciar" ? "default" : "outline"} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Criar Campanha
+        {/* Calendário Anual */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+          {CAMPAIGNS_2026.map((month) => {
+            const isSelected = month.month === selectedMonth;
+            const isCurrent = month.month === new Date().getMonth() + 1;
+            const mainCampaign = month.campaigns.find(c => c.type === "mensal" || c.type === "comemorativo");
+            
+            return (
+              <Card
+                key={month.month}
+                onClick={() => setSelectedMonth(month.month)}
+                className={`cursor-pointer transition-all hover:scale-105 ${
+                  isSelected 
+                    ? "ring-2 ring-primary bg-primary/10" 
+                    : isCurrent 
+                      ? "border-primary/50" 
+                      : "hover:border-primary/30"
+                }`}
+              >
+                <CardContent className="p-3 text-center">
+                  <p className={`text-xs font-medium ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                    {month.monthName.slice(0, 3)}
+                  </p>
+                  <p className={`text-lg font-bold ${isSelected ? "text-primary" : ""}`}>
+                    {month.month.toString().padStart(2, "0")}
+                  </p>
+                  {mainCampaign && (
+                    <div className={`w-2 h-2 rounded-full mx-auto mt-1 ${mainCampaign.color}`} />
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Campanhas do Mês Selecionado */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setSelectedMonth(prev => prev > 1 ? prev - 1 : 12)}
+              >
+                <ChevronLeft className="w-5 h-5" />
               </Button>
-            )}
+              <h2 className="text-2xl font-bold">{currentMonthData?.monthName}</h2>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setSelectedMonth(prev => prev < 12 ? prev + 1 : 1)}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
+            <Badge variant="outline" className="text-sm">
+              {currentMonthData?.campaigns.length || 0} campanhas
+            </Badge>
+          </div>
 
-            <Dialog open={suggestionDialogOpen} onOpenChange={setSuggestionDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Lightbulb className="w-4 h-4" />
-                  Sugerir Campanha
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <Lightbulb className="w-5 h-5 text-yellow-400" />
-                    Sugerir uma Campanha
-                  </DialogTitle>
-                  <DialogDescription>
-                    Tem uma ideia de campanha? Compartilhe com a coordenação!
-                  </DialogDescription>
-                </DialogHeader>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {currentMonthData?.campaigns.map((campaign) => {
+              const Icon = campaign.icon;
+              const typeConfig = CAMPAIGN_TYPE_CONFIG[campaign.type];
+              
+              return (
+                <Card 
+                  key={campaign.id}
+                  className={`cursor-pointer transition-all hover:shadow-lg border-l-4 ${
+                    selectedCampaign?.id === campaign.id ? "ring-2 ring-primary" : ""
+                  }`}
+                  style={{ borderLeftColor: campaign.color.replace("bg-", "").replace("-500", "") }}
+                  onClick={() => setSelectedCampaign(selectedCampaign?.id === campaign.id ? null : campaign)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${campaign.color} text-white`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base">{campaign.name}</CardTitle>
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {campaign.date}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Badge className={`${typeConfig?.color} ${typeConfig?.textColor} text-xs`}>
+                        {typeConfig?.label}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">{campaign.concept}</p>
+                    
+                    {campaign.offer && (
+                      <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                        <p className="text-xs text-green-400 font-medium mb-1">🎁 Oferta</p>
+                        <p className="text-sm font-medium text-green-300">{campaign.offer}</p>
+                      </div>
+                    )}
 
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Título da Campanha *</Label>
-                    <Input
-                      id="title"
-                      placeholder="Ex: Campanha de Indicações de Verão"
-                      value={suggestionForm.title}
-                      onChange={(e) => setSuggestionForm(prev => ({ ...prev, title: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Descrição da Ideia</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Descreva sua ideia de campanha..."
-                      value={suggestionForm.description}
-                      onChange={(e) => setSuggestionForm(prev => ({ ...prev, description: e.target.value }))}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="goal">Meta Sugerida</Label>
-                    <Input
-                      id="goal"
-                      placeholder="Ex: 50 indicações no mês"
-                      value={suggestionForm.suggested_goal}
-                      onChange={(e) => setSuggestionForm(prev => ({ ...prev, suggested_goal: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="prize">Premiação Sugerida</Label>
-                    <Input
-                      id="prize"
-                      placeholder="Ex: Folga extra ou voucher"
-                      value={suggestionForm.suggested_prize}
-                      onChange={(e) => setSuggestionForm(prev => ({ ...prev, suggested_prize: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setSuggestionDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSubmitSuggestion} disabled={submitting} className="gap-2">
-                    {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
-                    Enviar Sugestão
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MessageSquare className="w-3 h-3" />
+                      <span>{campaign.scripts.length} scripts</span>
+                      {campaign.materials.length > 0 && (
+                        <>
+                          <span>•</span>
+                          <Image className="w-3 h-3" />
+                          <span>{campaign.materials.length} materiais</span>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-green-500/10 border-green-500/30 cursor-pointer hover:bg-green-500/20 transition-colors" onClick={() => { setMainTab("campanhas"); setActiveTab("ativas"); }}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-green-500/20">
-                  <Flame className="w-5 h-5 text-green-400" />
+        {/* Detalhes da Campanha Selecionada */}
+        {selectedCampaign && (
+          <Card className="border-primary/30">
+            <CardHeader className="border-b border-border">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-xl ${selectedCampaign.color} text-white`}>
+                    <selectedCampaign.icon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">{selectedCampaign.name}</CardTitle>
+                    <CardDescription>{selectedCampaign.focus}</CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-green-400">{activeCampaigns.length}</p>
-                  <p className="text-sm text-muted-foreground">Campanhas Ativas</p>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedCampaign(null)}>
+                  ✕
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              {/* Área de Personalização */}
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" />
+                  Personalizar Mensagem
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nome do Paciente</Label>
+                    <Input
+                      placeholder="Ex: Maria"
+                      value={patientName}
+                      onChange={(e) => setPatientName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefone (WhatsApp)</Label>
+                    <Input
+                      placeholder="(34) 99999-9999"
+                      value={patientPhone}
+                      onChange={(e) => setPatientPhone(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="bg-blue-500/10 border-blue-500/30 cursor-pointer hover:bg-blue-500/20 transition-colors" onClick={() => { setMainTab("campanhas"); setActiveTab("proximas"); }}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-blue-500/20">
-                  <Clock className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-blue-400">{upcomingCampaigns.length}</p>
-                  <p className="text-sm text-muted-foreground">Em Breve</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-purple-500/10 border-purple-500/30 cursor-pointer hover:bg-purple-500/20 transition-colors" onClick={() => { setMainTab("campanhas"); setActiveTab("encerradas"); }}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-purple-500/20">
-                  <CheckCircle2 className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-purple-400">{pastCampaigns.length}</p>
-                  <p className="text-sm text-muted-foreground">Encerradas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-yellow-500/10 border-yellow-500/30 cursor-pointer hover:bg-yellow-500/20 transition-colors" onClick={() => { setMainTab("campanhas"); setActiveTab("completadas"); }}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-yellow-500/20">
-                  <Trophy className="w-5 h-5 text-yellow-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-yellow-400">{completedCampaigns.length}</p>
-                  <p className="text-sm text-muted-foreground">Completadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Tabs */}
-        <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3 mx-auto">
-            <TabsTrigger value="campanhas" className="gap-2">
-              <Flame className="w-4 h-4" />
-              Minhas Campanhas
-            </TabsTrigger>
-            <TabsTrigger value="calendario" className="gap-2">
-              <Calendar className="w-4 h-4" />
-              Calendário 2026
-            </TabsTrigger>
-            {role === "admin" && (
-              <TabsTrigger value="gerenciar" className="gap-2">
-                <Settings className="w-4 h-4" />
-                Gerenciar
-              </TabsTrigger>
-            )}
-          </TabsList>
-
-          {/* ==================== MINHAS CAMPANHAS TAB ==================== */}
-          <TabsContent value="campanhas" className="space-y-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full max-w-lg grid-cols-4">
-                <TabsTrigger value="ativas" className="gap-1 text-xs sm:text-sm">
-                  <Flame className="w-3 h-3" />
-                  Ativas ({activeCampaigns.length})
-                </TabsTrigger>
-                <TabsTrigger value="proximas" className="gap-1 text-xs sm:text-sm">
-                  <Clock className="w-3 h-3" />
-                  Em Breve ({upcomingCampaigns.length})
-                </TabsTrigger>
-                <TabsTrigger value="encerradas" className="gap-1 text-xs sm:text-sm">
-                  <CheckCircle2 className="w-3 h-3" />
-                  Encerradas ({pastCampaigns.length})
-                </TabsTrigger>
-                <TabsTrigger value="sugestoes" className="gap-1 text-xs sm:text-sm">
-                  <Lightbulb className="w-3 h-3" />
-                  Sugestões
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="ativas" className="mt-4">
-                {activeCampaigns.length === 0 ? (
-                  <Card className="bg-muted/30">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Megaphone className="w-12 h-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Nenhuma campanha ativa</h3>
-                      <p className="text-muted-foreground text-center">
-                        Fique de olho! Novas campanhas serão lançadas em breve.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {activeCampaigns.map((campaign) => (
-                      <CampaignCard key={campaign.id} campaign={campaign} />
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="proximas" className="mt-4">
-                {upcomingCampaigns.length === 0 ? (
-                  <Card className="bg-muted/30">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Clock className="w-12 h-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Nenhuma campanha programada</h3>
-                      <p className="text-muted-foreground text-center">
-                        Novas campanhas aparecerão aqui quando forem anunciadas.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {upcomingCampaigns.map((campaign) => (
-                      <CampaignCard key={campaign.id} campaign={campaign} showActions={false} />
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="encerradas" className="mt-4">
-                {pastCampaigns.length === 0 ? (
-                  <Card className="bg-muted/30">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Trophy className="w-12 h-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Nenhuma campanha encerrada</h3>
-                      <p className="text-muted-foreground text-center">
-                        Campanhas finalizadas aparecerão aqui.
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {pastCampaigns.map((campaign) => (
-                      <CampaignCard key={campaign.id} campaign={campaign} showActions={false} />
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="sugestoes" className="mt-4">
-                {mySuggestions.length === 0 ? (
-                  <Card className="bg-muted/30">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Lightbulb className="w-12 h-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Nenhuma sugestão enviada</h3>
-                      <p className="text-muted-foreground text-center mb-4">
-                        Tem uma ideia de campanha? Clique no botão acima para sugerir!
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid gap-4">
-                    {mySuggestions.map((suggestion) => (
-                      <Card key={suggestion.id} className="border-border/50">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">{suggestion.title}</CardTitle>
-                            <Badge className={STATUS_CONFIG[suggestion.status]?.color || ''}>
-                              {STATUS_CONFIG[suggestion.status]?.label || suggestion.status}
-                            </Badge>
-                          </div>
-                          <CardDescription>
-                            Enviada em {format(new Date(suggestion.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                          </CardDescription>
-                        </CardHeader>
-                        {suggestion.description && (
-                          <CardContent className="pt-0">
-                            <p className="text-sm text-muted-foreground">{suggestion.description}</p>
-                          </CardContent>
-                        )}
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          {/* ==================== MASTER CALENDAR TAB ==================== */}
-          <TabsContent value="calendario" className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between flex-wrap gap-4">
+              {/* Scripts */}
               <div>
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <Calendar className="h-6 w-6 text-primary" />
-                  Master Calendar UNIQUE 2026
-                </h2>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Estratégia de Campanhas • Meta: R$ 3.000.000/mês
-                </p>
-              </div>
-            </div>
-
-            {/* Filtros por tipo */}
-            <div className="flex flex-wrap gap-2">
-              <Badge 
-                variant={selectedType === null ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setSelectedType(null)}
-              >
-                Todas
-              </Badge>
-              {Object.entries(CAMPAIGN_TYPE_CONFIG).slice(0, 5).map(([key, value]) => (
-                <Badge 
-                  key={key}
-                  variant={selectedType === key ? "default" : "outline"}
-                  className={`cursor-pointer ${selectedType === key ? value.color : ""}`}
-                  onClick={() => setSelectedType(key === selectedType ? null : key)}
-                >
-                  <value.icon className="h-3 w-3 mr-1" />
-                  {value.label}
-                </Badge>
-              ))}
-            </div>
-
-            <Tabs value={calendarTab} onValueChange={setCalendarTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
-                <TabsTrigger value="por-mes">Por Mês</TabsTrigger>
-                <TabsTrigger value="days">DAYs Especiais</TabsTrigger>
-                <TabsTrigger value="visibilidade">Visibilidade</TabsTrigger>
-                <TabsTrigger value="proximas">Próximas</TabsTrigger>
-              </TabsList>
-
-              {/* Visão Geral - Calendário Anual */}
-              <TabsContent value="visao-geral" className="mt-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filteredCalendarCampaigns.map((month) => (
-                    <Card 
-                      key={month.month} 
-                      className={`cursor-pointer transition-all hover:shadow-lg ${
-                        month.month === selectedMonth ? "ring-2 ring-primary" : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedMonth(month.month);
-                        setCalendarTab("por-mes");
-                      }}
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  Scripts Prontos
+                </h4>
+                <div className="space-y-3">
+                  {selectedCampaign.scripts.map((script: any, index: number) => (
+                    <div 
+                      key={index}
+                      className="p-4 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/50 transition-colors"
                     >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center justify-between">
-                          {month.monthName}
-                          <Badge variant="secondary" className="text-xs">
-                            {month.campaigns.length}
-                          </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="space-y-1.5">
-                          {month.campaigns.slice(0, 3).map((campaign, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <div className={`w-2 h-2 rounded-full ${campaign.color}`} />
-                              <span className="text-xs truncate">{campaign.name}</span>
-                            </div>
-                          ))}
-                          {month.campaigns.length > 3 && (
-                            <span className="text-xs text-muted-foreground">
-                              +{month.campaigns.length - 3} mais
-                            </span>
-                          )}
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          {script.title}
+                        </Badge>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleCopyScript(script.text, index)}
+                          >
+                            {copiedIndex === index ? (
+                              <Check className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="gap-2"
+                            onClick={() => handlePrepareMessage(script)}
+                          >
+                            <Send className="w-4 h-4" />
+                            Enviar
+                          </Button>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {script.text.replace("{nome}", patientName || "{nome}")}
+                      </p>
+                    </div>
                   ))}
                 </div>
-              </TabsContent>
+              </div>
 
-              {/* Por Mês - Detalhado */}
-              <TabsContent value="por-mes" className="mt-4">
-                <div className="space-y-4">
-                  {/* Navegação de mês */}
-                  <div className="flex items-center justify-between">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedMonth(prev => prev > 1 ? prev - 1 : 12)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <h3 className="text-lg font-semibold">
-                      {currentMonthData?.monthName || ""}
-                    </h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedMonth(prev => prev < 12 ? prev + 1 : 1)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+              {/* Materiais */}
+              {selectedCampaign.materials.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    Materiais de Apoio
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {selectedCampaign.materials.map((material: any, index: number) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        className="justify-start gap-2 h-auto py-3"
+                        onClick={() => material.url !== "#" && window.open(material.url, "_blank")}
+                      >
+                        {material.type === "image" ? (
+                          <Image className="w-4 h-4 text-blue-400" />
+                        ) : (
+                          <FileText className="w-4 h-4 text-orange-400" />
+                        )}
+                        <span className="text-sm truncate">{material.title}</span>
+                        <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
+                      </Button>
+                    ))}
                   </div>
-
-                  <ScrollArea className="h-[500px]">
-                    <div className="space-y-4">
-                      {currentMonthData?.campaigns.length === 0 ? (
-                        <Card className="bg-muted/50">
-                          <CardContent className="p-6 text-center">
-                            <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                            <p className="text-muted-foreground">
-                              Nenhuma campanha cadastrada para este mês
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ) : (
-                        currentMonthData?.campaigns.map((campaign, idx) => {
-                          const Icon = campaign.icon;
-                          const typeInfo = CAMPAIGN_TYPE_CONFIG[campaign.type];
-                          return (
-                            <Card key={idx} className="overflow-hidden">
-                              <div className={`h-2 ${campaign.color}`} />
-                              <CardHeader>
-                                <CardTitle className="flex items-center justify-between flex-wrap gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className={`p-2 rounded-lg ${campaign.color} text-white`}>
-                                      <Icon className="h-5 w-5" />
-                                    </div>
-                                    {campaign.name}
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Badge variant="outline">{campaign.date}</Badge>
-                                    <Badge className={typeInfo?.color}>{typeInfo?.label}</Badge>
-                                  </div>
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-4">
-                                <div className="grid md:grid-cols-2 gap-4">
-                                  <div className="p-3 rounded-lg bg-muted/50">
-                                    <p className="text-xs text-muted-foreground mb-1">Conceito</p>
-                                    <p className="text-sm font-medium">{campaign.concept}</p>
-                                  </div>
-                                  <div className="p-3 rounded-lg bg-primary/10">
-                                    <p className="text-xs text-muted-foreground mb-1">Foco</p>
-                                    <p className="text-sm font-medium">{campaign.focus}</p>
-                                  </div>
-                                </div>
-                                
-                                <div>
-                                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                                    <Target className="h-4 w-4" />
-                                    Ações Planejadas
-                                  </h4>
-                                  <div className="flex flex-wrap gap-2">
-                                    {campaign.actions.map((action, i) => (
-                                      <Badge key={i} variant="secondary" className="text-xs">
-                                        {action}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-2 border-t">
-                                  <Badge 
-                                    variant={campaign.status === "pendente" ? "outline" : "default"}
-                                    className={campaign.status === "ativo" ? "bg-green-500" : ""}
-                                  >
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {campaign.status === "pendente" ? "Pendente" : "Ativo"}
-                                  </Badge>
-                                  <Button size="sm" variant="ghost">
-                                    <MessageSquare className="h-4 w-4 mr-1" />
-                                    Ver Scripts
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })
-                      )}
-                    </div>
-                  </ScrollArea>
                 </div>
-              </TabsContent>
+              )}
 
-              {/* DAYs Especiais */}
-              <TabsContent value="days" className="mt-4 space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Zap className="h-5 w-5 text-purple-500" />
-                      Estratégia de Volume: DAYs Especiais
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Ações bimestrais de alto volume e preço atrativo para gerar fluxo de caixa, atrair novos leads e criar oportunidades de upsell.
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Metas */}
-                      <div className="grid grid-cols-3 gap-4 mb-6">
-                        <Card className="bg-purple-500/10 border-purple-500/20">
-                          <CardContent className="p-4 text-center">
-                            <p className="text-2xl font-bold text-purple-600">30</p>
-                            <p className="text-sm text-muted-foreground">Pacientes/dia</p>
-                          </CardContent>
-                        </Card>
-                        <Card className="bg-green-500/10 border-green-500/20">
-                          <CardContent className="p-4 text-center">
-                            <p className="text-2xl font-bold text-green-600">R$ 45k</p>
-                            <p className="text-sm text-muted-foreground">Receita média/dia</p>
-                          </CardContent>
-                        </Card>
-                        <Card className="bg-amber-500/10 border-amber-500/20">
-                          <CardContent className="p-4 text-center">
-                            <p className="text-2xl font-bold text-amber-600">10%</p>
-                            <p className="text-sm text-muted-foreground">Conversão p/ cirurgia</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-
-                      {/* Lista de DAYs */}
-                      <div className="space-y-3">
-                        {DAYS_ESPECIAIS.map((day, idx) => (
-                          <div 
-                            key={idx}
-                            className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-purple-500/5 to-violet-500/5 border border-purple-500/20"
-                          >
-                            <div className="p-3 rounded-full bg-purple-500 text-white">
-                              <Zap className="h-5 w-5" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="font-bold text-lg">{day.nome}</p>
-                                <Badge variant="outline" className="text-xs">{day.periodo}</Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{day.procedimento}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Datas de Visibilidade */}
-              <TabsContent value="visibilidade" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Eye className="h-5 w-5 text-orange-500" />
-                      Datas de Alta Visibilidade 2026
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Datas importantes para produção de conteúdo e engajamento nas redes sociais
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-3">
-                      {DATAS_VISIBILIDADE.map((data, idx) => (
-                        <div 
-                          key={idx}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-orange-500/5 to-amber-500/5 border border-orange-500/20"
-                        >
-                          <div className="p-2 rounded-full bg-orange-500 text-white">
-                            <Eye className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{data.nome}</p>
-                            <p className="text-xs text-muted-foreground">{data.data}</p>
-                          </div>
-                          <Badge variant="outline" className="text-xs">{data.tipo}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Próximas Campanhas */}
-              <TabsContent value="proximas" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-blue-500" />
-                      Próximas Campanhas
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {upcomingCalendarCampaigns.map((campaign, idx) => {
-                        const Icon = campaign.icon;
-                        const typeInfo = CAMPAIGN_TYPE_CONFIG[campaign.type];
-                        return (
-                          <div 
-                            key={idx}
-                            className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                          >
-                            <div className={`p-2 rounded-full ${campaign.color} text-white`}>
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium">{campaign.name}</p>
-                              <p className="text-xs text-muted-foreground">{campaign.monthName} • {campaign.date}</p>
-                            </div>
-                            <Badge className={typeInfo?.color}>{typeInfo?.label}</Badge>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          {/* ==================== GERENCIAR TAB (ADMIN) ==================== */}
-          {role === "admin" && (
-            <TabsContent value="gerenciar" className="space-y-6">
-              <CampaignsManager />
-            </TabsContent>
-          )}
-        </Tabs>
-
-        {/* Footer */}
-        <footer className="mt-16 pb-8 text-center">
-          <p className="text-muted-foreground text-sm">
-            © 2026 Unique CPI • Copa Unique League
-          </p>
-        </footer>
+              {/* RFV Integration */}
+              <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                <h4 className="font-medium mb-3 flex items-center gap-2 text-purple-400">
+                  <Users className="w-4 h-4" />
+                  Base de Pacientes RFV
+                </h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Selecione um segmento para ver pacientes e enviar mensagens personalizadas
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {RFV_SEGMENTS.map(segment => (
+                    <Button
+                      key={segment.value}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => navigate("/rfv-dashboard")}
+                    >
+                      {segment.label}
+                      <Badge variant="secondary" className="text-xs">
+                        {rfvSegments?.[segment.value] || segment.count}
+                      </Badge>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
+
+      {/* Dialog de Envio */}
+      <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-primary" />
+              Enviar Mensagem via WhatsApp
+            </DialogTitle>
+            <DialogDescription>
+              Revise a mensagem antes de enviar
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nome do Paciente</Label>
+                <Input
+                  placeholder="Nome"
+                  value={patientName}
+                  onChange={(e) => {
+                    setPatientName(e.target.value);
+                    setPersonalizedMessage(selectedScript?.text?.replace("{nome}", e.target.value) || "");
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone *</Label>
+                <Input
+                  placeholder="(34) 99999-9999"
+                  value={patientPhone}
+                  onChange={(e) => setPatientPhone(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Mensagem</Label>
+              <Textarea
+                rows={5}
+                value={personalizedMessage.replace("{nome}", patientName || "")}
+                onChange={(e) => setPersonalizedMessage(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSendDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSendWhatsApp} className="gap-2 bg-green-600 hover:bg-green-700">
+              <Phone className="w-4 h-4" />
+              Abrir WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
