@@ -34,11 +34,13 @@ import {
   Leaf, Smile, Baby, Ribbon, Gem, RefreshCw, TrendingUp, 
   Activity, Eye, Candy, Copy, Check, Send, Phone, User,
   FileText, Image, ExternalLink, Sparkles, Settings, UserCheck,
-  Download, List, CheckCheck
+  Download, List, CheckCheck, Package
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import CampaignsManager from "@/components/admin/CampaignsManager";
+import ProtocolsManager from "@/components/admin/ProtocolsManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ==================== CAMPANHAS 2026 ====================
 const CAMPAIGNS_2026 = [
@@ -679,6 +681,7 @@ const Campaigns = () => {
   const [personalizedMessage, setPersonalizedMessage] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("calendar");
   
   // Bulk messaging state
   const [showBulkDialog, setShowBulkDialog] = useState(false);
@@ -912,7 +915,7 @@ const Campaigns = () => {
               Campanhas 2026
             </h1>
             <p className="text-muted-foreground mt-1">
-              Clique em um mês para ver campanhas, scripts e materiais
+              Campanhas, protocolos e estratégias de vendas
             </p>
           </div>
           
@@ -924,7 +927,20 @@ const Campaigns = () => {
           )}
         </div>
 
-        {/* Calendário Anual */}
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="calendar" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Calendário
+            </TabsTrigger>
+            <TabsTrigger value="protocols" className="gap-2">
+              <Package className="h-4 w-4" />
+              Protocolos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="calendar" className="mt-6 space-y-6">
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
           {CAMPAIGNS_2026.map((month) => {
             const isSelected = month.month === selectedMonth;
@@ -1223,6 +1239,12 @@ const Campaigns = () => {
             </CardContent>
           </Card>
         )}
+          </TabsContent>
+
+          <TabsContent value="protocols" className="mt-6">
+            <ProtocolsManager />
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Dialog de Envio */}
