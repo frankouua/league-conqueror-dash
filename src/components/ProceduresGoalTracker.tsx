@@ -302,193 +302,159 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
           </div>
 
           {/* Meta Cards - What's Missing */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* META 1 */}
-            <div className={`p-5 rounded-2xl border-2 transition-all ${
+          {/* META 3 - MAIN HIGHLIGHT */}
+          <div className={`col-span-full p-6 rounded-2xl border-4 transition-all ${
+            metrics.percent3 >= 100 
+              ? "bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border-emerald-500" 
+              : "bg-gradient-to-br from-primary/20 via-primary/10 to-background border-primary"
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-primary text-primary-foreground">
+                  <Target className="w-8 h-8" />
+                </div>
+                <div>
+                  <Badge className="bg-primary text-lg px-3 py-1 mb-1">
+                    🎯 META 3 - NOSSO OBJETIVO
+                  </Badge>
+                  <p className="text-sm text-muted-foreground">A meta que queremos conquistar!</p>
+                </div>
+              </div>
+              {metrics.percent3 >= 100 && (
+                <div className="flex items-center gap-2 text-emerald-500">
+                  <CheckCircle2 className="w-8 h-8" />
+                  <span className="text-2xl font-black">CONQUISTADA!</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div className="p-4 rounded-xl bg-background/80 border">
+                <p className="text-xs text-muted-foreground mb-1">Objetivo</p>
+                <p className="text-2xl font-black text-primary">{formatCurrency(metrics.meta3)}</p>
+              </div>
+              <div className="p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/30">
+                <p className="text-xs text-muted-foreground mb-1">Já Fechamos</p>
+                <p className="text-2xl font-black text-emerald-600">{formatCurrency(metrics.netSold)}</p>
+              </div>
+              <div className="p-4 rounded-xl bg-destructive/20 border border-destructive/30">
+                <p className="text-xs text-muted-foreground mb-1">Falta Fechar</p>
+                <p className="text-2xl font-black text-destructive">
+                  {metrics.remaining3 > 0 ? formatCurrency(metrics.remaining3) : "✓ Atingida!"}
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-blue-500/20 border border-blue-500/30">
+                <p className="text-xs text-muted-foreground mb-1">Procedimentos</p>
+                <p className="text-2xl font-black text-blue-600">
+                  {metrics.remaining3 > 0 ? metrics.procsForMeta3 : "✓"}
+                </p>
+              </div>
+            </div>
+
+            <Progress value={metrics.percent3} className="h-4 mb-2" />
+            <div className="flex justify-between text-sm mb-4">
+              <span className="text-muted-foreground">{metrics.percent3.toFixed(1)}% concluído</span>
+              <span className="font-bold text-primary">{(100 - metrics.percent3).toFixed(1)}% restante</span>
+            </div>
+
+            {metrics.remaining3 > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-5 rounded-2xl bg-primary/30 border-2 border-primary">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-5 h-5 text-primary" />
+                    <span className="font-bold text-primary">FECHAR POR DIA ÚTIL</span>
+                  </div>
+                  <p className="text-4xl font-black text-primary mb-1">
+                    {formatCurrency(metrics.valuePerBusinessDay3)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    ou <span className="font-bold text-primary">{metrics.procsPerBusinessDay3.toFixed(1)} procedimentos</span>
+                  </p>
+                </div>
+                <div className="p-5 rounded-2xl bg-amber-500/20 border-2 border-amber-500/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CalendarDays className="w-5 h-5 text-amber-600" />
+                    <span className="font-bold text-amber-600">TEMPO RESTANTE</span>
+                  </div>
+                  <p className="text-4xl font-black text-amber-600 mb-1">
+                    {businessDaysRemaining} dias úteis
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    ({daysRemaining} dias corridos)
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Meta 1 & 2 - Secondary */}
+          <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* META 1 - Small */}
+            <div className={`p-4 rounded-xl border ${
               metrics.percent1 >= 100 
-                ? "bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-emerald-500" 
-                : "bg-card border-amber-500/50"
+                ? "bg-emerald-500/10 border-emerald-500/50" 
+                : "bg-card border-border"
             }`}>
-              <div className="flex items-center justify-between mb-3">
-                <Badge className={metrics.percent1 >= 100 ? "bg-emerald-500" : "bg-amber-500"}>
-                  META 1
-                </Badge>
-                {metrics.percent1 >= 100 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="outline" className="text-xs">Meta 1</Badge>
+                {metrics.percent1 >= 100 && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
               </div>
-              
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Objetivo</p>
-                  <p className="text-lg font-bold">{formatCurrency(metrics.meta1)}</p>
-                </div>
-                
-                <Progress value={metrics.percent1} className="h-2" />
-                <p className="text-xs text-right text-muted-foreground">{metrics.percent1.toFixed(0)}% concluído</p>
-
-                {metrics.remaining1 > 0 ? (
-                  <>
-                    <div className="p-3 rounded-xl bg-background/80 border space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Falta fechar:</span>
-                        <span className="font-bold text-destructive">{formatCurrency(metrics.remaining1)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Procedimentos:</span>
-                        <span className="font-bold text-primary">{metrics.procsForMeta1}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-3 rounded-xl bg-primary/10 border border-primary/30">
-                      <p className="text-xs text-muted-foreground mb-1">Por dia útil:</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl font-black text-primary">
-                          {formatCurrency(metrics.valuePerBusinessDay1)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">ou</span>
-                        <span className="text-xl font-black text-primary">
-                          {metrics.procsPerBusinessDay1.toFixed(1)} proc.
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-3 rounded-xl bg-emerald-500/20 text-center">
-                    <Sparkles className="w-6 h-6 mx-auto text-emerald-500 mb-1" />
-                    <p className="font-bold text-emerald-600">Meta Atingida! 🎉</p>
-                  </div>
-                )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{formatCurrency(metrics.meta1)}</span>
+                <span className="text-sm">
+                  {metrics.remaining1 > 0 ? (
+                    <span className="text-muted-foreground">
+                      Falta: <span className="font-bold text-foreground">{formatCurrency(metrics.remaining1)}</span>
+                    </span>
+                  ) : (
+                    <span className="text-emerald-500 font-bold">✓ Atingida</span>
+                  )}
+                </span>
               </div>
+              <Progress value={metrics.percent1} className="h-1.5 mt-2" />
             </div>
 
-            {/* META 2 */}
-            <div className={`p-5 rounded-2xl border-2 transition-all ${
+            {/* META 2 - Small */}
+            <div className={`p-4 rounded-xl border ${
               metrics.percent2 >= 100 
-                ? "bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-emerald-500" 
-                : "bg-card border-blue-500/50"
+                ? "bg-emerald-500/10 border-emerald-500/50" 
+                : "bg-card border-border"
             }`}>
-              <div className="flex items-center justify-between mb-3">
-                <Badge className={metrics.percent2 >= 100 ? "bg-emerald-500" : "bg-blue-500"}>
-                  META 2
-                </Badge>
-                {metrics.percent2 >= 100 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="outline" className="text-xs">Meta 2</Badge>
+                {metrics.percent2 >= 100 && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
               </div>
-              
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Objetivo</p>
-                  <p className="text-lg font-bold">{formatCurrency(metrics.meta2)}</p>
-                </div>
-                
-                <Progress value={metrics.percent2} className="h-2" />
-                <p className="text-xs text-right text-muted-foreground">{metrics.percent2.toFixed(0)}% concluído</p>
-
-                {metrics.remaining2 > 0 ? (
-                  <>
-                    <div className="p-3 rounded-xl bg-background/80 border space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Falta fechar:</span>
-                        <span className="font-bold text-destructive">{formatCurrency(metrics.remaining2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Procedimentos:</span>
-                        <span className="font-bold text-primary">{metrics.procsForMeta2}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30">
-                      <p className="text-xs text-muted-foreground mb-1">Por dia útil:</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl font-black text-blue-600">
-                          {formatCurrency(metrics.valuePerBusinessDay2)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">ou</span>
-                        <span className="text-xl font-black text-blue-600">
-                          {metrics.procsPerBusinessDay2.toFixed(1)} proc.
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-3 rounded-xl bg-emerald-500/20 text-center">
-                    <Sparkles className="w-6 h-6 mx-auto text-emerald-500 mb-1" />
-                    <p className="font-bold text-emerald-600">Meta Atingida! 🎉</p>
-                  </div>
-                )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{formatCurrency(metrics.meta2)}</span>
+                <span className="text-sm">
+                  {metrics.remaining2 > 0 ? (
+                    <span className="text-muted-foreground">
+                      Falta: <span className="font-bold text-foreground">{formatCurrency(metrics.remaining2)}</span>
+                    </span>
+                  ) : (
+                    <span className="text-emerald-500 font-bold">✓ Atingida</span>
+                  )}
+                </span>
               </div>
-            </div>
-
-            {/* META 3 */}
-            <div className={`p-5 rounded-2xl border-2 transition-all ${
-              metrics.percent3 >= 100 
-                ? "bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-emerald-500" 
-                : "bg-card border-purple-500/50"
-            }`}>
-              <div className="flex items-center justify-between mb-3">
-                <Badge className={metrics.percent3 >= 100 ? "bg-emerald-500" : "bg-purple-500"}>
-                  META 3
-                </Badge>
-                {metrics.percent3 >= 100 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-              </div>
-              
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Objetivo</p>
-                  <p className="text-lg font-bold">{formatCurrency(metrics.meta3)}</p>
-                </div>
-                
-                <Progress value={metrics.percent3} className="h-2" />
-                <p className="text-xs text-right text-muted-foreground">{metrics.percent3.toFixed(0)}% concluído</p>
-
-                {metrics.remaining3 > 0 ? (
-                  <>
-                    <div className="p-3 rounded-xl bg-background/80 border space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Falta fechar:</span>
-                        <span className="font-bold text-destructive">{formatCurrency(metrics.remaining3)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Procedimentos:</span>
-                        <span className="font-bold text-primary">{metrics.procsForMeta3}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30">
-                      <p className="text-xs text-muted-foreground mb-1">Por dia útil:</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl font-black text-purple-600">
-                          {formatCurrency(metrics.valuePerBusinessDay3)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">ou</span>
-                        <span className="text-xl font-black text-purple-600">
-                          {metrics.procsPerBusinessDay3.toFixed(1)} proc.
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-3 rounded-xl bg-emerald-500/20 text-center">
-                    <Sparkles className="w-6 h-6 mx-auto text-emerald-500 mb-1" />
-                    <p className="font-bold text-emerald-600">Meta Atingida! 🎉</p>
-                  </div>
-                )}
-              </div>
+              <Progress value={metrics.percent2} className="h-1.5 mt-2" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Department Breakdown */}
+      {/* Department Breakdown - META 3 Focus */}
       {deptBreakdown.length > 0 && (
         <Card className="border-primary/20">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="w-5 h-5 text-primary" />
               O Que Falta por Departamento
+              <Badge className="ml-auto bg-primary/20 text-primary">Meta 3</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {deptBreakdown.map((dept, index) => (
+              {deptBreakdown.map((dept) => (
                 <div 
                   key={dept.name}
                   className={`p-4 rounded-xl border transition-all ${
@@ -511,7 +477,7 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
                   {dept.remaining > 0 ? (
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Falta:</span>
+                        <span className="text-muted-foreground">Falta (Meta 3):</span>
                         <span className="font-bold">{formatCurrency(dept.remaining)}</span>
                       </div>
                       <div className="flex justify-between">
@@ -519,7 +485,7 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
                         <span className="font-bold text-primary">{dept.procsNeeded}</span>
                       </div>
                       <div className="flex justify-between pt-1 border-t border-border/50 mt-1">
-                        <span className="text-muted-foreground">Por dia:</span>
+                        <span className="text-muted-foreground">Por dia útil:</span>
                         <span className="font-bold text-primary">
                           {formatCurrency(dept.perDay)} ({dept.procsPerDay.toFixed(1)} proc.)
                         </span>
@@ -528,7 +494,7 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
                   ) : (
                     <div className="flex items-center gap-1 text-emerald-600 text-xs font-medium">
                       <CheckCircle2 className="w-3 h-3" />
-                      Meta atingida!
+                      Meta 3 atingida!
                     </div>
                   )}
                 </div>
