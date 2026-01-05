@@ -52,6 +52,7 @@ interface ParsedSale {
   clientName: string;
   clientCpf: string;       // CPF do cliente
   clientEmail: string;     // E-mail do cliente
+  clientPhone: string;     // Telefone/WhatsApp
   clientProntuario: string; // Prontuário Feegow
   sellerName: string;
   amountSold: number;      // Valor Vendido
@@ -71,6 +72,7 @@ interface ColumnMapping {
   clientName: string;
   clientCpf: string;       // CPF do cliente
   clientEmail: string;     // E-mail do cliente
+  clientPhone: string;     // Telefone/WhatsApp
   clientProntuario: string; // Prontuário Feegow
   sellerName: string;
   amountSold: string;      // Valor Vendido
@@ -120,6 +122,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     clientName: '',
     clientCpf: '',
     clientEmail: '',
+    clientPhone: '',
     clientProntuario: '',
     sellerName: '',
     amountSold: '',
@@ -246,6 +249,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         clientName: '',
         clientCpf: '',
         clientEmail: '',
+        clientPhone: '',
         clientProntuario: '',
         sellerName: '',
         amountSold: '',
@@ -319,6 +323,13 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         // Email detection
         if (colLower === 'email' || colLower.includes('e-mail') || colLower.includes('email')) {
           if (!autoMapping.clientEmail) autoMapping.clientEmail = col;
+        }
+        
+        // Phone/WhatsApp detection
+        if (colLower === 'telefone' || colLower === 'celular' || colLower === 'whatsapp' ||
+            colLower.includes('telefone') || colLower.includes('celular') || colLower.includes('whatsapp') ||
+            colLower.includes('fone') || colLower === 'tel' || colLower === 'phone') {
+          if (!autoMapping.clientPhone) autoMapping.clientPhone = col;
         }
         
         // Prontuário detection (Feegow patient ID)
@@ -644,6 +655,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '';
           const clientCpf = columnMapping.clientCpf ? String(row[columnMapping.clientCpf] || '').trim() : '';
           const clientEmail = columnMapping.clientEmail ? String(row[columnMapping.clientEmail] || '').trim() : '';
+          const clientPhone = columnMapping.clientPhone ? String(row[columnMapping.clientPhone] || '').trim() : '';
           const clientProntuario = columnMapping.clientProntuario ? String(row[columnMapping.clientProntuario] || '').trim() : '';
           const paymentStatus = columnMapping.status ? String(row[columnMapping.status] || '').trim() : '';
 
@@ -673,6 +685,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               clientName,
               clientCpf,
               clientEmail,
+              clientPhone,
               clientProntuario,
               sellerName,
               amountSold: 0,
@@ -745,6 +758,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               clientName,
               clientCpf,
               clientEmail,
+              clientPhone,
               clientProntuario,
               sellerName,
               amountSold: 0,
@@ -767,6 +781,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             clientName,
             clientCpf,
             clientEmail,
+            clientPhone,
             clientProntuario,
             sellerName,
             amountSold,
@@ -785,6 +800,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             clientName: '',
             clientCpf: '',
             clientEmail: '',
+            clientPhone: '',
             clientProntuario: '',
             sellerName: '',
             amountSold: 0,
@@ -1271,13 +1287,14 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
   // Function to update RFV customers based on sales data
   const updateRFVCustomers = async (sales: ParsedSale[]) => {
-    // Group sales by client - prioritize CPF, fallback to name
+    // Group sales by client - prioritize Prontuario, then CPF, then name
     const clientSales: Record<string, { 
       dates: string[]; 
       amounts: number[]; 
       name: string;
       cpf: string;
       email: string;
+      phone: string;
       prontuario: string;
     }> = {};
 
@@ -1298,6 +1315,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           name: sale.clientName,
           cpf: sale.clientCpf,
           email: sale.clientEmail,
+          phone: sale.clientPhone,
           prontuario: sale.clientProntuario,
         };
       }
@@ -1312,6 +1330,9 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       }
       if (sale.clientEmail && !clientSales[key].email) {
         clientSales[key].email = sale.clientEmail;
+      }
+      if (sale.clientPhone && !clientSales[key].phone) {
+        clientSales[key].phone = sale.clientPhone;
       }
       if (sale.clientName && !clientSales[key].name) {
         clientSales[key].name = sale.clientName;
@@ -1388,12 +1409,15 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             days_since_last_purchase: daysSince,
           };
           
-          // Update CPF, email, prontuario if we have new data and existing doesn't have it
+          // Update CPF, email, phone, prontuario if we have new data and existing doesn't have it
           if (data.cpf && !existing.cpf) {
             updateData.cpf = data.cpf.replace(/\D/g, '');
           }
           if (data.email && !existing.email) {
             updateData.email = data.email.toLowerCase().trim();
+          }
+          if (data.phone && !existing.phone) {
+            updateData.phone = data.phone.replace(/\D/g, ''); // Store only digits
           }
           if (data.prontuario && !existing.prontuario) {
             updateData.prontuario = data.prontuario.trim();
@@ -1414,6 +1438,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               name: data.name?.toLowerCase().trim() || clientKey,
               cpf: data.cpf ? data.cpf.replace(/\D/g, '') : null,
               email: data.email ? data.email.toLowerCase().trim() : null,
+              phone: data.phone ? data.phone.replace(/\D/g, '') : null,
               prontuario: data.prontuario ? data.prontuario.trim() : null,
               first_purchase_date: earliestDate,
               last_purchase_date: latestDate,
@@ -2161,6 +2186,20 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">Para contato e campanhas de marketing</p>
+              </div>
+              <div>
+                <Label>📱 Telefone/WhatsApp</Label>
+                <select
+                  value={columnMapping.clientPhone}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, clientPhone: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não incluir</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">⭐ Essencial para contato direto!</p>
               </div>
               <div>
                 <Label>Prontuário (Feegow)</Label>
