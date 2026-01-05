@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Target,
   TrendingUp,
@@ -26,7 +27,10 @@ interface GoalGapAnalysisProps {
   year: number;
 }
 
+type MetaType = "meta1" | "meta2" | "meta3";
+
 const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
+  const [selectedMeta, setSelectedMeta] = useState<MetaType>("meta3");
   const now = new Date();
   const currentDay = now.getDate();
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -247,15 +251,21 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
       const deptRevenue = deptRecords.reduce((sum, r) => sum + Number(r.amount), 0);
       const deptCount = deptRecords.length; // Quantidade vendida
 
-      const meta3 = Number(goal.meta3_goal);
-      const remaining = Math.max(0, meta3 - deptRevenue);
-      const percent = meta3 > 0 ? (deptRevenue / meta3) * 100 : 0;
+      // Get selected meta value
+      const metaValue = selectedMeta === "meta1" 
+        ? Number(goal.meta1_goal) 
+        : selectedMeta === "meta2" 
+          ? Number(goal.meta2_goal) 
+          : Number(goal.meta3_goal);
+
+      const remaining = Math.max(0, metaValue - deptRevenue);
+      const percent = metaValue > 0 ? (deptRevenue / metaValue) * 100 : 0;
       
       // Use fixed average ticket from constants (ticket médio anual)
       const avgTicket = getDepartmentAvgTicket(goal.department_name);
       
       // Calculate quantity metrics using fixed ticket
-      const metaQtd = avgTicket > 0 ? Math.ceil(meta3 / avgTicket) : 0; // Meta em quantidade
+      const metaQtd = avgTicket > 0 ? Math.ceil(metaValue / avgTicket) : 0; // Meta em quantidade
       const faltaQtd = avgTicket > 0 ? Math.ceil(remaining / avgTicket) : 0; // Falta em quantidade
       const qtdPorDia = businessDaysRemaining > 0 ? faltaQtd / businessDaysRemaining : 0;
 
@@ -265,7 +275,8 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
         count: deptCount, // Quantidade vendida
         meta1: Number(goal.meta1_goal),
         meta2: Number(goal.meta2_goal),
-        meta3,
+        meta3: Number(goal.meta3_goal),
+        metaValue, // Meta selecionada
         remaining,
         percent: Math.min(percent, 100),
         status: percent >= 100 ? "atingida" : percent >= 70 ? "encaminhada" : "precisa_atenção",
@@ -275,7 +286,7 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
         qtdPorDia, // Quantidade por dia útil
       };
     }).sort((a, b) => a.percent - b.percent); // Sort by lowest percent first (priority)
-  }, [departmentGoals, revenueRecords, businessDaysRemaining]);
+  }, [departmentGoals, revenueRecords, businessDaysRemaining, selectedMeta]);
 
   // Position labels mapping
   const POSITION_LABELS: Record<string, string> = {
@@ -439,15 +450,37 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
   return (
     <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <Target className="w-6 h-6 text-primary" />
-          O Que Falta para Bater a Meta
-          {isCurrentMonth && (
-            <Badge variant="outline" className="ml-2 gap-1">
-              <Calendar className="w-3 h-3" />
-              {daysRemaining} dias restantes
-            </Badge>
-          )}
+        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Target className="w-6 h-6 text-primary" />
+            <span>O Que Falta para Bater a Meta</span>
+            {isCurrentMonth && (
+              <Badge variant="outline" className="ml-2 gap-1">
+                <Calendar className="w-3 h-3" />
+                {daysRemaining} dias restantes
+              </Badge>
+            )}
+          </div>
+          {/* Meta Selector for Department Breakdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Calcular QTD por:</span>
+            <ToggleGroup 
+              type="single" 
+              value={selectedMeta} 
+              onValueChange={(value) => value && setSelectedMeta(value as MetaType)}
+              className="border rounded-lg p-1 bg-muted/50"
+            >
+              <ToggleGroupItem value="meta1" className="text-xs px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                Meta 1
+              </ToggleGroupItem>
+              <ToggleGroupItem value="meta2" className="text-xs px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                Meta 2
+              </ToggleGroupItem>
+              <ToggleGroupItem value="meta3" className="text-xs px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                Meta 3
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
