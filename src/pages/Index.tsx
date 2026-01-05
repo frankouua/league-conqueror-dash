@@ -33,6 +33,7 @@ import SmartDailyGoals from "@/components/SmartDailyGoals";
 import SalesForecastPanel from "@/components/SalesForecastPanel";
 import MonthComparisonPanel from "@/components/MonthComparisonPanel";
 import TeamMembersOverview from "@/components/TeamMembersOverview";
+import ProceduresGoalTracker from "@/components/ProceduresGoalTracker";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -380,16 +381,23 @@ const Index = () => {
 
           {/* O QUE FALTA TAB */}
           <TabsContent value="o-que-falta" className="space-y-8 animate-fade-in">
+            {/* NEW: Procedures Goal Tracker - Clear view of what's missing */}
+            <ProceduresGoalTracker month={selectedMonth} year={selectedYear} />
+            
             <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <SmartDailyGoals month={selectedMonth} year={selectedYear} />
               <SalesForecastPanel month={selectedMonth} year={selectedYear} />
             </div>
+            
             <GoalGapAnalysis month={selectedMonth} year={selectedYear} />
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
               <LeadResponseMetrics month={selectedMonth} year={selectedYear} />
             </div>
+            
             <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
           </TabsContent>
 
