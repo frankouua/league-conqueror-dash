@@ -7,11 +7,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { 
   Upload, FileSpreadsheet, AlertCircle, Loader2, Users, TrendingUp, 
   Target, Phone, Gift, Heart, RefreshCw, Crown, Zap, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Clock, DollarSign, Calendar, Star,
-  MessageSquare, Mail, Sparkles, CheckCircle2, Database, Save, History
+  MessageSquare, Mail, Sparkles, CheckCircle2, Database, Save, History,
+  Send, Copy, Check, UserPlus, Megaphone, HandHeart, Award
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -134,6 +145,138 @@ const RFV_SEGMENTS = {
   }
 };
 
+// Strategic scripts by segment with action types
+const STRATEGIC_SCRIPTS = {
+  champions: {
+    relationship: {
+      title: "💎 Relacionamento VIP",
+      text: "Olá {nome}! 👑 Você é um cliente especial da Unique e queremos agradecer por confiar em nós! Como nosso VIP, você tem acesso antecipado às novidades. Que tal conversarmos sobre seus próximos cuidados?",
+    },
+    referral: {
+      title: "🎁 Indicação Premium",
+      text: "Oi {nome}! ✨ Sabemos que você ama os resultados da Unique! Temos um programa especial: indique uma amiga e vocês duas ganham benefícios exclusivos. Posso te contar mais?",
+    },
+    ambassador: {
+      title: "🌟 Programa Embaixador",
+      text: "Olá {nome}! 💫 Você é uma das nossas clientes mais especiais e gostaríamos de convidá-la para ser Embaixadora Unique! São benefícios exclusivos e experiências únicas. Topa conhecer?",
+    },
+    upsell: {
+      title: "💄 Procedimento Complementar",
+      text: "Oi {nome}! 🌸 Temos um procedimento que combina perfeitamente com o que você já fez e pode potencializar ainda mais os resultados. Quer saber mais?",
+    },
+  },
+  loyal: {
+    relationship: {
+      title: "💙 Cuidando de Você",
+      text: "Olá {nome}! 💕 A Unique sente sua falta! Passou um tempinho desde sua última visita. Como você está? Queremos saber como estão os resultados do seu tratamento!",
+    },
+    upsell: {
+      title: "✨ Upgrade de Tratamento",
+      text: "Oi {nome}! 🎀 Tenho uma novidade perfeita para você! Um tratamento que complementa o que você já fez e vai te deixar ainda mais radiante. Posso te contar?",
+    },
+    referral: {
+      title: "💝 Indique e Ganhe",
+      text: "Olá {nome}! 🌟 Você sabia que indicando uma amiga para a Unique, vocês duas ganham um mimo especial? É nossa forma de agradecer sua confiança!",
+    },
+    loyalty: {
+      title: "🏆 Programa UniLovers",
+      text: "Oi {nome}! 💜 Você já conhece nosso programa UniLovers? Acumule pontos a cada visita e troque por benefícios incríveis! Quer saber como participar?",
+    },
+  },
+  potential: {
+    relationship: {
+      title: "🌱 Nutrição de Relacionamento",
+      text: "Olá {nome}! 😊 Tudo bem? Adoramos ter você conosco na última visita! Queria saber como você está se sentindo e se tem alguma dúvida sobre os cuidados pós-procedimento.",
+    },
+    schedule: {
+      title: "📅 Agendamento de Retorno",
+      text: "Oi {nome}! 🗓️ Está na hora do seu retorno para potencializar os resultados do seu tratamento! Que tal agendarmos um horário especial para você?",
+    },
+    incentive: {
+      title: "🎁 Oferta de Segunda Compra",
+      text: "Olá {nome}! 🎉 Temos uma condição especial para você que está começando sua jornada conosco! Uma surpresa no seu próximo procedimento. Quer saber mais?",
+    },
+    campaign: {
+      title: "📣 Campanha do Mês",
+      text: "Oi {nome}! 🔥 Temos uma campanha especial este mês que é perfeita para você! Condições imperdíveis. Posso te contar os detalhes?",
+    },
+  },
+  at_risk: {
+    reactivation: {
+      title: "💔 Sentimos Sua Falta",
+      text: "Olá {nome}! 🥺 Sentimos muito sua falta aqui na Unique! Faz um tempinho que não nos vemos. Está tudo bem? Adoraríamos te receber novamente!",
+    },
+    winback: {
+      title: "🎁 Oferta de Retorno",
+      text: "Oi {nome}! 💝 Preparamos algo especial para você voltar: uma condição exclusiva só para clientes queridos como você! Que tal retornar com um carinho especial?",
+    },
+    survey: {
+      title: "📋 Queremos Ouvir Você",
+      text: "Olá {nome}! 💬 Sua opinião é muito importante para nós! Notamos que faz um tempo que não nos visitou e gostaríamos de entender como podemos melhorar. Pode me contar?",
+    },
+    campaign: {
+      title: "📣 Novidades para Você",
+      text: "Oi {nome}! ✨ Temos muitas novidades desde sua última visita! Novos tratamentos, novas tecnologias e uma condição especial esperando por você. Vamos conversar?",
+    },
+  },
+  hibernating: {
+    reactivation: {
+      title: "💫 Hora de Voltar",
+      text: "Olá {nome}! 🌸 A Unique evoluiu muito e temos novidades incríveis! Faz tempo que não nos vemos e adoraríamos te mostrar tudo de novo. Que tal uma visita?",
+    },
+    promo: {
+      title: "🏷️ Promoção Exclusiva",
+      text: "Oi {nome}! 🎁 Temos uma promoção exclusiva para você que está há um tempinho sem nos visitar! Condições especiais só para clientes como você. Posso contar?",
+    },
+    campaign: {
+      title: "📣 Campanha de Reengajamento",
+      text: "Olá {nome}! 🔔 Muita coisa mudou por aqui! Novos procedimentos, resultados ainda melhores. Temos uma condição especial de boas-vindas para seu retorno!",
+    },
+    update: {
+      title: "📱 Atualização de Contato",
+      text: "Oi {nome}! 📞 Estamos atualizando nosso cadastro e queremos garantir que você continue recebendo nossas novidades e ofertas exclusivas. Seus dados estão corretos?",
+    },
+  },
+  lost: {
+    lastchance: {
+      title: "🔔 Última Chance",
+      text: "Olá {nome}! 💌 Faz muito tempo que não conversamos e sentimos sua falta! Preparamos uma condição muito especial para te reencontrar. Esta é uma oferta única!",
+    },
+    offer: {
+      title: "💰 Oferta Irrecusável",
+      text: "Oi {nome}! 🎯 Temos uma proposta especial só para você: um desconto exclusivo para voltar a cuidar de você na Unique. É nossa forma de dizer que sentimos sua falta!",
+    },
+    survey: {
+      title: "📝 Pesquisa de Satisfação",
+      text: "Olá {nome}! 📊 Gostaríamos muito de saber como foi sua experiência conosco. Seu feedback é essencial para melhorarmos. Pode nos ajudar respondendo algumas perguntas?",
+    },
+    campaign: {
+      title: "📣 Reconquista",
+      text: "Oi {nome}! 🌟 A Unique mudou muito desde nossa última conversa! Novos tratamentos, nova experiência. Que tal nos dar uma nova chance? Temos uma surpresa para você!",
+    },
+  },
+};
+
+// Current month campaign (will be connected to campaigns system)
+const getCurrentMonthCampaign = () => {
+  const month = new Date().getMonth() + 1;
+  const campaigns: Record<number, { name: string; offer: string; script: string }> = {
+    1: { name: "UNIQUE RESET", offer: "Soroterapia 20% OFF", script: "Começou 2026 e temos condição especial de Soroterapia para renovar suas energias!" },
+    2: { name: "UNIQUE BALANCE", offer: "Protocolo Emagrecimento", script: "Fevereiro é mês de equilíbrio! Nosso protocolo de emagrecimento está com condição especial." },
+    3: { name: "UNIQUE WOMAN", offer: "Mês da Mulher", script: "Março é o mês de celebrar VOCÊ! Consulta + Exames pré-op com 50% OFF." },
+    4: { name: "UNIQUE HARMONY", offer: "Harmonização 12x", script: "Abril é mês da harmonia! Harmonização Facial parcelada em até 12x." },
+    5: { name: "UNIQUE ESSENCE", offer: "Mommy Makeover", script: "Maio é especial para mães! Condições exclusivas para Mommy Makeover." },
+    6: { name: "UNIQUE DESIRE", offer: "Pacote Casal 30% OFF", script: "Junho é mês do amor! Pacote Casal com 30% OFF em procedimentos." },
+    7: { name: "UNIQUE CARE", offer: "Protocolo Pós-Op", script: "Julho é perfeito para procedimentos com tranquilidade! Protocolo de recuperação especial." },
+    8: { name: "UNIQUE PREP", offer: "Planejamento Verão", script: "Agosto é hora de PLANEJAR o verão! Protocolos sob medida para você." },
+    9: { name: "UNIQUE BLOOM", offer: "Skincare + Harmonização", script: "Primavera chegando! Tratamentos faciais com condições especiais." },
+    10: { name: "UNIQUE GLOW", offer: "Pele Radiante", script: "Outubro é mês de brilhar! Protocolos de pele com preços especiais." },
+    11: { name: "UNIQUE PREP BLACK", offer: "Black Friday", script: "Novembro é mês de ofertas imperdíveis! As melhores condições do ano." },
+    12: { name: "UNIQUE SHINE", offer: "Fim de Ano", script: "Dezembro é hora de brilhar! Prepare-se para as festas com a gente." },
+  };
+  return campaigns[month] || campaigns[1];
+};
+
 type RFVSegment = keyof typeof RFV_SEGMENTS;
 
 interface RFVCustomer {
@@ -215,6 +358,87 @@ const RFVDashboard = () => {
   const [uploadLogs, setUploadLogs] = useState<any[]>([]);
   const [dataReferenceDate, setDataReferenceDate] = useState<string>('');
   const { profile } = useAuth();
+  
+  // Quick WhatsApp Action states
+  const [showQuickAction, setShowQuickAction] = useState(false);
+  const [quickActionCustomer, setQuickActionCustomer] = useState<RFVCustomer | null>(null);
+  const [selectedScriptType, setSelectedScriptType] = useState<string>('');
+  const [customMessage, setCustomMessage] = useState('');
+  const [copiedScript, setCopiedScript] = useState(false);
+
+  // Get scripts for customer segment
+  const getScriptsForCustomer = (customer: RFVCustomer) => {
+    const segmentScripts = STRATEGIC_SCRIPTS[customer.segment];
+    const currentCampaign = getCurrentMonthCampaign();
+    
+    const scripts = Object.entries(segmentScripts).map(([key, script]) => ({
+      key,
+      ...script,
+      text: script.text.replace('{nome}', customer.name.split(' ')[0]),
+    }));
+    
+    // Add current campaign script
+    scripts.push({
+      key: 'campaign_month',
+      title: `📣 ${currentCampaign.name}`,
+      text: `Oi ${customer.name.split(' ')[0]}! ${currentCampaign.script} ${currentCampaign.offer}. Quer saber mais?`,
+    });
+    
+    return scripts;
+  };
+
+  const handleOpenQuickAction = (customer: RFVCustomer, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setQuickActionCustomer(customer);
+    setSelectedScriptType('');
+    setCustomMessage('');
+    setCopiedScript(false);
+    setShowQuickAction(true);
+  };
+
+  const handleSelectScript = (scriptKey: string, scriptText: string) => {
+    setSelectedScriptType(scriptKey);
+    setCustomMessage(scriptText);
+  };
+
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(customMessage);
+    setCopiedScript(true);
+    setTimeout(() => setCopiedScript(false), 2000);
+    toast({ title: "Mensagem copiada!" });
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!quickActionCustomer) return;
+    
+    const phone = quickActionCustomer.whatsapp || quickActionCustomer.phone;
+    if (!phone) {
+      toast({ title: "Sem telefone", description: "Este cliente não possui telefone cadastrado.", variant: "destructive" });
+      return;
+    }
+    
+    const cleanPhone = phone.replace(/\D/g, '');
+    const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    const whatsappUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(customMessage)}`;
+    
+    // Save action to history
+    try {
+      await supabase.from('rfv_action_history').insert({
+        customer_id: quickActionCustomer.id,
+        customer_name: quickActionCustomer.name,
+        action_type: selectedScriptType || 'custom_message',
+        notes: customMessage.substring(0, 500),
+        performed_by: user?.id || '',
+        performed_by_name: profile?.full_name || 'Usuário',
+      });
+    } catch (error) {
+      console.error('Error saving action:', error);
+    }
+    
+    window.open(whatsappUrl, '_blank');
+    toast({ title: "Abrindo WhatsApp..." });
+    setShowQuickAction(false);
+  };
 
   // Load existing RFV data and upload logs on mount
   useEffect(() => {
@@ -1949,6 +2173,7 @@ const RFVDashboard = () => {
                           <TableHead className="text-center">RFV</TableHead>
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead>Última Compra</TableHead>
+                          <TableHead className="text-center">Ação</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2032,6 +2257,17 @@ const RFVDashboard = () => {
                                     {customer.daysSinceLastPurchase}d atrás
                                   </p>
                                 </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={(e) => handleOpenQuickAction(customer, e)}
+                                  disabled={!contactPhone}
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                </Button>
                               </TableCell>
                             </TableRow>
                           );
@@ -2301,6 +2537,205 @@ const RFVDashboard = () => {
           </>
         )}
       </main>
+
+      {/* Quick WhatsApp Action Dialog */}
+      <Dialog open={showQuickAction} onOpenChange={setShowQuickAction}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-green-500" />
+              Ação Rápida - WhatsApp
+            </DialogTitle>
+            {quickActionCustomer && (
+              <DialogDescription className="flex items-center gap-2">
+                <span className="font-medium">{quickActionCustomer.name}</span>
+                <Badge className={`${RFV_SEGMENTS[quickActionCustomer.segment].color} text-white text-xs`}>
+                  {RFV_SEGMENTS[quickActionCustomer.segment].name}
+                </Badge>
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          <div className="space-y-4 py-4 flex-1 overflow-hidden">
+            {/* Script Categories */}
+            {quickActionCustomer && (
+              <>
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Escolha o tipo de abordagem:</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <Button
+                      variant={selectedScriptType === 'relationship' ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2 justify-start"
+                      onClick={() => {
+                        const scripts = getScriptsForCustomer(quickActionCustomer);
+                        const script = scripts.find(s => s.key === 'relationship');
+                        if (script) handleSelectScript('relationship', script.text);
+                      }}
+                    >
+                      <HandHeart className="h-4 w-4 text-pink-500" />
+                      Relacionamento
+                    </Button>
+                    <Button
+                      variant={selectedScriptType === 'referral' ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2 justify-start"
+                      onClick={() => {
+                        const scripts = getScriptsForCustomer(quickActionCustomer);
+                        const script = scripts.find(s => s.key === 'referral');
+                        if (script) handleSelectScript('referral', script.text);
+                      }}
+                    >
+                      <UserPlus className="h-4 w-4 text-blue-500" />
+                      Indicação
+                    </Button>
+                    <Button
+                      variant={selectedScriptType === 'ambassador' ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2 justify-start"
+                      onClick={() => {
+                        const scripts = getScriptsForCustomer(quickActionCustomer);
+                        const script = scripts.find(s => s.key === 'ambassador');
+                        if (script) handleSelectScript('ambassador', script.text);
+                      }}
+                    >
+                      <Award className="h-4 w-4 text-yellow-500" />
+                      Embaixador
+                    </Button>
+                    <Button
+                      variant={selectedScriptType === 'upsell' ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2 justify-start"
+                      onClick={() => {
+                        const scripts = getScriptsForCustomer(quickActionCustomer);
+                        const script = scripts.find(s => s.key === 'upsell');
+                        if (script) handleSelectScript('upsell', script.text);
+                      }}
+                    >
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      Upsell
+                    </Button>
+                    <Button
+                      variant={selectedScriptType === 'reactivation' || selectedScriptType === 'winback' ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2 justify-start"
+                      onClick={() => {
+                        const scripts = getScriptsForCustomer(quickActionCustomer);
+                        const script = scripts.find(s => s.key === 'reactivation' || s.key === 'winback');
+                        if (script) handleSelectScript(script.key, script.text);
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 text-orange-500" />
+                      Reativação
+                    </Button>
+                    <Button
+                      variant={selectedScriptType === 'campaign_month' ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2 justify-start"
+                      onClick={() => {
+                        const scripts = getScriptsForCustomer(quickActionCustomer);
+                        const script = scripts.find(s => s.key === 'campaign_month');
+                        if (script) handleSelectScript('campaign_month', script.text);
+                      }}
+                    >
+                      <Megaphone className="h-4 w-4 text-purple-500" />
+                      Campanha do Mês
+                    </Button>
+                  </div>
+                </div>
+
+                {/* All Available Scripts */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Ou selecione um script específico:</Label>
+                  <ScrollArea className="h-[150px] border rounded-lg p-2">
+                    <div className="space-y-2">
+                      {getScriptsForCustomer(quickActionCustomer).map((script) => (
+                        <div
+                          key={script.key}
+                          className={`p-2 rounded-lg cursor-pointer transition-colors ${
+                            selectedScriptType === script.key
+                              ? 'bg-primary/10 border border-primary/30'
+                              : 'bg-muted/50 hover:bg-muted'
+                          }`}
+                          onClick={() => handleSelectScript(script.key, script.text)}
+                        >
+                          <p className="text-sm font-medium">{script.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{script.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Message Editor */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm font-medium">Mensagem personalizada:</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 h-7"
+                      onClick={handleCopyMessage}
+                      disabled={!customMessage}
+                    >
+                      {copiedScript ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                      Copiar
+                    </Button>
+                  </div>
+                  <Textarea
+                    placeholder="Selecione um script acima ou escreva sua mensagem..."
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+
+                {/* Customer Info Summary */}
+                <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                  <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Total Gasto</p>
+                      <p className="font-bold">{formatCurrency(quickActionCustomer.totalValue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Última Compra</p>
+                      <p className="font-bold">{quickActionCustomer.daysSinceLastPurchase}d atrás</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Ticket Médio</p>
+                      <p className="font-bold">{formatCurrency(quickActionCustomer.averageTicket)}</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowQuickAction(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleCopyMessage}
+              disabled={!customMessage}
+            >
+              <Copy className="h-4 w-4" />
+              Copiar Mensagem
+            </Button>
+            <Button
+              className="gap-2 bg-green-600 hover:bg-green-700"
+              onClick={handleSendWhatsApp}
+              disabled={!customMessage || !quickActionCustomer}
+            >
+              <Send className="h-4 w-4" />
+              Abrir WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
