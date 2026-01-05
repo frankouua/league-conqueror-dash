@@ -272,16 +272,18 @@ const HistoricalComparison = () => {
     return result;
   }, [monthlyData]);
 
-  // Department comparison data
+  // Department comparison data (including 2026)
   const departmentComparisonData = useMemo(() => {
     const dept2024 = departmentData.get(2024) || new Map();
     const dept2025 = departmentData.get(2025) || new Map();
+    const dept2026 = departmentData.get(2026) || new Map();
     
-    const allDepts = new Set([...dept2024.keys(), ...dept2025.keys()]);
+    const allDepts = new Set([...dept2024.keys(), ...dept2025.keys(), ...dept2026.keys()]);
     
     return Array.from(allDepts).map(dept => {
       const d2024 = dept2024.get(dept) || { revenue: 0, executed: 0, quantity: 0 };
       const d2025 = dept2025.get(dept) || { revenue: 0, executed: 0, quantity: 0 };
+      const d2026 = dept2026.get(dept) || { revenue: 0, executed: 0, quantity: 0 };
       
       const revenueGrowth = d2024.revenue > 0 
         ? ((d2025.revenue - d2024.revenue) / d2024.revenue) * 100 
@@ -291,16 +293,23 @@ const HistoricalComparison = () => {
         ? ((d2025.executed - d2024.executed) / d2024.executed) * 100 
         : d2025.executed > 0 ? 100 : 0;
       
+      const revenueGrowth2526 = d2025.revenue > 0 
+        ? ((d2026.revenue - d2025.revenue) / d2025.revenue) * 100 
+        : d2026.revenue > 0 ? 100 : 0;
+      
       return {
         department: dept,
         shortName: DEPARTMENT_SHORT_NAMES[dept] || dept.slice(0, 15),
         color: DEPARTMENT_COLORS[dept] || "#94a3b8",
         revenue2024: d2024.revenue,
         revenue2025: d2025.revenue,
+        revenue2026: d2026.revenue,
         executed2024: d2024.executed,
         executed2025: d2025.executed,
+        executed2026: d2026.executed,
         revenueGrowth,
         executedGrowth,
+        revenueGrowth2526,
       };
     }).sort((a, b) => b.revenue2025 - a.revenue2025);
   }, [departmentData]);
@@ -315,25 +324,31 @@ const HistoricalComparison = () => {
     ];
     
     return quarters.map(q => {
-      let total2024 = 0, total2025 = 0;
-      let exec2024 = 0, exec2025 = 0;
+      let total2024 = 0, total2025 = 0, total2026 = 0;
+      let exec2024 = 0, exec2025 = 0, exec2026 = 0;
       
       q.months.forEach(m => {
         const d2024 = monthlyData.get(`2024-${m}`);
         const d2025 = monthlyData.get(`2025-${m}`);
+        const d2026 = monthlyData.get(`2026-${m}`);
         if (d2024) { total2024 += d2024.revenue; exec2024 += d2024.executed; }
         if (d2025) { total2025 += d2025.revenue; exec2025 += d2025.executed; }
+        if (d2026) { total2026 += d2026.revenue; exec2026 += d2026.executed; }
       });
       
       const growth = total2024 > 0 ? ((total2025 - total2024) / total2024) * 100 : 0;
+      const growth2526 = total2025 > 0 ? ((total2026 - total2025) / total2025) * 100 : 0;
       
       return {
         ...q,
         revenue2024: total2024,
         revenue2025: total2025,
+        revenue2026: total2026,
         executed2024: exec2024,
         executed2025: exec2025,
+        executed2026: exec2026,
         growth,
+        growth2526,
       };
     });
   }, [monthlyData]);
@@ -751,7 +766,7 @@ const HistoricalComparison = () => {
             </CardHeader>
             <CardContent>
               <ScrollArea className="w-full">
-                <div className="min-w-[800px]">
+                <div className="min-w-[1000px]">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
@@ -761,7 +776,8 @@ const HistoricalComparison = () => {
                         <th className="text-right py-2 px-2">Var. Vendido</th>
                         <th className="text-right py-2 px-2">Exec. 2024</th>
                         <th className="text-right py-2 px-2">Exec. 2025</th>
-                        <th className="text-right py-2 px-2">Vendido 2026</th>
+                        <th className="text-right py-2 px-2 bg-teal-500/10">Vendido 2026</th>
+                        <th className="text-right py-2 px-2 bg-teal-500/10">Exec. 2026</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -775,8 +791,11 @@ const HistoricalComparison = () => {
                           </td>
                           <td className="text-right py-2 px-2 text-muted-foreground">{formatFullCurrency(row.executed2024)}</td>
                           <td className="text-right py-2 px-2">{formatFullCurrency(row.executed2025)}</td>
-                          <td className="text-right py-2 px-2 text-muted-foreground">
+                          <td className="text-right py-2 px-2 bg-teal-500/5">
                             {row.revenue2026 > 0 ? formatFullCurrency(row.revenue2026) : '-'}
+                          </td>
+                          <td className="text-right py-2 px-2 bg-teal-500/5">
+                            {row.executed2026 > 0 ? formatFullCurrency(row.executed2026) : '-'}
                           </td>
                         </tr>
                       ))}
@@ -789,7 +808,8 @@ const HistoricalComparison = () => {
                         </td>
                         <td className="text-right py-2 px-2">{formatFullCurrency(yearTotals[2024]?.executed || 0)}</td>
                         <td className="text-right py-2 px-2">{formatFullCurrency(yearTotals[2025]?.executed || 0)}</td>
-                        <td className="text-right py-2 px-2">{formatFullCurrency(yearTotals[2026]?.revenue || 0)}</td>
+                        <td className="text-right py-2 px-2 bg-teal-500/10">{formatFullCurrency(yearTotals[2026]?.revenue || 0)}</td>
+                        <td className="text-right py-2 px-2 bg-teal-500/10">{formatFullCurrency(yearTotals[2026]?.executed || 0)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -898,17 +918,17 @@ const HistoricalComparison = () => {
             </CardHeader>
             <CardContent>
               <ScrollArea className="w-full">
-                <div className="min-w-[900px]">
+                <div className="min-w-[1100px]">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
                         <th className="text-left py-2 px-2">Departamento</th>
                         <th className="text-right py-2 px-2">Vendido 2024</th>
                         <th className="text-right py-2 px-2">Vendido 2025</th>
-                        <th className="text-right py-2 px-2">Var. Vendido</th>
-                        <th className="text-right py-2 px-2">Exec. 2024</th>
-                        <th className="text-right py-2 px-2">Exec. 2025</th>
-                        <th className="text-right py-2 px-2">Var. Exec.</th>
+                        <th className="text-right py-2 px-2">Var. 24→25</th>
+                        <th className="text-right py-2 px-2 bg-teal-500/10">Vendido 2026</th>
+                        <th className="text-right py-2 px-2 bg-teal-500/10">Exec. 2026</th>
+                        <th className="text-right py-2 px-2 bg-teal-500/10">Var. 25→26</th>
                         <th className="text-right py-2 px-2">% do Total</th>
                       </tr>
                     </thead>
@@ -926,10 +946,14 @@ const HistoricalComparison = () => {
                           <td className="text-right py-2 px-2">
                             <GrowthBadge value={row.revenueGrowth} />
                           </td>
-                          <td className="text-right py-2 px-2 text-muted-foreground">{formatFullCurrency(row.executed2024)}</td>
-                          <td className="text-right py-2 px-2">{formatFullCurrency(row.executed2025)}</td>
-                          <td className="text-right py-2 px-2">
-                            <GrowthBadge value={row.executedGrowth} />
+                          <td className="text-right py-2 px-2 bg-teal-500/5">
+                            {row.revenue2026 > 0 ? formatFullCurrency(row.revenue2026) : '-'}
+                          </td>
+                          <td className="text-right py-2 px-2 bg-teal-500/5">
+                            {row.executed2026 > 0 ? formatFullCurrency(row.executed2026) : '-'}
+                          </td>
+                          <td className="text-right py-2 px-2 bg-teal-500/5">
+                            {row.revenue2026 > 0 ? <GrowthBadge value={row.revenueGrowth2526} /> : '-'}
                           </td>
                           <td className="text-right py-2 px-2">
                             {((row.revenue2025 / (yearTotals[2025]?.revenue || 1)) * 100).toFixed(1)}%
@@ -990,10 +1014,10 @@ const HistoricalComparison = () => {
                     <YAxis tickFormatter={(v) => `${(v/1000000).toFixed(1)}M`} tick={{ fontSize: 12 }} />
                     <Tooltip formatter={(value: number) => formatFullCurrency(value)} />
                     <Legend />
-                    <Bar dataKey="revenue2024" name="Vendido 2024" fill="hsl(var(--muted-foreground))" opacity={0.5} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue2024" name="Vendido 2024" fill="hsl(var(--muted-foreground))" opacity={0.4} radius={[4, 4, 0, 0]} />
                     <Bar dataKey="revenue2025" name="Vendido 2025" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="executed2024" name="Executado 2024" fill="#64748b" opacity={0.5} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="executed2025" name="Executado 2025" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue2026" name="Vendido 2026" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="executed2026" name="Executado 2026" fill="#0d9488" opacity={0.7} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
