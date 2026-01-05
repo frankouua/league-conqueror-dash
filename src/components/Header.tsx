@@ -87,6 +87,7 @@ const Header = () => {
   // Dropdown: Comercial (Vendas, RFV, Indicações, Cancelamentos)
   const comercialLinks = [
     { path: "/sales-upload", label: "Vendas", icon: FileSpreadsheet },
+    { path: "/historico", label: "Histórico", icon: History, adminOnly: true },
     { path: "/rfv", label: "Clientes RFV", icon: Target },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
@@ -216,7 +217,9 @@ const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48 bg-card border-border">
-                  {comercialLinks.map((link) => (
+                  {comercialLinks
+                    .filter(link => !link.adminOnly || role === 'admin')
+                    .map((link) => (
                     <DropdownMenuItem key={link.path} asChild>
                       <Link 
                         to={link.path} 
