@@ -57,6 +57,7 @@ interface ParsedSale {
   matchedTeamName: string | null;
   status: 'matched' | 'unmatched' | 'error';
   errorMessage?: string;
+  paymentStatus?: string;  // Situação (Quitado/Em aberto)
 }
 
 interface ColumnMapping {
@@ -67,6 +68,7 @@ interface ColumnMapping {
   sellerName: string;
   amountSold: string;      // Valor Vendido
   amountPaid: string;      // Valor Pago/Recebido
+  status: string;          // Situação (Quitado/Em aberto)
 }
 
 interface SalesMetrics {
@@ -112,6 +114,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     sellerName: '',
     amountSold: '',
     amountPaid: '',
+    status: '',
   });
   const [showColumnMapping, setShowColumnMapping] = useState(false);
   const [rawData, setRawData] = useState<Record<string, any>[]>([]);
@@ -129,6 +132,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [importSuccess, setImportSuccess] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [selectedErrorRows, setSelectedErrorRows] = useState<Set<number>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<'all' | 'quitado' | 'em_aberto'>('all');
 
   // Function to refresh all dashboard data
   const refreshAllDashboards = () => {
@@ -228,6 +232,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         sellerName: '',
         amountSold: '',
         amountPaid: '',
+        status: '',
       };
 
       // Feegow-specific column detection
@@ -280,6 +285,12 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         if (colLower.includes('valor pago') || colLower === 'pago' || 
             colLower.includes('valor recebido') || colLower === 'recebido') {
           autoMapping.amountPaid = col;
+        }
+        
+        // Status detection (Situação - Quitado/Em aberto)
+        if (colLower.includes('situação') || colLower.includes('situacao') || 
+            colLower === 'status' || colLower.includes('quitado')) {
+          if (!autoMapping.status) autoMapping.status = col;
         }
       }
 
@@ -547,6 +558,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       });
 
       // Filter out summary/total rows (usually at the end of Feegow exports)
+      // Also apply status filter if configured
       const filteredData = rawData.filter((row) => {
         const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '') : '';
         const sellerName = String(row[columnMapping.sellerName] || '');
@@ -568,7 +580,19 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           dateLower.includes('total') ||
           dateLower.includes('soma');
         
-        return !isTotalRow;
+        if (isTotalRow) return false;
+        
+        // Apply status filter if configured
+        if (columnMapping.status && statusFilter !== 'all') {
+          const rowStatus = String(row[columnMapping.status] || '').toLowerCase().trim();
+          if (statusFilter === 'quitado') {
+            return rowStatus.includes('quitado');
+          } else if (statusFilter === 'em_aberto') {
+            return rowStatus.includes('aberto') || rowStatus.includes('em aberto');
+          }
+        }
+        
+        return true;
       });
 
       console.log(`Filtered ${rawData.length - filteredData.length} total/summary rows`);
@@ -582,6 +606,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           const department = columnMapping.department ? String(row[columnMapping.department] || '').trim() : '';
           const procedure = columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : '';
           const clientName = columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '';
+          const paymentStatus = columnMapping.status ? String(row[columnMapping.status] || '').trim() : '';
 
           // Parse date
           let parsedDate = '';
@@ -615,6 +640,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               matchedTeamName: null,
               status: 'error' as const,
               errorMessage: 'Data inválida',
+              paymentStatus,
             };
           }
 
@@ -636,27 +662,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           const amountSold = parseAmount(amountSoldRaw);
           const amountPaid = parseAmount(amountPaidRaw);
 
-          // Both amounts are exactly zero - skip this row
-          if (amountSold === 0 && amountPaid === 0) {
-            return {
-              date: parsedDate,
-              department,
-              procedure,
-              clientName,
-              sellerName,
-              amountSold: 0,
-              amountPaid: 0,
-              matchedUserId: null,
-              matchedTeamId: null,
-              matchedTeamName: null,
-              status: 'error' as const,
-              errorMessage: 'Valor zero',
-            };
-          }
-
-          // Note: negative values (cancellations/refunds) are valid and will be included
-
-          // Match seller
+          // Match seller FIRST (before checking zero values)
           const sellerLower = sellerName.toLowerCase().trim();
           let matchedUserId: string | null = null;
           let matchedTeamId: string | null = null;
@@ -688,6 +694,27 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             matchedTeamName = teamNamesById.get(matchedTeamId) || null;
           }
 
+          // Both amounts are exactly zero - mark as error but keep seller info
+          if (amountSold === 0 && amountPaid === 0) {
+            return {
+              date: parsedDate,
+              department,
+              procedure,
+              clientName,
+              sellerName,
+              amountSold: 0,
+              amountPaid: 0,
+              matchedUserId,
+              matchedTeamId,
+              matchedTeamName,
+              status: 'error' as const,
+              errorMessage: 'Valor zero',
+              paymentStatus,
+            };
+          }
+
+          // Note: negative values (cancellations/refunds) are valid and will be included
+
           return {
             date: parsedDate,
             department,
@@ -700,6 +727,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             matchedTeamId,
             matchedTeamName,
             status: matchedUserId ? 'matched' as const : 'unmatched' as const,
+            paymentStatus,
           };
         } catch {
           return {
@@ -1851,7 +1879,55 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                   ))}
                 </select>
               </div>
+              <div>
+                <Label>Situação (Quitado/Em aberto)</Label>
+                <select
+                  value={columnMapping.status}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, status: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não filtrar</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+            
+            {/* Status Filter */}
+            {columnMapping.status && (
+              <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
+                <Label className="font-medium">Filtrar por Situação:</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={statusFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('all')}
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={statusFilter === 'quitado' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('quitado')}
+                    className={statusFilter === 'quitado' ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    ✅ Quitado
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={statusFilter === 'em_aberto' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('em_aberto')}
+                    className={statusFilter === 'em_aberto' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                  >
+                    ⏳ Em aberto
+                  </Button>
+                </div>
+              </div>
+            )}
             <Button onClick={processWithMapping} disabled={isProcessing}>
               {isProcessing ? (
                 <>
