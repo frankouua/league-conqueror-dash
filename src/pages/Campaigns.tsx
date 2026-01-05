@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import { 
   Calendar, Target, ChevronRight, ChevronLeft, 
   Gift, Heart, Sun, Snowflake, Flower2, Users, ShoppingBag, 
@@ -686,6 +687,12 @@ const Campaigns = () => {
   const [bulkScript, setBulkScript] = useState<any>(null);
   const [currentBulkIndex, setCurrentBulkIndex] = useState(0);
   const [bulkSending, setBulkSending] = useState(false);
+  
+  // Filtros adicionais
+  const [minTicket, setMinTicket] = useState<string>("");
+  const [maxTicket, setMaxTicket] = useState<string>("");
+  const [minDays, setMinDays] = useState<string>("");
+  const [maxDays, setMaxDays] = useState<string>("");
 
   // Get RFV segments count from DB
   const { data: rfvSegments } = useQuery({
@@ -773,11 +780,28 @@ const Campaigns = () => {
     setSelectedCustomers(newSelected);
   };
 
+  // Filtrar clientes por ticket e dias
+  const filteredCustomers = useMemo(() => {
+    return segmentCustomers.filter(customer => {
+      const minTicketValue = minTicket ? parseFloat(minTicket) : 0;
+      const maxTicketValue = maxTicket ? parseFloat(maxTicket) : Infinity;
+      const minDaysValue = minDays ? parseInt(minDays) : 0;
+      const maxDaysValue = maxDays ? parseInt(maxDays) : Infinity;
+      
+      return (
+        customer.average_ticket >= minTicketValue &&
+        customer.average_ticket <= maxTicketValue &&
+        customer.days_since_last_purchase >= minDaysValue &&
+        customer.days_since_last_purchase <= maxDaysValue
+      );
+    });
+  }, [segmentCustomers, minTicket, maxTicket, minDays, maxDays]);
+
   const handleSelectAll = () => {
-    if (selectedCustomers.size === segmentCustomers.length) {
+    if (selectedCustomers.size === filteredCustomers.length) {
       setSelectedCustomers(new Set());
     } else {
-      setSelectedCustomers(new Set(segmentCustomers.map(c => c.id)));
+      setSelectedCustomers(new Set(filteredCustomers.map(c => c.id)));
     }
   };
 
@@ -1303,6 +1327,85 @@ const Campaigns = () => {
               </div>
             )}
 
+            {/* Filtros Avançados */}
+            <div className="p-4 rounded-lg bg-muted/30 border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <h5 className="text-sm font-medium flex items-center gap-2">
+                  <Target className="w-4 h-4 text-primary" />
+                  Filtros Avançados
+                </h5>
+                {(minTicket || maxTicket || minDays || maxDays) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => {
+                      setMinTicket("");
+                      setMaxTicket("");
+                      setMinDays("");
+                      setMaxDays("");
+                    }}
+                  >
+                    Limpar Filtros
+                  </Button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Ticket Mínimo (R$)</Label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={minTicket}
+                    onChange={(e) => setMinTicket(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Ticket Máximo (R$)</Label>
+                  <Input
+                    type="number"
+                    placeholder="∞"
+                    value={maxTicket}
+                    onChange={(e) => setMaxTicket(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Dias Mín. sem Compra</Label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={minDays}
+                    onChange={(e) => setMinDays(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Dias Máx. sem Compra</Label>
+                  <Input
+                    type="number"
+                    placeholder="∞"
+                    value={maxDays}
+                    onChange={(e) => setMaxDays(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                <span>
+                  {filteredCustomers.length} de {segmentCustomers.length} pacientes no filtro
+                </span>
+                {filteredCustomers.length < segmentCustomers.length && (
+                  <Badge variant="outline" className="text-xs">
+                    {segmentCustomers.length - filteredCustomers.length} ocultos
+                  </Badge>
+                )}
+              </div>
+            </div>
+
             {/* Controles de seleção */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -1313,10 +1416,10 @@ const Campaigns = () => {
                   onClick={handleSelectAll}
                 >
                   <CheckCheck className="w-4 h-4" />
-                  {selectedCustomers.size === segmentCustomers.length ? "Desmarcar Todos" : "Selecionar Todos"}
+                  {selectedCustomers.size === filteredCustomers.length && filteredCustomers.length > 0 ? "Desmarcar Todos" : "Selecionar Todos"}
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  {selectedCustomers.size} de {segmentCustomers.length} selecionados
+                  {selectedCustomers.size} selecionados
                   {customersWithPhone.length < selectedCustomers.size && (
                     <span className="text-yellow-500 ml-2">
                       ({customersWithPhone.length} com telefone)
@@ -1327,19 +1430,19 @@ const Campaigns = () => {
             </div>
 
             {/* Lista de Pacientes */}
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-[250px] pr-4">
               {loadingCustomers ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-              ) : segmentCustomers.length === 0 ? (
+              ) : filteredCustomers.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>Nenhum paciente neste segmento</p>
+                  <p>{segmentCustomers.length === 0 ? "Nenhum paciente neste segmento" : "Nenhum paciente com os filtros atuais"}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {segmentCustomers.map((customer) => {
+                  {filteredCustomers.map((customer) => {
                     const phone = getCustomerPhone(customer);
                     const isSelected = selectedCustomers.has(customer.id);
                     
@@ -1368,7 +1471,7 @@ const Campaigns = () => {
                                 Sem telefone
                               </span>
                             )}
-                            <span>Ticket: R$ {customer.average_ticket}</span>
+                            <span className="font-medium text-primary">R$ {customer.average_ticket.toFixed(2)}</span>
                             <span>{customer.days_since_last_purchase}d sem compra</span>
                           </div>
                         </div>
