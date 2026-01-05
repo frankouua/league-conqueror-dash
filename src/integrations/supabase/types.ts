@@ -179,6 +179,38 @@ export type Database = {
           },
         ]
       }
+      campaign_alerts: {
+        Row: {
+          alert_type: string
+          campaign_id: string
+          id: string
+          message: string | null
+          sent_at: string
+        }
+        Insert: {
+          alert_type: string
+          campaign_id: string
+          id?: string
+          message?: string | null
+          sent_at?: string
+        }
+        Update: {
+          alert_type?: string
+          campaign_id?: string
+          id?: string
+          message?: string | null
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_alerts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_checklist_progress: {
         Row: {
           action_id: string
@@ -227,8 +259,53 @@ export type Database = {
           },
         ]
       }
+      campaign_materials: {
+        Row: {
+          campaign_id: string
+          content: string | null
+          created_at: string
+          created_by: string
+          id: string
+          material_type: string
+          order_index: number
+          title: string
+          url: string | null
+        }
+        Insert: {
+          campaign_id: string
+          content?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          material_type: string
+          order_index?: number
+          title: string
+          url?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          material_type?: string
+          order_index?: number
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_materials_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
+          alert_days_before: number | null
           campaign_type: string
           created_at: string
           created_by: string
@@ -239,11 +316,16 @@ export type Database = {
           goal_value: number | null
           id: string
           is_active: boolean
+          is_template: boolean
           name: string
+          prize_description: string | null
+          prize_value: number | null
           start_date: string
+          template_id: string | null
           updated_at: string
         }
         Insert: {
+          alert_days_before?: number | null
           campaign_type: string
           created_at?: string
           created_by: string
@@ -254,11 +336,16 @@ export type Database = {
           goal_value?: number | null
           id?: string
           is_active?: boolean
+          is_template?: boolean
           name: string
+          prize_description?: string | null
+          prize_value?: number | null
           start_date: string
+          template_id?: string | null
           updated_at?: string
         }
         Update: {
+          alert_days_before?: number | null
           campaign_type?: string
           created_at?: string
           created_by?: string
@@ -269,11 +356,23 @@ export type Database = {
           goal_value?: number | null
           id?: string
           is_active?: boolean
+          is_template?: boolean
           name?: string
+          prize_description?: string | null
+          prize_value?: number | null
           start_date?: string
+          template_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cancellation_history: {
         Row: {

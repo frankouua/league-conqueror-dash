@@ -12,10 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, Plus, Trash2, Edit, Loader2, Target, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, Plus, Trash2, Edit, Loader2, Target, ChevronDown, ChevronUp, GripVertical, Trophy, Bookmark, BarChart3, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import CampaignTemplates from "./CampaignTemplates";
+import CampaignMaterials from "./CampaignMaterials";
+import CampaignResultsDashboard from "@/components/CampaignResultsDashboard";
 
 interface Campaign {
   id: string;
@@ -28,6 +32,10 @@ interface Campaign {
   goal_value: number | null;
   goal_metric: string | null;
   is_active: boolean;
+  is_template: boolean;
+  prize_description: string | null;
+  prize_value: number | null;
+  alert_days_before: number | null;
   created_at: string;
 }
 
@@ -55,6 +63,7 @@ const CampaignsManager = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showActions, setShowActions] = useState(false);
+  const [selectedCampaignForMaterials, setSelectedCampaignForMaterials] = useState<Campaign | null>(null);
   const [actions, setActions] = useState<CampaignAction[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -65,15 +74,20 @@ const CampaignsManager = () => {
     goal_description: "",
     goal_value: "",
     goal_metric: "unidades",
+    prize_description: "",
+    prize_value: "",
+    alert_days_before: "3",
+    is_template: false,
   });
 
-  // Fetch all campaigns
+  // Fetch all campaigns (excluding templates)
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: ["admin-campaigns"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("campaigns")
         .select("*")
+        .eq("is_template", false)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Campaign[];
@@ -111,6 +125,10 @@ const CampaignsManager = () => {
           goal_description: formData.goal_description || null,
           goal_value: formData.goal_value ? parseFloat(formData.goal_value) : null,
           goal_metric: formData.goal_metric,
+          prize_description: formData.prize_description || null,
+          prize_value: formData.prize_value ? parseFloat(formData.prize_value) : null,
+          alert_days_before: parseInt(formData.alert_days_before) || 3,
+          is_template: formData.is_template,
           created_by: user?.id,
         })
         .select()
@@ -140,6 +158,7 @@ const CampaignsManager = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-campaigns"] });
       queryClient.invalidateQueries({ queryKey: ["campaigns-active"] });
       queryClient.invalidateQueries({ queryKey: ["campaigns-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-templates"] });
       resetForm();
     },
     onError: (error) => {
@@ -162,6 +181,10 @@ const CampaignsManager = () => {
           goal_description: formData.goal_description || null,
           goal_value: formData.goal_value ? parseFloat(formData.goal_value) : null,
           goal_metric: formData.goal_metric,
+          prize_description: formData.prize_description || null,
+          prize_value: formData.prize_value ? parseFloat(formData.prize_value) : null,
+          alert_days_before: parseInt(formData.alert_days_before) || 3,
+          is_template: formData.is_template,
         })
         .eq("id", id);
       
@@ -192,6 +215,7 @@ const CampaignsManager = () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns-active"] });
       queryClient.invalidateQueries({ queryKey: ["campaigns-upcoming"] });
       queryClient.invalidateQueries({ queryKey: ["campaign-actions"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-templates"] });
       resetForm();
     },
     onError: (error) => {
@@ -239,11 +263,16 @@ const CampaignsManager = () => {
       goal_description: "",
       goal_value: "",
       goal_metric: "unidades",
+      prize_description: "",
+      prize_value: "",
+      alert_days_before: "3",
+      is_template: false,
     });
     setActions([]);
     setIsCreating(false);
     setEditingId(null);
     setShowActions(false);
+    setSelectedCampaignForMaterials(null);
   };
 
   const startEdit = (campaign: Campaign) => {
@@ -256,8 +285,13 @@ const CampaignsManager = () => {
       goal_description: campaign.goal_description || "",
       goal_value: campaign.goal_value?.toString() || "",
       goal_metric: campaign.goal_metric || "unidades",
+      prize_description: campaign.prize_description || "",
+      prize_value: campaign.prize_value?.toString() || "",
+      alert_days_before: campaign.alert_days_before?.toString() || "3",
+      is_template: campaign.is_template || false,
     });
     setEditingId(campaign.id);
+    setSelectedCampaignForMaterials(campaign);
     setIsCreating(true);
     setShowActions(true);
   };
@@ -306,23 +340,39 @@ const CampaignsManager = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <Tabs defaultValue="campaigns" className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Calendar className="w-5 h-5 text-primary" />
           Gerenciar Campanhas
         </h2>
+        <TabsList className="bg-secondary/50">
+          <TabsTrigger value="campaigns" className="gap-1">
+            <Calendar className="w-3 h-3" />
+            Campanhas
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="gap-1">
+            <Bookmark className="w-3 h-3" />
+            Templates
+          </TabsTrigger>
+          <TabsTrigger value="results" className="gap-1">
+            <BarChart3 className="w-3 h-3" />
+            Resultados
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="campaigns" className="space-y-6">
         {!isCreating && (
           <Button onClick={() => setIsCreating(true)} className="gap-2">
             <Plus className="w-4 h-4" />
             Nova Campanha
           </Button>
         )}
-      </div>
 
-      {/* Create/Edit Form */}
-      {isCreating && (
-        <Card className="border-primary/30">
+        {/* Create/Edit Form */}
+        {isCreating && (
+          <Card className="border-primary/30">
           <CardHeader>
             <CardTitle className="text-lg">
               {editingId ? "Editar Campanha" : "Criar Nova Campanha"}
@@ -425,6 +475,55 @@ const CampaignsManager = () => {
               </div>
             </div>
 
+            {/* Prize Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-amber-500/5 rounded-lg border border-amber-500/20">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  Descrição do Prêmio
+                </Label>
+                <Input
+                  value={formData.prize_description}
+                  onChange={(e) => setFormData({ ...formData, prize_description: e.target.value })}
+                  placeholder="Ex: Jantar para a equipe"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Valor (R$)</Label>
+                  <Input
+                    type="number"
+                    value={formData.prize_value}
+                    onChange={(e) => setFormData({ ...formData, prize_value: e.target.value })}
+                    placeholder="500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Alertar dias antes</Label>
+                  <Input
+                    type="number"
+                    value={formData.alert_days_before}
+                    onChange={(e) => setFormData({ ...formData, alert_days_before: e.target.value })}
+                    placeholder="3"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Template Checkbox */}
+            <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+              <Checkbox
+                id="is_template"
+                checked={formData.is_template}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_template: !!checked })}
+              />
+              <Label htmlFor="is_template" className="cursor-pointer flex items-center gap-2">
+                <Bookmark className="w-4 h-4" />
+                Salvar como Template
+              </Label>
+              <span className="text-xs text-muted-foreground ml-2">(para reutilizar depois)</span>
+            </div>
+
             {/* Actions/Checklist Section */}
             <div className="border rounded-lg p-4 space-y-3">
               <div 
@@ -481,6 +580,14 @@ const CampaignsManager = () => {
               )}
             </div>
 
+            {/* Materials Section - only when editing */}
+            {editingId && selectedCampaignForMaterials && (
+              <CampaignMaterials 
+                campaignId={selectedCampaignForMaterials.id} 
+                campaignName={selectedCampaignForMaterials.name} 
+              />
+            )}
+
             <div className="flex gap-2">
               <Button
                 onClick={() => editingId ? updateMutation.mutate(editingId) : createMutation.mutate()}
@@ -518,6 +625,7 @@ const CampaignsManager = () => {
                   <TableHead>Campanha</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Período</TableHead>
+                  <TableHead>Prêmio</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -536,6 +644,17 @@ const CampaignsManager = () => {
                     <TableCell>{getTypeBadge(campaign.campaign_type)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(campaign.start_date), "dd/MM", { locale: ptBR })} - {format(new Date(campaign.end_date), "dd/MM/yy", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      {campaign.prize_value ? (
+                        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                          R$ {campaign.prize_value.toLocaleString('pt-BR')}
+                        </Badge>
+                      ) : campaign.prize_description ? (
+                        <span className="text-xs text-muted-foreground">{campaign.prize_description}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -571,7 +690,16 @@ const CampaignsManager = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="templates">
+        <CampaignTemplates />
+      </TabsContent>
+
+      <TabsContent value="results">
+        <CampaignResultsDashboard />
+      </TabsContent>
+    </Tabs>
   );
 };
 
