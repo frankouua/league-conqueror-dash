@@ -112,7 +112,7 @@ const REFERRAL_SCRIPTS = [
     label: "Objeção Preço",
     color: "bg-red-500/20 text-red-400 border-red-500/30",
     template: (referrerName: string, leadName: string, sellerName: string) => 
-      `${leadName.split(" ")[0]}, entendo perfeitamente sua preocupação! 💜\n\nA ${referrerName.split(" ")[0]} também tinha essa dúvida no início. O legal é que trabalhamos com várias formas de pagamento:\n\n💳 Parcelamos em até 24x\n💰 Desconto especial à vista\n📋 Planos personalizados\n\nO mais importante: na consulta você recebe um orçamento detalhado sem compromisso. A ${referrerName.split(" ")[0]} pode te contar como foi a experiência dela!\n\nQue tal agendarmos?\n\n${sellerName} - Unique Plástica Avançada`,
+      `${leadName.split(" ")[0]}, entendo perfeitamente sua preocupação! 💜\n\nA ${referrerName.split(" ")[0]} também tinha essa dúvida no início. O legal é que trabalhamos com várias formas de pagamento:\n\n💳 Parcelamos em até 12x\n💰 Desconto especial à vista\n📋 Planos personalizados\n\nO mais importante: na consulta você recebe um orçamento detalhado sem compromisso. A ${referrerName.split(" ")[0]} pode te contar como foi a experiência dela!\n\nQue tal agendarmos?\n\n${sellerName} - Unique Plástica Avançada`,
   },
   {
     id: "indecisive",
@@ -133,7 +133,7 @@ const REFERRAL_SCRIPTS = [
     label: "Convite Clínica",
     color: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
     template: (referrerName: string, leadName: string, sellerName: string) => 
-      `${leadName.split(" ")[0]}! 🌟\n\nAqui é ${sellerName} da Unique Plástica Avançada.\n\nQue tal conhecer pessoalmente a Unique? A ${referrerName.split(" ")[0]} ama nosso espaço!\n\nTemos um ambiente acolhedor, equipe especializada e você pode ver de perto como funciona tudo.\n\n☕ Te ofereço um café especial!\n📍 Rua Olegário Maciel, 2555 - Uberlândia\n\nPosso marcar um horário pra você vir nos conhecer?`,
+      `${leadName.split(" ")[0]}! 🌟\n\nAqui é ${sellerName} da Unique Plástica Avançada.\n\nQue tal conhecer pessoalmente a Unique? A ${referrerName.split(" ")[0]} ama nosso espaço!\n\nTemos um ambiente acolhedor, equipe especializada e você pode ver de perto como funciona tudo.\n\n☕ Te ofereço um café especial!\n📍 Av. Getúlio Vargas, 955 - Uberlândia\n\nPosso marcar um horário pra você vir nos conhecer?`,
   },
   {
     id: "no_response",
