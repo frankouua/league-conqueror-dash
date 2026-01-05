@@ -10,6 +10,8 @@ import {
   Search,
   Filter,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Clock,
   CheckCircle2,
   XCircle,
@@ -19,6 +21,7 @@ import {
   MessageSquare,
   Copy,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 import Header from "@/components/Header";
 import { ReferralConversionReport } from "@/components/ReferralConversionReport";
@@ -41,6 +44,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -219,6 +227,7 @@ const ReferralLeads = () => {
   const [leadHistory, setLeadHistory] = useState<LeadHistoryEntry[]>([]);
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNote, setNewNote] = useState("");
+  const [showReport, setShowReport] = useState(false);
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -693,11 +702,8 @@ const ReferralLeads = () => {
           </Select>
         </div>
 
-        {/* Conversion Report */}
-        <ReferralConversionReport leads={leads} />
-
-        {/* Pipeline View - Horizontal scroll on mobile */}
-        <div className="overflow-x-auto -mx-4 px-4 pb-4">
+        {/* Pipeline View - Horizontal scroll on mobile - NOW FIRST AND MORE PROMINENT */}
+        <div className="overflow-x-auto -mx-4 px-4 pb-6">
           <div className="inline-grid grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-3 min-w-max">
           {STATUS_ORDER.map((status) => (
             <Card key={status} className="bg-gradient-card border-border w-[200px] md:w-auto flex-shrink-0">
@@ -748,6 +754,32 @@ const ReferralLeads = () => {
           ))}
           </div>
         </div>
+
+        {/* Conversion Report - Collapsible */}
+        <Collapsible open={showReport} onOpenChange={setShowReport} className="mt-4">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="w-full flex items-center justify-between gap-2 border-border bg-secondary/50 hover:bg-secondary"
+            >
+              <span className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                <span>Relatório de Conversão</span>
+                <Badge variant="secondary" className="text-xs">
+                  {leads.filter(l => l.status === "operou").length} cirurgias
+                </Badge>
+              </span>
+              {showReport ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <ReferralConversionReport leads={leads} />
+          </CollapsibleContent>
+        </Collapsible>
       </main>
 
       {/* New Lead Dialog */}
