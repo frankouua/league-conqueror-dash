@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Mail, Lock, User, Users, Shield, Briefcase, BadgeCheck } from "lucide-react";
+import { Mail, Lock, User, Users, Shield, Briefcase, BadgeCheck } from "lucide-react";
+import logoUnique from "@/assets/logo-unique.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -269,8 +270,8 @@ const Auth = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8 animate-slide-up">
-          <div className="inline-flex items-center justify-center p-4 rounded-2xl bg-gradient-gold-shine shadow-gold mb-4">
-            <Trophy className="w-10 h-10 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src={logoUnique} alt="Unique Logo" className="w-24 h-24 object-contain" />
           </div>
           <h1 className="text-3xl font-black text-gradient-gold">
             Copa Unique League
