@@ -949,7 +949,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       const duplicateChecks: Promise<{ sale: ParsedSale; exists: boolean }>[] = [];
       
       for (const sale of salesToCheck) {
-        const primaryAmount = sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold;
+        // Always use amountSold as primary (valor vendido)
+        const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
         
         const checkPromise = (async () => {
           const { data } = await supabase
@@ -974,14 +975,15 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           continue;
         }
         
-        const primaryAmount = sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold;
+        // Always use amountSold as primary (valor vendido)
+        const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
         
         // Build notes with client, procedure and amounts info
         const noteParts: string[] = [];
         if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
         if (sale.procedure) noteParts.push(`Procedimento: ${sale.procedure}`);
-        if (sale.amountSold > 0 && sale.amountPaid > 0 && sale.amountSold !== sale.amountPaid) {
-          noteParts.push(`Vendido: ${sale.amountSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+        if (sale.amountPaid > 0 && sale.amountSold !== sale.amountPaid) {
+          noteParts.push(`Recebido: ${sale.amountPaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
         }
         const notes = noteParts.length > 0 ? noteParts.join(' | ') : null;
         
@@ -1088,8 +1090,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         clientSales[key] = { dates: [], amounts: [] };
       }
       clientSales[key].dates.push(sale.date);
-      // Use amountPaid if available, otherwise amountSold
-      const amount = sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold;
+      // Use amountSold as primary (valor vendido)
+      const amount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
       clientSales[key].amounts.push(amount);
     }
 
@@ -1506,7 +1508,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                       <TableCell className="font-medium">{errItem.sale.sellerName}</TableCell>
                       <TableCell>{errItem.sale.date}</TableCell>
                       <TableCell>
-                        {(errItem.sale.amountPaid > 0 ? errItem.sale.amountPaid : errItem.sale.amountSold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {(errItem.sale.amountSold > 0 ? errItem.sale.amountSold : errItem.sale.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
                       <TableCell className="text-red-600 text-xs max-w-[300px] truncate">
                         {errItem.error}
@@ -2377,7 +2379,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                       <TableCell>{sale.department || '-'}</TableCell>
                       <TableCell>{sale.sellerName}</TableCell>
                       <TableCell>
-                        {(sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {(sale.amountSold > 0 ? sale.amountSold : sale.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">{sale.clientName}</TableCell>
                       <TableCell>
