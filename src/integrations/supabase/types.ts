@@ -1492,6 +1492,7 @@ export type Database = {
           last_purchase_date: string
           name: string
           phone: string | null
+          prontuario: string | null
           recency_score: number
           segment: string
           total_purchases: number
@@ -1513,6 +1514,7 @@ export type Database = {
           last_purchase_date: string
           name: string
           phone?: string | null
+          prontuario?: string | null
           recency_score?: number
           segment?: string
           total_purchases?: number
@@ -1534,6 +1536,7 @@ export type Database = {
           last_purchase_date?: string
           name?: string
           phone?: string | null
+          prontuario?: string | null
           recency_score?: number
           segment?: string
           total_purchases?: number
