@@ -90,85 +90,85 @@ const REFERRAL_SCRIPTS = [
     id: "first_contact",
     label: "1º Contato",
     color: "bg-green-500/20 text-green-400 border-green-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `Oi ${leadName.split(" ")[0]}! Tudo bem? 😊\n\nQuem está falando é [SEU NOME] da Unique Plástica.\n\nA ${referrerName.split(" ")[0]} falou de você pra gente e disse que você pode estar pensando em fazer uma transformação especial! 💜\n\nPosso te contar mais sobre como funciona?`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `Oi ${leadName.split(" ")[0]}! Tudo bem? 😊\n\nQuem está falando é ${sellerName} da Unique Plástica Avançada.\n\nA ${referrerName.split(" ")[0]} falou de você pra gente e disse que você pode estar pensando em fazer uma transformação especial! 💜\n\nPosso te contar mais sobre como funciona?`,
   },
   {
     id: "follow_up",
     label: "Follow-up",
     color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `Oi ${leadName.split(" ")[0]}! 😊\n\nPassando pra saber se você viu minha mensagem anterior?\n\nA ${referrerName.split(" ")[0]} me disse que você tinha interesse em conhecer a Unique.\n\nQuando podemos conversar?`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `Oi ${leadName.split(" ")[0]}! 😊\n\nAqui é ${sellerName} da Unique Plástica Avançada.\n\nPassando pra saber se você viu minha mensagem anterior?\n\nA ${referrerName.split(" ")[0]} me disse que você tinha interesse em conhecer a Unique.\n\nQuando podemos conversar?`,
   },
   {
     id: "schedule",
     label: "Agendar Consulta",
     color: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${leadName.split(" ")[0]}, que maravilha! 🌟\n\nComo você veio através da ${referrerName.split(" ")[0]}, você tem um benefício especial!\n\nTenho horários essa semana para o seu Unique Day. Prefere presencial ou online?\n\n🗓 Terça às 10h\n🗓 Quinta às 14h\n\nQual fica melhor pra você?`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${leadName.split(" ")[0]}, que maravilha! 🌟\n\nComo você veio através da ${referrerName.split(" ")[0]}, você tem um benefício especial!\n\nTenho horários essa semana para o seu Unique Day. Prefere presencial ou online?\n\n🗓 Terça às 10h\n🗓 Quinta às 14h\n\nQual fica melhor pra você?\n\n${sellerName} - Unique Plástica Avançada 💜`,
   },
   {
     id: "price_objection",
     label: "Objeção Preço",
     color: "bg-red-500/20 text-red-400 border-red-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${leadName.split(" ")[0]}, entendo perfeitamente sua preocupação! 💜\n\nA ${referrerName.split(" ")[0]} também tinha essa dúvida no início. O legal é que trabalhamos com várias formas de pagamento:\n\n💳 Parcelamos em até 24x\n💰 Desconto especial à vista\n📋 Planos personalizados\n\nO mais importante: na consulta você recebe um orçamento detalhado sem compromisso. A ${referrerName.split(" ")[0]} pode te contar como foi a experiência dela!\n\nQue tal agendarmos?`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${leadName.split(" ")[0]}, entendo perfeitamente sua preocupação! 💜\n\nA ${referrerName.split(" ")[0]} também tinha essa dúvida no início. O legal é que trabalhamos com várias formas de pagamento:\n\n💳 Parcelamos em até 24x\n💰 Desconto especial à vista\n📋 Planos personalizados\n\nO mais importante: na consulta você recebe um orçamento detalhado sem compromisso. A ${referrerName.split(" ")[0]} pode te contar como foi a experiência dela!\n\nQue tal agendarmos?\n\n${sellerName} - Unique Plástica Avançada`,
   },
   {
     id: "indecisive",
     label: "Paciente Indeciso",
     color: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${leadName.split(" ")[0]}, é totalmente normal ter dúvidas! 😊\n\nA ${referrerName.split(" ")[0]} passou pelo mesmo antes de decidir. O Unique Day serve exatamente pra isso: você conhece tudo, tira suas dúvidas com os especialistas e só depois decide.\n\nSem pressão, sem compromisso. 💜\n\nA consulta é o primeiro passo pra você ter clareza. Posso te encaixar essa semana?`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${leadName.split(" ")[0]}, é totalmente normal ter dúvidas! 😊\n\nA ${referrerName.split(" ")[0]} passou pelo mesmo antes de decidir. O Unique Day serve exatamente pra isso: você conhece tudo, tira suas dúvidas com os especialistas e só depois decide.\n\nSem pressão, sem compromisso. 💜\n\nA consulta é o primeiro passo pra você ter clareza. Posso te encaixar essa semana?\n\n${sellerName} - Unique Plástica Avançada`,
   },
   {
     id: "thank_referrer",
     label: "Agradecer Indicação",
     color: "bg-pink-500/20 text-pink-400 border-pink-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${referrerName.split(" ")[0]}! 💜\n\nPassando pra te agradecer por indicar a ${leadName.split(" ")[0]}!\n\nJá entrei em contato com ela e estamos conversando. Você é incrível! 🌟\n\nLembrando que quando ela fechar, você ganha um mimo especial da Unique! Te mantenho informada, tá?\n\nMuito obrigada pela confiança! 😘`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${referrerName.split(" ")[0]}! 💜\n\nAqui é ${sellerName} da Unique Plástica Avançada.\n\nPassando pra te agradecer por indicar a ${leadName.split(" ")[0]}!\n\nJá entrei em contato com ela e estamos conversando. Você é incrível! 🌟\n\nLembrando que quando ela fechar, você ganha um mimo especial da Unique! Te mantenho informada, tá?\n\nMuito obrigada pela confiança! 😘`,
   },
   {
     id: "clinic_invite",
     label: "Convite Clínica",
     color: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${leadName.split(" ")[0]}! 🌟\n\nQue tal conhecer pessoalmente a Unique? A ${referrerName.split(" ")[0]} ama nosso espaço!\n\nTemos um ambiente acolhedor, equipe especializada e você pode ver de perto como funciona tudo.\n\n☕ Te ofereço um café especial!\n📍 Endereço: [ENDEREÇO DA CLÍNICA]\n\nPosso marcar um horário pra você vir nos conhecer?`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${leadName.split(" ")[0]}! 🌟\n\nAqui é ${sellerName} da Unique Plástica Avançada.\n\nQue tal conhecer pessoalmente a Unique? A ${referrerName.split(" ")[0]} ama nosso espaço!\n\nTemos um ambiente acolhedor, equipe especializada e você pode ver de perto como funciona tudo.\n\n☕ Te ofereço um café especial!\n📍 Rua Olegário Maciel, 2555 - Uberlândia\n\nPosso marcar um horário pra você vir nos conhecer?`,
   },
   {
     id: "no_response",
     label: "Sem Resposta",
     color: "bg-gray-500/20 text-gray-400 border-gray-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${leadName.split(" ")[0]}, essa é minha última tentativa! 😊\n\nRespeito seu tempo, mas não quero que você perca a chance de realizar seu sonho.\n\nA ${referrerName.split(" ")[0]} ficou tão feliz com o resultado dela e me disse que você merece viver isso também!\n\nSe mudar de ideia, é só me chamar. Vou arquivar nossa conversa por enquanto, ok?\n\nUm abraço! 💜`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${leadName.split(" ")[0]}, essa é minha última tentativa! 😊\n\nRespeito seu tempo, mas não quero que você perca a chance de realizar seu sonho.\n\nA ${referrerName.split(" ")[0]} ficou tão feliz com o resultado dela e me disse que você merece viver isso também!\n\nSe mudar de ideia, é só me chamar. Vou arquivar nossa conversa por enquanto, ok?\n\nUm abraço! 💜\n${sellerName} - Unique Plástica Avançada`,
   },
   {
     id: "reminder",
     label: "Lembrete Consulta",
     color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `Oi ${leadName.split(" ")[0]}! 💜\n\nTudo certo pra sua consulta amanhã?\n\nLembrando: [HORÁRIO] - [LOCAL/LINK]\n\nQualquer dúvida, estou por aqui! Vai ser incrível! ✨`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `Oi ${leadName.split(" ")[0]}! 💜\n\nAqui é ${sellerName} da Unique Plástica Avançada.\n\nTudo certo pra sua consulta amanhã?\n\nLembrando: [HORÁRIO] - [LOCAL/LINK]\n\nQualquer dúvida, estou por aqui! Vai ser incrível! ✨`,
   },
   {
     id: "post_consultation",
     label: "Pós-Consulta",
     color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${leadName.split(" ")[0]}! Como foi sua experiência no Unique Day? 🌟\n\nEspero que tenha gostado! O que achou do plano personalizado?\n\nEstou aqui pra te ajudar no próximo passo! 💜`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${leadName.split(" ")[0]}! Como foi sua experiência no Unique Day? 🌟\n\nAqui é ${sellerName}. Espero que tenha gostado! O que achou do plano personalizado?\n\nEstou aqui pra te ajudar no próximo passo! 💜\n\nUnique Plástica Avançada`,
   },
   {
     id: "surgery_scheduled",
     label: "Cirurgia Agendada",
     color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${leadName.split(" ")[0]}! 🎉\n\nQue alegria ter você na nossa família Unique!\n\nA ${referrerName.split(" ")[0]} vai ficar tão feliz em saber! Sua jornada de transformação começou! 💜\n\nVou te passar todas as orientações pré-operatórias. Qualquer dúvida, estou aqui! ✨`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${leadName.split(" ")[0]}! 🎉\n\nAqui é ${sellerName} da Unique Plástica Avançada.\n\nQue alegria ter você na nossa família Unique!\n\nA ${referrerName.split(" ")[0]} vai ficar tão feliz em saber! Sua jornada de transformação começou! 💜\n\nVou te passar todas as orientações pré-operatórias. Qualquer dúvida, estou aqui! ✨`,
   },
   {
     id: "referral_program",
     label: "Programa Indicação",
     color: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    template: (referrerName: string, leadName: string) => 
-      `${leadName.split(" ")[0]}! 💜\n\nAgora que você faz parte da família Unique, quero te contar sobre nosso Programa de Indicação! 🌟\n\nPra cada pessoa que você indicar e fechar conosco, você ganha benefícios exclusivos:\n\n🎁 Procedimentos estéticos\n💆 Day Spa Unique\n💰 Descontos especiais\n\nÉ só me mandar o contato de amigas interessadas! A ${referrerName.split(" ")[0]} que te indicou também participa! 😊`,
+    template: (referrerName: string, leadName: string, sellerName: string) => 
+      `${leadName.split(" ")[0]}! 💜\n\nAqui é ${sellerName} da Unique Plástica Avançada.\n\nAgora que você faz parte da família Unique, quero te contar sobre nosso Programa de Indicação! 🌟\n\nPra cada pessoa que você indicar e fechar conosco, você ganha benefícios exclusivos:\n\n🎁 Procedimentos estéticos\n💆 Day Spa Unique\n💰 Descontos especiais\n\nÉ só me mandar o contato de amigas interessadas! A ${referrerName.split(" ")[0]} que te indicou também participa! 😊`,
   },
 ];
 
@@ -976,9 +976,12 @@ const ReferralLeads = () => {
                 </Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                   {REFERRAL_SCRIPTS.map((script) => {
+                    // Get seller's first name from profile
+                    const sellerFirstName = profile?.full_name?.split(" ")[0] || "Vendedor";
                     const message = script.template(
                       editingLead.referrer_name,
-                      editingLead.referred_name
+                      editingLead.referred_name,
+                      sellerFirstName
                     );
                     const phone = editingLead.referred_phone?.replace(/\D/g, "");
                     const whatsappUrl = phone 
