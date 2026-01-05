@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.feegow-patient-search]
 verify_jwt = false
+
+[functions.morning-summary]
+verify_jwt = false
+
+[functions.referral-lead-notifications]
+verify_jwt = false
