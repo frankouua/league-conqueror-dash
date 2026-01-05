@@ -87,13 +87,17 @@ interface SalesMetrics {
   salesByDate: Record<string, { count: number; revenueSold: number; revenuePaid: number }>;
 }
 
-const SalesSpreadsheetUpload = () => {
+interface SalesSpreadsheetUploadProps {
+  defaultUploadType?: 'vendas' | 'executado';
+}
+
+const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadsheetUploadProps) => {
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  const [uploadType, setUploadType] = useState<'vendas' | 'executado'>('vendas');
+  const [uploadType, setUploadType] = useState<'vendas' | 'executado'>(defaultUploadType);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [parsedSales, setParsedSales] = useState<ParsedSale[]>([]);
