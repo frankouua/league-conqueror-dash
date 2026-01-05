@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History, RefreshCw, LayoutDashboard, CheckCircle2, Trash2, CheckSquare } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History, RefreshCw, LayoutDashboard, CheckCircle2, Trash2, CheckSquare, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -136,6 +137,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [importMode, setImportMode] = useState<'replace' | 'add_new'>('replace');
   const [existingRecordsCount, setExistingRecordsCount] = useState<number>(0);
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const LARGE_REPLACE_THRESHOLD = 50;
 
   // Function to refresh all dashboard data
   const refreshAllDashboards = () => {
@@ -2518,14 +2521,26 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
             <div className="flex gap-4">
               <Button 
-                onClick={() => importSales()} 
-                disabled={isImporting || matchedCount === 0}
+                onClick={() => {
+                  // Show confirmation dialog if replacing many records
+                  if (importMode === 'replace' && existingRecordsCount >= LARGE_REPLACE_THRESHOLD) {
+                    setShowConfirmDialog(true);
+                  } else {
+                    importSales();
+                  }
+                }} 
+                disabled={isImporting || matchedCount === 0 || isCheckingExisting}
                 className={uploadType === 'vendas' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}
               >
                 {isImporting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Importando...
+                  </>
+                ) : isCheckingExisting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Verificando...
                   </>
                 ) : (
                   <>
@@ -2535,6 +2550,60 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                 )}
               </Button>
             </div>
+
+            {/* Confirmation Dialog for Large Replacements */}
+            <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-amber-600">
+                    <AlertTriangle className="w-5 h-5" />
+                    Confirmar Substituição em Massa
+                  </DialogTitle>
+                  <DialogDescription className="text-left space-y-3 pt-2">
+                    <p>
+                      Você está prestes a substituir uma grande quantidade de registros:
+                    </p>
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Registros a remover:</span>
+                        <span className="font-bold text-amber-600">{existingRecordsCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Registros a inserir:</span>
+                        <span className="font-bold text-green-600">{matchedCount}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-border pt-2 mt-2">
+                        <span className="text-muted-foreground">Período:</span>
+                        <span className="font-medium text-sm">
+                          {parsedSales.filter(s => s.status === 'matched').map(s => s.date).sort()[0]} a {parsedSales.filter(s => s.status === 'matched').map(s => s.date).sort().pop()}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Esta ação não pode ser desfeita. Certifique-se de que a planilha contém os dados corretos.
+                    </p>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex gap-2 sm:gap-0">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowConfirmDialog(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowConfirmDialog(false);
+                      importSales();
+                    }}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Sim, Substituir {existingRecordsCount} Registros
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       )}
