@@ -741,6 +741,32 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     setIsProcessing(false);
   };
 
+  // Function to manually validate an error row (mark as matched)
+  const validateErrorRow = (index: number) => {
+    setParsedSales(prev => {
+      const updated = [...prev];
+      const sale = updated[index];
+      if (sale.status === 'error' && sale.errorMessage === 'Valor zero') {
+        // Mark as matched if the row had a seller
+        if (sale.matchedUserId && sale.matchedTeamId) {
+          updated[index] = { ...sale, status: 'matched', errorMessage: undefined };
+        } else {
+          // Just remove the error status, mark as unmatched
+          updated[index] = { ...sale, status: 'unmatched', errorMessage: undefined };
+        }
+        toast({
+          title: "✅ Linha validada",
+          description: `A venda de ${sale.clientName || sale.sellerName} foi marcada como válida.`,
+        });
+      }
+      return updated;
+    });
+    // Recalculate metrics
+    setTimeout(() => {
+      setMetrics(calculateMetrics(parsedSales));
+    }, 100);
+  };
+
   const importSales = async (salesToImport?: ParsedSale[]) => {
     const validSales = salesToImport || parsedSales.filter(s => s.status === 'matched' && s.matchedUserId && s.matchedTeamId);
     
@@ -764,24 +790,42 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       // Determine table name once
       const tableName = uploadType === 'vendas' ? 'revenue_records' : 'executed_records';
       
-      for (const sale of validSales) {
-        // Use amountPaid for the main revenue record (actual payment received)
+      // Batch insert for better performance - prepare records first
+      const recordsToInsert: any[] = [];
+      const salesToCheck = [...validSales];
+      
+      // First, check for duplicates in batch (using parallel promises)
+      const BATCH_SIZE = 50;
+      const duplicateChecks: Promise<{ sale: ParsedSale; exists: boolean }>[] = [];
+      
+      for (const sale of salesToCheck) {
         const primaryAmount = sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold;
         
-        // Check for duplicates in correct table
-        const { data: existing } = await supabase
-          .from(tableName)
-          .select('id')
-          .eq('date', sale.date)
-          .eq('attributed_to_user_id', sale.matchedUserId)
-          .eq('amount', primaryAmount)
-          .maybeSingle();
-
-        if (existing) {
+        const checkPromise = (async () => {
+          const { data } = await supabase
+            .from(tableName)
+            .select('id')
+            .eq('date', sale.date)
+            .eq('attributed_to_user_id', sale.matchedUserId)
+            .eq('amount', primaryAmount)
+            .maybeSingle();
+          return { sale, exists: !!data };
+        })();
+        
+        duplicateChecks.push(checkPromise);
+      }
+      
+      // Process duplicate checks in batches
+      const duplicateResults = await Promise.all(duplicateChecks);
+      
+      for (const { sale, exists } of duplicateResults) {
+        if (exists) {
           skipped++;
           continue;
         }
-
+        
+        const primaryAmount = sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold;
+        
         // Build notes with client, procedure and amounts info
         const noteParts: string[] = [];
         if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
@@ -791,7 +835,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         }
         const notes = noteParts.length > 0 ? noteParts.join(' | ') : null;
         
-        const { error } = await supabase.from(tableName).insert({
+        recordsToInsert.push({
           date: sale.date,
           amount: primaryAmount,
           notes,
@@ -801,14 +845,26 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           attributed_to_user_id: sale.matchedUserId,
           counts_for_individual: true,
           registered_by_admin: false,
+          _originalSale: sale, // Keep reference for error tracking
         });
-
+      }
+      
+      // Insert in batches for better performance
+      for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
+        const batch = recordsToInsert.slice(i, i + BATCH_SIZE);
+        const batchWithoutMeta = batch.map(({ _originalSale, ...rest }) => rest);
+        
+        const { error } = await supabase.from(tableName).insert(batchWithoutMeta);
+        
         if (error) {
-          console.error(`Error inserting ${uploadType}:`, error);
-          failed++;
-          errors.push({ sale, error: error.message || 'Erro desconhecido' });
+          console.error(`Error inserting batch ${uploadType}:`, error);
+          // Mark all in batch as failed
+          for (const record of batch) {
+            failed++;
+            errors.push({ sale: record._originalSale, error: error.message || 'Erro desconhecido' });
+          }
         } else {
-          success++;
+          success += batch.length;
         }
       }
       
@@ -2096,7 +2152,16 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                           </Badge>
                         )}
                         {sale.status === 'error' && (
-                          <Badge variant="destructive">
+                          <Badge 
+                            variant="destructive" 
+                            className={sale.errorMessage === 'Valor zero' ? 'cursor-pointer hover:bg-destructive/80 transition-colors' : ''}
+                            onClick={() => {
+                              if (sale.errorMessage === 'Valor zero') {
+                                validateErrorRow(index);
+                              }
+                            }}
+                            title={sale.errorMessage === 'Valor zero' ? 'Clique para validar esta linha' : ''}
+                          >
                             <X className="w-3 h-3 mr-1" />
                             {sale.errorMessage}
                           </Badge>
