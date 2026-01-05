@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink, Megaphone, X, Flame, Sun } from "lucide-react";
+import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink, Megaphone, X, Flame, Sun, BarChart3 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -182,6 +182,8 @@ const NotificationsDropdown = () => {
         return <AlertTriangle className="w-4 h-4 text-orange-500" />;
       case "morning_summary":
         return <Sun className="w-4 h-4 text-amber-500" />;
+      case "weekly_report":
+        return <BarChart3 className="w-4 h-4 text-info" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -297,7 +299,7 @@ const NotificationsDropdown = () => {
               key={notification.id}
             className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""} ${notification.type === "new_referral" ? "hover:bg-green-500/10 border-l-2 border-green-500" : ""} ${notification.type === "lead_milestone" ? "hover:bg-emerald-500/10 border-l-2 border-emerald-500" : ""} ${notification.type === "lead_assigned" ? "hover:bg-blue-500/10 border-l-2 border-blue-500" : ""} ${notification.type === "lead_alert" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "lead_reminder_2h" ? "hover:bg-red-500/10 border-l-2 border-red-500 animate-pulse" : ""} ${notification.type === "lead_reminder_24h" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "morning_summary" ? "hover:bg-amber-500/10 border-l-2 border-amber-500" : ""}`}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10 border-l-2 border-amber-500" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""} ${notification.type === "new_referral" ? "hover:bg-green-500/10 border-l-2 border-green-500" : ""} ${notification.type === "lead_milestone" ? "hover:bg-emerald-500/10 border-l-2 border-emerald-500" : ""} ${notification.type === "lead_assigned" ? "hover:bg-blue-500/10 border-l-2 border-blue-500" : ""} ${notification.type === "lead_alert" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "lead_reminder_2h" ? "hover:bg-red-500/10 border-l-2 border-red-500 animate-pulse" : ""} ${notification.type === "lead_reminder_24h" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "morning_summary" ? "hover:bg-amber-500/10 border-l-2 border-amber-500" : ""} ${notification.type === "weekly_report" ? "hover:bg-info/10 border-l-2 border-info" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
