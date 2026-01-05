@@ -195,7 +195,7 @@ const Header = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`gap-1 ${
+                    className={`gap-1 group ${
                       comercialLinks.some(l => location.pathname === l.path)
                         ? "text-primary bg-primary/10"
                         : "text-muted-foreground hover:text-foreground"
@@ -203,7 +203,7 @@ const Header = () => {
                   >
                     <BarChart3 className="w-4 h-4" />
                     <span>Comercial</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="w-3 h-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48 bg-card border-border">
@@ -229,7 +229,7 @@ const Header = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`gap-1 ${
+                    className={`gap-1 group ${
                       recursosLinks.some(l => location.pathname === l.path)
                         ? "text-primary bg-primary/10"
                         : "text-muted-foreground hover:text-foreground"
@@ -237,7 +237,7 @@ const Header = () => {
                   >
                     <BookOpen className="w-4 h-4" />
                     <span>Recursos</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="w-3 h-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-52 bg-card border-border">
