@@ -28,6 +28,7 @@ import GoalGapAnalysis from "@/components/GoalGapAnalysis";
 import ExecutiveKPIs from "@/components/ExecutiveKPIs";
 import DailyGoalsPanel from "@/components/DailyGoalsPanel";
 import LeadResponseMetrics from "@/components/LeadResponseMetrics";
+import AchievementsBadgesDisplay from "@/components/AchievementsBadgesDisplay";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
@@ -360,6 +361,9 @@ const Index = () => {
                 team2Name={team2?.name || "Tróia Team"}
               />
             </div>
+
+            {/* Achievements & Badges System */}
+            <AchievementsBadgesDisplay showAll month={selectedMonth} year={selectedYear} />
 
             {/* Recent Achievements */}
             {achievements.length > 0 && (
