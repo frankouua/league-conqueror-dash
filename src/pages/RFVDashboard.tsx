@@ -2017,26 +2017,23 @@ const RFVDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="max-h-[600px] overflow-auto border rounded-lg relative">
-                    {/* Horizontal scroll indicator */}
-                    <div className="sticky top-0 left-0 right-0 z-20 bg-muted/80 text-xs text-center py-1 text-muted-foreground border-b">
-                      ← Arraste para ver mais colunas →
-                    </div>
-                    <Table className="min-w-[1400px]">
-                      <TableHeader className="sticky top-7 bg-background z-10">
+                  {/* Scrollbar always visible container */}
+                  <div className="border rounded-lg rfv-table-scroll max-h-[650px] overflow-x-scroll overflow-y-auto">
+                    <Table className="min-w-[1500px]">
+                      <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                         <TableRow>
-                          <TableHead className="min-w-[60px] text-center sticky left-0 bg-background z-20">#</TableHead>
-                          <TableHead className="min-w-[200px]">Cliente</TableHead>
-                          <TableHead className="min-w-[150px]">Contato</TableHead>
-                          <TableHead className="min-w-[100px]">Prontuário</TableHead>
-                          <TableHead className="min-w-[110px]">Segmento</TableHead>
-                          <TableHead className="text-center min-w-[90px]">RFV</TableHead>
-                          <TableHead className="text-right min-w-[130px]">Total Vendido</TableHead>
-                          <TableHead className="text-right min-w-[90px]">Compras</TableHead>
-                          <TableHead className="text-right min-w-[120px]">Ticket Médio</TableHead>
-                          <TableHead className="min-w-[120px]">Última Compra</TableHead>
-                          <TableHead className="text-center min-w-[80px]">Dias</TableHead>
-                          <TableHead className="text-center min-w-[80px]">Ação</TableHead>
+                          <TableHead className="w-[50px] text-center bg-background">#</TableHead>
+                          <TableHead className="min-w-[220px] bg-background">Cliente</TableHead>
+                          <TableHead className="min-w-[160px] bg-background">Contato</TableHead>
+                          <TableHead className="min-w-[100px] bg-background">Prontuário</TableHead>
+                          <TableHead className="min-w-[110px] bg-background">Segmento</TableHead>
+                          <TableHead className="text-center min-w-[100px] bg-background">RFV</TableHead>
+                          <TableHead className="text-right min-w-[140px] bg-background">Total Vendido</TableHead>
+                          <TableHead className="text-right min-w-[90px] bg-background">Compras</TableHead>
+                          <TableHead className="text-right min-w-[130px] bg-background">Ticket Médio</TableHead>
+                          <TableHead className="min-w-[120px] bg-background">Última Compra</TableHead>
+                          <TableHead className="text-center min-w-[70px] bg-background">Dias</TableHead>
+                          <TableHead className="text-center min-w-[70px] bg-background">Ação</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2054,7 +2051,7 @@ const RFVDashboard = () => {
                               }}
                             >
                               {/* Ranking */}
-                              <TableCell className="text-center font-bold text-muted-foreground sticky left-0 bg-background">
+                              <TableCell className="text-center font-bold text-muted-foreground w-[50px]">
                                 {(safePage - 1) * tablePageSize + index + 1}º
                               </TableCell>
                               {/* Cliente */}
