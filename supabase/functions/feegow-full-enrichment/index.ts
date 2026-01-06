@@ -131,13 +131,17 @@ serve(async (req) => {
         const patients = listData.content || [];
         console.log(`Page ${attempts + 1}: ${patients.length} patients`);
         
+        // Debug: log first patient structure on first page
+        if (attempts === 0 && patients.length > 0) {
+          console.log('Sample patient structure:', JSON.stringify(patients[0]));
+        }
+        
         if (patients.length === 0) {
           hasMore = false;
         } else {
           for (const p of patients) {
-            // Feegow returns patient ID in 'id' or 'paciente_id' field
-            // Our 'prontuario' in rfv_customers corresponds to Feegow's patient ID
-            const patientId = (p.id || p.paciente_id)?.toString();
+            // Try all possible ID fields from Feegow
+            const patientId = (p.id || p.paciente_id || p.local_id || p.prontuario)?.toString();
             if (patientId) {
               patientsByProntuario.set(patientId, { ...p, paciente_id: parseInt(patientId) });
             }
