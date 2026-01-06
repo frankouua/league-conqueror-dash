@@ -83,7 +83,7 @@ const PERSONA_FIELDS = {
 };
 
 const TRANSACTION_FIELDS = {
-  date: ["Data", "Data de Venda", "Data Pagamento", "Data Competência"],
+  date: ["Data", "Data de Venda", "Data Pagamento", "Data Competência", "Data Execução"],
   prontuario: ["Prontuário", "Prontuario", "Cod Paciente"],
   patient_name: ["Paciente", "Nome do Paciente", "Cliente", "Conta"],
   cpf: ["CPF", "CPF do Paciente", "CPF Cliente"],
@@ -93,6 +93,7 @@ const TRANSACTION_FIELDS = {
   department: ["Departamento", "Grupo de Procedimentos", "Categoria", "Grupo de procedimento"],
   procedure: ["Procedimento", "Procedimentos", "Nome Procedimento"],
   seller: ["Vendedor", "Responsável", "Consultor", "Usuário"],
+  executor: ["Executante", "Executor", "Profissional", "Médico", "Cirurgião"],
   amount: ["Valor", "Valor Vendido", "Valor Total"],
   amount_paid: ["Valor Pago", "Valor Recebido", "Total Pago", "Pago"],
   origin: ["Origem", "Como nos conheceu", "Canal"],
@@ -514,6 +515,7 @@ export default function ComprehensiveDataImport() {
           patient_phone: columnMapping.phone ? String(row[columnMapping.phone] || '').trim() : null,
           origin: columnMapping.origin ? String(row[columnMapping.origin] || '').trim() : null,
           referral_name: columnMapping.referral_name ? String(row[columnMapping.referral_name] || '').trim() : null,
+          executor_name: columnMapping.executor ? String(row[columnMapping.executor] || '').trim() : null,
           user_id: matchedUserId,
           team_id: matchedTeamId,
           attributed_to_user_id: matchedUserId,

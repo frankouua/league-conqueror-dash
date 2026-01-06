@@ -711,6 +711,7 @@ export type Database = {
           created_at: string
           date: string
           department: string | null
+          executor_name: string | null
           id: string
           influencer_name: string | null
           notes: string | null
@@ -734,6 +735,7 @@ export type Database = {
           created_at?: string
           date: string
           department?: string | null
+          executor_name?: string | null
           id?: string
           influencer_name?: string | null
           notes?: string | null
@@ -757,6 +759,7 @@ export type Database = {
           created_at?: string
           date?: string
           department?: string | null
+          executor_name?: string | null
           id?: string
           influencer_name?: string | null
           notes?: string | null
@@ -1847,6 +1850,7 @@ export type Database = {
           created_at: string
           date: string
           department: string | null
+          executor_name: string | null
           id: string
           influencer_name: string | null
           notes: string | null
@@ -1870,6 +1874,7 @@ export type Database = {
           created_at?: string
           date: string
           department?: string | null
+          executor_name?: string | null
           id?: string
           influencer_name?: string | null
           notes?: string | null
@@ -1893,6 +1898,7 @@ export type Database = {
           created_at?: string
           date?: string
           department?: string | null
+          executor_name?: string | null
           id?: string
           influencer_name?: string | null
           notes?: string | null
