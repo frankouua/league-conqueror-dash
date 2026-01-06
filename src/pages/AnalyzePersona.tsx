@@ -9,17 +9,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FileSpreadsheet, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const AVAILABLE_FILES = [
+  { name: "Planilha Persona", path: "/uploads/PLANILHA_persona.xlsx" },
+  { name: "Análise ICP", path: "/uploads/ANALISEESTRATEGICA-ICP_COMPLETA.xlsx" },
+];
 
 const AnalyzePersona = () => {
   const { user, role, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sheets, setSheets] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string>("");
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string>("");
+  const [totalRows, setTotalRows] = useState(0);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -27,37 +35,45 @@ const AnalyzePersona = () => {
     }
   }, [user, isLoading, navigate]);
 
-  useEffect(() => {
-    const loadFile = async () => {
-      try {
-        const response = await fetch("/uploads/PLANILHA_persona.xlsx");
-        const arrayBuffer = await response.arrayBuffer();
-        const wb = XLSX.read(arrayBuffer);
-        
-        setWorkbook(wb);
-        setSheets(wb.SheetNames);
-        
-        if (wb.SheetNames.length > 0) {
-          loadSheet(wb, wb.SheetNames[0]);
-        }
-        
-        setLoading(false);
-      } catch (err) {
-        console.error("Error loading file:", err);
-        setError("Erro ao carregar arquivo");
-        setLoading(false);
+  const loadFile = async (filePath: string) => {
+    setLoading(true);
+    setError(null);
+    setSheets([]);
+    setData([]);
+    setColumns([]);
+    
+    try {
+      const response = await fetch(filePath);
+      const arrayBuffer = await response.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer);
+      
+      setWorkbook(wb);
+      setSheets(wb.SheetNames);
+      
+      if (wb.SheetNames.length > 0) {
+        loadSheet(wb, wb.SheetNames[0]);
       }
-    };
-
-    if (user && role === 'admin') {
-      loadFile();
+      
+      setLoading(false);
+    } catch (err) {
+      console.error("Error loading file:", err);
+      setError("Erro ao carregar arquivo");
+      setLoading(false);
     }
-  }, [user, role]);
+  };
+
+  useEffect(() => {
+    if (selectedFile && user && role === 'admin') {
+      loadFile(selectedFile);
+    }
+  }, [selectedFile, user, role]);
 
   const loadSheet = (wb: XLSX.WorkBook, sheetName: string) => {
     setSelectedSheet(sheetName);
     const worksheet = wb.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: "" });
+    
+    setTotalRows(jsonData.length);
     
     if (jsonData.length > 0) {
       const cols = Object.keys(jsonData[0]);
@@ -90,12 +106,33 @@ const AnalyzePersona = () => {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4">
             <Eye className="w-4 h-4" />
-            <span className="text-sm font-medium">Análise de Planilha</span>
+            <span className="text-sm font-medium">Análise de Planilhas</span>
           </div>
           <h1 className="text-3xl font-black text-gradient-gold mb-2">
-            Planilha Persona
+            Analisador de Planilhas
           </h1>
         </div>
+
+        {/* File Selector */}
+        <Card className="max-w-xl mx-auto mb-6">
+          <CardHeader>
+            <CardTitle>Selecione uma Planilha</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select value={selectedFile} onValueChange={setSelectedFile}>
+              <SelectTrigger>
+                <SelectValue placeholder="Escolha um arquivo..." />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_FILES.map((file) => (
+                  <SelectItem key={file.path} value={file.path}>
+                    {file.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
 
         {error ? (
           <Card className="max-w-2xl mx-auto">
@@ -103,7 +140,7 @@ const AnalyzePersona = () => {
               {error}
             </CardContent>
           </Card>
-        ) : (
+        ) : selectedFile && (
           <div className="space-y-6">
             {/* Sheet Selector */}
             <Card>
@@ -151,7 +188,7 @@ const AnalyzePersona = () => {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  Preview dos Dados (primeiras {Math.min(data.length, 100)} linhas de {data.length})
+                  Preview dos Dados (primeiras {Math.min(data.length, 100)} linhas de {totalRows} total)
                 </CardTitle>
               </CardHeader>
               <CardContent>
