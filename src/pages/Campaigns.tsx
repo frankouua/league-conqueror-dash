@@ -929,7 +929,7 @@ const Campaigns = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="calendar" className="gap-2">
               <Calendar className="h-4 w-4" />
               Calendário
@@ -938,42 +938,105 @@ const Campaigns = () => {
               <Package className="h-4 w-4" />
               Protocolos
             </TabsTrigger>
+            <TabsTrigger value="rfv" className="gap-2">
+              <Users className="h-4 w-4" />
+              Matriz RFV
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="mt-6 space-y-6">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
-          {CAMPAIGNS_2026.map((month) => {
-            const isSelected = month.month === selectedMonth;
-            const isCurrent = month.month === new Date().getMonth() + 1;
-            const mainCampaign = month.campaigns.find(c => c.type === "mensal" || c.type === "comemorativo");
-            
-            return (
-              <Card
-                key={month.month}
-                onClick={() => setSelectedMonth(month.month)}
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  isSelected 
-                    ? "ring-2 ring-primary bg-primary/10" 
-                    : isCurrent 
-                      ? "border-primary/50" 
-                      : "hover:border-primary/30"
-                }`}
-              >
-                <CardContent className="p-3 text-center">
-                  <p className={`text-xs font-medium ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
-                    {month.monthName.slice(0, 3)}
-                  </p>
-                  <p className={`text-lg font-bold ${isSelected ? "text-primary" : ""}`}>
-                    {month.month.toString().padStart(2, "0")}
-                  </p>
-                  {mainCampaign && (
-                    <div className={`w-2 h-2 rounded-full mx-auto mt-1 ${mainCampaign.color}`} />
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+            {/* Subtabs: Anual / Mensal */}
+            <Tabs defaultValue="annual" className="w-full">
+              <TabsList className="grid w-full max-w-xs grid-cols-2">
+                <TabsTrigger value="annual">📅 Visão Anual</TabsTrigger>
+                <TabsTrigger value="monthly">📆 Visão Mensal</TabsTrigger>
+              </TabsList>
+
+              {/* Visão Anual */}
+              <TabsContent value="annual" className="mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {CAMPAIGNS_2026.map((month) => {
+                    const isSelected = month.month === selectedMonth;
+                    const isCurrent = month.month === new Date().getMonth() + 1;
+                    
+                    return (
+                      <Card
+                        key={month.month}
+                        onClick={() => setSelectedMonth(month.month)}
+                        className={`cursor-pointer transition-all hover:shadow-lg ${
+                          isSelected 
+                            ? "ring-2 ring-primary bg-primary/10" 
+                            : isCurrent 
+                              ? "border-primary/50 bg-primary/5" 
+                              : "hover:border-primary/30"
+                        }`}
+                      >
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium flex items-center justify-between">
+                            <span className={isSelected ? "text-primary" : ""}>{month.monthName}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {month.campaigns.length}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="space-y-1.5">
+                            {month.campaigns.slice(0, 3).map((campaign, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${campaign.color}`} />
+                                <span className="text-xs truncate">{campaign.name}</span>
+                              </div>
+                            ))}
+                            {month.campaigns.length > 3 && (
+                              <span className="text-xs text-muted-foreground">
+                                +{month.campaigns.length - 3} mais
+                              </span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+
+              {/* Visão Mensal - Compacta */}
+              <TabsContent value="monthly" className="mt-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+                  {CAMPAIGNS_2026.map((month) => {
+                    const isSelected = month.month === selectedMonth;
+                    const isCurrent = month.month === new Date().getMonth() + 1;
+                    const mainCampaign = month.campaigns.find(c => c.type === "mensal" || c.type === "comemorativo");
+                    
+                    return (
+                      <Card
+                        key={month.month}
+                        onClick={() => setSelectedMonth(month.month)}
+                        className={`cursor-pointer transition-all hover:scale-105 ${
+                          isSelected 
+                            ? "ring-2 ring-primary bg-primary/10" 
+                            : isCurrent 
+                              ? "border-primary/50" 
+                              : "hover:border-primary/30"
+                        }`}
+                      >
+                        <CardContent className="p-3 text-center">
+                          <p className={`text-xs font-medium ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                            {month.monthName.slice(0, 3)}
+                          </p>
+                          <p className={`text-lg font-bold ${isSelected ? "text-primary" : ""}`}>
+                            {month.month.toString().padStart(2, "0")}
+                          </p>
+                          {mainCampaign && (
+                            <div className={`w-2 h-2 rounded-full mx-auto mt-1 ${mainCampaign.color}`} />
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+            </Tabs>
 
         {/* Campanhas do Mês Selecionado */}
         <div className="space-y-4">
@@ -1080,6 +1143,29 @@ const Campaigns = () => {
               </div>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
+              {/* Conceito e Estratégia */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                  <p className="text-xs text-muted-foreground mb-1 font-medium">💡 Conceito</p>
+                  <p className="text-sm">{selectedCampaign.concept}</p>
+                </div>
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+                  <p className="text-xs text-muted-foreground mb-1 font-medium">🎯 Foco</p>
+                  <p className="text-sm">{selectedCampaign.focus}</p>
+                </div>
+              </div>
+
+              {/* Oferta destacada */}
+              {selectedCampaign.offer && (
+                <div className="p-4 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30">
+                  <p className="text-xs text-green-400 font-medium mb-2 flex items-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    Oferta da Campanha
+                  </p>
+                  <p className="text-lg font-semibold text-green-300">{selectedCampaign.offer}</p>
+                </div>
+              )}
+
               {/* Área de Personalização */}
               <div className="p-4 rounded-lg bg-muted/50 border border-border">
                 <h4 className="font-medium mb-3 flex items-center gap-2">
@@ -1235,6 +1321,25 @@ const Campaigns = () => {
                     </Button>
                   ))}
                 </div>
+                {/* Botão para ir à Matriz RFV */}
+                <div className="flex gap-3 pt-4 border-t border-border">
+                  <Button 
+                    variant="default"
+                    className="flex-1 gap-2"
+                    onClick={() => setActiveTab("rfv")}
+                  >
+                    <Users className="w-4 h-4" />
+                    Ir para Matriz RFV
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    onClick={() => navigate("/rfv")}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Abrir Dashboard RFV
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1243,6 +1348,119 @@ const Campaigns = () => {
 
           <TabsContent value="protocols" className="mt-6">
             <ProtocolsManager />
+          </TabsContent>
+
+          {/* Nova Tab: Matriz RFV */}
+          <TabsContent value="rfv" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-purple-500" />
+                  Matriz RFV - Segmentação de Clientes
+                </CardTitle>
+                <CardDescription>
+                  Selecione um segmento para ações de marketing e campanhas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Cards de Segmentos */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {RFV_SEGMENTS.map(segment => {
+                    const count = rfvSegments?.[segment.value] || segment.count;
+                    const isSelected = selectedSegment === segment.value;
+                    
+                    return (
+                      <Card
+                        key={segment.value}
+                        onClick={() => setSelectedSegment(segment.value)}
+                        className={`cursor-pointer transition-all hover:shadow-lg ${
+                          isSelected ? "ring-2 ring-purple-500 bg-purple-500/10" : "hover:border-purple-500/30"
+                        }`}
+                      >
+                        <CardContent className="p-4 text-center">
+                          <p className={`text-2xl font-bold ${isSelected ? "text-purple-400" : ""}`}>
+                            {count}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{segment.label}</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* Ações Rápidas */}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => navigate("/rfv")}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Dashboard Completo RFV
+                  </Button>
+                  
+                  {selectedSegment && selectedCampaign?.scripts?.length > 0 && (
+                    <Button
+                      className="gap-2 bg-purple-600 hover:bg-purple-700"
+                      onClick={() => {
+                        if (!bulkScript && selectedCampaign?.scripts?.length > 0) {
+                          setBulkScript(selectedCampaign.scripts[0]);
+                        }
+                        setShowBulkDialog(true);
+                      }}
+                    >
+                      <Send className="w-4 h-4" />
+                      Iniciar Disparo ({selectedSegment})
+                    </Button>
+                  )}
+                </div>
+
+                {/* Dica: Selecione uma campanha */}
+                {!selectedCampaign && (
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                    <Target className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Selecione uma campanha no Calendário para usar os scripts de disparo
+                    </p>
+                    <Button 
+                      variant="link" 
+                      className="mt-2"
+                      onClick={() => setActiveTab("calendar")}
+                    >
+                      Ir para o Calendário
+                    </Button>
+                  </div>
+                )}
+
+                {/* Campanha selecionada */}
+                {selectedCampaign && (
+                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`p-2 rounded-lg ${selectedCampaign.color} text-white`}>
+                        <selectedCampaign.icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{selectedCampaign.name}</p>
+                        <p className="text-xs text-muted-foreground">{selectedCampaign.scripts.length} scripts disponíveis</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCampaign.scripts.map((script: any, idx: number) => (
+                        <Button
+                          key={idx}
+                          variant={bulkScript?.title === script.title ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setBulkScript(script)}
+                        >
+                          {script.title}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
