@@ -190,29 +190,65 @@ const HistoricalComparison = () => {
   const [compareYear, setCompareYear] = useState(currentYear - 1);
   const [viewMode, setViewMode] = useState<'overview' | 'procedures' | 'departments' | 'seasonality' | 'insights'>('overview');
 
-  // Fetch all revenue records
+  // Fetch all revenue records - need to paginate due to Supabase 1000 row limit
   const { data: revenueRecords = [], isLoading: loadingRevenue } = useQuery({
     queryKey: ["historical-revenue-full"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("revenue_records")
-        .select("date, amount, department")
-        .order("date", { ascending: true });
-      if (error) throw error;
-      return data;
+      const allRecords: { date: string; amount: number; department: string | null }[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("revenue_records")
+          .select("date, amount, department")
+          .order("date", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allRecords.push(...data);
+          offset += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      return allRecords;
     },
   });
 
-  // Fetch all executed records
+  // Fetch all executed records - need to paginate due to Supabase 1000 row limit
   const { data: executedRecords = [], isLoading: loadingExecuted } = useQuery({
     queryKey: ["historical-executed-full"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("executed_records")
-        .select("date, amount, department")
-        .order("date", { ascending: true });
-      if (error) throw error;
-      return data;
+      const allRecords: { date: string; amount: number; department: string | null }[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("executed_records")
+          .select("date, amount, department")
+          .order("date", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allRecords.push(...data);
+          offset += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      return allRecords;
     },
   });
 
