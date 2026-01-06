@@ -63,7 +63,7 @@ const MonthComparisonPanel = ({ currentMonth, currentYear }: MonthComparisonPane
 
   // Fetch revenue data for all months
   const { data: revenueData, isLoading } = useQuery({
-    queryKey: ["month-comparison", currentMonth, currentYear, profile?.team_id],
+    queryKey: ["month-comparison", currentMonth, currentYear],
     queryFn: async () => {
       const results: {
         month: number;
@@ -102,7 +102,7 @@ const MonthComparisonPanel = ({ currentMonth, currentYear }: MonthComparisonPane
 
   // Fetch referral data
   const { data: referralData } = useQuery({
-    queryKey: ["month-comparison-referrals", currentMonth, currentYear, profile?.team_id],
+    queryKey: ["month-comparison-referrals", currentMonth, currentYear],
     queryFn: async () => {
       const results: { month: number; year: number; collected: number; converted: number }[] = [];
 
