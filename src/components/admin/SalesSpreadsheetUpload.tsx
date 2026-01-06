@@ -1175,43 +1175,38 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       const recordsToInsert: any[] = [];
       const salesToCheck = [...salesToProcess];
       
-      // First, check for duplicates in batch (using parallel promises) - only if "add_new" mode
-      const BATCH_SIZE = 50;
+      // Use larger batches for faster processing
+      const BATCH_SIZE = 200;
       
       if (importMode === 'add_new') {
-        const duplicateChecks: Promise<{ sale: ParsedSale; exists: boolean }>[] = [];
+        // OPTIMIZED: Batch duplicate check - fetch all existing records in date range at once
+        const dates = salesToCheck.map(s => s.date).filter(Boolean).sort();
+        const dateRangeStart = dates[0];
+        const dateRangeEnd = dates[dates.length - 1];
+        const userIds = [...new Set(salesToCheck.map(s => s.matchedUserId).filter(Boolean))];
+        
+        // Fetch all existing records in one query
+        const { data: existingRecords } = await supabase
+          .from(tableName)
+          .select('date, attributed_to_user_id, amount')
+          .gte('date', dateRangeStart)
+          .lte('date', dateRangeEnd)
+          .in('attributed_to_user_id', userIds);
+        
+        // Create a Set for O(1) duplicate lookup
+        const existingKeys = new Set(
+          (existingRecords || []).map(r => `${r.date}|${r.attributed_to_user_id}|${r.amount}`)
+        );
         
         for (const sale of salesToCheck) {
-          // Always use amountSold as primary (valor vendido)
           const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
+          const key = `${sale.date}|${sale.matchedUserId}|${primaryAmount}`;
           
-          const checkPromise = (async () => {
-            const { data } = await supabase
-              .from(tableName)
-              .select('id')
-              .eq('date', sale.date)
-              .eq('attributed_to_user_id', sale.matchedUserId)
-              .eq('amount', primaryAmount)
-              .maybeSingle();
-            return { sale, exists: !!data };
-          })();
-          
-          duplicateChecks.push(checkPromise);
-        }
-        
-        // Process duplicate checks in batches
-        const duplicateResults = await Promise.all(duplicateChecks);
-        
-        for (const { sale, exists } of duplicateResults) {
-          if (exists) {
+          if (existingKeys.has(key)) {
             skipped++;
             continue;
           }
           
-          // Always use amountSold as primary (valor vendido)
-          const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
-          
-          // Build notes with client, procedure and amounts info
           const noteParts: string[] = [];
           if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
           if (sale.procedure) noteParts.push(`Procedimento: ${sale.procedure}`);
@@ -1236,7 +1231,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             attributed_to_user_id: sale.matchedUserId,
             counts_for_individual: true,
             registered_by_admin: !sale.sellerName || sale.status === 'unmatched',
-            _originalSale: sale, // Keep reference for error tracking
+            _originalSale: sale,
           });
         }
       } else {
@@ -1273,7 +1268,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         }
       }
       
-      // Insert in batches for better performance
+      // Insert in large batches for maximum performance
       for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
         const batch = recordsToInsert.slice(i, i + BATCH_SIZE);
         const batchWithoutMeta = batch.map(({ _originalSale, ...rest }) => rest);
@@ -1282,7 +1277,6 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         
         if (error) {
           console.error(`Error inserting batch ${uploadType}:`, error);
-          // Mark all in batch as failed
           for (const record of batch) {
             failed++;
             errors.push({ sale: record._originalSale, error: error.message || 'Erro desconhecido' });
