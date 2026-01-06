@@ -3,9 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { CommercialAssistant } from "@/components/CommercialAssistant";
+import { AnalyticsAIFloating } from "@/components/AnalyticsAIFloating";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -52,6 +53,22 @@ const PageLoader = () => (
   </div>
 );
 
+// Floating assistants component that checks role
+const FloatingAssistants = () => {
+  const { role, user } = useAuth();
+  const isAdmin = role === 'admin';
+  
+  return (
+    <>
+      {/* Commercial Assistant - visible for all logged in users */}
+      {user && <CommercialAssistant />}
+      
+      {/* Analytics AI - visible only for admins/coordinators */}
+      {isAdmin && <AnalyticsAIFloating />}
+    </>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -82,7 +99,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-          <CommercialAssistant />
+          <FloatingAssistants />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database, Lock, Link2, MessageSquare } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,10 +14,7 @@ import RecordsEditor from "@/components/admin/RecordsEditor";
 import GoalNotifications from "@/components/admin/GoalNotifications";
 import PrizeForm from "@/components/admin/PrizeForm";
 import AnnouncementsManager from "@/components/admin/AnnouncementsManager";
-import CampaignsManager from "@/components/admin/CampaignsManager";
-import SalesSpreadsheetUpload from "@/components/admin/SalesSpreadsheetUpload";
 import ComprehensiveDataImport from "@/components/admin/ComprehensiveDataImport";
-import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
 import PeriodLockManager from "@/components/admin/PeriodLockManager";
 import RFVContactSync from "@/components/admin/RFVContactSync";
 import { CommercialAssistantReport } from "@/components/admin/CommercialAssistantReport";
@@ -86,13 +83,6 @@ const Admin = () => {
                 <span className="text-xs font-medium">Avisos</span>
               </TabsTrigger>
               <TabsTrigger
-                value="campaigns"
-                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
-              >
-                <Calendar className="w-4 h-4" />
-                <span className="text-xs font-medium">Campanhas</span>
-              </TabsTrigger>
-              <TabsTrigger
                 value="prizes"
                 className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
@@ -112,13 +102,6 @@ const Admin = () => {
               >
                 <FileEdit className="w-4 h-4" />
                 <span className="text-xs font-medium">Registros</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="sales-upload"
-                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span className="text-xs font-medium">Vendas</span>
               </TabsTrigger>
               <TabsTrigger
                 value="goals"
@@ -156,13 +139,6 @@ const Admin = () => {
                 <span className="text-xs font-medium">Dados</span>
               </TabsTrigger>
               <TabsTrigger
-                value="analytics-ai"
-                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
-              >
-                <Brain className="w-4 h-4" />
-                <span className="text-xs font-medium">AI Analytics</span>
-              </TabsTrigger>
-              <TabsTrigger
                 value="period-locks"
                 className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
               >
@@ -174,7 +150,7 @@ const Admin = () => {
                 className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span className="text-xs font-medium">Assistente IA</span>
+                <span className="text-xs font-medium">Relatório IA</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -185,10 +161,6 @@ const Admin = () => {
 
           <TabsContent value="announcements" className="animate-scale-in">
             <AnnouncementsManager />
-          </TabsContent>
-
-          <TabsContent value="campaigns" className="animate-scale-in">
-            <CampaignsManager />
           </TabsContent>
 
           <TabsContent value="prizes" className="animate-scale-in">
@@ -204,10 +176,6 @@ const Admin = () => {
 
           <TabsContent value="records" className="animate-scale-in">
             <RecordsEditor />
-          </TabsContent>
-
-          <TabsContent value="sales-upload" className="animate-scale-in">
-            <SalesSpreadsheetUpload />
           </TabsContent>
 
           <TabsContent value="goals" className="animate-scale-in">
@@ -233,12 +201,12 @@ const Admin = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="analytics-ai" className="animate-scale-in">
-            <AnalyticsAI />
-          </TabsContent>
-
           <TabsContent value="period-locks" className="animate-scale-in">
             <PeriodLockManager />
+          </TabsContent>
+
+          <TabsContent value="commercial-ai" className="animate-scale-in">
+            <CommercialAssistantReport />
           </TabsContent>
         </Tabs>
 

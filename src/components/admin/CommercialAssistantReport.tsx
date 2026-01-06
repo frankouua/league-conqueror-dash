@@ -263,15 +263,23 @@ export function CommercialAssistantReport() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 flex items-center justify-center">
-          <Brain className="h-7 w-7 text-white" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+            <MessageSquare className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">Relatório de Conversas IA</h2>
+            <p className="text-sm text-muted-foreground">
+              Acompanhe o que os colaboradores estão perguntando ao Assistente Comercial
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-bold">Relatório do Assistente Comercial</h2>
-          <p className="text-sm text-muted-foreground">
-            Acompanhe as conversas e identifique oportunidades de melhoria
-          </p>
+        <div className="flex gap-2">
+          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+            <MessageSquare className="h-3 w-3 mr-1" />
+            Assistente Comercial
+          </Badge>
         </div>
       </div>
 
