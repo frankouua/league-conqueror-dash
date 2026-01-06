@@ -18,6 +18,7 @@ import Campaigns from "./pages/Campaigns";
 import OnboardingGoals from "./pages/OnboardingGoals";
 import SalesDashboard from "./pages/SalesDashboard";
 import HistoricalUpload from "./pages/HistoricalUpload";
+import AnalyzePersona from "./pages/AnalyzePersona";
 import RFVDashboard from "./pages/RFVDashboard";
 import TVDisplay from "./pages/TVDisplay";
 import CommercialGuides from "./pages/CommercialGuides";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/assistente-comercial" element={<ProtectedRoute><CommercialAssistantPage /></ProtectedRoute>} />
             <Route path="/rfv" element={<ProtectedRoute><RFVDashboard /></ProtectedRoute>} />
             <Route path="/sales-dashboard" element={<ProtectedRoute requireAdmin><SalesDashboard /></ProtectedRoute>} />
+            <Route path="/analyze-persona" element={<ProtectedRoute requireAdmin><AnalyzePersona /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/tv" element={<TVDisplay />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
