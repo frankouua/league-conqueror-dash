@@ -225,11 +225,7 @@ const CommercialAssistantComponent = () => {
   );
 };
 
-// Export with forwardRef to avoid React warning
-export const CommercialAssistant = forwardRef<HTMLDivElement>((props, ref) => (
-  <div ref={ref}>
-    <CommercialAssistantComponent />
-  </div>
-));
-
-CommercialAssistant.displayName = 'CommercialAssistant';
+// Simple wrapper export - no ref needed since this is a floating component
+export function CommercialAssistant() {
+  return <CommercialAssistantComponent />;
+}
