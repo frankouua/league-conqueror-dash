@@ -15,6 +15,7 @@ const AVAILABLE_FILES = [
   { name: "Planilha Persona", path: "/uploads/PLANILHA_persona.xlsx" },
   { name: "Análise ICP", path: "/uploads/ANALISEESTRATEGICA-ICP_COMPLETA.xlsx" },
   { name: "Vendas Competência 2023-2024-2025", path: "/uploads/VENDAS_COMPETENCIA_2023_2024_2025.xlsx" },
+  { name: "Executado 2023-2024-2025", path: "/uploads/EXECUTADO_2023_2024_2025.xlsx" },
 ];
 
 const AnalyzePersona = () => {
