@@ -40,6 +40,7 @@ import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
 import MyGoalsDashboard from "@/components/MyGoalsDashboard";
 import StrategicOverview from "@/components/StrategicOverview";
+import OnlineUsersWidget from "@/components/OnlineUsersWidget";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -341,6 +342,9 @@ const Index = () => {
                 } : null}
               />
             </div>
+
+            {/* Online Users Widget */}
+            <OnlineUsersWidget />
 
             <TimeCounters
               daysRemainingMonth={daysRemainingMonth}
