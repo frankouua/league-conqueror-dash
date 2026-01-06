@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RefreshCw, Users, Phone, Mail, CheckCircle2, AlertCircle, Loader2, Link2, Database } from "lucide-react";
+import { RefreshCw, Users, Phone, Mail, CheckCircle2, Loader2, Link2, Database, UserCircle, Target, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SyncResult {
   total: number;
   matched: number;
-  updated: number;
+  contactsUpdated: number;
+  personaUpdated: number;
   noMatch: number;
   errors: number;
 }
@@ -27,11 +28,13 @@ export default function RFVContactSync() {
   const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ["rfv-sync-stats"],
     queryFn: async () => {
-      const [rfvResult, patientResult, rfvWithPhone, rfvWithEmail] = await Promise.all([
+      const [rfvResult, patientResult, rfvWithPhone, rfvWithEmail, rfvWithProfession, rfvWithObjective] = await Promise.all([
         supabase.from("rfv_customers").select("id", { count: "exact", head: true }),
         supabase.from("patient_data").select("id", { count: "exact", head: true }),
         supabase.from("rfv_customers").select("id", { count: "exact", head: true }).not("phone", "is", null),
         supabase.from("rfv_customers").select("id", { count: "exact", head: true }).not("email", "is", null),
+        supabase.from("rfv_customers").select("id", { count: "exact", head: true }).not("profession", "is", null),
+        supabase.from("rfv_customers").select("id", { count: "exact", head: true }).not("main_objective", "is", null),
       ]);
 
       return {
@@ -39,6 +42,8 @@ export default function RFVContactSync() {
         patientTotal: patientResult.count || 0,
         rfvWithPhone: rfvWithPhone.count || 0,
         rfvWithEmail: rfvWithEmail.count || 0,
+        rfvWithProfession: rfvWithProfession.count || 0,
+        rfvWithObjective: rfvWithObjective.count || 0,
       };
     },
   });
@@ -49,18 +54,17 @@ export default function RFVContactSync() {
     setSyncResult(null);
 
     try {
-      // Fetch all patient_data with contact info - include all contact fields
+      // Fetch all patient_data with any useful data
       const { data: patients, error: patientError } = await supabase
         .from("patient_data")
-        .select("cpf, prontuario, phone, whatsapp, email, name")
-        .or("phone.not.is.null,whatsapp.not.is.null,email.not.is.null");
+        .select("cpf, prontuario, phone, whatsapp, email, name, profession, main_objective, why_not_done_yet, has_children, children_count, weight_kg, height_cm, country");
 
       if (patientError) throw patientError;
 
       // Fetch all rfv_customers
       const { data: rfvCustomers, error: rfvError } = await supabase
         .from("rfv_customers")
-        .select("id, cpf, prontuario, phone, email, whatsapp, name");
+        .select("id, cpf, prontuario, phone, email, whatsapp, name, profession, main_objective, why_not_done_yet, has_children, children_count, weight_kg, height_cm, country");
 
       if (rfvError) throw rfvError;
 
@@ -98,14 +102,15 @@ export default function RFVContactSync() {
       const result: SyncResult = {
         total: rfvCustomers.length,
         matched: 0,
-        updated: 0,
+        contactsUpdated: 0,
+        personaUpdated: 0,
         noMatch: 0,
         errors: 0,
       };
 
       // Process in batches
       const BATCH_SIZE = 50;
-      const updates: { id: string; phone?: string; email?: string; whatsapp?: string }[] = [];
+      const updates: { id: string; data: Record<string, any>; hasContact: boolean; hasPersona: boolean }[] = [];
 
       for (let i = 0; i < rfvCustomers.length; i++) {
         const rfv = rfvCustomers[i];
@@ -131,33 +136,77 @@ export default function RFVContactSync() {
         if (matchedPatient) {
           result.matched++;
           
-          // Get contact from patient data - prefer whatsapp, then phone
+          const updateData: Record<string, any> = {};
+          let hasContactUpdate = false;
+          let hasPersonaUpdate = false;
+
+          // === CONTACT DATA ===
           const patientPhone = matchedPatient.phone?.replace(/\D/g, '') || '';
           const patientWhatsapp = matchedPatient.whatsapp?.replace(/\D/g, '') || '';
           const patientEmail = matchedPatient.email?.trim() || '';
           
-          // Filter out invalid placeholder numbers
           const validPatientPhone = patientPhone && patientPhone !== '00000000000' && patientPhone.length >= 10 ? patientPhone : '';
           const validPatientWhatsapp = patientWhatsapp && patientWhatsapp !== '00000000000' && patientWhatsapp.length >= 10 ? patientWhatsapp : '';
           
-          // Check if we need to update - update if RFV field is empty AND patient has valid data
-          const shouldUpdatePhone = !rfv.phone && (validPatientWhatsapp || validPatientPhone);
-          const shouldUpdateEmail = !rfv.email && patientEmail && patientEmail.includes('@');
-          const shouldUpdateWhatsapp = !rfv.whatsapp && validPatientWhatsapp;
+          if (!rfv.phone && (validPatientWhatsapp || validPatientPhone)) {
+            updateData.phone = validPatientWhatsapp || validPatientPhone;
+            hasContactUpdate = true;
+          }
+          if (!rfv.email && patientEmail && patientEmail.includes('@')) {
+            updateData.email = patientEmail;
+            hasContactUpdate = true;
+          }
+          if (!rfv.whatsapp && validPatientWhatsapp) {
+            updateData.whatsapp = validPatientWhatsapp;
+            hasContactUpdate = true;
+          }
 
-          if (shouldUpdatePhone || shouldUpdateEmail || shouldUpdateWhatsapp) {
+          // === PERSONA DATA ===
+          if (!rfv.profession && matchedPatient.profession) {
+            updateData.profession = matchedPatient.profession;
+            hasPersonaUpdate = true;
+          }
+          if (!rfv.main_objective && matchedPatient.main_objective) {
+            updateData.main_objective = matchedPatient.main_objective;
+            hasPersonaUpdate = true;
+          }
+          if (!rfv.why_not_done_yet && matchedPatient.why_not_done_yet) {
+            updateData.why_not_done_yet = matchedPatient.why_not_done_yet;
+            hasPersonaUpdate = true;
+          }
+          if (rfv.has_children === null && matchedPatient.has_children !== null) {
+            updateData.has_children = matchedPatient.has_children;
+            hasPersonaUpdate = true;
+          }
+          if (!rfv.children_count && matchedPatient.children_count) {
+            updateData.children_count = matchedPatient.children_count;
+            hasPersonaUpdate = true;
+          }
+          if (!rfv.weight_kg && matchedPatient.weight_kg) {
+            updateData.weight_kg = matchedPatient.weight_kg;
+            hasPersonaUpdate = true;
+          }
+          if (!rfv.height_cm && matchedPatient.height_cm) {
+            updateData.height_cm = matchedPatient.height_cm;
+            hasPersonaUpdate = true;
+          }
+          if (!rfv.country && matchedPatient.country) {
+            updateData.country = matchedPatient.country;
+            hasPersonaUpdate = true;
+          }
+
+          if (Object.keys(updateData).length > 0) {
             updates.push({
               id: rfv.id,
-              phone: rfv.phone || validPatientWhatsapp || validPatientPhone || undefined,
-              email: rfv.email || (patientEmail.includes('@') ? patientEmail : undefined),
-              whatsapp: rfv.whatsapp || validPatientWhatsapp || undefined,
+              data: updateData,
+              hasContact: hasContactUpdate,
+              hasPersona: hasPersonaUpdate,
             });
           }
         } else {
           result.noMatch++;
         }
 
-        // Update progress
         setProgress(Math.round(((i + 1) / rfvCustomers.length) * 50));
       }
 
@@ -168,18 +217,15 @@ export default function RFVContactSync() {
         for (const update of batch) {
           const { error } = await supabase
             .from("rfv_customers")
-            .update({
-              phone: update.phone,
-              email: update.email,
-              whatsapp: update.whatsapp,
-            })
+            .update(update.data)
             .eq("id", update.id);
 
           if (error) {
             result.errors++;
             console.error("Error updating RFV customer:", error);
           } else {
-            result.updated++;
+            if (update.hasContact) result.contactsUpdated++;
+            if (update.hasPersona) result.personaUpdated++;
           }
         }
 
@@ -191,7 +237,7 @@ export default function RFVContactSync() {
 
       toast({
         title: "✅ Sincronização Concluída!",
-        description: `${result.updated} clientes RFV atualizados com dados de contato.`,
+        description: `${result.contactsUpdated} contatos + ${result.personaUpdated} personas atualizados.`,
       });
     } catch (error) {
       console.error("Sync error:", error);
@@ -211,15 +257,15 @@ export default function RFVContactSync() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Link2 className="h-5 w-5 text-primary" />
-          Sincronizar Contatos com RFV
+          Sincronizar Dados com RFV
         </CardTitle>
         <CardDescription>
-          Atualiza os clientes da matriz RFV com telefone, email e WhatsApp dos cadastros importados.
+          Cruza cadastros com clientes RFV: contatos, profissão, objetivos, impedimentos e mais.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="p-3 rounded-lg bg-muted/50 text-center">
             <Database className="h-5 w-5 mx-auto mb-1 text-blue-500" />
             <p className="text-2xl font-bold">{stats?.patientTotal || 0}</p>
@@ -239,6 +285,16 @@ export default function RFVContactSync() {
             <Mail className="h-5 w-5 mx-auto mb-1 text-purple-500" />
             <p className="text-2xl font-bold">{stats?.rfvWithEmail || 0}</p>
             <p className="text-xs text-muted-foreground">Com Email</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <UserCircle className="h-5 w-5 mx-auto mb-1 text-pink-500" />
+            <p className="text-2xl font-bold">{stats?.rfvWithProfession || 0}</p>
+            <p className="text-xs text-muted-foreground">Com Profissão</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <Target className="h-5 w-5 mx-auto mb-1 text-orange-500" />
+            <p className="text-2xl font-bold">{stats?.rfvWithObjective || 0}</p>
+            <p className="text-xs text-muted-foreground">Com Objetivo</p>
           </div>
         </div>
 
@@ -261,7 +317,8 @@ export default function RFVContactSync() {
               <div className="flex flex-wrap gap-2 mt-1">
                 <Badge variant="outline">{syncResult.total} analisados</Badge>
                 <Badge className="bg-emerald-500">{syncResult.matched} encontrados</Badge>
-                <Badge className="bg-blue-500">{syncResult.updated} atualizados</Badge>
+                <Badge className="bg-blue-500">{syncResult.contactsUpdated} contatos</Badge>
+                <Badge className="bg-pink-500">{syncResult.personaUpdated} personas</Badge>
                 <Badge variant="outline" className="text-muted-foreground">{syncResult.noMatch} sem match</Badge>
                 {syncResult.errors > 0 && (
                   <Badge variant="destructive">{syncResult.errors} erros</Badge>
@@ -285,18 +342,19 @@ export default function RFVContactSync() {
           ) : (
             <>
               <RefreshCw className="h-4 w-4" />
-              Sincronizar Contatos
+              Sincronizar Todos os Dados
             </>
           )}
         </Button>
 
         {/* Info */}
         <div className="p-3 rounded-lg bg-muted/30 text-xs text-muted-foreground space-y-1">
-          <p><strong>Como funciona:</strong></p>
+          <p><strong>Dados sincronizados:</strong></p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li>Cruza clientes RFV com cadastros por CPF, Prontuário ou Nome</li>
-            <li>Atualiza apenas campos vazios (não sobrescreve dados existentes)</li>
-            <li>Útil após importar nova planilha de cadastros</li>
+            <li><strong>Contatos:</strong> telefone, email, WhatsApp</li>
+            <li><strong>Persona:</strong> profissão, objetivo, impedimento, filhos, peso, altura, país</li>
+            <li>Cruza por CPF, Prontuário ou Nome</li>
+            <li>Só atualiza campos vazios (não sobrescreve)</li>
           </ul>
         </div>
       </CardContent>
