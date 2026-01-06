@@ -256,9 +256,24 @@ async function importTransactionData(supabase: any, data: any[], fileType: strin
   const stats = { total: 0, new: 0, updated: 0, skipped: 0, errors: 0 };
   const tableName = fileType === "vendas" ? "revenue_records" : "executed_records";
 
+  console.log(`[AUDIT] Starting import: ${data.length} total rows from spreadsheet`);
+
   // Get user mappings
   const { data: mappings } = await supabase.from("feegow_user_mapping").select("feegow_name, user_id");
   const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, team_id").not("team_id", "is", null);
+  
+  // Get default team for unmapped sellers
+  const { data: defaultTeam } = await supabase.from("teams").select("id").limit(1).single();
+  const defaultTeamId = defaultTeam?.id;
+  
+  // Get admin user for unmapped sellers
+  const { data: adminUser } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin")
+    .limit(1)
+    .single();
+  const adminUserId = adminUser?.user_id;
 
   const mappingByName = new Map<string, string>();
   mappings?.forEach((m: any) => mappingByName.set(m.feegow_name.toLowerCase().trim(), m.user_id));
@@ -272,22 +287,27 @@ async function importTransactionData(supabase: any, data: any[], fileType: strin
 
   const BATCH_SIZE = 100;
   const recordsToInsert: any[] = [];
+  const unmappedSellers = new Set<string>();
 
   for (const row of data) {
     stats.total++;
 
     try {
-      const sellerName = String(findColumn(row, ["Vendedor", "Responsável", "Consultor"]) || "").trim();
-      const dateValue = findColumn(row, ["Data", "Data de Venda", "Data Pagamento", "Data Competência"]);
+      const sellerName = String(findColumn(row, ["Vendedor", "Responsável", "Consultor", "Usuario"]) || "").trim();
+      const dateValue = findColumn(row, ["Data", "Data de Venda", "Data Pagamento", "Data Competência", "Data da Venda"]);
       const date = parseDate(dateValue);
+      
+      // CRITICAL: Accept ALL amounts including zero and negative (cortesias, estornos)
       const amount = parseAmount(findColumn(row, ["Valor", "Valor Vendido", "Valor Total", "Valor Pago"]));
 
-      if (!date || !sellerName || amount <= 0) {
+      // Only skip if no date - we process ALL rows with valid dates
+      if (!date) {
+        console.log(`[SKIP] Row ${stats.total}: No valid date found`);
         stats.skipped++;
         continue;
       }
 
-      // Find user
+      // Find user - but don't skip if not found, use admin fallback
       let matchedUserId = mappingByName.get(sellerName.toLowerCase());
       let matchedTeamId: string | null = null;
 
@@ -300,32 +320,43 @@ async function importTransactionData(supabase: any, data: any[], fileType: strin
         }
       }
 
+      // CRITICAL: Use fallback for unmapped sellers instead of skipping
       if (!matchedUserId) {
-        stats.skipped++;
-        continue;
+        if (sellerName) {
+          unmappedSellers.add(sellerName);
+        }
+        matchedUserId = adminUserId;
+        matchedTeamId = defaultTeamId;
       }
 
       if (!matchedTeamId) {
         const profile = profiles?.find((p: any) => p.user_id === matchedUserId);
-        matchedTeamId = profile?.team_id || null;
+        matchedTeamId = profile?.team_id || defaultTeamId;
       }
 
+      // CRITICAL: Use default team if still no team
       if (!matchedTeamId) {
-        stats.skipped++;
-        continue;
+        matchedTeamId = defaultTeamId;
       }
 
-      const prontuario = findColumn(row, ["Prontuário", "Prontuario", "Cod Paciente"]);
+      // Final fallback - if still no valid IDs, use defaults
+      if (!matchedUserId || !matchedTeamId) {
+        console.log(`[WARN] Row ${stats.total}: Using absolute fallback for seller "${sellerName}"`);
+        matchedUserId = adminUserId || profiles?.[0]?.user_id;
+        matchedTeamId = defaultTeamId || profiles?.[0]?.team_id;
+      }
+
+      const prontuario = findColumn(row, ["Prontuário", "Prontuario", "Cod Paciente", "ID Conta"]);
       const cpf = normalizeCpf(findColumn(row, ["CPF", "CPF do Paciente"]));
 
       const record = {
         date,
-        amount,
+        amount, // Accepts 0 and negative values
         department: findColumn(row, ["Departamento", "Grupo de Procedimentos", "Categoria"]) || null,
         procedure_name: findColumn(row, ["Procedimento", "Procedimentos", "Nome Procedimento"]) || null,
         patient_prontuario: prontuario ? String(prontuario).trim() : null,
         patient_cpf: cpf || null,
-        patient_name: findColumn(row, ["Paciente", "Nome do Paciente", "Cliente"]) || null,
+        patient_name: findColumn(row, ["Paciente", "Nome do Paciente", "Cliente", "Nome Conta"]) || null,
         patient_email: findColumn(row, ["E-mail", "Email"]) || null,
         patient_phone: findColumn(row, ["Telefone", "Celular"]) || null,
         origin: findColumn(row, ["Origem", "Como nos conheceu", "Canal"]) || null,
@@ -334,28 +365,40 @@ async function importTransactionData(supabase: any, data: any[], fileType: strin
         team_id: matchedTeamId,
         attributed_to_user_id: matchedUserId,
         counts_for_individual: true,
-        registered_by_admin: false,
+        registered_by_admin: true,
       };
 
       recordsToInsert.push(record);
       stats.new++;
 
     } catch (err) {
-      console.error("Error processing transaction row:", err);
+      console.error(`[ERROR] Row ${stats.total}:`, err);
       stats.errors++;
     }
   }
+
+  console.log(`[AUDIT] Processed ${stats.total} rows: ${stats.new} to insert, ${stats.skipped} skipped, ${stats.errors} errors`);
+  
+  if (unmappedSellers.size > 0) {
+    console.log(`[WARN] Unmapped sellers (assigned to admin): ${Array.from(unmappedSellers).join(", ")}`);
+  }
+
+  // Calculate total for audit
+  const totalAmount = recordsToInsert.reduce((sum, r) => sum + (r.amount || 0), 0);
+  console.log(`[AUDIT] Total amount to insert: R$ ${totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
 
   // Batch insert
   for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
     const batch = recordsToInsert.slice(i, i + BATCH_SIZE);
     const { error } = await supabase.from(tableName).insert(batch);
     if (error) {
-      console.error("Batch insert error:", error);
+      console.error(`[ERROR] Batch insert error at ${i}:`, error);
       stats.errors += batch.length;
       stats.new -= batch.length;
     }
   }
+
+  console.log(`[AUDIT] Import complete: ${stats.new} inserted successfully`);
 
   return stats;
 }

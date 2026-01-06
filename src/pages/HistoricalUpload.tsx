@@ -33,7 +33,7 @@ interface ParsedHistoricalData {
   procedure: string;
 }
 
-const YEARS = [2020, 2021, 2022, 2023, 2024, 2025];
+const YEARS = [0, 2020, 2021, 2022, 2023, 2024, 2025, 2026]; // 0 = Todos os anos
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -46,7 +46,7 @@ const HistoricalUpload = () => {
 
   const [file, setFile] = useState<File | null>(null);
   const [uploadType, setUploadType] = useState<'vendas' | 'executado'>('vendas');
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [selectedYear, setSelectedYear] = useState<number>(0); // 0 = todos os anos
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedHistoricalData[]>([]);
@@ -248,8 +248,8 @@ const HistoricalUpload = () => {
       const dateInfo = parseDate(row[columnMapping.date]);
       if (!dateInfo) continue;
       
-      // Filter by selected year if specified
-      if (selectedYear && dateInfo.year !== selectedYear) continue;
+      // Filter by selected year only if a specific year is chosen (0 = all years)
+      if (selectedYear !== 0 && dateInfo.year !== selectedYear) continue;
       
       processed.push({
         date: dateInfo.date,
@@ -274,7 +274,7 @@ const HistoricalUpload = () => {
     
     toast({
       title: "Dados processados",
-      description: `${processed.length} registros de ${selectedYear} prontos para importar.`,
+      description: `${processed.length} registros ${selectedYear === 0 ? 'de todos os anos' : `de ${selectedYear}`} prontos para importar.`,
     });
   };
 
@@ -476,7 +476,9 @@ const HistoricalUpload = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {YEARS.map(year => (
-                          <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                          <SelectItem key={year} value={String(year)}>
+                            {year === 0 ? '📋 Todos os Anos' : year}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
