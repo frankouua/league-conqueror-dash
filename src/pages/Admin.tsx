@@ -20,6 +20,7 @@ import RFVContactSync from "@/components/admin/RFVContactSync";
 import { CommercialAssistantReport } from "@/components/admin/CommercialAssistantReport";
 import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
 import AlertsManager from "@/components/admin/AlertsManager";
+import { FeegowEnrichment } from "@/components/admin/FeegowEnrichment";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -235,6 +236,7 @@ const Admin = () => {
           <TabsContent value="data-import" className="animate-scale-in">
             <div className="space-y-6">
               <ComprehensiveDataImport />
+              <FeegowEnrichment />
               <RFVContactSync />
             </div>
           </TabsContent>
