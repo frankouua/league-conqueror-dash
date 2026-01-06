@@ -375,21 +375,24 @@ export default function ComprehensiveDataImport() {
       setProgress(Math.round((i / rawData.length) * 100));
 
       try {
-        const sellerName = columnMapping.seller ? String(row[columnMapping.seller] || '').trim() : '';
+        const sellerName = columnMapping.seller
+          ? String(row[columnMapping.seller] || "").trim()
+          : "";
         const date = parseDate(row[columnMapping.date]);
         const amount = parseAmount(row[columnMapping.amount]);
 
-        if (!date || !sellerName) {
+        // Date is mandatory; seller can be empty in contas a receber exports.
+        if (!date) {
           stats.skipped++;
           continue;
         }
 
-        // Find user
-        let matchedUserId = mappingByName.get(sellerName.toLowerCase());
+        // Find user/team: prefer explicit seller mapping; otherwise fall back to the importing user.
+        let matchedUserId = sellerName ? mappingByName.get(sellerName.toLowerCase()) : undefined;
         let matchedTeamId: string | null = null;
 
-        if (!matchedUserId) {
-          const firstName = sellerName.split(' ')[0].toLowerCase().trim();
+        if (!matchedUserId && sellerName) {
+          const firstName = sellerName.split(" ")[0].toLowerCase().trim();
           const profile = profileByName.get(sellerName.toLowerCase()) || profileByName.get(firstName);
           if (profile) {
             matchedUserId = profile.user_id;
@@ -397,20 +400,29 @@ export default function ComprehensiveDataImport() {
           }
         }
 
+        // Fallback: attribute to the admin/importing user so we don't lose rows.
+        if (!matchedUserId && user?.id) {
+          matchedUserId = user.id;
+          const me = profiles?.find((p) => p.user_id === user.id);
+          matchedTeamId = (me?.team_id as string) || null;
+        }
+
         if (!matchedUserId) {
           stats.skipped++;
           continue;
         }
 
         if (!matchedTeamId) {
-          const profile = profiles?.find(p => p.user_id === matchedUserId);
-          matchedTeamId = profile?.team_id || null;
+          const profile = profiles?.find((p) => p.user_id === matchedUserId);
+          matchedTeamId = (profile?.team_id as string) || null;
         }
 
         if (!matchedTeamId) {
           stats.skipped++;
           continue;
         }
+
+        const registeredByAdmin = !sellerName || matchedUserId === user?.id;
 
         const record = {
           date,
@@ -428,7 +440,7 @@ export default function ComprehensiveDataImport() {
           team_id: matchedTeamId,
           attributed_to_user_id: matchedUserId,
           counts_for_individual: true,
-          registered_by_admin: false,
+          registered_by_admin: registeredByAdmin,
         };
 
         recordsToInsert.push(record);
