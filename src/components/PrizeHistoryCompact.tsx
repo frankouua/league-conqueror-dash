@@ -37,7 +37,10 @@ interface PrizeHistoryCompactProps {
   showTitle?: boolean;
 }
 
-export default function PrizeHistoryCompact({ year = new Date().getFullYear(), showTitle = true }: PrizeHistoryCompactProps) {
+import React from "react";
+
+const PrizeHistoryCompact = React.forwardRef<HTMLDivElement, PrizeHistoryCompactProps>(
+  ({ year = new Date().getFullYear(), showTitle = true }, ref) => {
   const { data: prizes, isLoading } = useQuery({
     queryKey: ['team-prizes', year],
     queryFn: async () => {
@@ -75,7 +78,7 @@ export default function PrizeHistoryCompact({ year = new Date().getFullYear(), s
   const annualPrizes = prizes.filter(p => p.prize_type === 'annual');
 
   return (
-    <div className="space-y-4">
+    <div ref={ref} className="space-y-4">
       {showTitle && (
         <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
           <Gift className="w-4 h-4" />
@@ -180,4 +183,8 @@ export default function PrizeHistoryCompact({ year = new Date().getFullYear(), s
       )}
     </div>
   );
-}
+});
+
+PrizeHistoryCompact.displayName = "PrizeHistoryCompact";
+
+export default PrizeHistoryCompact;
