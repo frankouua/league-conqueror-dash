@@ -21,6 +21,60 @@ const QUICK_PROMPTS = [
   { icon: Target, label: 'Análise de metas', prompt: 'Como está o progresso das metas da clínica?' },
 ];
 
+// Enhanced markdown formatter for beautiful AI responses
+const formatMarkdown = (text: string): string => {
+  let formatted = text;
+  
+  // Process tables first (more sophisticated handling)
+  const tableRegex = /\|(.+)\|\n\|[-:\s|]+\|\n((?:\|.+\|\n?)+)/g;
+  formatted = formatted.replace(tableRegex, (match, header, body) => {
+    const headerCells = header.split('|').filter((c: string) => c.trim());
+    const headerRow = `<tr class="bg-violet-500/20">${headerCells.map((c: string) => `<th class="px-2 py-1.5 text-left font-bold text-xs border-b border-violet-500/30">${c.trim()}</th>`).join('')}</tr>`;
+    
+    const bodyRows = body.trim().split('\n').map((row: string, idx: number) => {
+      const cells = row.split('|').filter((c: string) => c.trim());
+      const bgClass = idx % 2 === 0 ? 'bg-violet-900/10' : 'bg-violet-900/5';
+      return `<tr class="${bgClass}">${cells.map((c: string) => `<td class="px-2 py-1 text-xs border-b border-violet-500/10">${c.trim()}</td>`).join('')}</tr>`;
+    }).join('');
+    
+    return `<div class="overflow-x-auto my-2 rounded-lg border border-violet-500/20"><table class="w-full text-xs">${headerRow}${bodyRows}</table></div>`;
+  });
+  
+  // Simple table rows (without separator)
+  formatted = formatted.replace(/\|(.+)\|/g, (match) => {
+    if (match.includes('---')) return '';
+    const cells = match.split('|').filter(c => c.trim());
+    return `<tr class="border-b border-violet-500/10">${cells.map(c => `<td class="px-2 py-1 text-xs">${c.trim()}</td>`).join('')}</tr>`;
+  });
+  
+  // Headers with emojis preserved
+  formatted = formatted
+    .replace(/^### (.+)$/gm, '<h4 class="text-sm font-bold text-violet-200 mt-3 mb-2">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 class="text-base font-bold text-violet-100 mt-4 mb-2 pb-1 border-b border-violet-500/30">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2 class="text-lg font-bold text-violet-50 mt-4 mb-2">$1</h2>');
+  
+  // Horizontal rules
+  formatted = formatted.replace(/^---$/gm, '<hr class="my-3 border-violet-500/20" />');
+  
+  // Bold with highlight
+  formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong class="text-violet-200 font-semibold">$1</strong>');
+  
+  // Lists with better styling
+  formatted = formatted.replace(/^- (.+)$/gm, '<li class="ml-3 mb-0.5 flex items-start gap-1 text-xs"><span class="text-violet-400 mt-0.5">•</span><span>$1</span></li>');
+  formatted = formatted.replace(/^• (.+)$/gm, '<li class="ml-3 mb-0.5 flex items-start gap-1 text-xs"><span class="text-violet-400 mt-0.5">•</span><span>$1</span></li>');
+  formatted = formatted.replace(/^\* (.+)$/gm, '<li class="ml-3 mb-0.5 flex items-start gap-1 text-xs"><span class="text-violet-400 mt-0.5">•</span><span>$1</span></li>');
+  formatted = formatted.replace(/^(\d+)\. (.+)$/gm, '<li class="ml-3 mb-0.5 flex items-start gap-1 text-xs"><span class="text-violet-300 font-bold min-w-[1rem]">$1.</span><span>$2</span></li>');
+  
+  // Wrap consecutive list items in ul
+  formatted = formatted.replace(/((?:<li[^>]*>.*<\/li>\s*)+)/g, '<ul class="my-2 space-y-0.5">$1</ul>');
+  
+  // Line breaks
+  formatted = formatted.replace(/\n\n/g, '</p><p class="mb-2 text-xs">');
+  formatted = formatted.replace(/\n/g, '<br/>');
+  
+  return `<div class="prose prose-invert max-w-none text-xs"><p class="mb-2 text-xs">${formatted}</p></div>`;
+};
+
 export function AnalyticsAIFloating() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -292,13 +346,22 @@ export function AnalyticsAIFloating() {
                       )}
                       <div
                         className={cn(
-                          "max-w-[85%] rounded-lg px-3 py-2 text-sm",
+                          "max-w-[85%] rounded-lg px-3 py-2",
                           msg.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-primary text-primary-foreground text-sm'
                             : 'bg-muted'
                         )}
                       >
-                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        {msg.role === 'assistant' ? (
+                          <div 
+                            className="text-xs leading-relaxed"
+                            dangerouslySetInnerHTML={{ 
+                              __html: formatMarkdown(msg.content || '...') 
+                            }}
+                          />
+                        ) : (
+                          <div className="whitespace-pre-wrap">{msg.content}</div>
+                        )}
                       </div>
                       {msg.role === 'user' && (
                         <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0">
