@@ -892,37 +892,65 @@ const RFVDashboard = () => {
         offset += pageSize;
       }
 
+      // Fetch patient_data to enrich customer info (profession, city, country, etc.)
+      let patientDataMap = new Map<string, any>();
       if (allData.length > 0) {
-        const loadedCustomers: RFVCustomer[] = allData.map(row => ({
-          id: row.id,
-          name: row.name,
-          phone: row.phone || undefined,
-          whatsapp: row.whatsapp || undefined,
-          email: row.email || undefined,
-          cpf: row.cpf || undefined,
-          prontuario: row.prontuario || undefined,
-          firstPurchaseDate: row.first_purchase_date,
-          lastPurchaseDate: row.last_purchase_date,
-          totalPurchases: row.total_purchases,
-          totalValue: Number(row.total_value),
-          averageTicket: Number(row.average_ticket),
-          recencyScore: row.recency_score,
-          frequencyScore: row.frequency_score,
-          valueScore: row.value_score,
-          segment: mapSegmentToKey(row.segment),
-          daysSinceLastPurchase: row.days_since_last_purchase,
-          // Additional fields
-          profession: row.profession || undefined,
-          city: row.city || undefined,
-          state: row.state || undefined,
-          country: row.country || undefined,
-          mainObjective: row.main_objective || undefined,
-          whyNotDoneYet: row.why_not_done_yet || undefined,
-          hasChildren: row.has_children,
-          childrenCount: row.children_count,
-          heightCm: row.height_cm,
-          weightKg: row.weight_kg,
-        }));
+        // Get unique CPFs to search
+        const cpfList = allData.filter(r => r.cpf).map(r => r.cpf);
+        
+        if (cpfList.length > 0) {
+          // Fetch patient_data by CPF
+          const { data: patientData } = await supabase
+            .from('patient_data')
+            .select('cpf, profession, city, state, country, main_objective, why_not_done_yet, has_children, children_count, height_cm, weight_kg')
+            .in('cpf', cpfList);
+          
+          if (patientData) {
+            patientData.forEach(p => {
+              if (p.cpf) {
+                patientDataMap.set(p.cpf, p);
+              }
+            });
+          }
+        }
+      }
+
+      if (allData.length > 0) {
+        const loadedCustomers: RFVCustomer[] = allData.map(row => {
+          // Try to enrich with patient_data
+          const patientInfo = row.cpf ? patientDataMap.get(row.cpf) : null;
+          
+          return {
+            id: row.id,
+            name: row.name,
+            phone: row.phone || undefined,
+            whatsapp: row.whatsapp || undefined,
+            email: row.email || undefined,
+            cpf: row.cpf || undefined,
+            prontuario: row.prontuario || undefined,
+            firstPurchaseDate: row.first_purchase_date,
+            lastPurchaseDate: row.last_purchase_date,
+            totalPurchases: row.total_purchases,
+            totalValue: Number(row.total_value),
+            averageTicket: Number(row.average_ticket),
+            recencyScore: row.recency_score,
+            frequencyScore: row.frequency_score,
+            valueScore: row.value_score,
+            segment: mapSegmentToKey(row.segment),
+            daysSinceLastPurchase: row.days_since_last_purchase,
+            // Additional fields - prefer patient_data, fallback to rfv_customers
+            profession: patientInfo?.profession || row.profession || undefined,
+            city: patientInfo?.city || row.city || undefined,
+            state: patientInfo?.state || row.state || undefined,
+            country: patientInfo?.country || row.country || undefined,
+            mainObjective: patientInfo?.main_objective || row.main_objective || undefined,
+            whyNotDoneYet: patientInfo?.why_not_done_yet || row.why_not_done_yet || undefined,
+            hasChildren: patientInfo?.has_children ?? row.has_children,
+            childrenCount: patientInfo?.children_count ?? row.children_count,
+            heightCm: patientInfo?.height_cm ?? row.height_cm,
+            weightKg: patientInfo?.weight_kg ?? row.weight_kg,
+          };
+        });
 
         // Recalculate days since last purchase
         const now = new Date();
@@ -2689,60 +2717,52 @@ const RFVDashboard = () => {
                         <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${showExpandedDetails ? 'rotate-180' : ''}`} />
                       </Button>
                       
-                      {showExpandedDetails && (
+                        {showExpandedDetails && (
                         <div className="mt-3 space-y-2 text-sm">
-                          {selectedCustomer.profession && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Profissão:</span>
-                              <span className="font-medium text-gray-800">{selectedCustomer.profession}</span>
-                            </div>
-                          )}
-                          {(selectedCustomer.city || selectedCustomer.state) && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Localização:</span>
-                              <span className="font-medium text-gray-800">
-                                {[selectedCustomer.city, selectedCustomer.state].filter(Boolean).join(', ')}
-                              </span>
-                            </div>
-                          )}
-                          {selectedCustomer.country && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">País:</span>
-                              <span className="font-medium text-gray-800">{selectedCustomer.country}</span>
-                            </div>
-                          )}
-                          {selectedCustomer.mainObjective && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Objetivo:</span>
-                              <span className="font-medium text-gray-800">{selectedCustomer.mainObjective}</span>
-                            </div>
-                          )}
-                          {selectedCustomer.whyNotDoneYet && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Por que não fez:</span>
-                              <span className="font-medium text-gray-800 text-right max-w-[150px]">{selectedCustomer.whyNotDoneYet}</span>
-                            </div>
-                          )}
-                          {selectedCustomer.hasChildren !== undefined && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Filhos:</span>
-                              <span className="font-medium text-gray-800">
-                                {selectedCustomer.hasChildren ? `Sim (${selectedCustomer.childrenCount || 0})` : 'Não'}
-                              </span>
-                            </div>
-                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Profissão:</span>
+                            <span className="font-medium text-gray-900">{selectedCustomer.profession || 'Não informado'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Cidade/Estado:</span>
+                            <span className="font-medium text-gray-900">
+                              {[selectedCustomer.city, selectedCustomer.state].filter(Boolean).join(', ') || 'Não informado'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">País:</span>
+                            <span className="font-medium text-gray-900">{selectedCustomer.country || 'Não informado'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Objetivo/Motivação:</span>
+                            <span className="font-medium text-gray-900 text-right max-w-[160px]">{selectedCustomer.mainObjective || 'Não informado'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Por que não fez ainda:</span>
+                            <span className="font-medium text-gray-900 text-right max-w-[160px]">{selectedCustomer.whyNotDoneYet || 'Não informado'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Filhos:</span>
+                            <span className="font-medium text-gray-900">
+                              {selectedCustomer.hasChildren === true 
+                                ? `Sim (${selectedCustomer.childrenCount || '?'})` 
+                                : selectedCustomer.hasChildren === false 
+                                  ? 'Não' 
+                                  : 'Não informado'}
+                            </span>
+                          </div>
                           {(selectedCustomer.heightCm || selectedCustomer.weightKg) && (
                             <div className="flex justify-between">
-                              <span className="text-gray-500">Altura/Peso:</span>
-                              <span className="font-medium text-gray-800">
+                              <span className="text-gray-600">Altura/Peso:</span>
+                              <span className="font-medium text-gray-900">
                                 {selectedCustomer.heightCm ? `${selectedCustomer.heightCm}cm` : '-'} / {selectedCustomer.weightKg ? `${selectedCustomer.weightKg}kg` : '-'}
                               </span>
                             </div>
                           )}
                           {selectedCustomer.firstPurchaseDate && (
                             <div className="flex justify-between">
-                              <span className="text-gray-500">Primeira compra:</span>
-                              <span className="font-medium text-gray-800">
+                              <span className="text-gray-600">Primeira compra:</span>
+                              <span className="font-medium text-gray-900">
                                 {new Date(selectedCustomer.firstPurchaseDate).toLocaleDateString('pt-BR')}
                               </span>
                             </div>
