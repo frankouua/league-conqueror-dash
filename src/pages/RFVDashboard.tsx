@@ -145,6 +145,28 @@ const RFV_SEGMENTS = {
   }
 };
 
+// Map Portuguese segment names from DB to English keys
+const SEGMENT_NAME_TO_KEY: Record<string, RFVSegment> = {
+  'Campeões': 'champions',
+  'Leais': 'loyal',
+  'Fiéis': 'loyal',
+  'Potenciais Leais': 'potential',
+  'Potenciais': 'potential',
+  'Novos': 'potential',
+  'Promissores': 'potential',
+  'Precisam Atenção': 'at_risk',
+  'Em Risco': 'at_risk',
+  'Não Podem Perder': 'at_risk',
+  'Hibernando': 'hibernating',
+  'Quase Dormindo': 'hibernating',
+  'Perdidos': 'lost',
+  'Outros': 'hibernating',
+};
+
+const mapSegmentToKey = (segment: string): RFVSegment => {
+  return SEGMENT_NAME_TO_KEY[segment] || 'hibernating';
+};
+
 // Strategic scripts by segment with action types
 const STRATEGIC_SCRIPTS = {
   champions: {
@@ -653,7 +675,7 @@ const RFVDashboard = () => {
           recencyScore: row.recency_score,
           frequencyScore: row.frequency_score,
           valueScore: row.value_score,
-          segment: row.segment as RFVSegment,
+          segment: mapSegmentToKey(row.segment),
           daysSinceLastPurchase: row.days_since_last_purchase,
         }));
 
