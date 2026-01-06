@@ -159,6 +159,20 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
     },
   });
 
+  // CONVERSÃO E CROSS-SELL - Buscar dados completos para análise de jornada do paciente
+  const { data: patientJourneyData } = useQuery({
+    queryKey: ["strategic-patient-journey", year],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("revenue_records")
+        .select("patient_prontuario, patient_name, department, procedure_name, amount, date")
+        .gte("date", `${year}-01-01`)
+        .lte("date", `${year}-12-31`)
+        .not("patient_prontuario", "is", null);
+      return data || [];
+    },
+  });
+
   // Referral leads
   const { data: referralLeads } = useQuery({
     queryKey: ["strategic-leads-v2", startDate, endDate],
@@ -366,6 +380,149 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
       yearSalesCount,
     };
   }, [yearExecutedData, yearRevenueData, patientGeoData]);
+
+  // INTELIGÊNCIA COMERCIAL - Conversão e Cross-sell
+  const commercialIntelligence = useMemo(() => {
+    if (!patientJourneyData || patientJourneyData.length === 0) {
+      return {
+        consultationConversion: 0,
+        surgeryConversion: 0,
+        crossSellRate: 0,
+        avgDepartmentsPerPatient: 0,
+        topCrossSellPaths: [],
+        ltvDistribution: [],
+        patientsWithMultipleDepts: 0,
+        totalPatients: 0,
+        consultationPatients: 0,
+        surgeryPatients: 0,
+        harmonizationPatients: 0,
+        postOpPatients: 0,
+        nutritionPatients: 0,
+      };
+    }
+
+    // Agrupar por prontuário/paciente
+    const patientMap: Record<string, {
+      prontuario: string;
+      name: string;
+      departments: Set<string>;
+      procedures: string[];
+      totalValue: number;
+      hasConsultation: boolean;
+      hasSurgery: boolean;
+      hasHarmonization: boolean;
+      hasPostOp: boolean;
+      hasNutrition: boolean;
+    }> = {};
+
+    patientJourneyData.forEach(record => {
+      const key = record.patient_prontuario || record.patient_name || "unknown";
+      const dept = (record.department || "").toLowerCase();
+      
+      if (!patientMap[key]) {
+        patientMap[key] = {
+          prontuario: record.patient_prontuario || "",
+          name: record.patient_name || "",
+          departments: new Set(),
+          procedures: [],
+          totalValue: 0,
+          hasConsultation: false,
+          hasSurgery: false,
+          hasHarmonization: false,
+          hasPostOp: false,
+          hasNutrition: false,
+        };
+      }
+
+      patientMap[key].departments.add(record.department || "Outros");
+      patientMap[key].procedures.push(record.procedure_name || "");
+      patientMap[key].totalValue += Number(record.amount);
+
+      // Identificar departamentos
+      if (dept.includes("consulta")) {
+        patientMap[key].hasConsultation = true;
+      }
+      if (dept.includes("cirurgia") || dept.includes("01 -")) {
+        patientMap[key].hasSurgery = true;
+      }
+      if (dept.includes("harmoniza") || dept.includes("08 -")) {
+        patientMap[key].hasHarmonization = true;
+      }
+      if (dept.includes("pós") || dept.includes("pos") || dept.includes("03 -")) {
+        patientMap[key].hasPostOp = true;
+      }
+      if (dept.includes("soro") || dept.includes("nutri") || dept.includes("04 -")) {
+        patientMap[key].hasNutrition = true;
+      }
+    });
+
+    const patients = Object.values(patientMap);
+    const totalPatients = patients.length;
+
+    // Métricas de conversão
+    const consultationPatients = patients.filter(p => p.hasConsultation).length;
+    const surgeryPatients = patients.filter(p => p.hasSurgery).length;
+    const harmonizationPatients = patients.filter(p => p.hasHarmonization).length;
+    const postOpPatients = patients.filter(p => p.hasPostOp).length;
+    const nutritionPatients = patients.filter(p => p.hasNutrition).length;
+
+    // Conversão: Consulta → Cirurgia
+    const consultaToSurgery = patients.filter(p => p.hasConsultation && p.hasSurgery).length;
+    const consultationConversion = consultationPatients > 0 
+      ? (consultaToSurgery / consultationPatients) * 100 
+      : 0;
+
+    // Cross-sell: Pacientes com múltiplos departamentos
+    const patientsWithMultipleDepts = patients.filter(p => p.departments.size >= 2).length;
+    const crossSellRate = totalPatients > 0 
+      ? (patientsWithMultipleDepts / totalPatients) * 100 
+      : 0;
+
+    // Média de departamentos por paciente
+    const avgDepartmentsPerPatient = totalPatients > 0
+      ? patients.reduce((sum, p) => sum + p.departments.size, 0) / totalPatients
+      : 0;
+
+    // Top caminhos de cross-sell
+    const crossSellPaths: Record<string, number> = {};
+    patients.filter(p => p.departments.size >= 2).forEach(p => {
+      const depts = Array.from(p.departments).sort().join(" + ");
+      crossSellPaths[depts] = (crossSellPaths[depts] || 0) + 1;
+    });
+    const topCrossSellPaths = Object.entries(crossSellPaths)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([path, count]) => ({ path, count }));
+
+    // Distribuição de LTV
+    const ltvRanges = [
+      { label: "Até R$ 5K", min: 0, max: 5000, count: 0 },
+      { label: "R$ 5K-20K", min: 5000, max: 20000, count: 0 },
+      { label: "R$ 20K-50K", min: 20000, max: 50000, count: 0 },
+      { label: "R$ 50K-100K", min: 50000, max: 100000, count: 0 },
+      { label: "Acima R$ 100K", min: 100000, max: Infinity, count: 0 },
+    ];
+    patients.forEach(p => {
+      const range = ltvRanges.find(r => p.totalValue >= r.min && p.totalValue < r.max);
+      if (range) range.count += 1;
+    });
+
+    return {
+      consultationConversion,
+      surgeryConversion: surgeryPatients,
+      crossSellRate,
+      avgDepartmentsPerPatient,
+      topCrossSellPaths,
+      ltvDistribution: ltvRanges,
+      patientsWithMultipleDepts,
+      totalPatients,
+      consultationPatients,
+      surgeryPatients,
+      harmonizationPatients,
+      postOpPatients,
+      nutritionPatients,
+    };
+  }, [patientJourneyData]);
 
   // Calculate all metrics
   const metrics = useMemo(() => {
@@ -1130,6 +1287,177 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
           </CardContent>
         </Card>
       </div>
+
+      {/* INTELIGÊNCIA COMERCIAL - Conversão e Cross-sell */}
+      <Card className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border-emerald-500/20">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-emerald-500" />
+              Inteligência Comercial {year}
+            </CardTitle>
+            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+              {commercialIntelligence.totalPatients} pacientes analisados
+            </Badge>
+          </div>
+          <CardDescription>Conversão, Cross-sell e Jornada do Paciente</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* KPIs de Conversão */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+              <p className="text-2xl font-bold text-blue-500">{commercialIntelligence.consultationConversion.toFixed(0)}%</p>
+              <p className="text-xs text-muted-foreground">Consulta → Cirurgia</p>
+            </div>
+            <div className="p-3 rounded-lg bg-violet-500/10 border border-violet-500/20 text-center">
+              <p className="text-2xl font-bold text-violet-500">{commercialIntelligence.crossSellRate.toFixed(0)}%</p>
+              <p className="text-xs text-muted-foreground">Taxa Cross-sell</p>
+            </div>
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
+              <p className="text-2xl font-bold text-amber-500">{commercialIntelligence.avgDepartmentsPerPatient.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">Depts/Paciente</p>
+            </div>
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <p className="text-2xl font-bold text-emerald-500">{commercialIntelligence.surgeryPatients}</p>
+              <p className="text-xs text-muted-foreground">Fizeram Cirurgia</p>
+            </div>
+            <div className="p-3 rounded-lg bg-pink-500/10 border border-pink-500/20 text-center">
+              <p className="text-2xl font-bold text-pink-500">{commercialIntelligence.harmonizationPatients}</p>
+              <p className="text-xs text-muted-foreground">Harmonização</p>
+            </div>
+            <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-center">
+              <p className="text-2xl font-bold text-cyan-500">{commercialIntelligence.nutritionPatients}</p>
+              <p className="text-xs text-muted-foreground">Protocolos Nutri</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Top Caminhos de Cross-sell */}
+            <Card className="bg-background/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-violet-500" />
+                  Top Combinações de Compra (Cross-sell)
+                </CardTitle>
+                <CardDescription className="text-xs">Pacientes que compraram múltiplos departamentos</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {commercialIntelligence.topCrossSellPaths.length > 0 ? (
+                  <div className="space-y-2">
+                    {commercialIntelligence.topCrossSellPaths.map((path, idx) => (
+                      <div key={path.path} className="flex items-center justify-between text-xs p-2 rounded bg-muted/50">
+                        <span className="flex items-center gap-2">
+                          <span className={`font-bold ${idx === 0 ? "text-amber-500" : "text-muted-foreground"}`}>
+                            {idx === 0 ? "🏆" : `${idx + 1}.`}
+                          </span>
+                          <span className="font-medium">{path.path.substring(0, 50)}</span>
+                        </span>
+                        <Badge variant="outline">{path.count} pacientes</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs text-center py-4">Analisando jornadas...</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Distribuição de LTV */}
+            <Card className="bg-background/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  Distribuição de LTV (Valor Vitalício)
+                </CardTitle>
+                <CardDescription className="text-xs">Quanto cada paciente gastou no total</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  {commercialIntelligence.ltvDistribution.map((range, idx) => {
+                    const maxCount = Math.max(...commercialIntelligence.ltvDistribution.map(r => r.count));
+                    const percentage = maxCount > 0 ? (range.count / maxCount) * 100 : 0;
+                    return (
+                      <div key={range.label} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-medium">{range.label}</span>
+                          <span className="text-muted-foreground">{range.count} pacientes</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Insights Proativos */}
+          <div className="p-4 rounded-lg bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20">
+            <h4 className="font-semibold flex items-center gap-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              💡 Oportunidades Identificadas pela IA
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              {commercialIntelligence.crossSellRate < 30 && (
+                <div className="p-3 rounded bg-amber-500/10 border border-amber-500/20">
+                  <p className="font-medium text-amber-400">⚡ Cross-sell Baixo</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Apenas {commercialIntelligence.crossSellRate.toFixed(0)}% compram múltiplos departamentos. 
+                    Crie protocolo de apresentação de serviços complementares.
+                  </p>
+                </div>
+              )}
+              {commercialIntelligence.consultationConversion < 50 && commercialIntelligence.consultationPatients > 0 && (
+                <div className="p-3 rounded bg-blue-500/10 border border-blue-500/20">
+                  <p className="font-medium text-blue-400">📊 Conversão de Consultas</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {commercialIntelligence.consultationConversion.toFixed(0)}% das consultas viram cirurgia. 
+                    Revisar script de vendas e follow-up.
+                  </p>
+                </div>
+              )}
+              {commercialIntelligence.nutritionPatients < commercialIntelligence.surgeryPatients * 0.5 && commercialIntelligence.surgeryPatients > 0 && (
+                <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="font-medium text-emerald-400">🥗 Potencial Nutricional</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {commercialIntelligence.surgeryPatients - commercialIntelligence.nutritionPatients} pacientes de cirurgia 
+                    não fizeram protocolos nutricionais. Upsell CPI!
+                  </p>
+                </div>
+              )}
+              {commercialIntelligence.harmonizationPatients > 0 && commercialIntelligence.postOpPatients < commercialIntelligence.harmonizationPatients * 0.3 && (
+                <div className="p-3 rounded bg-pink-500/10 border border-pink-500/20">
+                  <p className="font-medium text-pink-400">💆 Pós-Operatório</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Oportunidade de vender pacotes pós-operatório para pacientes de harmonização.
+                  </p>
+                </div>
+              )}
+              {commercialIntelligence.avgDepartmentsPerPatient >= 2 && (
+                <div className="p-3 rounded bg-violet-500/10 border border-violet-500/20">
+                  <p className="font-medium text-violet-400">🎯 Perfil Comprador</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Média de {commercialIntelligence.avgDepartmentsPerPatient.toFixed(1)} depts/paciente. 
+                    Crie bundles com desconto para aumentar ticket!
+                  </p>
+                </div>
+              )}
+              <div className="p-3 rounded bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
+                <p className="font-medium text-emerald-400">🚀 Método CPI 360°</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {commercialIntelligence.patientsWithMultipleDepts} pacientes já são multi-departamento. 
+                  Potencial para expandir com os 7 pilares.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* SEÇÃO ANUAL - Rankings do Ano */}
       <Card className="bg-gradient-to-br from-violet-500/5 to-purple-500/5 border-violet-500/20">
