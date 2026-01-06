@@ -296,16 +296,22 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           if (!autoMapping.procedure) autoMapping.procedure = col;
         }
         
-        // Amount Sold detection (valor vendido)
-        if (colLower.includes('valor vendido') || colLower === 'vendido') {
+        // Amount Sold detection (valor vendido/valor total da venda)
+        if (colLower.includes('valor vendido') || colLower === 'vendido' ||
+            colLower.includes('total vendido') || colLower.includes('vl vendido')) {
           autoMapping.amountSold = col;
-        } else if (!autoMapping.amountSold && colLower.includes('valor') && !colLower.includes('pago') && !colLower.includes('recebido')) {
+        } else if (!autoMapping.amountSold && 
+                   (colLower === 'valor' || colLower === 'total') && 
+                   !colLower.includes('pago') && !colLower.includes('recebido')) {
           autoMapping.amountSold = col;
         }
         
         // Amount Paid detection (valor pago/recebido)
         if (colLower.includes('valor pago') || colLower === 'pago' || 
-            colLower.includes('valor recebido') || colLower === 'recebido') {
+            colLower.includes('valor recebido') || colLower === 'recebido' ||
+            colLower.includes('total pago') || colLower.includes('vl pago') ||
+            colLower.includes('total recebido') || colLower.includes('vl recebido') ||
+            colLower.includes('quantia paga') || colLower.includes('montante pago')) {
           autoMapping.amountPaid = col;
         }
         
