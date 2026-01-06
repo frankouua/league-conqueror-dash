@@ -22,7 +22,8 @@ import {
   Target, Phone, Gift, Heart, RefreshCw, Crown, Zap, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Clock, DollarSign, Calendar, Star,
   MessageSquare, Mail, Sparkles, CheckCircle2, Database, Save, History,
-  Send, Copy, Check, UserPlus, Megaphone, HandHeart, Award, Square, CheckSquare, Shield
+  Send, Copy, Check, UserPlus, Megaphone, HandHeart, Award, Square, CheckSquare, Shield,
+  Trash2, Edit
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -344,7 +345,7 @@ interface ColumnMapping {
 
 const RFVDashboard = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -412,6 +413,12 @@ const RFVDashboard = () => {
   const [isSavingContact, setIsSavingContact] = useState(false);
   const [isSearchingFeegow, setIsSearchingFeegow] = useState(false);
   const [feegowResults, setFeegowResults] = useState<any[]>([]);
+  
+  // Delete customer state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<RFVCustomer | null>(null);
+  const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
+  
   const getScriptsForCustomer = (customer: RFVCustomer) => {
     const segmentScripts = STRATEGIC_SCRIPTS[customer.segment];
     const currentCampaign = getCurrentMonthCampaign();
@@ -538,6 +545,41 @@ const RFVDashboard = () => {
     }
     
     setIsSavingContact(false);
+  };
+
+  // Delete customer function (only for admins)
+  const handleDeleteCustomer = async () => {
+    if (!customerToDelete?.id) {
+      toast({ title: "Erro", description: "Cliente sem ID não pode ser excluído.", variant: "destructive" });
+      return;
+    }
+    
+    setIsDeletingCustomer(true);
+    
+    try {
+      const { error } = await supabase
+        .from('rfv_customers')
+        .delete()
+        .eq('id', customerToDelete.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
+      
+      if (selectedCustomer?.id === customerToDelete.id) {
+        setSelectedCustomer(null);
+      }
+      
+      toast({ title: "Cliente excluído!", description: "O registro foi removido da base RFV." });
+      setShowDeleteConfirm(false);
+      setCustomerToDelete(null);
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast({ title: "Erro ao excluir", description: "Não foi possível excluir o cliente.", variant: "destructive" });
+    }
+    
+    setIsDeletingCustomer(false);
   };
 
   const handleSelectScript = (scriptKey: string, scriptText: string) => {
@@ -2515,9 +2557,36 @@ const RFVDashboard = () => {
                       <span className="font-semibold">{selectedCustomer.name}</span>
                     </div>
                     
+                    {/* Action Buttons: Edit & Delete */}
+                    <div className="flex gap-2 mb-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={() => handleOpenEditContact(selectedCustomer)}
+                      >
+                        <Edit className="h-3 w-3" />
+                        Editar
+                      </Button>
+                      {role === 'admin' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => {
+                            setCustomerToDelete(selectedCustomer);
+                            setShowDeleteConfirm(true);
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Excluir
+                        </Button>
+                      )}
+                    </div>
+                    
                     {/* Contact Info */}
                     <div className="space-y-2 mb-3 pb-3 border-b border-border/50">
-                      {(selectedCustomer.whatsapp || selectedCustomer.phone) && (
+                      {(selectedCustomer.whatsapp || selectedCustomer.phone) ? (
                         <a 
                           href={`https://wa.me/55${(selectedCustomer.whatsapp || selectedCustomer.phone)?.replace(/\D/g, '')}`}
                           target="_blank"
@@ -2527,6 +2596,11 @@ const RFVDashboard = () => {
                           <Phone className="h-4 w-4" />
                           {selectedCustomer.whatsapp || selectedCustomer.phone}
                         </a>
+                      ) : (
+                        <p className="text-xs text-amber-500 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Sem telefone cadastrado
+                        </p>
                       )}
                       {selectedCustomer.email && (
                         <a 
@@ -3269,6 +3343,59 @@ const RFVDashboard = () => {
                 <Save className="h-4 w-4" />
               )}
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-500">
+              <Trash2 className="h-5 w-5" />
+              Confirmar Exclusão
+            </DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir este cliente da base RFV?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {customerToDelete && (
+            <div className="py-4">
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                <p className="font-semibold">{customerToDelete.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {customerToDelete.cpf && `CPF: ${customerToDelete.cpf}`}
+                  {customerToDelete.prontuario && ` • Prontuário: ${customerToDelete.prontuario}`}
+                </p>
+                <p className="text-sm mt-2">
+                  Total: <span className="font-bold text-green-600">{formatCurrency(customerToDelete.totalValue)}</span>
+                  {' • '}{customerToDelete.totalPurchases} compras
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground mt-4">
+                ⚠️ Esta ação não pode ser desfeita. O cliente será removido permanentemente da análise RFV.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteCustomer} 
+              disabled={isDeletingCustomer}
+              className="gap-2"
+            >
+              {isDeletingCustomer ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Excluir Cliente
             </Button>
           </DialogFooter>
         </DialogContent>
