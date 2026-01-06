@@ -402,6 +402,16 @@ const RFVDashboard = () => {
   
   // Expand table state
   const [isTableExpanded, setIsTableExpanded] = useState(false);
+  
+  // Edit contact states
+  const [showEditContact, setShowEditContact] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<RFVCustomer | null>(null);
+  const [editPhone, setEditPhone] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const [isSearchingFeegow, setIsSearchingFeegow] = useState(false);
+  const [feegowResults, setFeegowResults] = useState<any[]>([]);
   const getScriptsForCustomer = (customer: RFVCustomer) => {
     const segmentScripts = STRATEGIC_SCRIPTS[customer.segment];
     const currentCampaign = getCurrentMonthCampaign();
@@ -429,6 +439,105 @@ const RFVDashboard = () => {
     setCustomMessage('');
     setCopiedScript(false);
     setShowQuickAction(true);
+  };
+
+  // Edit Contact Functions
+  const handleOpenEditContact = (customer: RFVCustomer, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingCustomer(customer);
+    setEditPhone(customer.phone || '');
+    setEditWhatsapp(customer.whatsapp || '');
+    setEditEmail(customer.email || '');
+    setFeegowResults([]);
+    setShowEditContact(true);
+  };
+
+  const handleSearchFeegow = async () => {
+    if (!editingCustomer) return;
+    
+    setIsSearchingFeegow(true);
+    setFeegowResults([]);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('feegow-patient-search', {
+        body: { patientName: editingCustomer.name }
+      });
+      
+      if (error) throw error;
+      
+      if (data.success && data.patients?.length > 0) {
+        setFeegowResults(data.patients);
+        toast({ 
+          title: "Pacientes encontrados!", 
+          description: `${data.patients.length} resultado(s) no Feegow.` 
+        });
+      } else {
+        toast({ 
+          title: "Não encontrado", 
+          description: "Nenhum paciente encontrado no Feegow com esse nome.",
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error searching Feegow:', error);
+      toast({ 
+        title: "Erro na busca", 
+        description: "Não foi possível conectar ao Feegow. Verifique a configuração.",
+        variant: "destructive" 
+      });
+    }
+    
+    setIsSearchingFeegow(false);
+  };
+
+  const handleSelectFeegowPatient = (patient: any) => {
+    setEditPhone(patient.phone || patient.cellphone || '');
+    setEditWhatsapp(patient.cellphone || patient.phone || '');
+    setEditEmail(patient.email || editEmail);
+    setFeegowResults([]);
+    toast({ title: "Dados importados!", description: "Agora clique em Salvar para confirmar." });
+  };
+
+  const handleSaveContact = async () => {
+    if (!editingCustomer?.id) {
+      toast({ title: "Erro", description: "Cliente sem ID não pode ser editado.", variant: "destructive" });
+      return;
+    }
+    
+    setIsSavingContact(true);
+    
+    try {
+      const { error } = await supabase
+        .from('rfv_customers')
+        .update({
+          phone: editPhone || null,
+          whatsapp: editWhatsapp || null,
+          email: editEmail || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingCustomer.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setCustomers(prev => prev.map(c => 
+        c.id === editingCustomer.id 
+          ? { ...c, phone: editPhone, whatsapp: editWhatsapp, email: editEmail }
+          : c
+      ));
+      
+      if (selectedCustomer?.id === editingCustomer.id) {
+        setSelectedCustomer(prev => prev ? { ...prev, phone: editPhone, whatsapp: editWhatsapp, email: editEmail } : null);
+      }
+      
+      toast({ title: "Contato atualizado!", description: "Os dados foram salvos com sucesso." });
+      setShowEditContact(false);
+    } catch (error) {
+      console.error('Error saving contact:', error);
+      toast({ title: "Erro ao salvar", description: "Não foi possível salvar os dados.", variant: "destructive" });
+    }
+    
+    setIsSavingContact(false);
   };
 
   const handleSelectScript = (scriptKey: string, scriptText: string) => {
@@ -2271,24 +2380,38 @@ const RFVDashboard = () => {
                               </TableCell>
                               {/* Contato */}
                               <TableCell>
-                                <div className="space-y-0.5">
-                                  {contactPhone ? (
-                                    <a 
-                                      href={`https://wa.me/55${contactPhone.replace(/\D/g, '')}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-1 text-xs text-green-600 hover:underline"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <Phone className="h-3 w-3" />
-                                      {contactPhone}
-                                    </a>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">-</span>
-                                  )}
-                                  {customer.email && (
-                                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">{customer.email}</p>
-                                  )}
+                                <div className="flex items-center gap-2">
+                                  <div className="space-y-0.5 flex-1 min-w-0">
+                                    {contactPhone ? (
+                                      <a 
+                                        href={`https://wa.me/55${contactPhone.replace(/\D/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-xs text-green-600 hover:underline"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <Phone className="h-3 w-3" />
+                                        {contactPhone}
+                                      </a>
+                                    ) : (
+                                      <span className="text-xs text-amber-500 flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Sem telefone
+                                      </span>
+                                    )}
+                                    {customer.email && (
+                                      <p className="text-xs text-muted-foreground truncate max-w-[100px]">{customer.email}</p>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                    onClick={(e) => handleOpenEditContact(customer, e)}
+                                    title="Editar contato"
+                                  >
+                                    <UserPlus className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               </TableCell>
                               {/* Prontuário */}
@@ -3049,6 +3172,103 @@ const RFVDashboard = () => {
                   Iniciar Disparo ({getSelectedCustomersForBulk().length})
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Contact Dialog */}
+      <Dialog open={showEditContact} onOpenChange={setShowEditContact}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Editar Contato
+            </DialogTitle>
+            <DialogDescription>
+              {editingCustomer?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Buscar no Feegow */}
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-blue-400">Buscar no Feegow</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSearchFeegow}
+                  disabled={isSearchingFeegow}
+                  className="gap-2"
+                >
+                  {isSearchingFeegow ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  Buscar
+                </Button>
+              </div>
+              
+              {feegowResults.length > 0 && (
+                <div className="space-y-2 mt-3">
+                  {feegowResults.map((patient, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2 rounded bg-background border cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleSelectFeegowPatient(patient)}
+                    >
+                      <p className="text-sm font-medium">{patient.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {patient.phone || patient.cellphone || 'Sem telefone'} • {patient.email || 'Sem e-mail'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Campos de edição manual */}
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input
+                  placeholder="(34) 99999-9999"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>WhatsApp</Label>
+                <Input
+                  placeholder="(34) 99999-9999"
+                  value={editWhatsapp}
+                  onChange={(e) => setEditWhatsapp(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditContact(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveContact} disabled={isSavingContact} className="gap-2">
+              {isSavingContact ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
