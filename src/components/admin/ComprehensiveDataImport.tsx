@@ -738,7 +738,7 @@ export default function ComprehensiveDataImport() {
 
       {/* Action Buttons */}
       {rawData.length > 0 && !loading && (
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap">
           <Button
             onClick={handleImport}
             disabled={importing || !fileType}
@@ -761,6 +761,62 @@ export default function ComprehensiveDataImport() {
             Remapear Colunas
           </Button>
         </div>
+      )}
+
+      {/* RFV Calculation Button */}
+      {importStats && fileType === 'vendas' && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-3">
+                <Zap className="w-5 h-5 text-primary mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">Calcular Matriz RFV</p>
+                  <p className="text-muted-foreground">
+                    Calcule automaticamente Recência, Frequência e Valor de todos os clientes
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={async () => {
+                  setImporting(true);
+                  try {
+                    const response = await fetch(
+                      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calculate-rfv`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                        },
+                        body: JSON.stringify({}),
+                      }
+                    );
+                    const data = await response.json();
+                    if (data.success) {
+                      toast({
+                        title: "Matriz RFV calculada!",
+                        description: `${data.stats.totalCustomers} clientes processados. ${data.stats.missingEmail} sem email, ${data.stats.missingPhone} sem telefone.`,
+                      });
+                    } else {
+                      throw new Error(data.error);
+                    }
+                  } catch (err) {
+                    console.error("RFV error:", err);
+                    toast({ title: "Erro ao calcular RFV", variant: "destructive" });
+                  } finally {
+                    setImporting(false);
+                  }
+                }}
+                disabled={importing}
+                className="gap-2"
+              >
+                {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                Calcular RFV
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Info Card */}
