@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Megaphone, Plus, Trash2, Edit, AlertCircle, Info, AlertTriangle, Loader2 } from "lucide-react";
+import { Megaphone, Plus, Trash2, Edit, Loader2, Users, User, Globe, MessageCircle, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,6 +24,22 @@ interface Announcement {
   is_active: boolean;
   created_at: string;
   expires_at: string | null;
+  target_type: string;
+  target_team_id: string | null;
+  target_user_id: string | null;
+  send_whatsapp: boolean;
+  send_email: boolean;
+}
+
+interface Team {
+  id: string;
+  name: string;
+}
+
+interface Profile {
+  user_id: string;
+  full_name: string;
+  email: string;
 }
 
 const AnnouncementsManager = () => {
@@ -38,6 +54,37 @@ const AnnouncementsManager = () => {
     content: "",
     priority: "normal",
     expires_at: "",
+    target_type: "all",
+    target_team_id: "",
+    target_user_id: "",
+    send_whatsapp: false,
+    send_email: false,
+  });
+
+  // Fetch teams
+  const { data: teams = [] } = useQuery({
+    queryKey: ["teams-for-announcements"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name")
+        .order("name");
+      if (error) throw error;
+      return data as Team[];
+    },
+  });
+
+  // Fetch users for individual targeting
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles-for-announcements"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .order("full_name");
+      if (error) throw error;
+      return data as Profile[];
+    },
   });
 
   // Fetch all announcements
@@ -130,7 +177,7 @@ const AnnouncementsManager = () => {
   });
 
   const resetForm = () => {
-    setFormData({ title: "", content: "", priority: "normal", expires_at: "" });
+    setFormData({ title: "", content: "", priority: "normal", expires_at: "", target_type: "all", target_team_id: "", target_user_id: "", send_whatsapp: false, send_email: false });
     setIsCreating(false);
     setEditingId(null);
   };
@@ -141,6 +188,11 @@ const AnnouncementsManager = () => {
       content: announcement.content,
       priority: announcement.priority,
       expires_at: announcement.expires_at?.split("T")[0] || "",
+      target_type: announcement.target_type || "all",
+      target_team_id: announcement.target_team_id || "",
+      target_user_id: announcement.target_user_id || "",
+      send_whatsapp: announcement.send_whatsapp || false,
+      send_email: announcement.send_email || false,
     });
     setEditingId(announcement.id);
     setIsCreating(true);

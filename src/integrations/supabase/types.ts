@@ -114,6 +114,11 @@ export type Database = {
           id: string
           is_active: boolean
           priority: string
+          send_email: boolean | null
+          send_whatsapp: boolean | null
+          target_team_id: string | null
+          target_type: string | null
+          target_user_id: string | null
           title: string
           updated_at: string
         }
@@ -125,6 +130,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           priority?: string
+          send_email?: boolean | null
+          send_whatsapp?: boolean | null
+          target_team_id?: string | null
+          target_type?: string | null
+          target_user_id?: string | null
           title: string
           updated_at?: string
         }
@@ -136,10 +146,23 @@ export type Database = {
           id?: string
           is_active?: boolean
           priority?: string
+          send_email?: boolean | null
+          send_whatsapp?: boolean | null
+          target_team_id?: string | null
+          target_type?: string | null
+          target_user_id?: string | null
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "announcements_target_team_id_fkey"
+            columns: ["target_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_actions: {
         Row: {
@@ -1473,12 +1496,15 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           avatar_url: string | null
           created_at: string
           department: Database["public"]["Enums"]["department_type"] | null
           email: string
           full_name: string
           id: string
+          is_approved: boolean | null
           phone: string | null
           position: Database["public"]["Enums"]["position_type"] | null
           team_id: string | null
@@ -1487,12 +1513,15 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           created_at?: string
           department?: Database["public"]["Enums"]["department_type"] | null
           email: string
           full_name: string
           id?: string
+          is_approved?: boolean | null
           phone?: string | null
           position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
@@ -1501,12 +1530,15 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           created_at?: string
           department?: Database["public"]["Enums"]["department_type"] | null
           email?: string
           full_name?: string
           id?: string
+          is_approved?: boolean | null
           phone?: string | null
           position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
@@ -2394,6 +2426,36 @@ export type Database = {
           },
         ]
       }
+      user_approval_requests: {
+        Row: {
+          id: string
+          rejection_reason: string | null
+          requested_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          rejection_reason?: string | null
+          requested_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          rejection_reason?: string | null
+          requested_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2461,6 +2523,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_user: { Args: { _user_id: string }; Returns: undefined }
       get_my_team_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
@@ -2472,6 +2535,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reject_user: {
+        Args: { _reason?: string; _user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
