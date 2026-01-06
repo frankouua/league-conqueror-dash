@@ -434,6 +434,9 @@ const RFVDashboard = () => {
   const [customerToDelete, setCustomerToDelete] = useState<RFVCustomer | null>(null);
   const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
   
+  // Show segmentation rules
+  const [showSegmentRules, setShowSegmentRules] = useState(false);
+  
   const getScriptsForCustomer = (customer: RFVCustomer) => {
     const segmentScripts = STRATEGIC_SCRIPTS[customer.segment];
     const currentCampaign = getCurrentMonthCampaign();
@@ -2095,12 +2098,137 @@ const RFVDashboard = () => {
               </Card>
             </div>
 
+            {/* Segmentation Rules Card */}
+            {showSegmentRules && (
+              <Card className="mb-4 border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center justify-between text-lg">
+                    <span className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-indigo-600" />
+                      Regras de Classificação RFV
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => setShowSegmentRules(false)}>
+                      ✕
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>
+                    Como os clientes são classificados baseado em Recência, Frequência e Valor
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Campeões */}
+                    <div className="p-4 rounded-lg bg-white border-2 border-yellow-300 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Crown className="h-5 w-5 text-yellow-500" />
+                        <h4 className="font-bold text-yellow-700">Campeões</h4>
+                      </div>
+                      <ul className="text-sm space-y-1 text-gray-700">
+                        <li>• Última compra: <strong>até 90 dias</strong></li>
+                        <li>• Frequência: <strong>alta (4-5)</strong></li>
+                        <li>• Valor gasto: <strong>alto (4-5)</strong></li>
+                        <li className="text-xs text-gray-500 mt-2 italic">Seus melhores clientes. Manter relacionamento!</li>
+                      </ul>
+                    </div>
+                    
+                    {/* Fiéis */}
+                    <div className="p-4 rounded-lg bg-white border-2 border-blue-300 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Heart className="h-5 w-5 text-blue-500" />
+                        <h4 className="font-bold text-blue-700">Fiéis</h4>
+                      </div>
+                      <ul className="text-sm space-y-1 text-gray-700">
+                        <li>• Última compra: <strong>até 90 dias</strong></li>
+                        <li>• Frequência: <strong>média-alta (3-5)</strong></li>
+                        <li>• Valor gasto: <strong>médio-alto (3-5)</strong></li>
+                        <li className="text-xs text-gray-500 mt-2 italic">Clientes regulares. Oferecer upsell!</li>
+                      </ul>
+                    </div>
+                    
+                    {/* Potenciais */}
+                    <div className="p-4 rounded-lg bg-white border-2 border-amber-300 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-5 w-5 text-amber-500" />
+                        <h4 className="font-bold text-amber-700">Potenciais</h4>
+                      </div>
+                      <ul className="text-sm space-y-1 text-gray-700">
+                        <li>• Última compra: <strong>até 90 dias</strong></li>
+                        <li>• Frequência: <strong>baixa (1-3)</strong></li>
+                        <li>• Valor gasto: <strong>qualquer</strong></li>
+                        <li className="text-xs text-gray-500 mt-2 italic">Novos ou recentes. Aumentar frequência!</li>
+                      </ul>
+                    </div>
+                    
+                    {/* Em Risco */}
+                    <div className="p-4 rounded-lg bg-white border-2 border-orange-300 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="h-5 w-5 text-orange-500" />
+                        <h4 className="font-bold text-orange-700">Em Risco</h4>
+                      </div>
+                      <ul className="text-sm space-y-1 text-gray-700">
+                        <li>• Última compra: <strong>91-180 dias</strong></li>
+                        <li>• Frequência: <strong>média-alta (3-5)</strong></li>
+                        <li>• Valor gasto: <strong>médio-alto (3-5)</strong></li>
+                        <li className="text-xs text-gray-500 mt-2 italic">Bons clientes esfriando. Reativar URGENTE!</li>
+                      </ul>
+                    </div>
+                    
+                    {/* Hibernando */}
+                    <div className="p-4 rounded-lg bg-white border-2 border-purple-300 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <RefreshCw className="h-5 w-5 text-purple-500" />
+                        <h4 className="font-bold text-purple-700">Hibernando</h4>
+                      </div>
+                      <ul className="text-sm space-y-1 text-gray-700">
+                        <li>• Última compra: <strong>181-365 dias</strong></li>
+                        <li>• Frequência: <strong>qualquer</strong></li>
+                        <li>• Valor gasto: <strong>médio+ (2-5)</strong></li>
+                        <li className="text-xs text-gray-500 mt-2 italic">Sumiram há tempo. Oferta especial de retorno!</li>
+                      </ul>
+                    </div>
+                    
+                    {/* Perdidos */}
+                    <div className="p-4 rounded-lg bg-white border-2 border-gray-300 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="h-5 w-5 text-gray-500" />
+                        <h4 className="font-bold text-gray-700">Perdidos</h4>
+                      </div>
+                      <ul className="text-sm space-y-1 text-gray-700">
+                        <li>• Última compra: <strong>+365 dias</strong></li>
+                        <li>• Frequência: <strong>baixa (1-2)</strong></li>
+                        <li>• Valor gasto: <strong>baixo (1-2)</strong></li>
+                        <li className="text-xs text-gray-500 mt-2 italic">Inativos há muito tempo. Tentar reativar.</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-indigo-100 rounded-lg text-sm text-indigo-800">
+                    <strong>💡 Como funciona:</strong> Os scores de R, F e V vão de 1 a 5, onde 5 é o melhor. 
+                    A <strong>Recência</strong> considera os dias desde a última compra. 
+                    A <strong>Frequência</strong> é baseada no número de compras. 
+                    O <strong>Valor</strong> é baseado no total gasto pelo cliente.
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Quick Filter Presets */}
             <Card className="mb-4">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                  Filtros Rápidos
+                <CardTitle className="flex items-center justify-between text-base">
+                  <span className="flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-yellow-500" />
+                    Filtros Rápidos
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-indigo-600 border-indigo-300 hover:bg-indigo-50"
+                    onClick={() => setShowSegmentRules(!showSegmentRules)}
+                  >
+                    <Shield className="h-4 w-4" />
+                    {showSegmentRules ? 'Ocultar Regras' : 'Ver Regras RFV'}
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
