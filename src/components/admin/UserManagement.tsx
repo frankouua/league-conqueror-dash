@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Users, Shield, ShieldCheck, Loader2, Trash2, KeyRound, UserX, Filter, Briefcase, BadgeCheck } from "lucide-react";
+import { Users, Shield, ShieldCheck, Loader2, KeyRound, UserX, Filter, UserCheck, UserMinus, Clock, CheckCircle2, XCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,8 +28,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format, formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type DepartmentType = 'comercial' | 'atendimento' | 'marketing' | 'administrativo' | 'clinico';
 type PositionType = 'comercial_1_captacao' | 'comercial_2_closer' | 'comercial_3_experiencia' | 'comercial_4_farmer' | 'sdr' | 'coordenador' | 'gerente' | 'assistente' | 'outro';
@@ -62,6 +67,7 @@ interface Profile {
   team_id: string | null;
   department: DepartmentType | null;
   position: PositionType | null;
+  is_approved: boolean;
   teams: { name: string } | null;
 }
 
@@ -74,6 +80,17 @@ interface UserWithRole extends Profile {
   role: "member" | "admin";
 }
 
+interface ApprovalRequest {
+  id: string;
+  user_id: string;
+  requested_at: string;
+  status: string;
+  profiles: {
+    full_name: string;
+    email: string;
+  };
+}
+
 const UserManagement = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -83,7 +100,73 @@ const UserManagement = () => {
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterPosition, setFilterPosition] = useState<string>("all");
   const [filterTeam, setFilterTeam] = useState<string>("all");
+  const [rejectReason, setRejectReason] = useState<string>("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch pending approval requests
+  const { data: pendingRequests = [], isLoading: loadingRequests } = useQuery({
+    queryKey: ['pending-approval-requests'],
+    queryFn: async () => {
+      const { data: requests, error } = await supabase
+        .from('user_approval_requests')
+        .select('*')
+        .eq('status', 'pending')
+        .order('requested_at', { ascending: false });
+      
+      if (error) throw error;
+      if (!requests || requests.length === 0) return [];
+      
+      // Fetch profiles separately
+      const userIds = requests.map(r => r.user_id);
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', userIds);
+      
+      if (profileError) throw profileError;
+      
+      // Combine data
+      const profilesMap = new Map(profiles?.map(p => [p.user_id, p]));
+      
+      return requests.map(r => ({
+        ...r,
+        profiles: profilesMap.get(r.user_id) || { full_name: 'Usuário', email: '' }
+      })) as ApprovalRequest[];
+    },
+  });
+
+  // Approve user mutation
+  const approveMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.rpc('approve_user', { _user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Usuário aprovado!", description: "O usuário agora tem acesso ao sistema." });
+      queryClient.invalidateQueries({ queryKey: ['pending-approval-requests'] });
+      fetchData();
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao aprovar", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Reject user mutation
+  const rejectMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      const { error } = await supabase.rpc('reject_user', { _user_id: userId, _reason: reason || null });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Usuário rejeitado", description: "O acesso foi negado." });
+      queryClient.invalidateQueries({ queryKey: ['pending-approval-requests'] });
+      setRejectReason("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao rejeitar", description: error.message, variant: "destructive" });
+    },
+  });
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -379,18 +462,111 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="bg-gradient-card rounded-2xl p-6 border border-border">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 rounded-xl bg-info/10">
-          <Users className="w-6 h-6 text-info" />
+    <div className="space-y-6">
+      {/* Pending Approvals Section */}
+      {pendingRequests.length > 0 && (
+        <Card className="border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-amber-600">
+              <Clock className="w-5 h-5" />
+              Usuários Aguardando Aprovação
+              <Badge variant="secondary" className="bg-amber-500/20 text-amber-600">
+                {pendingRequests.length}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {pendingRequests.map((request) => (
+                <div 
+                  key={request.id}
+                  className="flex items-center justify-between p-4 rounded-lg bg-background border border-border"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{request.profiles.full_name}</p>
+                      <p className="text-sm text-muted-foreground">{request.profiles.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Solicitado {formatDistanceToNow(new Date(request.requested_at), { addSuffix: true, locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => approveMutation.mutate(request.user_id)}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                      className="gap-2 bg-green-600 hover:bg-green-700"
+                    >
+                      {approveMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4" />
+                      )}
+                      Aprovar
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Rejeitar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Rejeitar acesso?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            O usuário {request.profiles.full_name} não terá acesso ao sistema.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-4">
+                          <Textarea
+                            placeholder="Motivo da rejeição (opcional)"
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                          />
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => setRejectReason("")}>
+                            Cancelar
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => rejectMutation.mutate({ userId: request.user_id, reason: rejectReason })}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Confirmar Rejeição
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main User Management */}
+      <div className="bg-gradient-card rounded-2xl p-6 border border-border">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 rounded-xl bg-info/10">
+            <Users className="w-6 h-6 text-info" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-foreground">Gerenciar Usuários</h3>
+            <p className="text-muted-foreground text-sm">
+              {users.length} usuários cadastrados • {users.filter(u => u.team_id).length} ativos em times
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-xl font-bold text-foreground">Gerenciar Usuários</h3>
-          <p className="text-muted-foreground text-sm">
-            {users.length} usuários cadastrados • {users.filter(u => u.team_id).length} ativos em times
-          </p>
-        </div>
-      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6 p-4 rounded-lg bg-muted/30 border border-border">
@@ -674,6 +850,7 @@ const UserManagement = () => {
           </Table>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -31,6 +31,7 @@ const TVDisplay = lazy(() => import("./pages/TVDisplay"));
 const CommercialGuides = lazy(() => import("./pages/CommercialGuides"));
 const Cancellations = lazy(() => import("./pages/Cancellations"));
 const CommercialAssistantPage = lazy(() => import("./pages/CommercialAssistantPage"));
+const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Optimized QueryClient with aggressive caching
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/register" element={<Register />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/pending-approval" element={<PendingApproval />} />
               <Route path="/onboarding-goals" element={<ProtectedRoute><OnboardingGoals /></ProtectedRoute>} />
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/data-reports" element={<ProtectedRoute><DataReports /></ProtectedRoute>} />
