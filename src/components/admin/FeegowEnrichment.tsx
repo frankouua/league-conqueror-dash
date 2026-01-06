@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -17,23 +18,25 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Zap
+  Zap,
+  Calendar,
+  User,
+  MapPin,
+  FileText,
+  TrendingUp
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 interface EnrichmentDetail {
   id: string;
   name: string;
-  prontuario: string;
   fields_updated: string[];
 }
 
 interface EnrichmentResult {
   total_processed: number;
   total_enriched: number;
-  total_phone_added: number;
-  total_email_added: number;
-  total_cpf_added: number;
+  fields_summary: Record<string, number>;
   errors: string[];
   details: EnrichmentDetail[];
 }
@@ -41,57 +44,58 @@ interface EnrichmentResult {
 export const FeegowEnrichment = () => {
   const [isEnriching, setIsEnriching] = useState(false);
   const [dryRun, setDryRun] = useState(true);
+  const [includeAppointments, setIncludeAppointments] = useState(true);
   const [result, setResult] = useState<EnrichmentResult | null>(null);
+  const [enrichmentType, setEnrichmentType] = useState<'basic' | 'full'>('full');
 
   // Fetch stats
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['enrichment-stats'],
     queryFn: async () => {
-      // Get total counts
       const { count: total } = await supabase
         .from('rfv_customers')
         .select('*', { count: 'exact', head: true });
 
-      // Missing phone
       const { count: semTelefone } = await supabase
         .from('rfv_customers')
         .select('*', { count: 'exact', head: true })
         .or('phone.is.null,phone.eq.');
 
-      // Missing email
       const { count: semEmail } = await supabase
         .from('rfv_customers')
         .select('*', { count: 'exact', head: true })
         .or('email.is.null,email.eq.');
 
-      // Missing CPF
-      const { count: semCpf } = await supabase
-        .from('rfv_customers')
-        .select('*', { count: 'exact', head: true })
-        .or('cpf.is.null,cpf.eq.');
-
-      // With prontuario
       const { count: comProntuario } = await supabase
         .from('rfv_customers')
         .select('*', { count: 'exact', head: true })
         .not('prontuario', 'is', null)
         .neq('prontuario', '');
 
-      // Candidates for enrichment (has prontuario + missing data)
-      const { count: candidatos } = await supabase
+      const { count: comOrigem } = await supabase
         .from('rfv_customers')
         .select('*', { count: 'exact', head: true })
-        .not('prontuario', 'is', null)
-        .neq('prontuario', '')
-        .or('phone.is.null,phone.eq.,email.is.null,email.eq.,cpf.is.null,cpf.eq.');
+        .not('origem_nome', 'is', null)
+        .neq('origem_nome', '');
+
+      const { count: comAgendamentos } = await supabase
+        .from('rfv_customers')
+        .select('*', { count: 'exact', head: true })
+        .gt('total_agendamentos', 0);
+
+      const { count: comNoShows } = await supabase
+        .from('rfv_customers')
+        .select('*', { count: 'exact', head: true })
+        .gt('no_show_count', 0);
 
       return {
         total: total || 0,
         semTelefone: semTelefone || 0,
         semEmail: semEmail || 0,
-        semCpf: semCpf || 0,
         comProntuario: comProntuario || 0,
-        candidatos: candidatos || 0,
+        comOrigem: comOrigem || 0,
+        comAgendamentos: comAgendamentos || 0,
+        comNoShows: comNoShows || 0,
       };
     }
   });
@@ -101,8 +105,14 @@ export const FeegowEnrichment = () => {
     setResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('feegow-enrich-contacts', {
-        body: { batchSize: 100, dryRun }
+      const functionName = enrichmentType === 'full' ? 'feegow-full-enrichment' : 'feegow-enrich-contacts';
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { 
+          batchSize: 100, 
+          dryRun,
+          includeAppointments: enrichmentType === 'full' ? includeAppointments : false
+        }
       });
 
       if (error) throw error;
@@ -136,10 +146,44 @@ export const FeegowEnrichment = () => {
       case 'email':
         return <Mail className="h-3 w-3" />;
       case 'cpf':
+      case 'rg':
         return <CreditCard className="h-3 w-3" />;
+      case 'origem_nome':
+      case 'origem_id':
+        return <TrendingUp className="h-3 w-3" />;
+      case 'total_agendamentos':
+      case 'ultimo_atendimento':
+      case 'no_show_count':
+        return <Calendar className="h-3 w-3" />;
+      case 'responsavel_legal':
+      case 'nome_mae':
+      case 'nome_pai':
+        return <User className="h-3 w-3" />;
+      case 'observacoes_feegow':
+        return <FileText className="h-3 w-3" />;
       default:
-        return null;
+        return <Database className="h-3 w-3" />;
     }
+  };
+
+  const getFieldLabel = (field: string) => {
+    const labels: Record<string, string> = {
+      phone: 'Telefone',
+      email: 'Email',
+      rg: 'RG',
+      origem_nome: 'Origem',
+      origem_id: 'ID Origem',
+      responsavel_legal: 'Responsável',
+      nome_mae: 'Nome Mãe',
+      nome_pai: 'Nome Pai',
+      observacoes_feegow: 'Observações',
+      foto_url: 'Foto',
+      data_cadastro_feegow: 'Data Cadastro',
+      total_agendamentos: 'Agendamentos',
+      no_show_count: 'No-Shows',
+      ultimo_atendimento: 'Último Atend.'
+    };
+    return labels[field] || field;
   };
 
   return (
@@ -151,7 +195,7 @@ export const FeegowEnrichment = () => {
             Enriquecimento de Dados via Feegow
           </CardTitle>
           <CardDescription>
-            Busca dados de contato no Feegow para clientes que têm prontuário mas estão sem telefone, email ou CPF
+            Importa dados completos do Feegow: contatos, origem, histórico de agendamentos e muito mais
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -161,33 +205,97 @@ export const FeegowEnrichment = () => {
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : stats && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div className="p-4 rounded-lg bg-muted/50 text-center">
-                <div className="text-2xl font-bold">{stats.total.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Total Clientes</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              <div className="p-3 rounded-lg bg-muted/50 text-center">
+                <div className="text-xl font-bold">{stats.total.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
               </div>
-              <div className="p-4 rounded-lg bg-green-500/10 text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.comProntuario.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Com Prontuário</div>
+              <div className="p-3 rounded-lg bg-green-500/10 text-center">
+                <div className="text-xl font-bold text-green-600">{stats.comProntuario.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Com Prontuário</div>
               </div>
-              <div className="p-4 rounded-lg bg-orange-500/10 text-center">
-                <div className="text-2xl font-bold text-orange-600">{stats.semTelefone.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Sem Telefone</div>
+              <div className="p-3 rounded-lg bg-orange-500/10 text-center">
+                <div className="text-xl font-bold text-orange-600">{stats.semTelefone.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Sem Telefone</div>
               </div>
-              <div className="p-4 rounded-lg bg-orange-500/10 text-center">
-                <div className="text-2xl font-bold text-orange-600">{stats.semEmail.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Sem Email</div>
+              <div className="p-3 rounded-lg bg-orange-500/10 text-center">
+                <div className="text-xl font-bold text-orange-600">{stats.semEmail.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Sem Email</div>
               </div>
-              <div className="p-4 rounded-lg bg-orange-500/10 text-center">
-                <div className="text-2xl font-bold text-orange-600">{stats.semCpf.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Sem CPF</div>
+              <div className="p-3 rounded-lg bg-blue-500/10 text-center">
+                <div className="text-xl font-bold text-blue-600">{stats.comOrigem.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Com Origem</div>
               </div>
-              <div className="p-4 rounded-lg bg-primary/10 text-center">
-                <div className="text-2xl font-bold text-primary">{stats.candidatos.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Candidatos</div>
+              <div className="p-3 rounded-lg bg-purple-500/10 text-center">
+                <div className="text-xl font-bold text-purple-600">{stats.comAgendamentos.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Com Histórico</div>
+              </div>
+              <div className="p-3 rounded-lg bg-red-500/10 text-center">
+                <div className="text-xl font-bold text-red-600">{stats.comNoShows.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Com No-Shows</div>
               </div>
             </div>
           )}
+
+          {/* Enrichment Type Selection */}
+          <Tabs value={enrichmentType} onValueChange={(v) => setEnrichmentType(v as 'basic' | 'full')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic">
+                <Phone className="h-4 w-4 mr-2" />
+                Básico (Contatos)
+              </TabsTrigger>
+              <TabsTrigger value="full">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Completo (Todos os Dados)
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic" className="mt-4">
+              <div className="p-4 rounded-lg bg-muted/30 text-sm">
+                <p className="font-medium mb-2">Enriquecimento Básico:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Telefone e WhatsApp</li>
+                  <li>Email</li>
+                  <li>CPF</li>
+                </ul>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="full" className="mt-4">
+              <div className="p-4 rounded-lg bg-muted/30 text-sm">
+                <p className="font-medium mb-2">Enriquecimento Completo:</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>Telefone, Email, CPF, RG</li>
+                    <li>Origem de captação</li>
+                    <li>Responsável legal</li>
+                    <li>Nome dos pais</li>
+                    <li>Observações do prontuário</li>
+                    <li>Foto do paciente</li>
+                    <li>Data de cadastro</li>
+                  </ul>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>Total de agendamentos</li>
+                    <li>Último atendimento</li>
+                    <li>Contagem de no-shows</li>
+                    <li>Taxa de comparecimento</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 mt-4">
+                <Switch
+                  id="include-appointments"
+                  checked={includeAppointments}
+                  onCheckedChange={setIncludeAppointments}
+                />
+                <Label htmlFor="include-appointments" className="cursor-pointer">
+                  <span className="font-medium">Incluir histórico de agendamentos</span>
+                  <span className="text-sm text-muted-foreground ml-2">(mais lento, mas traz no-shows e último atendimento)</span>
+                </Label>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Controls */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 rounded-lg border bg-muted/30">
@@ -200,7 +308,7 @@ export const FeegowEnrichment = () => {
               <Label htmlFor="dry-run" className="cursor-pointer">
                 <span className="font-medium">Modo Simulação</span>
                 <span className="text-sm text-muted-foreground ml-2">
-                  {dryRun ? '(apenas visualiza, não altera dados)' : '(ATENÇÃO: vai alterar dados!)'}
+                  {dryRun ? '(apenas visualiza)' : '(ATENÇÃO: vai alterar dados!)'}
                 </span>
               </Label>
             </div>
@@ -219,7 +327,7 @@ export const FeegowEnrichment = () => {
               ) : (
                 <>
                   <Zap className="h-4 w-4" />
-                  {dryRun ? 'Simular Enriquecimento' : 'Executar Enriquecimento'}
+                  {dryRun ? 'Simular' : 'Executar'} Enriquecimento {enrichmentType === 'full' ? 'Completo' : 'Básico'}
                 </>
               )}
             </Button>
@@ -237,7 +345,7 @@ export const FeegowEnrichment = () => {
                 {dryRun ? 'Resultado da Simulação' : 'Enriquecimento Concluído'}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="p-3 rounded-lg bg-muted/50 text-center">
                   <div className="text-xl font-bold">{result.total_processed}</div>
                   <div className="text-xs text-muted-foreground">Processados</div>
@@ -246,19 +354,30 @@ export const FeegowEnrichment = () => {
                   <div className="text-xl font-bold text-green-600">{result.total_enriched}</div>
                   <div className="text-xs text-muted-foreground">Enriquecidos</div>
                 </div>
-                <div className="p-3 rounded-lg bg-blue-500/10 text-center">
-                  <div className="text-xl font-bold text-blue-600">
-                    +{result.total_phone_added} / +{result.total_email_added} / +{result.total_cpf_added}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Tel / Email / CPF</div>
-                </div>
                 <div className="p-3 rounded-lg bg-red-500/10 text-center">
                   <div className="text-xl font-bold text-red-600">{result.errors.length}</div>
                   <div className="text-xs text-muted-foreground">Erros</div>
                 </div>
               </div>
 
-              {/* Progress indicator */}
+              {/* Fields Summary */}
+              {result.fields_summary && Object.keys(result.fields_summary).length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Campos Preenchidos</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(result.fields_summary)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([field, count]) => (
+                        <Badge key={field} variant="secondary" className="gap-1">
+                          {getFieldIcon(field)}
+                          {getFieldLabel(field)}: {count}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Progress */}
               {result.total_processed > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -275,19 +394,21 @@ export const FeegowEnrichment = () => {
                   <div className="text-sm font-medium">Detalhes ({result.details.length} registros)</div>
                   <ScrollArea className="h-64 rounded-lg border">
                     <div className="p-4 space-y-2">
-                      {result.details.map((detail, idx) => (
+                      {result.details.map((detail) => (
                         <div key={detail.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                          <div>
-                            <div className="font-medium text-sm">{detail.name}</div>
-                            <div className="text-xs text-muted-foreground">Prontuário: {detail.prontuario}</div>
-                          </div>
-                          <div className="flex gap-1">
-                            {detail.fields_updated.map(field => (
+                          <div className="font-medium text-sm">{detail.name}</div>
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {detail.fields_updated.slice(0, 5).map(field => (
                               <Badge key={field} variant="outline" className="gap-1 text-xs">
                                 {getFieldIcon(field)}
-                                {field}
+                                {getFieldLabel(field)}
                               </Badge>
                             ))}
+                            {detail.fields_updated.length > 5 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{detail.fields_updated.length - 5}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -311,17 +432,6 @@ export const FeegowEnrichment = () => {
               )}
             </div>
           )}
-
-          {/* Info */}
-          <div className="text-sm text-muted-foreground p-4 rounded-lg bg-muted/30">
-            <p className="font-medium mb-2">Como funciona:</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Busca clientes com prontuário mas sem telefone, email ou CPF</li>
-              <li>Cruza o prontuário com a base do Feegow</li>
-              <li>Preenche os campos faltantes com os dados encontrados</li>
-              <li>Processa até 100 clientes por vez para evitar timeout</li>
-            </ol>
-          </div>
         </CardContent>
       </Card>
     </div>
