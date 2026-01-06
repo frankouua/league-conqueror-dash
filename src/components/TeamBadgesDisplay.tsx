@@ -59,14 +59,15 @@ const TeamBadgesDisplay = ({
   // TV-optimized layout for large screens
   if (layout === "tv") {
     return (
-      <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-12 lg:gap-20 py-4 sm:py-8">
+      <div className="flex items-start justify-center gap-3 sm:gap-6 md:gap-12 lg:gap-20 py-4 sm:py-8">
         {/* Lioness Team */}
-        <div className="flex flex-col items-center relative">
-          {isLionessWinning && (
-            <div className="absolute -top-4 sm:-top-8 md:-top-10 z-20">
+        <div className="flex flex-col items-center">
+          {/* Crown placeholder - always takes space */}
+          <div className="h-6 sm:h-10 md:h-14 flex items-center justify-center mb-2">
+            {isLionessWinning && (
               <Crown className="w-6 h-6 sm:w-10 sm:h-10 md:w-14 md:h-14 text-primary animate-float" />
-            </div>
-          )}
+            )}
+          </div>
           <div className={`${sizeClasses[size]} relative group`}>
             <div className={`absolute inset-0 rounded-full blur-3xl transition-all ${
               isLionessWinning ? "bg-primary/50" : "bg-primary/25"
@@ -127,15 +128,18 @@ const TeamBadgesDisplay = ({
             </div>
           )}
           
-          {isLionessWinning && (
-            <span className="text-[10px] sm:text-sm md:text-base font-bold text-primary bg-primary/20 px-2 sm:px-4 py-1 sm:py-2 rounded-full mt-2 sm:mt-3 animate-pulse">
-              🏆 Líder
-            </span>
-          )}
+          {/* Leader badge placeholder - always takes space */}
+          <div className="h-8 sm:h-10 mt-2 sm:mt-3 flex items-center justify-center">
+            {isLionessWinning && (
+              <span className="text-[10px] sm:text-sm md:text-base font-bold text-primary bg-primary/20 px-2 sm:px-4 py-1 sm:py-2 rounded-full animate-pulse">
+                🏆 Líder
+              </span>
+            )}
+          </div>
         </div>
 
         {/* VS Separator with Total Revenue */}
-        <div className="flex flex-col items-center justify-center gap-4">
+        <div className="flex flex-col items-center justify-center gap-4 pt-6 sm:pt-10 md:pt-14">
           <span className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-primary animate-pulse">
             VS
           </span>
@@ -152,12 +156,13 @@ const TeamBadgesDisplay = ({
         </div>
 
         {/* Tróia Team */}
-        <div className="flex flex-col items-center relative">
-          {isTroiaWinning && (
-            <div className="absolute -top-4 sm:-top-8 md:-top-10 z-20">
+        <div className="flex flex-col items-center">
+          {/* Crown placeholder - always takes space */}
+          <div className="h-6 sm:h-10 md:h-14 flex items-center justify-center mb-2">
+            {isTroiaWinning && (
               <Crown className="w-6 h-6 sm:w-10 sm:h-10 md:w-14 md:h-14 text-primary animate-float" />
-            </div>
-          )}
+            )}
+          </div>
           <div className={`${sizeClasses[size]} relative group`}>
             <div className={`absolute inset-0 rounded-full blur-3xl transition-all ${
               isTroiaWinning ? "bg-primary/50" : "bg-info/25"
@@ -218,11 +223,14 @@ const TeamBadgesDisplay = ({
             </div>
           )}
           
-          {isTroiaWinning && (
-            <span className="text-[10px] sm:text-sm md:text-base font-bold text-primary bg-primary/20 px-2 sm:px-4 py-1 sm:py-2 rounded-full mt-2 sm:mt-3 animate-pulse">
-              🏆 Líder
-            </span>
-          )}
+          {/* Leader badge placeholder - always takes space */}
+          <div className="h-8 sm:h-10 mt-2 sm:mt-3 flex items-center justify-center">
+            {isTroiaWinning && (
+              <span className="text-[10px] sm:text-sm md:text-base font-bold text-primary bg-primary/20 px-2 sm:px-4 py-1 sm:py-2 rounded-full animate-pulse">
+                🏆 Líder
+              </span>
+            )}
+          </div>
         </div>
       </div>
     );
