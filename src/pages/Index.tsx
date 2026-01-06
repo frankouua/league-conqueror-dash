@@ -24,7 +24,7 @@ import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 import SellerDashboard from "@/components/SellerDashboard";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { HistoricalTrendsPanel } from "@/components/HistoricalTrendsPanel";
-import GoalGapAnalysis from "@/components/GoalGapAnalysis";
+// GoalGapAnalysis removido - consolidado em ProceduresGoalTracker
 import ExecutiveKPIs from "@/components/ExecutiveKPIs";
 import DailyGoalsPanel from "@/components/DailyGoalsPanel";
 import LeadResponseMetrics from "@/components/LeadResponseMetrics";
@@ -435,7 +435,7 @@ const Index = () => {
 
           {/* O QUE FALTA TAB */}
           <TabsContent value="o-que-falta" className="space-y-8 animate-fade-in">
-            {/* NEW: Procedures Goal Tracker - Clear view of what's missing */}
+            {/* Main Goal Tracker - Consolidated view */}
             <ProceduresGoalTracker month={selectedMonth} year={selectedYear} />
             
             <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
@@ -444,8 +444,6 @@ const Index = () => {
               <SmartDailyGoals month={selectedMonth} year={selectedYear} />
               <SalesForecastPanel month={selectedMonth} year={selectedYear} />
             </div>
-            
-            <GoalGapAnalysis month={selectedMonth} year={selectedYear} />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
