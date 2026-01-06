@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database, Lock } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,6 +18,7 @@ import CampaignsManager from "@/components/admin/CampaignsManager";
 import SalesSpreadsheetUpload from "@/components/admin/SalesSpreadsheetUpload";
 import ComprehensiveDataImport from "@/components/admin/ComprehensiveDataImport";
 import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
+import PeriodLockManager from "@/components/admin/PeriodLockManager";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -159,6 +160,13 @@ const Admin = () => {
                 <Brain className="w-4 h-4" />
                 <span className="text-xs font-medium">AI Analytics</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="period-locks"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
+              >
+                <Lock className="w-4 h-4" />
+                <span className="text-xs font-medium">Travamento</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -215,6 +223,10 @@ const Admin = () => {
 
           <TabsContent value="analytics-ai" className="animate-scale-in">
             <AnalyticsAI />
+          </TabsContent>
+
+          <TabsContent value="period-locks" className="animate-scale-in">
+            <PeriodLockManager />
           </TabsContent>
         </Tabs>
 

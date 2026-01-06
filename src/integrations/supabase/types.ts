@@ -1363,6 +1363,54 @@ export type Database = {
         }
         Relationships: []
       }
+      period_locks: {
+        Row: {
+          created_at: string
+          id: string
+          locked: boolean
+          locked_at: string
+          locked_by: string
+          month: number
+          notes: string | null
+          record_type: string
+          unlock_reason: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          locked?: boolean
+          locked_at?: string
+          locked_by: string
+          month: number
+          notes?: string | null
+          record_type: string
+          unlock_reason?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          locked?: boolean
+          locked_at?: string
+          locked_by?: string
+          month?: number
+          notes?: string | null
+          record_type?: string
+          unlock_reason?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       predefined_goals: {
         Row: {
           confirmed: boolean
