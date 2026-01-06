@@ -218,13 +218,12 @@ const CommercialGuides = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
+      {/* Fixed Header */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center gap-4 px-4">
-          <Link to="/patient-kanban">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div className="flex items-center gap-2">
             <Book className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold">Guias Comerciais</h1>

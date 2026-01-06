@@ -766,7 +766,7 @@ Por favor, crie um script de WhatsApp ou ligação adequado para este perfil, co
                     Scripts Comerciais
                   </Button>
                 </Link>
-                <Link to="/patient-kanban">
+                <Link to="/referral-leads">
                   <Button variant="outline" className="w-full justify-start gap-2">
                     <MessageSquare className="h-4 w-4" />
                     Kanban de Leads
