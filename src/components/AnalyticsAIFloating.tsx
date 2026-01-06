@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, X, Send, Trash2, Bot, User, TrendingUp, BarChart3, PieChart, Target, Maximize2 } from 'lucide-react';
+import { Brain, X, Send, Trash2, User, TrendingUp, BarChart3, PieChart, Target, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -48,77 +47,117 @@ export function AnalyticsAIFloating() {
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (messageText: string) => {
+    if (!messageText.trim() || isLoading) return;
 
-    const userMessage = input.trim();
+    const userMessage = messageText.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
+    let assistantSoFar = '';
+
     try {
-      const response = await supabase.functions.invoke('analytics-ai', {
-        body: { 
-          messages: [...messages, { role: 'user', content: userMessage }]
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-ai`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            messages: [...messages, { role: 'user', content: userMessage }],
+          }),
         }
-      });
+      );
 
-      if (response.error) throw new Error(response.error.message);
-
-      const reader = response.data?.getReader?.();
-      if (!reader) {
-        // Non-streaming response
-        if (response.data?.choices?.[0]?.message?.content) {
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: response.data.choices[0].message.content 
-          }]);
+      if (!resp.ok) {
+        let msg = 'Não foi possível processar sua solicitação';
+        try {
+          const err = await resp.json();
+          msg = err?.error || msg;
+        } catch {
+          // ignore
         }
-        return;
+        throw new Error(msg);
       }
 
-      // Streaming response
-      const decoder = new TextDecoder();
-      let assistantMessage = '';
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      if (!resp.body) throw new Error('Resposta vazia do servidor');
 
-      while (true) {
+      // Create assistant placeholder
+      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let doneAll = false;
+
+      while (!doneAll) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
 
-        for (const line of lines) {
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
           if (!line.startsWith('data: ')) continue;
+
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
+          if (jsonStr === '[DONE]') {
+            doneAll = true;
+            break;
+          }
 
           try {
             const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
-              assistantMessage += content;
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: assistantMessage };
-                return updated;
+              assistantSoFar += content;
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant') {
+                  const next = [...prev];
+                  next[next.length - 1] = { role: 'assistant', content: assistantSoFar };
+                  return next;
+                }
+                return prev;
               });
             }
-          } catch {}
+          } catch {
+            // Incomplete JSON split across chunks: put back and wait for more
+            buffer = line + '\n' + buffer;
+            break;
+          }
         }
       }
     } catch (error) {
       console.error('Analytics AI error:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível processar sua solicitação',
-        variant: 'destructive'
+        description: error instanceof Error ? error.message : 'Não foi possível processar sua solicitação',
+        variant: 'destructive',
+      });
+
+      // Remove placeholder assistant message if it stayed empty
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && !last.content) return prev.slice(0, -1);
+        return prev;
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendMessage(input);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -129,66 +168,7 @@ export function AnalyticsAIFloating() {
   };
 
   const handleQuickPrompt = (prompt: string) => {
-    setInput(prompt);
-    const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: prompt }]);
-    
-    // Trigger the AI call
-    (async () => {
-      setIsLoading(true);
-      try {
-        const response = await supabase.functions.invoke('analytics-ai', {
-          body: { messages: [...messages, { role: 'user', content: prompt }] }
-        });
-
-        if (response.error) throw new Error(response.error.message);
-
-        const reader = response.data?.getReader?.();
-        if (!reader) {
-          if (response.data?.choices?.[0]?.message?.content) {
-            setMessages(prev => [...prev, { role: 'assistant', content: response.data.choices[0].message.content }]);
-          }
-          return;
-        }
-
-        const decoder = new TextDecoder();
-        let assistantMessage = '';
-        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === '[DONE]') continue;
-
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                assistantMessage += content;
-                setMessages(prev => {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: 'assistant', content: assistantMessage };
-                  return updated;
-                });
-              }
-            } catch {}
-          }
-        }
-      } catch (error) {
-        console.error('Analytics AI error:', error);
-        toast({ title: 'Erro', description: 'Não foi possível processar', variant: 'destructive' });
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+    void sendMessage(prompt);
   };
 
   const clearMessages = () => {
