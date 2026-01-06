@@ -128,14 +128,14 @@ serve(async (req) => {
       if (!customer.email && record.patient_email) customer.email = record.patient_email;
       if (!customer.phone && record.patient_phone) customer.phone = record.patient_phone;
       
-      // Add purchase (only if amount > 0)
+      // Add purchase - incluir TODOS os valores (positivos, zero e negativos)
+      // Valores zero = cortesias, retornos, serviços inclusos
+      // Valores negativos = cancelamentos, estornos
       const amount = parseFloat(record.amount) || 0;
-      if (amount > 0) {
-        customer.purchases.push({
-          date: record.date,
-          amount,
-        });
-      }
+      customer.purchases.push({
+        date: record.date,
+        amount,
+      });
     }
 
     console.log(`Found ${customerMap.size} unique customers`);
