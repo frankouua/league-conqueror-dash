@@ -240,7 +240,7 @@ const ProceduresGoalTracker = ({ month, year }: ProceduresGoalTrackerProps) => {
         perDay: daysRemaining > 0 ? remaining / daysRemaining : 0,
         procsPerDay: daysRemaining > 0 ? procsNeeded / daysRemaining : 0,
       };
-    }).filter(d => d.meta > 0).sort((a, b) => a.percent - b.percent);
+    }).filter(d => d.meta > 0).sort((a, b) => b.avgTicket - a.avgTicket); // Ordenar por maior ticket primeiro
   }, [departmentGoals, revenueRecords, daysRemaining, selectedMeta]);
 
   return (
