@@ -395,8 +395,9 @@ const RFVDashboard = () => {
   const [bulkProgress, setBulkProgress] = useState(0);
   const [isSendingBulk, setIsSendingBulk] = useState(false);
   const [bulkSentCount, setBulkSentCount] = useState(0);
-
-  // Get scripts for customer segment
+  
+  // Expand table state
+  const [isTableExpanded, setIsTableExpanded] = useState(false);
   const getScriptsForCustomer = (customer: RFVCustomer) => {
     const segmentScripts = STRATEGIC_SCRIPTS[customer.segment];
     const currentCampaign = getCurrentMonthCampaign();
@@ -1943,9 +1944,9 @@ const RFVDashboard = () => {
             </Card>
 
             {/* Customer Detail and Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className={`grid gap-6 ${isTableExpanded ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3'}`}>
               {/* Customer List */}
-              <Card className="lg:col-span-2">
+              <Card className={isTableExpanded ? '' : 'lg:col-span-2'}>
               <CardHeader>
                   <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span>
@@ -1976,6 +1977,24 @@ const RFVDashboard = () => {
                         <Button variant="outline" size="sm" onClick={exportToExcel}>
                           <FileSpreadsheet className="h-4 w-4 mr-2" />
                           Exportar Excel
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setIsTableExpanded(!isTableExpanded)}
+                          className="gap-1"
+                        >
+                          {isTableExpanded ? (
+                            <>
+                              <ArrowDownRight className="h-4 w-4" />
+                              Minimizar
+                            </>
+                          ) : (
+                            <>
+                              <ArrowUpRight className="h-4 w-4" />
+                              Expandir
+                            </>
+                          )}
                         </Button>
                         <Badge variant="outline">{filteredCustomers.length} clientes</Badge>
                       </div>
@@ -2019,21 +2038,21 @@ const RFVDashboard = () => {
                 <CardContent className="p-0">
                   {/* Scrollbar always visible container */}
                   <div className="border rounded-lg rfv-table-scroll max-h-[650px] overflow-x-scroll overflow-y-auto">
-                    <Table className="min-w-[1500px]">
+                    <Table className="min-w-[1200px]">
                       <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                         <TableRow>
-                          <TableHead className="w-[50px] text-center bg-background">#</TableHead>
-                          <TableHead className="min-w-[220px] bg-background">Cliente</TableHead>
-                          <TableHead className="min-w-[160px] bg-background">Contato</TableHead>
-                          <TableHead className="min-w-[100px] bg-background">Prontuário</TableHead>
-                          <TableHead className="min-w-[110px] bg-background">Segmento</TableHead>
-                          <TableHead className="text-center min-w-[100px] bg-background">RFV</TableHead>
-                          <TableHead className="text-right min-w-[140px] bg-background">Total Vendido</TableHead>
-                          <TableHead className="text-right min-w-[90px] bg-background">Compras</TableHead>
-                          <TableHead className="text-right min-w-[130px] bg-background">Ticket Médio</TableHead>
-                          <TableHead className="min-w-[120px] bg-background">Última Compra</TableHead>
-                          <TableHead className="text-center min-w-[70px] bg-background">Dias</TableHead>
-                          <TableHead className="text-center min-w-[70px] bg-background">Ação</TableHead>
+                          <TableHead className="w-[45px] text-center bg-background">#</TableHead>
+                          <TableHead className="min-w-[200px] bg-background">Cliente</TableHead>
+                          <TableHead className="text-right min-w-[130px] bg-background font-bold">💰 Total</TableHead>
+                          <TableHead className="min-w-[130px] bg-background">Contato</TableHead>
+                          <TableHead className="min-w-[90px] bg-background">Prontuário</TableHead>
+                          <TableHead className="min-w-[100px] bg-background">Segmento</TableHead>
+                          <TableHead className="text-center min-w-[90px] bg-background">RFV</TableHead>
+                          <TableHead className="text-right min-w-[70px] bg-background">Compras</TableHead>
+                          <TableHead className="text-right min-w-[110px] bg-background">Ticket</TableHead>
+                          <TableHead className="min-w-[100px] bg-background">Última</TableHead>
+                          <TableHead className="text-center min-w-[60px] bg-background">Dias</TableHead>
+                          <TableHead className="text-center min-w-[60px] bg-background">Ação</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2051,21 +2070,25 @@ const RFVDashboard = () => {
                               }}
                             >
                               {/* Ranking */}
-                              <TableCell className="text-center font-bold text-muted-foreground w-[50px]">
+                              <TableCell className="text-center font-bold text-muted-foreground w-[45px]">
                                 {(safePage - 1) * tablePageSize + index + 1}º
                               </TableCell>
                               {/* Cliente */}
                               <TableCell>
                                 <div>
-                                  <p className="font-medium">{customer.name}</p>
+                                  <p className="font-medium text-sm">{customer.name}</p>
                                   {customer.cpf && (
                                     <p className="text-xs text-muted-foreground">CPF: {customer.cpf}</p>
                                   )}
                                 </div>
                               </TableCell>
+                              {/* Total Vendido - MOVED UP */}
+                              <TableCell className="text-right font-bold text-green-600 text-base">
+                                {formatCurrency(customer.totalValue)}
+                              </TableCell>
                               {/* Contato */}
                               <TableCell>
-                                <div className="space-y-1">
+                                <div className="space-y-0.5">
                                   {contactPhone ? (
                                     <a 
                                       href={`https://wa.me/55${contactPhone.replace(/\D/g, '')}`}
@@ -2078,16 +2101,10 @@ const RFVDashboard = () => {
                                       {contactPhone}
                                     </a>
                                   ) : (
-                                    <span className="text-xs text-muted-foreground">Sem telefone</span>
+                                    <span className="text-xs text-muted-foreground">-</span>
                                   )}
                                   {customer.email && (
-                                    <a
-                                      href={`mailto:${customer.email}`}
-                                      className="text-xs text-blue-600 hover:underline truncate block max-w-[140px]"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {customer.email}
-                                    </a>
+                                    <p className="text-xs text-muted-foreground truncate max-w-[120px]">{customer.email}</p>
                                   )}
                                 </div>
                               </TableCell>
@@ -2103,53 +2120,49 @@ const RFVDashboard = () => {
                               </TableCell>
                               {/* Segmento */}
                               <TableCell>
-                                <Badge className={`${segment.color} text-white`}>
+                                <Badge className={`${segment.color} text-white text-xs`}>
                                   <Icon className="h-3 w-3 mr-1" />
                                   {segment.name}
                                 </Badge>
                               </TableCell>
                               {/* RFV Scores */}
                               <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-1">
-                                  <Badge variant={customer.recencyScore >= 4 ? "default" : "outline"} className="text-xs px-1">
+                                <div className="flex items-center justify-center gap-0.5">
+                                  <Badge variant={customer.recencyScore >= 4 ? "default" : "outline"} className="text-xs px-1 py-0">
                                     {customer.recencyScore}
                                   </Badge>
-                                  <Badge variant={customer.frequencyScore >= 4 ? "default" : "outline"} className="text-xs px-1">
+                                  <Badge variant={customer.frequencyScore >= 4 ? "default" : "outline"} className="text-xs px-1 py-0">
                                     {customer.frequencyScore}
                                   </Badge>
-                                  <Badge variant={customer.valueScore >= 4 ? "default" : "outline"} className="text-xs px-1">
+                                  <Badge variant={customer.valueScore >= 4 ? "default" : "outline"} className="text-xs px-1 py-0">
                                     {customer.valueScore}
                                   </Badge>
                                 </div>
                               </TableCell>
-                              {/* Total Vendido */}
-                              <TableCell className="text-right font-semibold text-green-600">
-                                {formatCurrency(customer.totalValue)}
-                              </TableCell>
                               {/* Compras */}
-                              <TableCell className="text-right">
+                              <TableCell className="text-right text-sm">
                                 {customer.totalPurchases}
                               </TableCell>
                               {/* Ticket Médio */}
-                              <TableCell className="text-right text-muted-foreground">
+                              <TableCell className="text-right text-sm text-muted-foreground">
                                 {formatCurrency(customer.averageTicket)}
                               </TableCell>
                               {/* Última Compra */}
-                              <TableCell>
+                              <TableCell className="text-sm">
                                 {new Date(customer.lastPurchaseDate).toLocaleDateString('pt-BR')}
                               </TableCell>
                               {/* Dias */}
                               <TableCell className="text-center">
-                                <Badge variant={customer.daysSinceLastPurchase <= 30 ? "default" : customer.daysSinceLastPurchase <= 90 ? "secondary" : "destructive"}>
-                                  {customer.daysSinceLastPurchase}d
+                                <Badge variant={customer.daysSinceLastPurchase <= 30 ? "default" : customer.daysSinceLastPurchase <= 90 ? "secondary" : "destructive"} className="text-xs">
+                                  {customer.daysSinceLastPurchase}
                                 </Badge>
                               </TableCell>
                               {/* Ação */}
                               <TableCell className="text-center">
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant="ghost"
-                                  className="gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
                                   onClick={(e) => handleOpenQuickAction(customer, e)}
                                   disabled={!contactPhone}
                                 >
@@ -2165,7 +2178,8 @@ const RFVDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Customer Actions Panel */}
+              {/* Customer Actions Panel - Hide when expanded */}
+              {!isTableExpanded && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -2378,6 +2392,7 @@ const RFVDashboard = () => {
                   )}
                 </CardContent>
               </Card>
+              )}
             </div>
 
             {/* Segment Strategy Cards */}
