@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database, Lock } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database, Lock, Link2 } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,7 @@ import SalesSpreadsheetUpload from "@/components/admin/SalesSpreadsheetUpload";
 import ComprehensiveDataImport from "@/components/admin/ComprehensiveDataImport";
 import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
 import PeriodLockManager from "@/components/admin/PeriodLockManager";
+import RFVContactSync from "@/components/admin/RFVContactSync";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -218,7 +219,10 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="data-import" className="animate-scale-in">
-            <ComprehensiveDataImport />
+            <div className="space-y-6">
+              <ComprehensiveDataImport />
+              <RFVContactSync />
+            </div>
           </TabsContent>
 
           <TabsContent value="analytics-ai" className="animate-scale-in">
