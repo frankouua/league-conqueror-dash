@@ -16,6 +16,9 @@ interface CustomerData {
   recencyScore: number;
   frequencyScore: number;
   valueScore: number;
+  profession?: string;
+  city?: string;
+  mainObjective?: string;
 }
 
 serve(async (req) => {
@@ -45,37 +48,59 @@ serve(async (req) => {
 
     console.log("Generating AI strategy for customer:", customer.name, "Segment:", customer.segmentName);
 
-    const systemPrompt = `Você é um especialista em estratégias de relacionamento e vendas para clínicas de estética e cirurgia plástica. 
-    
-Sua missão é analisar dados de clientes e criar estratégias personalizadas de reativação, upsell, cross-sell e fidelização.
+    const systemPrompt = `Você é um especialista em estratégias de relacionamento e vendas para clínicas de estética e cirurgia plástica da Unique Clinic.
 
-Responda SEMPRE em português brasileiro. Seja específico, prático e acionável.
+IMPORTANTE: Suas respostas devem ser CLARAS, PRÁTICAS e PRONTAS PARA USO.
 
-Contexto da clínica:
-- Clínica de cirurgia plástica e estética premium
-- Serviços: cirurgias plásticas, harmonização facial, soroterapia, spa/estética
-- Foco em experiência do cliente e relacionamento de longo prazo`;
+Contexto da clínica Unique:
+- Clínica premium de cirurgia plástica e estética em Uberlândia-MG
+- Serviços: cirurgias plásticas, harmonização facial, soroterapia, spa day, protocolos estéticos
+- Diferencial: atendimento humanizado, acompanhamento pós-operatório, experiência VIP
+- Campanhas mensais com ofertas especiais
 
-    const userPrompt = `Analise este cliente e crie uma estratégia personalizada de relacionamento:
+Responda SEMPRE em português brasileiro.`;
 
-**Cliente:** ${customer.name}
-**Segmento RFV:** ${customer.segmentName}
-**Scores:** Recência: ${customer.recencyScore}/5 | Frequência: ${customer.frequencyScore}/5 | Valor: ${customer.valueScore}/5
+    const additionalInfo = [
+      customer.profession ? `Profissão: ${customer.profession}` : null,
+      customer.city ? `Cidade: ${customer.city}` : null,
+      customer.mainObjective ? `Objetivo principal: ${customer.mainObjective}` : null,
+    ].filter(Boolean).join('\n');
 
-**Dados Financeiros:**
-- Total de compras: ${customer.totalPurchases} procedimentos
-- Valor total gasto: R$ ${customer.totalValue.toLocaleString('pt-BR')}
-- Ticket médio: R$ ${customer.averageTicket.toLocaleString('pt-BR')}
-- Dias desde última compra: ${customer.daysSinceLastPurchase} dias
+    const userPrompt = `Analise este cliente e crie uma estratégia PRÁTICA e ACIONÁVEL:
 
-Crie uma estratégia com:
-1. **Diagnóstico** (2-3 linhas sobre o perfil do cliente)
-2. **Ação Imediata** (o que fazer AGORA para engajar)
-3. **Oferta Recomendada** (produto/serviço específico para oferecer)
-4. **Script de Abordagem** (mensagem de WhatsApp personalizada de 2-3 linhas)
-5. **Próximos Passos** (3 ações sequenciais para os próximos 30 dias)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 DADOS DO CLIENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Nome: ${customer.name}
+Segmento: ${customer.segmentName}
+${additionalInfo ? `\n${additionalInfo}\n` : ''}
+📈 Scores RFV: R:${customer.recencyScore} | F:${customer.frequencyScore} | V:${customer.valueScore}
+💰 Valor total: R$ ${customer.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+🛒 Procedimentos: ${customer.totalPurchases}
+💎 Ticket médio: R$ ${customer.averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+📅 Dias sem comprar: ${customer.daysSinceLastPurchase} dias
 
-Seja específico ao segmento ${customer.segmentName}.`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Crie a estratégia EXATAMENTE neste formato:
+
+**🎯 DIAGNÓSTICO**
+(2 frases sobre o perfil e momento do cliente)
+
+**⚡ AÇÃO IMEDIATA**
+(O que fazer AGORA - seja específico: ligar, WhatsApp, etc)
+
+**🎁 OFERTA RECOMENDADA**
+(Produto/serviço específico com valor estimado se aplicável)
+
+**💬 SCRIPT DE WHATSAPP**
+(Mensagem pronta para copiar e enviar - 2-3 linhas, tom acolhedor)
+
+**📋 PRÓXIMOS 30 DIAS**
+1. (Ação 1 com prazo)
+2. (Ação 2 com prazo)
+3. (Ação 3 com prazo)
+
+IMPORTANTE: O script de WhatsApp deve ser uma mensagem real e personalizada que a vendedora pode copiar e enviar diretamente.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -89,7 +114,7 @@ Seja específico ao segmento ${customer.segmentName}.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 1000,
+        max_tokens: 1200,
         temperature: 0.7,
       }),
     });

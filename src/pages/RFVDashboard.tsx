@@ -1144,23 +1144,52 @@ const RFVDashboard = () => {
     setIsProcessing(false);
   };
 
-  const calculateRFVSegment = (recency: number, frequency: number, value: number): RFVSegment => {
-    // Champions: R: 4-5, F: 4-5, V: 4-5
+  const calculateRFVSegment = (recency: number, frequency: number, value: number, daysSincePurchase?: number): RFVSegment => {
+    // CRITICAL: Days since purchase is the most important factor for recency
+    // Even if scores say "high recency", if days > 180, they're NOT champions
+    
+    // First, check actual days to prevent misclassification
+    if (daysSincePurchase !== undefined) {
+      // If more than 365 days, they're lost or hibernating regardless of scores
+      if (daysSincePurchase > 365) {
+        if (frequency >= 3 || value >= 3) return 'hibernating'; // Had good history but disappeared
+        return 'lost';
+      }
+      
+      // If 181-365 days, at risk or hibernating
+      if (daysSincePurchase > 180) {
+        if (frequency >= 4 && value >= 4) return 'at_risk'; // Were good customers but slipping
+        if (frequency >= 2 || value >= 3) return 'hibernating';
+        return 'lost';
+      }
+      
+      // If 91-180 days, check if at risk
+      if (daysSincePurchase > 90) {
+        if (frequency >= 4 && value >= 4) return 'loyal'; // Still loyal but need attention
+        if (frequency >= 3 && value >= 3) return 'at_risk';
+        if (recency >= 3) return 'potential';
+        return 'hibernating';
+      }
+    }
+    
+    // For recent customers (< 90 days or no day data), use traditional RFV scoring
+    
+    // Champions: R: 4-5, F: 4-5, V: 4-5 AND recent purchase
     if (recency >= 4 && frequency >= 4 && value >= 4) return 'champions';
     
-    // Loyal: R: 3-4, F: 3-5, V: 3-5
+    // Loyal: R: 3-5, F: 3-5, V: 3-5
     if (recency >= 3 && frequency >= 3 && value >= 3) return 'loyal';
     
-    // Potential: R: 4-5, F: 1-3, V: 1-3
-    if (recency >= 4 && frequency <= 3 && value <= 3) return 'potential';
+    // Potential: R: 4-5 (recent), F: 1-3 (new), V: any
+    if (recency >= 4 && frequency <= 3) return 'potential';
     
-    // At Risk: R: 1-2, F: 3-5, V: 3-5
-    if (recency <= 2 && frequency >= 3 && value >= 3) return 'at_risk';
+    // At Risk: R: 2-3, F: 3-5, V: 3-5 (were good but fading)
+    if (recency >= 2 && recency <= 3 && frequency >= 3 && value >= 3) return 'at_risk';
     
-    // Hibernating: R: 1-2, F: 1-2, V: 2-4
-    if (recency <= 2 && frequency <= 2 && value >= 2 && value <= 4) return 'hibernating';
+    // Hibernating: R: 1-2, F: any, V: 2-5
+    if (recency <= 2 && value >= 2) return 'hibernating';
     
-    // Lost: R: 1-2, F: 1-2, V: 1-2
+    // Lost: everything else
     return 'lost';
   };
 
@@ -1428,9 +1457,9 @@ const RFVDashboard = () => {
           ? customer.preValueScore
           : getQuintile(customer.totalValue, valueValues);
         
-        // Use pre-calculated segment if available, otherwise calculate
+        // Use pre-calculated segment if available, otherwise calculate with days context
         const mappedSegment = mapSegmentName(customer.preSegment);
-        const segment = mappedSegment ?? calculateRFVSegment(recencyScore, frequencyScore, valueScore);
+        const segment = mappedSegment ?? calculateRFVSegment(recencyScore, frequencyScore, valueScore, customer.daysSinceLastPurchase);
 
         return {
           name: customer.name,
@@ -1611,6 +1640,9 @@ const RFVDashboard = () => {
             recencyScore: selectedCustomer.recencyScore,
             frequencyScore: selectedCustomer.frequencyScore,
             valueScore: selectedCustomer.valueScore,
+            profession: selectedCustomer.profession,
+            city: selectedCustomer.city,
+            mainObjective: selectedCustomer.mainObjective,
           }
         }
       });
@@ -1656,6 +1688,38 @@ const RFVDashboard = () => {
     }
 
     return stats;
+  };
+
+  // Recalculate all customer segments based on current data
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  
+  const recalculateAllSegments = async () => {
+    if (customers.length === 0) return;
+    
+    setIsRecalculating(true);
+    
+    try {
+      const updatedCustomers = customers.map(c => {
+        const newSegment = calculateRFVSegment(c.recencyScore, c.frequencyScore, c.valueScore, c.daysSinceLastPurchase);
+        return { ...c, segment: newSegment };
+      });
+      
+      setCustomers(updatedCustomers);
+      setHasUnsavedChanges(true);
+      
+      // Count changes
+      const changes = customers.filter((c, i) => c.segment !== updatedCustomers[i].segment).length;
+      
+      toast({
+        title: "Segmentos recalculados!",
+        description: `${changes} clientes tiveram o segmento atualizado. Salve para persistir.`,
+      });
+    } catch (error) {
+      console.error('Error recalculating segments:', error);
+      toast({ title: "Erro ao recalcular", variant: "destructive" });
+    }
+    
+    setIsRecalculating(false);
   };
 
   // Advanced filters state
@@ -2811,17 +2875,63 @@ const RFVDashboard = () => {
                     </Button>
                   </div>
 
-                  {/* AI Generated Strategy */}
+                  {/* AI Generated Strategy - Improved Layout */}
                   {aiStrategy && (
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Sparkles className="h-4 w-4 text-purple-500" />
-                        <h4 className="font-semibold text-sm text-purple-700 dark:text-purple-300">
-                          Estratégia Personalizada (IA)
-                        </h4>
+                    <div className="p-4 rounded-lg bg-white border-2 border-purple-200 shadow-md">
+                      <div className="flex items-center justify-between gap-2 mb-4 pb-2 border-b border-purple-100">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-purple-600" />
+                          <h4 className="font-bold text-base text-purple-800">
+                            Estratégia Personalizada
+                          </h4>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs gap-1 border-purple-300 text-purple-600 hover:bg-purple-50"
+                          onClick={() => {
+                            navigator.clipboard.writeText(aiStrategy);
+                            toast({ title: "Copiado!", description: "Estratégia copiada para a área de transferência." });
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copiar tudo
+                        </Button>
                       </div>
-                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm whitespace-pre-wrap">
-                        {aiStrategy}
+                      <div className="space-y-3 text-sm text-gray-800 leading-relaxed">
+                        {aiStrategy.split('\n').map((line, idx) => {
+                          // Bold headers
+                          if (line.startsWith('**') && line.includes('**')) {
+                            const cleanLine = line.replace(/\*\*/g, '');
+                            return (
+                              <div key={idx} className="font-bold text-purple-700 mt-3 first:mt-0">
+                                {cleanLine}
+                              </div>
+                            );
+                          }
+                          // Script lines - make them copyable
+                          if (line.toLowerCase().includes('script') || line.startsWith('"') || line.startsWith('"')) {
+                            return (
+                              <div key={idx} className="bg-green-50 border border-green-200 rounded-lg p-3 relative group">
+                                <p className="text-gray-800 italic pr-8">{line}</p>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(line.replace(/^[""]|[""]$/g, ''));
+                                    toast({ title: "Script copiado!" });
+                                  }}
+                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-green-100 hover:bg-green-200"
+                                >
+                                  <Copy className="h-3 w-3 text-green-600" />
+                                </button>
+                              </div>
+                            );
+                          }
+                          // Regular lines
+                          if (line.trim()) {
+                            return <p key={idx} className="text-gray-700">{line}</p>;
+                          }
+                          return <div key={idx} className="h-1" />;
+                        })}
                       </div>
                     </div>
                   )}
