@@ -171,23 +171,47 @@ serve(async (req) => {
       monthlyExecuted[key].byDepartment[dept].count += 1;
     });
 
-    // Seller performance
+    // Seller performance - overall
     const sellerPerformance: Record<string, { name: string; revenue: number; count: number; team: string }> = {};
+    
+    // Seller performance - by month
+    const sellerMonthlyPerformance: Record<string, Record<string, { name: string; revenue: number; count: number; team: string }>> = {};
     
     revenueRecords.forEach((record: any) => {
       const userId = record.attributed_to_user_id || record.user_id;
+      const date = new Date(record.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const profile = profiles.find((p: any) => p.user_id === userId);
+      const team = teams.find((t: any) => t.id === profile?.team_id);
+      const sellerName = profile?.full_name || "Desconhecido";
+      const teamName = team?.name || "Sem equipe";
+      
+      // Overall performance
       if (!sellerPerformance[userId]) {
-        const profile = profiles.find((p: any) => p.user_id === userId);
-        const team = teams.find((t: any) => t.id === profile?.team_id);
         sellerPerformance[userId] = {
-          name: profile?.full_name || "Desconhecido",
+          name: sellerName,
           revenue: 0,
           count: 0,
-          team: team?.name || "Sem equipe",
+          team: teamName,
         };
       }
       sellerPerformance[userId].revenue += record.amount;
       sellerPerformance[userId].count += 1;
+      
+      // Monthly performance
+      if (!sellerMonthlyPerformance[monthKey]) {
+        sellerMonthlyPerformance[monthKey] = {};
+      }
+      if (!sellerMonthlyPerformance[monthKey][userId]) {
+        sellerMonthlyPerformance[monthKey][userId] = {
+          name: sellerName,
+          revenue: 0,
+          count: 0,
+          team: teamName,
+        };
+      }
+      sellerMonthlyPerformance[monthKey][userId].revenue += record.amount;
+      sellerMonthlyPerformance[monthKey][userId].count += 1;
     });
 
     // RFV segment summary
@@ -231,12 +255,26 @@ ${Object.entries(monthlyExecuted)
   .map(([month, data]) => `- ${month}: R$ ${data.total.toLocaleString("pt-BR")} (${data.count} execuções)`)
   .join("\n")}
 
-### PERFORMANCE DE VENDEDORES (últimos 12 meses)
+### PERFORMANCE DE VENDEDORES (acumulado últimos 12 meses)
 ${Object.values(sellerPerformance)
   .sort((a: any, b: any) => b.revenue - a.revenue)
   .slice(0, 10)
   .map((seller: any, idx) => `${idx + 1}. ${seller.name} (${seller.team}): R$ ${seller.revenue.toLocaleString("pt-BR")} (${seller.count} vendas)`)
   .join("\n")}
+
+### RANKING DE VENDEDORES POR MÊS (top 5 de cada mês)
+${Object.entries(sellerMonthlyPerformance)
+  .sort((a, b) => b[0].localeCompare(a[0]))
+  .slice(0, 6)
+  .map(([month, sellers]) => {
+    const topSellers = Object.values(sellers)
+      .sort((a: any, b: any) => b.revenue - a.revenue)
+      .slice(0, 5)
+      .map((s: any, idx) => `  ${idx + 1}. ${s.name}: R$ ${s.revenue.toLocaleString("pt-BR")} (${s.count} vendas)`)
+      .join("\n");
+    return `${month}:\n${topSellers}`;
+  })
+  .join("\n\n")}
 
 ### METAS (${currentYear})
 ${goals
