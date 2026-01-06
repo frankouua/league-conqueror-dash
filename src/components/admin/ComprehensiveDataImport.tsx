@@ -489,6 +489,112 @@ export default function ComprehensiveDataImport() {
     return stats;
   };
 
+  // Auto-calculate RFV and check for missing data
+  const autoCalculateRFVAndNotify = async (importType: string) => {
+    try {
+      // Calculate RFV
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calculate-rfv`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+      const data = await response.json();
+      
+      if (data.success) {
+        // Check for customers missing data and create notification
+        const missingData = data.stats.missingPhone + data.stats.missingEmail;
+        
+        if (missingData > 100) {
+          // Create notification for team about missing data
+          await supabase.from('notifications').insert({
+            user_id: null, // broadcast to all
+            team_id: null,
+            title: '⚠️ Clientes sem dados de contato',
+            message: `Há ${data.stats.missingPhone} clientes sem telefone e ${data.stats.missingEmail} sem email na matriz RFV. Considere atualizar os cadastros para ações de reativação.`,
+            type: 'rfv_data_missing',
+          });
+        }
+
+        toast({
+          title: "RFV atualizado automaticamente!",
+          description: `${data.stats.totalCustomers} clientes. ${data.stats.missingPhone} sem telefone, ${data.stats.missingEmail} sem email.`,
+        });
+
+        return data.stats;
+      }
+    } catch (err) {
+      console.error("Auto RFV error:", err);
+    }
+    return null;
+  };
+
+  // Try to fetch missing data from Feegow API
+  const enrichMissingDataFromFeegow = async () => {
+    toast({ title: "Buscando dados no Feegow...", description: "Isso pode levar alguns segundos" });
+    
+    try {
+      // Get customers missing contact data
+      const { data: missingContacts } = await supabase
+        .from('rfv_customers')
+        .select('id, name, phone, email, cpf, prontuario')
+        .or('phone.is.null,email.is.null')
+        .limit(50); // Process 50 at a time
+      
+      if (!missingContacts || missingContacts.length === 0) {
+        toast({ title: "Todos os clientes já têm dados de contato" });
+        return;
+      }
+
+      let enriched = 0;
+      
+      for (const customer of missingContacts) {
+        try {
+          const response = await supabase.functions.invoke('feegow-patient-search', {
+            body: { patientName: customer.name }
+          });
+          
+          if (response.data?.success && response.data.patients?.length > 0) {
+            const feegowPatient = response.data.patients[0];
+            
+            // Update rfv_customers with enriched data
+            const updates: any = {};
+            if (!customer.phone && feegowPatient.phone) updates.phone = feegowPatient.phone;
+            if (!customer.phone && feegowPatient.cellphone) updates.whatsapp = feegowPatient.cellphone;
+            if (!customer.email && feegowPatient.email) updates.email = feegowPatient.email;
+            if (!customer.cpf && feegowPatient.cpf) updates.cpf = feegowPatient.cpf;
+            
+            if (Object.keys(updates).length > 0) {
+              await supabase.from('rfv_customers').update(updates).eq('id', customer.id);
+              
+              // Also update patient_data if exists
+              if (customer.prontuario) {
+                await supabase.from('patient_data').update(updates).eq('prontuario', customer.prontuario);
+              }
+              
+              enriched++;
+            }
+          }
+        } catch (err) {
+          // Silent fail for individual lookups
+        }
+      }
+
+      toast({
+        title: "Dados enriquecidos do Feegow",
+        description: `${enriched} de ${missingContacts.length} clientes atualizados`,
+      });
+    } catch (err) {
+      console.error("Feegow enrichment error:", err);
+      toast({ title: "Erro ao buscar dados do Feegow", variant: "destructive" });
+    }
+  };
+
   // Main import function
   const handleImport = async () => {
     if (!rawData.length) {
@@ -502,10 +608,15 @@ export default function ComprehensiveDataImport() {
     try {
       let stats: ImportStats;
 
-      if (fileType === 'persona') {
+      if (fileType === 'persona' || fileType === 'cadastros' || fileType === 'formulario') {
         stats = await importPersonaData();
       } else if (fileType === 'vendas' || fileType === 'executado') {
         stats = await importTransactionData();
+        
+        // Auto-calculate RFV after sales/executed imports
+        setProgress(95);
+        toast({ title: "Atualizando Matriz RFV...", description: "Aguarde..." });
+        await autoCalculateRFVAndNotify(fileType);
       } else {
         toast({ title: "Tipo de arquivo não suportado", variant: "destructive" });
         return;
@@ -799,57 +910,103 @@ export default function ComprehensiveDataImport() {
         </div>
       )}
 
-      {/* RFV Calculation Button */}
-      {importStats && fileType === 'vendas' && (
+      {/* RFV Calculation and Feegow Enrichment Buttons */}
+      {importStats && (fileType === 'vendas' || fileType === 'executado') && (
         <Card className="border-primary/50 bg-primary/5">
           <CardContent className="py-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-start gap-3">
                 <Zap className="w-5 h-5 text-primary mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium">Calcular Matriz RFV</p>
+                  <p className="font-medium">Matriz RFV já foi calculada automaticamente</p>
                   <p className="text-muted-foreground">
-                    Calcule automaticamente Recência, Frequência e Valor de todos os clientes
+                    A matriz RFV é atualizada após cada importação de vendas/executado
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={async () => {
-                  setImporting(true);
-                  try {
-                    const response = await fetch(
-                      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calculate-rfv`,
-                      {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-                        },
-                        body: JSON.stringify({}),
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={enrichMissingDataFromFeegow}
+                  disabled={importing}
+                  className="gap-2"
+                >
+                  <Users className="w-4 h-4" />
+                  Buscar Dados Feegow
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setImporting(true);
+                    try {
+                      const response = await fetch(
+                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calculate-rfv`,
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                          },
+                          body: JSON.stringify({}),
+                        }
+                      );
+                      const data = await response.json();
+                      if (data.success) {
+                        toast({
+                          title: "Matriz RFV recalculada!",
+                          description: `${data.stats.totalCustomers} clientes processados. ${data.stats.missingEmail} sem email, ${data.stats.missingPhone} sem telefone.`,
+                        });
+                      } else {
+                        throw new Error(data.error);
                       }
-                    );
-                    const data = await response.json();
-                    if (data.success) {
-                      toast({
-                        title: "Matriz RFV calculada!",
-                        description: `${data.stats.totalCustomers} clientes processados. ${data.stats.missingEmail} sem email, ${data.stats.missingPhone} sem telefone.`,
-                      });
-                    } else {
-                      throw new Error(data.error);
+                    } catch (err) {
+                      console.error("RFV error:", err);
+                      toast({ title: "Erro ao calcular RFV", variant: "destructive" });
+                    } finally {
+                      setImporting(false);
                     }
-                  } catch (err) {
-                    console.error("RFV error:", err);
-                    toast({ title: "Erro ao calcular RFV", variant: "destructive" });
-                  } finally {
-                    setImporting(false);
-                  }
-                }}
-                disabled={importing}
-                className="gap-2"
-              >
-                {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                Calcular RFV
-              </Button>
+                  }}
+                  disabled={importing}
+                  className="gap-2"
+                >
+                  {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  Recalcular RFV
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Missing Data Alert */}
+      {importStats && importStats.new > 0 && (
+        <Card className="border-amber-500/50 bg-amber-500/5">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-600">Clientes sem dados completos</p>
+                <p className="text-muted-foreground mt-1">
+                  Clientes sem CPF, telefone ou email não podem receber ações de reativação.
+                  Use o botão "Buscar Dados Feegow" para tentar enriquecer automaticamente ou 
+                  notifique a equipe para atualizar manualmente.
+                </p>
+                <Button
+                  variant="link"
+                  className="p-0 h-auto text-amber-600"
+                  onClick={async () => {
+                    await supabase.from('notifications').insert({
+                      user_id: null,
+                      team_id: null,
+                      title: '📋 Ação Necessária: Atualizar Cadastros',
+                      message: 'Existem clientes na base sem dados de contato completos. Por favor, verifiquem e atualizem os cadastros para possibilitar ações de reativação.',
+                      type: 'data_update_required',
+                    });
+                    toast({ title: "Notificação enviada para a equipe!" });
+                  }}
+                >
+                  Notificar equipe para atualizar cadastros
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
