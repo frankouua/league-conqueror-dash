@@ -22,7 +22,7 @@ import {
   Target, Phone, Gift, Heart, RefreshCw, Crown, Zap, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Clock, DollarSign, Calendar, Star,
   MessageSquare, Mail, Sparkles, CheckCircle2, Database, Save, History,
-  Send, Copy, Check, UserPlus, Megaphone, HandHeart, Award
+  Send, Copy, Check, UserPlus, Megaphone, HandHeart, Award, Square, CheckSquare, Shield
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -396,6 +396,10 @@ const RFVDashboard = () => {
   const [isSendingBulk, setIsSendingBulk] = useState(false);
   const [bulkSentCount, setBulkSentCount] = useState(0);
   
+  // Checkbox selection states
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<Set<string>>(new Set());
+  const [bulkQuantityLimit, setBulkQuantityLimit] = useState<number | 'all'>('all');
+  
   // Expand table state
   const [isTableExpanded, setIsTableExpanded] = useState(false);
   const getScriptsForCustomer = (customer: RFVCustomer) => {
@@ -520,11 +524,73 @@ const RFVDashboard = () => {
     return filteredCustomers.filter(c => c.whatsapp || c.phone);
   };
 
-  const handleBulkWhatsAppOpen = async () => {
+  // Get selected customers for bulk action
+  const getSelectedCustomersForBulk = () => {
     const customersWithPhone = getCustomersWithPhone();
     
-    if (customersWithPhone.length === 0) {
-      toast({ title: "Nenhum cliente com telefone", description: "Os clientes filtrados não possuem telefone cadastrado.", variant: "destructive" });
+    // If there are manually selected customers, use those
+    if (selectedCustomerIds.size > 0) {
+      return customersWithPhone.filter(c => c.id && selectedCustomerIds.has(c.id));
+    }
+    
+    // Otherwise, apply quantity limit
+    if (bulkQuantityLimit === 'all') {
+      return customersWithPhone;
+    }
+    
+    return customersWithPhone.slice(0, bulkQuantityLimit);
+  };
+
+  // Toggle customer selection
+  const toggleCustomerSelection = (customerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedCustomerIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(customerId)) {
+        newSet.delete(customerId);
+      } else {
+        newSet.add(customerId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select/deselect all visible customers
+  const toggleSelectAll = () => {
+    const customersWithPhone = getCustomersWithPhone();
+    const allVisibleIds = pagedCustomers
+      .filter(c => c.id && (c.whatsapp || c.phone))
+      .map(c => c.id!);
+    
+    const allSelected = allVisibleIds.every(id => selectedCustomerIds.has(id));
+    
+    if (allSelected) {
+      // Deselect all visible
+      setSelectedCustomerIds(prev => {
+        const newSet = new Set(prev);
+        allVisibleIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    } else {
+      // Select all visible
+      setSelectedCustomerIds(prev => {
+        const newSet = new Set(prev);
+        allVisibleIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
+    }
+  };
+
+  // Clear all selections
+  const clearSelections = () => {
+    setSelectedCustomerIds(new Set());
+  };
+
+  const handleBulkWhatsAppOpen = async () => {
+    const customersToSend = getSelectedCustomersForBulk();
+    
+    if (customersToSend.length === 0) {
+      toast({ title: "Nenhum cliente selecionado", description: "Selecione clientes ou ajuste o limite de quantidade.", variant: "destructive" });
       return;
     }
 
@@ -540,7 +606,7 @@ const RFVDashboard = () => {
     // Log bulk action start
     try {
       await supabase.from('rfv_action_history').insert({
-        customer_name: `Disparo em massa para ${customersWithPhone.length} clientes`,
+        customer_name: `Disparo em massa para ${customersToSend.length} clientes`,
         action_type: `bulk_${bulkScriptType || 'custom'}`,
         notes: `Mensagem: ${bulkMessage.substring(0, 200)}...`,
         performed_by: user?.id || '',
@@ -551,8 +617,8 @@ const RFVDashboard = () => {
     }
 
     // Open WhatsApp links one by one with delay
-    for (let i = 0; i < customersWithPhone.length; i++) {
-      const customer = customersWithPhone[i];
+    for (let i = 0; i < customersToSend.length; i++) {
+      const customer = customersToSend[i];
       const phone = customer.whatsapp || customer.phone;
       if (!phone) continue;
 
@@ -578,18 +644,20 @@ const RFVDashboard = () => {
       window.open(whatsappUrl, '_blank');
       
       setBulkSentCount(i + 1);
-      setBulkProgress(Math.round(((i + 1) / customersWithPhone.length) * 100));
+      setBulkProgress(Math.round(((i + 1) / customersToSend.length) * 100));
 
-      // Wait 2 seconds between each to avoid overwhelming
-      if (i < customersWithPhone.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait 3-5 seconds between each to avoid blocking (randomized)
+      if (i < customersToSend.length - 1) {
+        const delay = 3000 + Math.random() * 2000; // 3-5 seconds
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
     setIsSendingBulk(false);
+    clearSelections();
     toast({ 
       title: "Disparo concluído!", 
-      description: `${customersWithPhone.length} clientes foram adicionados para contato.` 
+      description: `${customersToSend.length} clientes foram adicionados para contato.` 
     });
   };
 
@@ -2094,18 +2162,49 @@ const RFVDashboard = () => {
                 <CardContent className="p-0">
                   {/* Scroll indicator bar */}
                   <div className="bg-muted/50 border-b px-4 py-2 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      ⬅️ Arraste para ver todas as colunas ➡️
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        ⬅️ Arraste para ver todas as colunas ➡️
+                      </span>
+                      {selectedCustomerIds.size > 0 && (
+                        <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700">
+                          <CheckSquare className="h-3 w-3" />
+                          {selectedCustomerIds.size} selecionados
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-4 w-4 p-0 ml-1 hover:bg-green-200"
+                            onClick={clearSelections}
+                          >
+                            ✕
+                          </Button>
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Colunas: Ranking, Cliente, Total, Contato, Prontuário, Segmento, RFV, Compras, Ticket, Última, Dias, Ação</span>
+                      <span className="text-xs text-muted-foreground">Selecione clientes para disparo em massa</span>
                     </div>
                   </div>
                   {/* Scrollbar always visible container */}
                   <div className="border rounded-lg rfv-table-scroll max-h-[600px] overflow-x-auto overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
-                    <Table className="min-w-[1400px]">
+                    <Table className="min-w-[1500px]">
                       <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                         <TableRow>
+                          <TableHead className="w-[40px] text-center bg-background">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={toggleSelectAll}
+                              title="Selecionar/Deselecionar todos da página"
+                            >
+                              {pagedCustomers.filter(c => c.id && (c.whatsapp || c.phone)).every(c => selectedCustomerIds.has(c.id!)) && pagedCustomers.filter(c => c.id && (c.whatsapp || c.phone)).length > 0 ? (
+                                <CheckSquare className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Square className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </TableHead>
                           <TableHead className="w-[45px] text-center bg-background">#</TableHead>
                           <TableHead className="min-w-[200px] bg-background">Cliente</TableHead>
                           <TableHead className="text-right min-w-[130px] bg-background font-bold">💰 Total</TableHead>
@@ -2134,6 +2233,25 @@ const RFVDashboard = () => {
                                 setAiStrategy(null);
                               }}
                             >
+                              {/* Checkbox */}
+                              <TableCell className="text-center w-[40px]">
+                                {customer.id && contactPhone ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={(e) => toggleCustomerSelection(customer.id!, e)}
+                                  >
+                                    {selectedCustomerIds.has(customer.id) ? (
+                                      <CheckSquare className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <Square className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                  </Button>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">-</span>
+                                )}
+                              </TableCell>
                               {/* Ranking */}
                               <TableCell className="text-center font-bold text-muted-foreground w-[45px]">
                                 {(safePage - 1) * tablePageSize + index + 1}º
@@ -2816,25 +2934,56 @@ const RFVDashboard = () => {
               <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                 <Label className="text-xs text-muted-foreground">Preview (primeiro cliente):</Label>
                 <p className="text-sm mt-1">
-                  {bulkMessage.replace(/{nome}/g, getCustomersWithPhone()[0]?.name.split(' ')[0] || 'Cliente')}
+                  {bulkMessage.replace(/{nome}/g, getSelectedCustomersForBulk()[0]?.name.split(' ')[0] || 'Cliente')}
                 </p>
               </div>
             )}
 
-            {/* Stats Summary */}
+            {/* Quantity Limit Selector */}
             <div className="p-4 rounded-lg bg-muted/50 border border-border">
+              <Label className="text-sm font-medium mb-3 block">Quantos clientes disparar?</Label>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {selectedCustomerIds.size > 0 ? (
+                  <Badge variant="default" className="gap-1 bg-green-600">
+                    <CheckSquare className="h-3 w-3" />
+                    {selectedCustomerIds.size} selecionados manualmente
+                  </Badge>
+                ) : (
+                  <>
+                    {[5, 10, 20, 30, 50].map(num => (
+                      <Button
+                        key={num}
+                        variant={bulkQuantityLimit === num ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setBulkQuantityLimit(num)}
+                        disabled={getCustomersWithPhone().length < num}
+                      >
+                        {num}
+                      </Button>
+                    ))}
+                    <Button
+                      variant={bulkQuantityLimit === 'all' ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setBulkQuantityLimit('all')}
+                    >
+                      Todos ({getCustomersWithPhone().length})
+                    </Button>
+                  </>
+                )}
+              </div>
+              
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground text-xs">Total Filtrados</p>
-                  <p className="font-bold text-lg">{filteredCustomers.length}</p>
+                  <p className="text-muted-foreground text-xs">Total com Telefone</p>
+                  <p className="font-bold text-lg">{getCustomersWithPhone().length}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Com Telefone</p>
-                  <p className="font-bold text-lg text-green-600">{getCustomersWithPhone().length}</p>
+                  <p className="text-muted-foreground text-xs">Serão Enviados</p>
+                  <p className="font-bold text-lg text-green-600">{getSelectedCustomersForBulk().length}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Sem Telefone</p>
-                  <p className="font-bold text-lg text-red-500">{filteredCustomers.length - getCustomersWithPhone().length}</p>
+                  <p className="text-muted-foreground text-xs">Tempo Estimado</p>
+                  <p className="font-bold text-lg">{Math.ceil(getSelectedCustomersForBulk().length * 4 / 60)}min</p>
                 </div>
               </div>
             </div>
@@ -2844,7 +2993,7 @@ const RFVDashboard = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>Enviando mensagens...</span>
-                  <span className="font-medium">{bulkSentCount} de {getCustomersWithPhone().length}</span>
+                  <span className="font-medium">{bulkSentCount} de {getSelectedCustomersForBulk().length}</span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-3">
                   <div 
@@ -2855,12 +3004,18 @@ const RFVDashboard = () => {
               </div>
             )}
 
-            {/* Warning */}
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                O disparo abrirá uma nova aba do WhatsApp para cada cliente com intervalo de 2 segundos. 
-                Mantenha a janela aberta até concluir. Recomendamos enviar em lotes menores para não sobrecarregar.
+            {/* Anti-Block Tips */}
+            <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-900/20">
+              <Shield className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-xs space-y-1">
+                <p className="font-semibold text-amber-700">⚡ Dicas Anti-Bloqueio WhatsApp:</p>
+                <ul className="list-disc list-inside text-amber-600 space-y-0.5">
+                  <li>Envie em lotes pequenos (5-20 por vez)</li>
+                  <li>Intervalo de 3-5s entre mensagens (automático)</li>
+                  <li>Personalize com {'{nome}'} - evita ser detectado como spam</li>
+                  <li>Aguarde 30min+ entre lotes grandes</li>
+                  <li>Use número com histórico de conversas</li>
+                </ul>
               </AlertDescription>
             </Alert>
           </div>
@@ -2881,7 +3036,7 @@ const RFVDashboard = () => {
             <Button
               className="gap-2 bg-green-600 hover:bg-green-700"
               onClick={handleBulkWhatsAppOpen}
-              disabled={!bulkMessage || getCustomersWithPhone().length === 0 || isSendingBulk}
+              disabled={!bulkMessage || getSelectedCustomersForBulk().length === 0 || isSendingBulk}
             >
               {isSendingBulk ? (
                 <>
@@ -2891,7 +3046,7 @@ const RFVDashboard = () => {
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  Iniciar Disparo ({getCustomersWithPhone().length})
+                  Iniciar Disparo ({getSelectedCustomersForBulk().length})
                 </>
               )}
             </Button>
