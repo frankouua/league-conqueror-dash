@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.campaign-alerts]
 verify_jwt = false
+
+[functions.analytics-ai]
+verify_jwt = false
