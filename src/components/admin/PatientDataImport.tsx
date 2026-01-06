@@ -37,9 +37,25 @@ interface ColumnMapping {
   city: string;
   state: string;
   cep: string;
+  country: string;
+  nationality: string;
   origin: string;
   referral_name: string;
+  influencer_name: string;
   last_appointment: string;
+  has_children: string;
+  children_count: string;
+  height: string;
+  weight: string;
+  instagram: string;
+  // Form fields - dreams, desires, fears
+  main_objective: string;
+  why_not_done_yet: string;
+  dreams: string;
+  desires: string;
+  fears: string;
+  expectations: string;
+  preferred_procedures: string;
 }
 
 interface ImportStats {
@@ -57,7 +73,7 @@ const PATIENT_FIELDS: Record<keyof ColumnMapping, string[]> = {
   name: ["Nome", "Paciente", "Nome do Paciente", "Cliente", "Nome Completo"],
   email: ["E-mail", "Email", "E-mail do Paciente", "Correio Eletrônico"],
   phone: ["Telefone", "Tel", "Fone", "Telefone Fixo"],
-  cellphone: ["Celular", "Telefone/WhatsApp", "WhatsApp", "Cel", "Celular/WhatsApp"],
+  cellphone: ["Celular", "Telefone/WhatsApp", "WhatsApp", "Cel", "Celular/WhatsApp", "Telefone Celular"],
   birth_date: ["Nascimento", "Data de Nascimento", "Dt Nascimento", "Data Nasc"],
   age: ["Idade", "Idade do Paciente"],
   gender: ["Sexo", "Gênero", "Genero"],
@@ -67,12 +83,28 @@ const PATIENT_FIELDS: Record<keyof ColumnMapping, string[]> = {
   address: ["Endereço", "Endereco", "Logradouro", "Rua"],
   house_number: ["Número", "Numero", "Nº", "Num Casa", "Número da Casa"],
   neighborhood: ["Bairro"],
-  city: ["Cidade", "Municipio", "Município"],
+  city: ["Cidade", "Municipio", "Município", "Cidade que está morando"],
   state: ["Estado", "UF"],
   cep: ["CEP", "Cep", "Código Postal"],
+  country: ["País", "Pais", "Qual país você está morando", "País que mora"],
+  nationality: ["Nacionalidade", "Natural de"],
   origin: ["Origem", "Como nos conheceu", "Onde nos conheceu", "Canal"],
   referral_name: ["Indicação", "Indicado por", "Quem indicou", "Nome Indicação"],
+  influencer_name: ["Influenciador", "Influencer", "Digital Influencer", "Divulgador"],
   last_appointment: ["Último Atendimento", "Ultima Consulta", "Última Consulta", "Data Último Atendimento"],
+  has_children: ["Tem filhos", "Você tem filhos", "Filhos"],
+  children_count: ["Quantos filhos", "Número de filhos", "Quantidade filhos"],
+  height: ["Altura", "Altura (cm)", "Altura cm"],
+  weight: ["Peso", "Peso (kg)", "Peso kg"],
+  instagram: ["Instagram", "@instagram", "Perfil Instagram", "Insta"],
+  // Form fields - dreams, desires, fears
+  main_objective: ["Qual seu objetivo principal", "Objetivo principal", "Objetivo", "Qual seu objetivo principal ao realizar sua cirurgia/procedimento"],
+  why_not_done_yet: ["Porque não realizou a cirurgia ainda", "Por que ainda não fez", "Motivo de não ter feito"],
+  dreams: ["Sonhos", "Quais são seus sonhos", "Seu maior sonho"],
+  desires: ["Desejos", "O que deseja", "Seus desejos"],
+  fears: ["Medos", "Quais seus medos", "O que te dá medo", "Receios"],
+  expectations: ["Expectativas", "O que espera", "Suas expectativas"],
+  preferred_procedures: ["Procedimentos de interesse", "Procedimentos desejados", "Quais procedimentos"],
 };
 
 export default function PatientDataImport() {
@@ -104,9 +136,24 @@ export default function PatientDataImport() {
     city: "",
     state: "",
     cep: "",
+    country: "",
+    nationality: "",
     origin: "",
     referral_name: "",
+    influencer_name: "",
     last_appointment: "",
+    has_children: "",
+    children_count: "",
+    height: "",
+    weight: "",
+    instagram: "",
+    main_objective: "",
+    why_not_done_yet: "",
+    dreams: "",
+    desires: "",
+    fears: "",
+    expectations: "",
+    preferred_procedures: "",
   });
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
   const [progress, setProgress] = useState(0);
@@ -248,7 +295,7 @@ export default function PatientDataImport() {
               name: name || "Desconhecido",
               email: getValue(row, "email")?.toString().trim() || null,
               phone: primaryPhone || null,
-              whatsapp: primaryPhone || null,
+              whatsapp: cellphone || null,
               birth_date: parseDate(getValue(row, "birth_date")),
               age: parseInt(getValue(row, "age")) || null,
               gender: getValue(row, "gender")?.toString().trim() || null,
@@ -259,9 +306,19 @@ export default function PatientDataImport() {
               city: getValue(row, "city")?.toString().trim() || null,
               state: getValue(row, "state")?.toString().trim() || null,
               cep: getValue(row, "cep")?.toString().replace(/\D/g, "") || null,
+              country: getValue(row, "country")?.toString().trim() || null,
+              nationality: getValue(row, "nationality")?.toString().trim() || null,
               origin: getValue(row, "origin")?.toString().trim() || null,
               referral_name: getValue(row, "referral_name")?.toString().trim() || null,
+              influencer_name: getValue(row, "influencer_name")?.toString().trim() || null,
               last_contact_date: parseDate(getValue(row, "last_appointment")),
+              has_children: getValue(row, "has_children")?.toString().toLowerCase().includes("sim") || null,
+              children_count: parseInt(getValue(row, "children_count")) || null,
+              height_cm: parseInt(getValue(row, "height")) || null,
+              weight_kg: parseInt(getValue(row, "weight")) || null,
+              instagram_handle: getValue(row, "instagram")?.toString().trim() || null,
+              main_objective: getValue(row, "main_objective")?.toString().trim() || null,
+              why_not_done_yet: getValue(row, "why_not_done_yet")?.toString().trim() || null,
               data_source: "patient_import",
               created_by: user.id,
             };
@@ -542,14 +599,16 @@ export default function PatientDataImport() {
                 <h4 className="font-medium flex items-center gap-2 text-sm">
                   <MapPin className="h-4 w-4" /> Endereço
                 </h4>
-                {(["address", "house_number", "neighborhood", "city", "state", "cep"] as const).map((field) => (
+                {(["address", "house_number", "neighborhood", "city", "state", "cep", "country", "nationality"] as const).map((field) => (
                   <div key={field} className="space-y-1">
                     <Label className="text-xs">
                       {field === "address" ? "Endereço" : 
                        field === "house_number" ? "Número" : 
                        field === "neighborhood" ? "Bairro" : 
                        field === "city" ? "Cidade" : 
-                       field === "state" ? "Estado" : "CEP"}
+                       field === "state" ? "Estado" : 
+                       field === "cep" ? "CEP" :
+                       field === "country" ? "País" : "Nacionalidade"}
                     </Label>
                     <Select
                       value={columnMapping[field]}
@@ -572,13 +631,78 @@ export default function PatientDataImport() {
               {/* Origin */}
               <div className="space-y-3 p-3 border rounded-lg">
                 <h4 className="font-medium flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4" /> Origem
+                  <Mail className="h-4 w-4" /> Origem / Indicação
                 </h4>
-                {(["origin", "referral_name", "last_appointment"] as const).map((field) => (
+                {(["origin", "referral_name", "influencer_name", "last_appointment", "instagram"] as const).map((field) => (
                   <div key={field} className="space-y-1">
                     <Label className="text-xs">
                       {field === "origin" ? "Origem" : 
-                       field === "referral_name" ? "Indicação" : "Último Atendimento"}
+                       field === "referral_name" ? "Indicação" : 
+                       field === "influencer_name" ? "Influenciador" :
+                       field === "instagram" ? "Instagram" : "Último Atendimento"}
+                    </Label>
+                    <Select
+                      value={columnMapping[field]}
+                      onValueChange={(v) => setColumnMapping({ ...columnMapping, [field]: v })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecionar coluna" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">-- Não mapear --</SelectItem>
+                        {columns.map((col) => (
+                          <SelectItem key={col} value={col}>{col}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Additional Info */}
+              <div className="space-y-3 p-3 border rounded-lg">
+                <h4 className="font-medium flex items-center gap-2 text-sm">
+                  <User className="h-4 w-4" /> Informações Adicionais
+                </h4>
+                {(["has_children", "children_count", "height", "weight"] as const).map((field) => (
+                  <div key={field} className="space-y-1">
+                    <Label className="text-xs">
+                      {field === "has_children" ? "Tem Filhos?" : 
+                       field === "children_count" ? "Qtd Filhos" : 
+                       field === "height" ? "Altura" : "Peso"}
+                    </Label>
+                    <Select
+                      value={columnMapping[field]}
+                      onValueChange={(v) => setColumnMapping({ ...columnMapping, [field]: v })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecionar coluna" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">-- Não mapear --</SelectItem>
+                        {columns.map((col) => (
+                          <SelectItem key={col} value={col}>{col}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Form Fields - Dreams, Desires, Fears */}
+              <div className="space-y-3 p-3 border rounded-lg border-primary/30 bg-primary/5">
+                <h4 className="font-medium flex items-center gap-2 text-sm text-primary">
+                  💭 Formulário (Sonhos, Desejos, Medos)
+                </h4>
+                {(["main_objective", "why_not_done_yet", "dreams", "desires", "fears", "expectations", "preferred_procedures"] as const).map((field) => (
+                  <div key={field} className="space-y-1">
+                    <Label className="text-xs">
+                      {field === "main_objective" ? "Objetivo Principal" : 
+                       field === "why_not_done_yet" ? "Por que não fez ainda?" : 
+                       field === "dreams" ? "Sonhos" : 
+                       field === "desires" ? "Desejos" : 
+                       field === "fears" ? "Medos" :
+                       field === "expectations" ? "Expectativas" : "Procedimentos Desejados"}
                     </Label>
                     <Select
                       value={columnMapping[field]}
