@@ -39,112 +39,77 @@ const POSITION_LABELS: Record<string, string> = {
 };
 
 const TeamMembersOverview = ({ month, year }: TeamMembersOverviewProps) => {
-  const { profile, role } = useAuth();
-
   const dateStart = format(startOfMonth(new Date(year, month - 1)), "yyyy-MM-dd");
   const dateEnd = format(endOfMonth(new Date(year, month - 1)), "yyyy-MM-dd");
 
-  // Fetch team members
+  // Fetch all members
   const { data: teamMembers } = useQuery({
-    queryKey: ["team-members", profile?.team_id],
+    queryKey: ["team-members", "all"],
     queryFn: async () => {
-      if (!profile?.team_id && role !== "admin") return [];
-      
-      let query = supabase.from("profiles").select("*");
-      
-      if (role !== "admin" && profile?.team_id) {
-        query = query.eq("team_id", profile.team_id);
-      }
-      
-      const { data, error } = await query;
+      const { data, error } = await supabase.from("profiles").select("*");
       if (error) throw error;
       return data;
     },
-    enabled: !!profile || role === "admin",
   });
 
   // Fetch revenue records
   const { data: revenueRecords } = useQuery({
-    queryKey: ["revenue-records-team", profile?.team_id, dateStart, dateEnd],
+    queryKey: ["revenue-records-team", "all", dateStart, dateEnd],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("revenue_records")
         .select("*")
         .gte("date", dateStart)
         .lte("date", dateEnd);
 
-      if (role !== "admin" && profile?.team_id) {
-        query = query.eq("team_id", profile.team_id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    enabled: !!profile || role === "admin",
   });
 
   // Fetch NPS records
   const { data: npsRecords } = useQuery({
-    queryKey: ["nps-records-team", profile?.team_id, dateStart, dateEnd],
+    queryKey: ["nps-records-team", "all", dateStart, dateEnd],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("nps_records")
         .select("*")
         .gte("date", dateStart)
         .lte("date", dateEnd);
 
-      if (role !== "admin" && profile?.team_id) {
-        query = query.eq("team_id", profile.team_id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    enabled: !!profile || role === "admin",
   });
 
   // Fetch testimonial records
   const { data: testimonialRecords } = useQuery({
-    queryKey: ["testimonial-records-team", profile?.team_id, dateStart, dateEnd],
+    queryKey: ["testimonial-records-team", "all", dateStart, dateEnd],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("testimonial_records")
         .select("*")
         .gte("date", dateStart)
         .lte("date", dateEnd);
 
-      if (role !== "admin" && profile?.team_id) {
-        query = query.eq("team_id", profile.team_id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    enabled: !!profile || role === "admin",
   });
 
   // Fetch referral records
   const { data: referralRecords } = useQuery({
-    queryKey: ["referral-records-team", profile?.team_id, dateStart, dateEnd],
+    queryKey: ["referral-records-team", "all", dateStart, dateEnd],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("referral_records")
         .select("*")
         .gte("date", dateStart)
         .lte("date", dateEnd);
 
-      if (role !== "admin" && profile?.team_id) {
-        query = query.eq("team_id", profile.team_id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    enabled: !!profile || role === "admin",
   });
 
   // Calculate member stats
