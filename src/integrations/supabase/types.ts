@@ -1975,6 +1975,8 @@ export type Database = {
       rfv_customers: {
         Row: {
           average_ticket: number
+          children_count: number | null
+          country: string | null
           cpf: string | null
           created_at: string
           created_by: string | null
@@ -1982,10 +1984,14 @@ export type Database = {
           email: string | null
           first_purchase_date: string
           frequency_score: number
+          has_children: boolean | null
+          height_cm: number | null
           id: string
           last_purchase_date: string
+          main_objective: string | null
           name: string
           phone: string | null
+          profession: string | null
           prontuario: string | null
           recency_score: number
           segment: string
@@ -1993,10 +1999,14 @@ export type Database = {
           total_value: number
           updated_at: string
           value_score: number
+          weight_kg: number | null
           whatsapp: string | null
+          why_not_done_yet: string | null
         }
         Insert: {
           average_ticket?: number
+          children_count?: number | null
+          country?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
@@ -2004,10 +2014,14 @@ export type Database = {
           email?: string | null
           first_purchase_date: string
           frequency_score?: number
+          has_children?: boolean | null
+          height_cm?: number | null
           id?: string
           last_purchase_date: string
+          main_objective?: string | null
           name: string
           phone?: string | null
+          profession?: string | null
           prontuario?: string | null
           recency_score?: number
           segment?: string
@@ -2015,10 +2029,14 @@ export type Database = {
           total_value?: number
           updated_at?: string
           value_score?: number
+          weight_kg?: number | null
           whatsapp?: string | null
+          why_not_done_yet?: string | null
         }
         Update: {
           average_ticket?: number
+          children_count?: number | null
+          country?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
@@ -2026,10 +2044,14 @@ export type Database = {
           email?: string | null
           first_purchase_date?: string
           frequency_score?: number
+          has_children?: boolean | null
+          height_cm?: number | null
           id?: string
           last_purchase_date?: string
+          main_objective?: string | null
           name?: string
           phone?: string | null
+          profession?: string | null
           prontuario?: string | null
           recency_score?: number
           segment?: string
@@ -2037,7 +2059,9 @@ export type Database = {
           total_value?: number
           updated_at?: string
           value_score?: number
+          weight_kg?: number | null
           whatsapp?: string | null
+          why_not_done_yet?: string | null
         }
         Relationships: []
       }
