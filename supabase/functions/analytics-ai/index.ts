@@ -122,6 +122,7 @@ serve(async (req) => {
       rfvResult,
       referralResult,
       npsResult,
+      patientDataResult,
     ] = await Promise.all([
       // Revenue records - last 12 months
       supabase
@@ -163,6 +164,13 @@ serve(async (req) => {
         .from("nps_records")
         .select("*")
         .gte("date", new Date(currentYear - 1, currentMonth - 1, 1).toISOString().split("T")[0]),
+      
+      // Patient data for demographics and origin analysis
+      supabase
+        .from("patient_data")
+        .select("*")
+        .order("total_value_sold", { ascending: false })
+        .limit(1000),
     ]);
 
     // Build context with all data
@@ -174,6 +182,7 @@ serve(async (req) => {
     const rfvCustomers = rfvResult.data || [];
     const referralRecords = referralResult.data || [];
     const npsRecords = npsResult.data || [];
+    const patientData = patientDataResult.data || [];
 
     // Calculate aggregated metrics
     const monthlyRevenue: Record<string, { total: number; count: number; byDepartment: Record<string, { total: number; count: number }> }> = {};
@@ -272,6 +281,92 @@ serve(async (req) => {
     const rfvSegments: Record<string, number> = {};
     rfvCustomers.forEach((customer: any) => {
       rfvSegments[customer.segment] = (rfvSegments[customer.segment] || 0) + 1;
+    });
+
+    // Patient data analytics - Origin analysis
+    const originStats: Record<string, { count: number; totalValue: number }> = {};
+    const cityStats: Record<string, { count: number; totalValue: number }> = {};
+    const stateStats: Record<string, { count: number; totalValue: number }> = {};
+    const professionStats: Record<string, number> = {};
+    const objectiveStats: Record<string, number> = {};
+    const referralStats: Record<string, { count: number; totalValue: number }> = {};
+    const influencerStats: Record<string, { count: number; totalValue: number }> = {};
+    
+    patientData.forEach((patient: any) => {
+      const value = patient.total_value_sold || 0;
+      
+      // Origin analysis
+      if (patient.origin) {
+        const origin = patient.origin.trim();
+        if (!originStats[origin]) originStats[origin] = { count: 0, totalValue: 0 };
+        originStats[origin].count += 1;
+        originStats[origin].totalValue += value;
+      }
+      
+      // City analysis
+      if (patient.city) {
+        const city = patient.city.trim();
+        if (!cityStats[city]) cityStats[city] = { count: 0, totalValue: 0 };
+        cityStats[city].count += 1;
+        cityStats[city].totalValue += value;
+      }
+      
+      // State analysis
+      if (patient.state) {
+        const state = patient.state.trim();
+        if (!stateStats[state]) stateStats[state] = { count: 0, totalValue: 0 };
+        stateStats[state].count += 1;
+        stateStats[state].totalValue += value;
+      }
+      
+      // Profession analysis
+      if (patient.profession) {
+        const profession = patient.profession.trim();
+        professionStats[profession] = (professionStats[profession] || 0) + 1;
+      }
+      
+      // Objective analysis
+      if (patient.main_objective) {
+        const objective = patient.main_objective.trim().substring(0, 50);
+        objectiveStats[objective] = (objectiveStats[objective] || 0) + 1;
+      }
+      
+      // Referral name analysis
+      if (patient.referral_name && patient.referral_name.toLowerCase() !== 'google' && patient.referral_name.toLowerCase() !== 'instagram') {
+        const referrer = patient.referral_name.trim();
+        if (!referralStats[referrer]) referralStats[referrer] = { count: 0, totalValue: 0 };
+        referralStats[referrer].count += 1;
+        referralStats[referrer].totalValue += value;
+      }
+      
+      // Influencer analysis
+      if (patient.influencer_name) {
+        const influencer = patient.influencer_name.trim();
+        if (!influencerStats[influencer]) influencerStats[influencer] = { count: 0, totalValue: 0 };
+        influencerStats[influencer].count += 1;
+        influencerStats[influencer].totalValue += value;
+      }
+    });
+
+    // Origin analysis from revenue/executed records
+    const revenueOriginStats: Record<string, { count: number; totalValue: number }> = {};
+    revenueRecords.forEach((record: any) => {
+      if (record.origin) {
+        const origin = record.origin.trim();
+        if (!revenueOriginStats[origin]) revenueOriginStats[origin] = { count: 0, totalValue: 0 };
+        revenueOriginStats[origin].count += 1;
+        revenueOriginStats[origin].totalValue += record.amount || 0;
+      }
+    });
+
+    const executedOriginStats: Record<string, { count: number; totalValue: number }> = {};
+    executedRecords.forEach((record: any) => {
+      if (record.origin) {
+        const origin = record.origin.trim();
+        if (!executedOriginStats[origin]) executedOriginStats[origin] = { count: 0, totalValue: 0 };
+        executedOriginStats[origin].count += 1;
+        executedOriginStats[origin].totalValue += record.amount || 0;
+      }
     });
 
     // Build data context for AI
@@ -382,6 +477,63 @@ Convertidas para cirurgia: ${referralRecords.reduce((acc: number, r: any) => acc
 ### NPS (últimos 12 meses)
 Total de respostas: ${npsRecords.length}
 Média geral: ${npsRecords.length > 0 ? (npsRecords.reduce((acc: number, r: any) => acc + r.score, 0) / npsRecords.length).toFixed(1) : "N/A"}
+
+### ANÁLISE DE ORIGEM (de onde vêm os pacientes)
+Total de pacientes com dados: ${patientData.length}
+${Object.entries(originStats)
+  .sort((a, b) => b[1].count - a[1].count)
+  .slice(0, 15)
+  .map(([origin, stats]) => `- ${origin}: ${stats.count} pacientes (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
+  .join("\n")}
+
+### TOP CIDADES (por número de pacientes)
+${Object.entries(cityStats)
+  .sort((a, b) => b[1].count - a[1].count)
+  .slice(0, 15)
+  .map(([city, stats]) => `- ${city}: ${stats.count} pacientes (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
+  .join("\n")}
+
+### TOP ESTADOS
+${Object.entries(stateStats)
+  .sort((a, b) => b[1].count - a[1].count)
+  .slice(0, 10)
+  .map(([state, stats]) => `- ${state}: ${stats.count} pacientes (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
+  .join("\n")}
+
+### PRINCIPAIS PROFISSÕES DOS PACIENTES
+${Object.entries(professionStats)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 15)
+  .map(([profession, count]) => `- ${profession}: ${count} pacientes`)
+  .join("\n")}
+
+### QUEM INDICA (pessoas que indicaram pacientes)
+${Object.entries(referralStats)
+  .sort((a, b) => b[1].totalValue - a[1].totalValue)
+  .slice(0, 15)
+  .map(([referrer, stats]) => `- ${referrer}: ${stats.count} indicações (R$ ${stats.totalValue.toLocaleString("pt-BR")} gerados)`)
+  .join("\n")}
+
+### INFLUENCIADORES QUE TROUXERAM PACIENTES
+${Object.entries(influencerStats)
+  .sort((a, b) => b[1].totalValue - a[1].totalValue)
+  .slice(0, 10)
+  .map(([influencer, stats]) => `- ${influencer}: ${stats.count} pacientes (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
+  .join("\n")}
+
+### OBJETIVOS DOS PACIENTES (por que buscam cirurgia)
+${Object.entries(objectiveStats)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10)
+  .map(([objective, count]) => `- "${objective}...": ${count} pacientes`)
+  .join("\n")}
+
+### ORIGEM NAS VENDAS (com valores)
+${Object.entries(revenueOriginStats)
+  .sort((a, b) => b[1].totalValue - a[1].totalValue)
+  .slice(0, 10)
+  .map(([origin, stats]) => `- ${origin}: ${stats.count} vendas (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
+  .join("\n")}
 
 ### EQUIPES
 ${teams.map((t: any) => `- ${t.name}${t.motto ? ` (${t.motto})` : ""}`).join("\n")}

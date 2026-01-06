@@ -712,8 +712,16 @@ export type Database = {
           date: string
           department: string | null
           id: string
+          influencer_name: string | null
           notes: string | null
+          origin: string | null
+          patient_cpf: string | null
+          patient_email: string | null
+          patient_name: string | null
+          patient_phone: string | null
+          patient_prontuario: string | null
           procedure_name: string | null
+          referral_name: string | null
           registered_by_admin: boolean
           team_id: string
           user_id: string
@@ -726,8 +734,16 @@ export type Database = {
           date: string
           department?: string | null
           id?: string
+          influencer_name?: string | null
           notes?: string | null
+          origin?: string | null
+          patient_cpf?: string | null
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          patient_prontuario?: string | null
           procedure_name?: string | null
+          referral_name?: string | null
           registered_by_admin?: boolean
           team_id: string
           user_id: string
@@ -740,8 +756,16 @@ export type Database = {
           date?: string
           department?: string | null
           id?: string
+          influencer_name?: string | null
           notes?: string | null
+          origin?: string | null
+          patient_cpf?: string | null
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          patient_prontuario?: string | null
           procedure_name?: string | null
+          referral_name?: string | null
           registered_by_admin?: boolean
           team_id?: string
           user_id?: string
@@ -831,6 +855,90 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      icp_analysis: {
+        Row: {
+          age_range: string | null
+          analysis_date: string | null
+          average_ticket: number | null
+          barriers: string[] | null
+          conversion_rate: number | null
+          created_at: string
+          created_by: string | null
+          customer_count: number | null
+          gender: string | null
+          id: string
+          income_range: string | null
+          location: string | null
+          main_influencers: string[] | null
+          main_origins: string[] | null
+          main_procedures: string[] | null
+          motivations: string[] | null
+          objectives: string[] | null
+          pain_points: string[] | null
+          profession: string | null
+          purchase_frequency: string | null
+          raw_data: Json | null
+          segment_name: string | null
+          segment_type: string | null
+          total_revenue: number | null
+          updated_at: string
+        }
+        Insert: {
+          age_range?: string | null
+          analysis_date?: string | null
+          average_ticket?: number | null
+          barriers?: string[] | null
+          conversion_rate?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_count?: number | null
+          gender?: string | null
+          id?: string
+          income_range?: string | null
+          location?: string | null
+          main_influencers?: string[] | null
+          main_origins?: string[] | null
+          main_procedures?: string[] | null
+          motivations?: string[] | null
+          objectives?: string[] | null
+          pain_points?: string[] | null
+          profession?: string | null
+          purchase_frequency?: string | null
+          raw_data?: Json | null
+          segment_name?: string | null
+          segment_type?: string | null
+          total_revenue?: number | null
+          updated_at?: string
+        }
+        Update: {
+          age_range?: string | null
+          analysis_date?: string | null
+          average_ticket?: number | null
+          barriers?: string[] | null
+          conversion_rate?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_count?: number | null
+          gender?: string | null
+          id?: string
+          income_range?: string | null
+          location?: string | null
+          main_influencers?: string[] | null
+          main_origins?: string[] | null
+          main_procedures?: string[] | null
+          motivations?: string[] | null
+          objectives?: string[] | null
+          pain_points?: string[] | null
+          profession?: string | null
+          purchase_frequency?: string | null
+          raw_data?: Json | null
+          segment_name?: string | null
+          segment_type?: string | null
+          total_revenue?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1104,6 +1212,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      patient_data: {
+        Row: {
+          address: string | null
+          age: number | null
+          birth_date: string | null
+          cep: string | null
+          children_count: number | null
+          city: string | null
+          country: string | null
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          data_source: string | null
+          email: string | null
+          first_contact_date: string | null
+          first_purchase_date: string | null
+          gender: string | null
+          has_children: boolean | null
+          height_cm: number | null
+          id: string
+          influencer_name: string | null
+          instagram_handle: string | null
+          last_contact_date: string | null
+          last_purchase_date: string | null
+          main_objective: string | null
+          marital_status: string | null
+          name: string
+          nationality: string | null
+          neighborhood: string | null
+          origin: string | null
+          origin_detail: string | null
+          phone: string | null
+          profession: string | null
+          prontuario: string | null
+          referral_name: string | null
+          state: string | null
+          total_procedures: number | null
+          total_value_executed: number | null
+          total_value_sold: number | null
+          updated_at: string
+          weight_kg: number | null
+          whatsapp: string | null
+          why_not_done_yet: string | null
+        }
+        Insert: {
+          address?: string | null
+          age?: number | null
+          birth_date?: string | null
+          cep?: string | null
+          children_count?: number | null
+          city?: string | null
+          country?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_source?: string | null
+          email?: string | null
+          first_contact_date?: string | null
+          first_purchase_date?: string | null
+          gender?: string | null
+          has_children?: boolean | null
+          height_cm?: number | null
+          id?: string
+          influencer_name?: string | null
+          instagram_handle?: string | null
+          last_contact_date?: string | null
+          last_purchase_date?: string | null
+          main_objective?: string | null
+          marital_status?: string | null
+          name: string
+          nationality?: string | null
+          neighborhood?: string | null
+          origin?: string | null
+          origin_detail?: string | null
+          phone?: string | null
+          profession?: string | null
+          prontuario?: string | null
+          referral_name?: string | null
+          state?: string | null
+          total_procedures?: number | null
+          total_value_executed?: number | null
+          total_value_sold?: number | null
+          updated_at?: string
+          weight_kg?: number | null
+          whatsapp?: string | null
+          why_not_done_yet?: string | null
+        }
+        Update: {
+          address?: string | null
+          age?: number | null
+          birth_date?: string | null
+          cep?: string | null
+          children_count?: number | null
+          city?: string | null
+          country?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_source?: string | null
+          email?: string | null
+          first_contact_date?: string | null
+          first_purchase_date?: string | null
+          gender?: string | null
+          has_children?: boolean | null
+          height_cm?: number | null
+          id?: string
+          influencer_name?: string | null
+          instagram_handle?: string | null
+          last_contact_date?: string | null
+          last_purchase_date?: string | null
+          main_objective?: string | null
+          marital_status?: string | null
+          name?: string
+          nationality?: string | null
+          neighborhood?: string | null
+          origin?: string | null
+          origin_detail?: string | null
+          phone?: string | null
+          profession?: string | null
+          prontuario?: string | null
+          referral_name?: string | null
+          state?: string | null
+          total_procedures?: number | null
+          total_value_executed?: number | null
+          total_value_sold?: number | null
+          updated_at?: string
+          weight_kg?: number | null
+          whatsapp?: string | null
+          why_not_done_yet?: string | null
+        }
+        Relationships: []
       }
       predefined_goals: {
         Row: {
@@ -1542,8 +1782,16 @@ export type Database = {
           date: string
           department: string | null
           id: string
+          influencer_name: string | null
           notes: string | null
+          origin: string | null
+          patient_cpf: string | null
+          patient_email: string | null
+          patient_name: string | null
+          patient_phone: string | null
+          patient_prontuario: string | null
           procedure_name: string | null
+          referral_name: string | null
           registered_by_admin: boolean
           team_id: string
           user_id: string
@@ -1556,8 +1804,16 @@ export type Database = {
           date: string
           department?: string | null
           id?: string
+          influencer_name?: string | null
           notes?: string | null
+          origin?: string | null
+          patient_cpf?: string | null
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          patient_prontuario?: string | null
           procedure_name?: string | null
+          referral_name?: string | null
           registered_by_admin?: boolean
           team_id: string
           user_id: string
@@ -1570,8 +1826,16 @@ export type Database = {
           date?: string
           department?: string | null
           id?: string
+          influencer_name?: string | null
           notes?: string | null
+          origin?: string | null
+          patient_cpf?: string | null
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          patient_prontuario?: string | null
           procedure_name?: string | null
+          referral_name?: string | null
           registered_by_admin?: boolean
           team_id?: string
           user_id?: string
