@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, forwardRef } from 'react';
 import { MessageCircle, X, Send, Trash2, Sparkles, Target, TrendingUp, Lightbulb, Bot, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ const QUICK_PROMPTS = [
   { icon: Sparkles, label: 'Motivação', prompt: 'Estou desmotivado hoje. Me ajuda a recuperar a energia para vender?' },
 ];
 
-export function CommercialAssistant() {
+const CommercialAssistantComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const { messages, isLoading, error, sendMessage, clearMessages, sellerContext } = useCommercialAssistant();
@@ -223,4 +223,13 @@ export function CommercialAssistant() {
       )}
     </>
   );
-}
+};
+
+// Export with forwardRef to avoid React warning
+export const CommercialAssistant = forwardRef<HTMLDivElement>((props, ref) => (
+  <div ref={ref}>
+    <CommercialAssistantComponent />
+  </div>
+));
+
+CommercialAssistant.displayName = 'CommercialAssistant';
