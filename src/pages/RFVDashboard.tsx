@@ -2016,21 +2016,27 @@ const RFVDashboard = () => {
                     </div>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="max-h-[500px] overflow-x-auto overflow-y-auto border rounded-lg">
-                    <Table className="min-w-[1100px]">
-                      <TableHeader className="sticky top-0 bg-background z-10">
+                <CardContent className="p-0">
+                  <div className="max-h-[600px] overflow-auto border rounded-lg relative">
+                    {/* Horizontal scroll indicator */}
+                    <div className="sticky top-0 left-0 right-0 z-20 bg-muted/80 text-xs text-center py-1 text-muted-foreground border-b">
+                      ← Arraste para ver mais colunas →
+                    </div>
+                    <Table className="min-w-[1400px]">
+                      <TableHeader className="sticky top-7 bg-background z-10">
                         <TableRow>
-                          <TableHead className="min-w-[180px]">Cliente</TableHead>
-                          <TableHead className="min-w-[140px]">Contato</TableHead>
+                          <TableHead className="min-w-[60px] text-center sticky left-0 bg-background z-20">#</TableHead>
+                          <TableHead className="min-w-[200px]">Cliente</TableHead>
+                          <TableHead className="min-w-[150px]">Contato</TableHead>
                           <TableHead className="min-w-[100px]">Prontuário</TableHead>
                           <TableHead className="min-w-[110px]">Segmento</TableHead>
-                          <TableHead className="text-center min-w-[80px]">RFV</TableHead>
-                          <TableHead className="text-right min-w-[100px]">Total</TableHead>
+                          <TableHead className="text-center min-w-[90px]">RFV</TableHead>
+                          <TableHead className="text-right min-w-[130px]">Total Vendido</TableHead>
                           <TableHead className="text-right min-w-[90px]">Compras</TableHead>
-                          <TableHead className="text-right min-w-[100px]">Ticket</TableHead>
-                          <TableHead className="min-w-[110px]">Última Compra</TableHead>
-                          <TableHead className="text-center min-w-[70px]">Ação</TableHead>
+                          <TableHead className="text-right min-w-[120px]">Ticket Médio</TableHead>
+                          <TableHead className="min-w-[120px]">Última Compra</TableHead>
+                          <TableHead className="text-center min-w-[80px]">Dias</TableHead>
+                          <TableHead className="text-center min-w-[80px]">Ação</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2040,13 +2046,18 @@ const RFVDashboard = () => {
                           const contactPhone = customer.whatsapp || customer.phone;
                           return (
                             <TableRow 
-                              key={index} 
-                              className={`cursor-pointer ${selectedCustomer?.name === customer.name ? 'bg-muted' : ''}`}
+                              key={customer.id || index} 
+                              className={`cursor-pointer hover:bg-muted/50 ${selectedCustomer?.name === customer.name ? 'bg-muted' : ''}`}
                               onClick={() => {
                                 setSelectedCustomer(customer);
                                 setAiStrategy(null);
                               }}
                             >
+                              {/* Ranking */}
+                              <TableCell className="text-center font-bold text-muted-foreground sticky left-0 bg-background">
+                                {(safePage - 1) * tablePageSize + index + 1}º
+                              </TableCell>
+                              {/* Cliente */}
                               <TableCell>
                                 <div>
                                   <p className="font-medium">{customer.name}</p>
@@ -2055,6 +2066,7 @@ const RFVDashboard = () => {
                                   )}
                                 </div>
                               </TableCell>
+                              {/* Contato */}
                               <TableCell>
                                 <div className="space-y-1">
                                   {contactPhone ? (
@@ -2072,10 +2084,17 @@ const RFVDashboard = () => {
                                     <span className="text-xs text-muted-foreground">Sem telefone</span>
                                   )}
                                   {customer.email && (
-                                    <p className="text-xs text-muted-foreground truncate max-w-[150px]">{customer.email}</p>
+                                    <a
+                                      href={`mailto:${customer.email}`}
+                                      className="text-xs text-blue-600 hover:underline truncate block max-w-[140px]"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {customer.email}
+                                    </a>
                                   )}
                                 </div>
                               </TableCell>
+                              {/* Prontuário */}
                               <TableCell>
                                 {customer.prontuario ? (
                                   <Badge variant="outline" className="text-xs font-mono">
@@ -2085,12 +2104,14 @@ const RFVDashboard = () => {
                                   <span className="text-xs text-muted-foreground">-</span>
                                 )}
                               </TableCell>
+                              {/* Segmento */}
                               <TableCell>
                                 <Badge className={`${segment.color} text-white`}>
                                   <Icon className="h-3 w-3 mr-1" />
                                   {segment.name}
                                 </Badge>
                               </TableCell>
+                              {/* RFV Scores */}
                               <TableCell className="text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <Badge variant={customer.recencyScore >= 4 ? "default" : "outline"} className="text-xs px-1">
@@ -2104,23 +2125,29 @@ const RFVDashboard = () => {
                                   </Badge>
                                 </div>
                               </TableCell>
-                              <TableCell className="text-right font-medium">
+                              {/* Total Vendido */}
+                              <TableCell className="text-right font-semibold text-green-600">
                                 {formatCurrency(customer.totalValue)}
                               </TableCell>
+                              {/* Compras */}
                               <TableCell className="text-right">
                                 {customer.totalPurchases}
                               </TableCell>
+                              {/* Ticket Médio */}
                               <TableCell className="text-right text-muted-foreground">
                                 {formatCurrency(customer.averageTicket)}
                               </TableCell>
+                              {/* Última Compra */}
                               <TableCell>
-                                <div className="text-sm">
-                                  <p>{new Date(customer.lastPurchaseDate).toLocaleDateString('pt-BR')}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {customer.daysSinceLastPurchase}d atrás
-                                  </p>
-                                </div>
+                                {new Date(customer.lastPurchaseDate).toLocaleDateString('pt-BR')}
                               </TableCell>
+                              {/* Dias */}
+                              <TableCell className="text-center">
+                                <Badge variant={customer.daysSinceLastPurchase <= 30 ? "default" : customer.daysSinceLastPurchase <= 90 ? "secondary" : "destructive"}>
+                                  {customer.daysSinceLastPurchase}d
+                                </Badge>
+                              </TableCell>
+                              {/* Ação */}
                               <TableCell className="text-center">
                                 <Button
                                   size="sm"
