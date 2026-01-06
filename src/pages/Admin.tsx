@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database, Lock, Link2 } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database, Lock, Link2, MessageSquare } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,7 @@ import ComprehensiveDataImport from "@/components/admin/ComprehensiveDataImport"
 import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
 import PeriodLockManager from "@/components/admin/PeriodLockManager";
 import RFVContactSync from "@/components/admin/RFVContactSync";
+import { CommercialAssistantReport } from "@/components/admin/CommercialAssistantReport";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -167,6 +168,13 @@ const Admin = () => {
               >
                 <Lock className="w-4 h-4" />
                 <span className="text-xs font-medium">Travamento</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="commercial-ai"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="text-xs font-medium">Assistente IA</span>
               </TabsTrigger>
             </TabsList>
           </div>
