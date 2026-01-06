@@ -70,6 +70,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (roleData) {
       setRole(roleData.role as "member" | "admin");
     }
+
+    // Update last access (fire and forget)
+    supabase.rpc('update_last_access').then(() => {
+      // Success - last access updated
+    });
   }, []);
 
   const refreshProfile = useCallback(async () => {

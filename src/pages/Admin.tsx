@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,10 +18,27 @@ import ComprehensiveDataImport from "@/components/admin/ComprehensiveDataImport"
 import PeriodLockManager from "@/components/admin/PeriodLockManager";
 import RFVContactSync from "@/components/admin/RFVContactSync";
 import { CommercialAssistantReport } from "@/components/admin/CommercialAssistantReport";
+import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'cards');
+
+  // Update tab when URL changes
+  useEffect(() => {
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
 
   useEffect(() => {
     if (!isLoading) {
@@ -65,7 +82,7 @@ const Admin = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="cards" className="max-w-6xl mx-auto">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="max-w-6xl mx-auto">
           <div className="w-full overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 mb-6">
             <TabsList className="flex flex-wrap justify-center gap-2 h-auto bg-secondary/30 p-3 rounded-2xl min-w-max">
               <TabsTrigger
@@ -152,6 +169,13 @@ const Admin = () => {
                 <MessageSquare className="w-4 h-4" />
                 <span className="text-xs font-medium">Relatório IA</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="analytics-ai"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
+              >
+                <Brain className="w-4 h-4" />
+                <span className="text-xs font-medium">Analytics AI</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -207,6 +231,10 @@ const Admin = () => {
 
           <TabsContent value="commercial-ai" className="animate-scale-in">
             <CommercialAssistantReport />
+          </TabsContent>
+
+          <TabsContent value="analytics-ai" className="animate-scale-in">
+            <AnalyticsAI />
           </TabsContent>
         </Tabs>
 

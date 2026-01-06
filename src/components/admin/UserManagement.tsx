@@ -68,6 +68,8 @@ interface Profile {
   department: DepartmentType | null;
   position: PositionType | null;
   is_approved: boolean;
+  last_access_at: string | null;
+  access_count: number | null;
   teams: { name: string } | null;
 }
 
@@ -672,13 +674,24 @@ const UserManagement = () => {
                         )}
                         <div>
                           <span className="block">{user.full_name}</span>
-                          <span className="text-xs text-muted-foreground md:hidden">
-                            {user.position && (POSITION_LABELS[user.position] || user.position)}
-                          </span>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {user.last_access_at ? (
+                              <span title={`${user.access_count || 0} acessos`}>
+                                Último acesso: {formatDistanceToNow(new Date(user.last_access_at), { addSuffix: true, locale: ptBR })}
+                              </span>
+                            ) : (
+                              <span className="text-amber-500">Nunca acessou</span>
+                            )}
+                          </div>
                         </div>
                         {hasNoTeam && (
                           <Badge variant="secondary" className="text-xs">
                             Sem acesso
+                          </Badge>
+                        )}
+                        {!user.is_approved && (
+                          <Badge variant="outline" className="text-xs text-amber-500 border-amber-500/30">
+                            Pendente
                           </Badge>
                         )}
                       </div>

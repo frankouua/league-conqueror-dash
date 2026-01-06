@@ -1496,6 +1496,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_count: number | null
           approved_at: string | null
           approved_by: string | null
           avatar_url: string | null
@@ -1505,6 +1506,7 @@ export type Database = {
           full_name: string
           id: string
           is_approved: boolean | null
+          last_access_at: string | null
           phone: string | null
           position: Database["public"]["Enums"]["position_type"] | null
           team_id: string | null
@@ -1513,6 +1515,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          access_count?: number | null
           approved_at?: string | null
           approved_by?: string | null
           avatar_url?: string | null
@@ -1522,6 +1525,7 @@ export type Database = {
           full_name: string
           id?: string
           is_approved?: boolean | null
+          last_access_at?: string | null
           phone?: string | null
           position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
@@ -1530,6 +1534,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          access_count?: number | null
           approved_at?: string | null
           approved_by?: string | null
           avatar_url?: string | null
@@ -1539,6 +1544,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_approved?: boolean | null
+          last_access_at?: string | null
           phone?: string | null
           position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
@@ -2540,6 +2546,7 @@ export type Database = {
         Args: { _reason?: string; _user_id: string }
         Returns: undefined
       }
+      update_last_access: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "member" | "admin"
