@@ -310,6 +310,7 @@ interface RFVCustomer {
   email?: string;
   cpf?: string;
   prontuario?: string;
+  instagram?: string;
   firstPurchaseDate?: string;
   lastPurchaseDate: string;
   totalPurchases: number;
@@ -902,7 +903,7 @@ const RFVDashboard = () => {
           // Fetch patient_data by CPF
           const { data: patientData } = await supabase
             .from('patient_data')
-            .select('cpf, profession, city, state, country, main_objective, why_not_done_yet, has_children, children_count, height_cm, weight_kg')
+            .select('cpf, profession, city, state, country, main_objective, why_not_done_yet, has_children, children_count, height_cm, weight_kg, instagram_handle')
             .in('cpf', cpfList);
           
           if (patientData) {
@@ -939,6 +940,7 @@ const RFVDashboard = () => {
             segment: mapSegmentToKey(row.segment),
             daysSinceLastPurchase: row.days_since_last_purchase,
             // Additional fields - prefer patient_data, fallback to rfv_customers
+            instagram: patientInfo?.instagram_handle || undefined,
             profession: patientInfo?.profession || row.profession || undefined,
             city: patientInfo?.city || row.city || undefined,
             state: patientInfo?.state || row.state || undefined,
@@ -1699,20 +1701,44 @@ const RFVDashboard = () => {
     setIsRecalculating(true);
     
     try {
+      // Recalculate segments based on days since purchase
+      const now = new Date();
       const updatedCustomers = customers.map(c => {
-        const newSegment = calculateRFVSegment(c.recencyScore, c.frequencyScore, c.valueScore, c.daysSinceLastPurchase);
-        return { ...c, segment: newSegment };
+        // Recalculate days since last purchase
+        const daysSince = Math.floor((now.getTime() - new Date(c.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24));
+        const newSegment = calculateRFVSegment(c.recencyScore, c.frequencyScore, c.valueScore, daysSince);
+        return { ...c, segment: newSegment, daysSinceLastPurchase: daysSince };
       });
       
-      setCustomers(updatedCustomers);
-      setHasUnsavedChanges(true);
-      
       // Count changes
-      const changes = customers.filter((c, i) => c.segment !== updatedCustomers[i].segment).length;
+      const changedCustomers = updatedCustomers.filter((c, i) => c.segment !== customers[i].segment);
+      
+      // Update in database
+      const BATCH_SIZE = 100;
+      let savedCount = 0;
+      
+      for (let i = 0; i < changedCustomers.length; i += BATCH_SIZE) {
+        const batch = changedCustomers.slice(i, i + BATCH_SIZE);
+        
+        for (const customer of batch) {
+          if (customer.id) {
+            await supabase
+              .from('rfv_customers')
+              .update({ 
+                segment: customer.segment,
+                days_since_last_purchase: customer.daysSinceLastPurchase 
+              })
+              .eq('id', customer.id);
+            savedCount++;
+          }
+        }
+      }
+      
+      setCustomers(updatedCustomers);
       
       toast({
-        title: "Segmentos recalculados!",
-        description: `${changes} clientes tiveram o segmento atualizado. Salve para persistir.`,
+        title: "Segmentos recalculados e salvos!",
+        description: `${changedCustomers.length} clientes atualizados no banco de dados.`,
       });
     } catch (error) {
       console.error('Error recalculating segments:', error);
@@ -2204,6 +2230,29 @@ const RFVDashboard = () => {
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                     Recentes (-30 dias)
                   </Button>
+                  
+                  {/* Recalculate Segments Button */}
+                  {role === 'admin' && customers.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 border-indigo-500/50 hover:bg-indigo-500/10 text-indigo-600"
+                      onClick={recalculateAllSegments}
+                      disabled={isRecalculating}
+                    >
+                      {isRecalculating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Recalculando...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4" />
+                          Recalcular Segmentos
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -2674,12 +2723,11 @@ const RFVDashboard = () => {
                       <span className="font-semibold text-gray-900">{selectedCustomer.name}</span>
                     </div>
                     
-                    {/* Action Buttons: Edit & Delete */}
+                    {/* Action Buttons: Edit & Delete - Always visible */}
                     <div className="flex gap-2 mb-3">
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="flex-1 gap-2 bg-white"
+                        className="flex-1 gap-2 bg-amber-500 hover:bg-amber-600 text-white"
                         onClick={() => handleOpenEditContact(selectedCustomer)}
                       >
                         <Edit className="h-3 w-3" />
@@ -2718,6 +2766,19 @@ const RFVDashboard = () => {
                           <AlertCircle className="h-3 w-3" />
                           Sem telefone cadastrado
                         </p>
+                      )}
+                      {selectedCustomer.instagram && (
+                        <a 
+                          href={`https://instagram.com/${selectedCustomer.instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-pink-600 hover:underline font-medium"
+                        >
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                          </svg>
+                          @{selectedCustomer.instagram.replace('@', '')}
+                        </a>
                       )}
                       {selectedCustomer.email && (
                         <a 
@@ -2782,55 +2843,59 @@ const RFVDashboard = () => {
                       </Button>
                       
                         {showExpandedDetails && (
-                        <div className="mt-3 space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Profissão:</span>
-                            <span className="font-medium text-gray-900">{selectedCustomer.profession || 'Não informado'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Cidade/Estado:</span>
-                            <span className="font-medium text-gray-900">
-                              {[selectedCustomer.city, selectedCustomer.state].filter(Boolean).join(', ') || 'Não informado'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">País:</span>
-                            <span className="font-medium text-gray-900">{selectedCustomer.country || 'Não informado'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Objetivo/Motivação:</span>
-                            <span className="font-medium text-gray-900 text-right max-w-[160px]">{selectedCustomer.mainObjective || 'Não informado'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Por que não fez ainda:</span>
-                            <span className="font-medium text-gray-900 text-right max-w-[160px]">{selectedCustomer.whyNotDoneYet || 'Não informado'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Filhos:</span>
-                            <span className="font-medium text-gray-900">
-                              {selectedCustomer.hasChildren === true 
-                                ? `Sim (${selectedCustomer.childrenCount || '?'})` 
-                                : selectedCustomer.hasChildren === false 
-                                  ? 'Não' 
-                                  : 'Não informado'}
-                            </span>
-                          </div>
-                          {(selectedCustomer.heightCm || selectedCustomer.weightKg) && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Altura/Peso:</span>
-                              <span className="font-medium text-gray-900">
-                                {selectedCustomer.heightCm ? `${selectedCustomer.heightCm}cm` : '-'} / {selectedCustomer.weightKg ? `${selectedCustomer.weightKg}kg` : '-'}
-                              </span>
-                            </div>
-                          )}
-                          {selectedCustomer.firstPurchaseDate && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Primeira compra:</span>
-                              <span className="font-medium text-gray-900">
-                                {new Date(selectedCustomer.firstPurchaseDate).toLocaleDateString('pt-BR')}
-                              </span>
-                            </div>
-                          )}
+                        <div className="mt-3 bg-gray-50 rounded-lg p-3">
+                          <table className="w-full text-sm">
+                            <tbody>
+                              <tr className="border-b border-gray-200">
+                                <td className="py-2 text-gray-600 font-medium">Profissão</td>
+                                <td className="py-2 text-right text-gray-900">{selectedCustomer.profession || 'Não informado'}</td>
+                              </tr>
+                              <tr className="border-b border-gray-200">
+                                <td className="py-2 text-gray-600 font-medium">Cidade/Estado</td>
+                                <td className="py-2 text-right text-gray-900">
+                                  {[selectedCustomer.city, selectedCustomer.state].filter(Boolean).join(', ') || 'Não informado'}
+                                </td>
+                              </tr>
+                              <tr className="border-b border-gray-200">
+                                <td className="py-2 text-gray-600 font-medium">País</td>
+                                <td className="py-2 text-right text-gray-900">{selectedCustomer.country || 'Não informado'}</td>
+                              </tr>
+                              <tr className="border-b border-gray-200">
+                                <td className="py-2 text-gray-600 font-medium">Objetivo</td>
+                                <td className="py-2 text-right text-gray-900 max-w-[150px] truncate">{selectedCustomer.mainObjective || 'Não informado'}</td>
+                              </tr>
+                              <tr className="border-b border-gray-200">
+                                <td className="py-2 text-gray-600 font-medium">Por que não fez</td>
+                                <td className="py-2 text-right text-gray-900 max-w-[150px] truncate">{selectedCustomer.whyNotDoneYet || 'Não informado'}</td>
+                              </tr>
+                              <tr className="border-b border-gray-200">
+                                <td className="py-2 text-gray-600 font-medium">Filhos</td>
+                                <td className="py-2 text-right text-gray-900">
+                                  {selectedCustomer.hasChildren === true 
+                                    ? `Sim (${selectedCustomer.childrenCount || '?'})` 
+                                    : selectedCustomer.hasChildren === false 
+                                      ? 'Não' 
+                                      : 'Não informado'}
+                                </td>
+                              </tr>
+                              {(selectedCustomer.heightCm || selectedCustomer.weightKg) && (
+                                <tr className="border-b border-gray-200">
+                                  <td className="py-2 text-gray-600 font-medium">Altura/Peso</td>
+                                  <td className="py-2 text-right text-gray-900">
+                                    {selectedCustomer.heightCm ? `${selectedCustomer.heightCm}cm` : '-'} / {selectedCustomer.weightKg ? `${selectedCustomer.weightKg}kg` : '-'}
+                                  </td>
+                                </tr>
+                              )}
+                              {selectedCustomer.firstPurchaseDate && (
+                                <tr>
+                                  <td className="py-2 text-gray-600 font-medium">1ª Compra</td>
+                                  <td className="py-2 text-right text-gray-900">
+                                    {new Date(selectedCustomer.firstPurchaseDate).toLocaleDateString('pt-BR')}
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>
