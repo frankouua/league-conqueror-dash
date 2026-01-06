@@ -107,15 +107,34 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Session storage keys
+  const STORAGE_KEY = 'sales_upload_session';
+  
+  // Initialize state from sessionStorage if available
+  const getInitialState = () => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Error loading session:', e);
+    }
+    return null;
+  };
+  
+  const savedState = getInitialState();
+  
   const [file, setFile] = useState<File | null>(null);
-  const [uploadType, setUploadType] = useState<'vendas' | 'executado'>(defaultUploadType);
+  const [uploadType, setUploadType] = useState<'vendas' | 'executado'>(savedState?.uploadType || defaultUploadType);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [parsedSales, setParsedSales] = useState<ParsedSale[]>([]);
-  const [availableColumns, setAvailableColumns] = useState<string[]>([]);
-  const [sheetNames, setSheetNames] = useState<string[]>([]);
-  const [selectedSheet, setSelectedSheet] = useState<string>("");
-  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
+  const [parsedSales, setParsedSales] = useState<ParsedSale[]>(savedState?.parsedSales || []);
+  const [availableColumns, setAvailableColumns] = useState<string[]>(savedState?.availableColumns || []);
+  const [sheetNames, setSheetNames] = useState<string[]>(savedState?.sheetNames || []);
+  const [selectedSheet, setSelectedSheet] = useState<string>(savedState?.selectedSheet || "");
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>(savedState?.columnMapping || {
     date: '',
     department: '',
     procedure: '',
@@ -130,27 +149,69 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     status: '',
   });
   const [showColumnMapping, setShowColumnMapping] = useState(false);
-  const [rawData, setRawData] = useState<Record<string, any>[]>([]);
+  const [rawData, setRawData] = useState<Record<string, any>[]>(savedState?.rawData || []);
   const [importResults, setImportResults] = useState<{
     success: number;
     failed: number;
     skipped: number;
-  } | null>(null);
+  } | null>(savedState?.importResults || null);
   const [importErrors, setImportErrors] = useState<{ sale: ParsedSale; error: string }[]>([]);
-  const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
+  const [metrics, setMetrics] = useState<SalesMetrics | null>(savedState?.metrics || null);
   const [sellerSortBy, setSellerSortBy] = useState<'revenuePaid' | 'revenueSold' | 'count'>('revenuePaid');
   const [lastUpload, setLastUpload] = useState<UploadLog | null>(null);
   const [uploadHistory, setUploadHistory] = useState<UploadLog[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [importSuccess, setImportSuccess] = useState(false);
+  const [importSuccess, setImportSuccess] = useState(savedState?.importSuccess || false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [selectedErrorRows, setSelectedErrorRows] = useState<Set<number>>(new Set());
   const [statusFilter, setStatusFilter] = useState<'all' | 'quitado' | 'em_aberto'>('all');
-  const [importMode, setImportMode] = useState<'replace' | 'add_new'>('replace');
+  const [importMode, setImportMode] = useState<'replace' | 'add_new'>(savedState?.importMode || 'replace');
   const [existingRecordsCount, setExistingRecordsCount] = useState<number>(0);
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const LARGE_REPLACE_THRESHOLD = 50;
+  
+  // Persist state to sessionStorage whenever key data changes
+  useEffect(() => {
+    if (parsedSales.length > 0 || metrics || importResults) {
+      const stateToSave = {
+        uploadType,
+        parsedSales,
+        availableColumns,
+        sheetNames,
+        selectedSheet,
+        columnMapping,
+        rawData: rawData.slice(0, 100), // Limit raw data to avoid storage limits
+        importResults,
+        metrics,
+        importSuccess,
+        importMode,
+      };
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (e) {
+        console.error('Error saving session:', e);
+      }
+    }
+  }, [parsedSales, metrics, importResults, uploadType, importSuccess, importMode]);
+  
+  // Clear session when import is successful and user explicitly resets
+  const clearUploadSession = () => {
+    sessionStorage.removeItem(STORAGE_KEY);
+    setParsedSales([]);
+    setMetrics(null);
+    setImportResults(null);
+    setImportSuccess(false);
+    setFile(null);
+    setRawData([]);
+    setAvailableColumns([]);
+    setSheetNames([]);
+    setSelectedSheet("");
+    toast({
+      title: "Sessão limpa",
+      description: "Dados de importação removidos. Você pode fazer um novo upload.",
+    });
+  };
 
   // Function to refresh all dashboard data
   const refreshAllDashboards = () => {
@@ -1688,6 +1749,18 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                   )}
                 </Button>
               )}
+              {/* Clear Session Button - Only show if there's saved data */}
+              {(parsedSales.length > 0 || metrics) && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={clearUploadSession}
+                  className="gap-1 border-destructive/50 text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Limpar Sessão
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -1763,6 +1836,26 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           )}
         </CardContent>
       </Card>
+
+      {/* Session Recovered Alert */}
+      {savedState && parsedSales.length > 0 && !importSuccess && (
+        <Alert className="border-blue-500/50 bg-blue-500/10">
+          <AlertCircle className="h-4 w-4 text-blue-500" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              <strong>Sessão recuperada:</strong> Você tem {parsedSales.length} registros de <strong>{uploadType === 'vendas' ? 'VENDAS' : 'EXECUTADO'}</strong> aguardando importação.
+              {metrics && (
+                <span className="ml-2 text-muted-foreground">
+                  (Total: {metrics.totalRevenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})
+                </span>
+              )}
+            </span>
+            <Badge variant="outline" className={uploadType === 'vendas' ? 'border-blue-500 text-blue-500' : 'border-green-500 text-green-500'}>
+              {uploadType === 'vendas' ? '📊 VENDAS → revenue_records' : '✅ EXECUTADO → executed_records'}
+            </Badge>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Success Panel after Import */}
       {importSuccess && importResults && importResults.success > 0 && (
