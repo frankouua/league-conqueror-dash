@@ -791,14 +791,24 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
         {/* Top Procedimentos Vendidos */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Top Procedimentos Vendidos</CardTitle>
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span>Top Procedimentos Vendidos</span>
+              {procedureAnalysis.byProcedure.some(p => p.name === "Não informado") && (
+                <Badge variant="outline" className="text-amber-500 border-amber-500/30 text-xs">
+                  Dados incompletos
+                </Badge>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {procedureAnalysis.byProcedure.length > 0 ? (
+            {procedureAnalysis.byProcedure.filter(p => p.name !== "Não informado").length > 0 ? (
               <div className="space-y-2">
-                {procedureAnalysis.byProcedure.map((proc, idx) => (
+                {procedureAnalysis.byProcedure
+                  .filter(p => p.name !== "Não informado")
+                  .slice(0, 8)
+                  .map((proc, idx) => (
                   <div key={proc.name} className="flex items-center gap-2">
-                    <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center ${
+                    <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
                       idx === 0 ? "bg-amber-500 text-white" : 
                       idx === 1 ? "bg-gray-400 text-white" : 
                       idx === 2 ? "bg-amber-700 text-white" : 
@@ -809,23 +819,27 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center text-xs">
                         <span className="truncate font-medium">{proc.name}</span>
-                        <span className="text-muted-foreground ml-2">{proc.count}x</span>
+                        <span className="text-muted-foreground ml-2 shrink-0">{proc.count}x</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-muted rounded-full h-1.5">
                           <div 
                             className="bg-primary rounded-full h-1.5 transition-all" 
-                            style={{ width: `${(proc.value / procedureAnalysis.byProcedure[0].value) * 100}%` }}
+                            style={{ width: `${(proc.value / (procedureAnalysis.byProcedure.filter(p => p.name !== "Não informado")[0]?.value || 1)) * 100}%` }}
                           />
                         </div>
-                        <span className="text-xs font-semibold text-primary">{formatCurrency(proc.value)}</span>
+                        <span className="text-xs font-semibold text-primary shrink-0">{formatCurrency(proc.value)}</span>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm text-center py-8">Sem dados</p>
+              <div className="text-center py-6">
+                <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                <p className="text-muted-foreground text-sm">Procedimentos não informados na importação</p>
+                <p className="text-xs text-muted-foreground mt-1">Verifique se a planilha contém a coluna de procedimentos</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -923,17 +937,17 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
         </CardContent>
       </Card>
 
-      {/* Projeção */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Projeção e Histórico */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-5 w-5 text-blue-500" />
-              <span className="font-medium">Projeção Mês</span>
+              <span className="font-medium text-sm">Projeção Mês</span>
             </div>
-            <p className="text-3xl font-bold text-blue-500">{formatCurrency(metrics.projection)}</p>
+            <p className="text-2xl font-bold text-blue-500">{formatCurrency(metrics.projection)}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Baseado na média diária de {formatCurrency(metrics.dailyAvg)}
+              Baseado na média de {formatCurrency(metrics.dailyAvg)}/dia
             </p>
           </CardContent>
         </Card>
@@ -942,11 +956,24 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <History className="h-5 w-5" />
-              <span className="font-medium">Mês Anterior</span>
+              <span className="font-medium text-sm">Mês Anterior</span>
             </div>
-            <p className="text-3xl font-bold">{formatCurrency(metrics.lastMonthTotal)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(metrics.lastMonthTotal)}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {format(subMonths(new Date(year, month - 1, 1), 1), "MMMM yyyy", { locale: ptBR })}
+              {format(subMonths(new Date(year, month - 1, 1), 1), "MMMM yyyy", { locale: ptBR })} (completo)
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <GitCompare className="h-5 w-5 text-amber-500" />
+              <span className="font-medium text-sm">Dia 1-{daysPassed} {year - 1}</span>
+            </div>
+            <p className="text-2xl font-bold text-amber-500">{formatCurrency(metrics.lastYearSamePeriodTotal)}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Mesmo período {year - 1} ({metrics.lastYearSalesCount} vendas)
             </p>
           </CardContent>
         </Card>
@@ -954,12 +981,12 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <GitCompare className="h-5 w-5" />
-              <span className="font-medium">Mesmo Mês {year - 1}</span>
+              <CalendarDays className="h-5 w-5" />
+              <span className="font-medium text-sm">{format(new Date(year - 1, month - 1, 1), "MMM yyyy", { locale: ptBR })} Completo</span>
             </div>
-            <p className="text-3xl font-bold">{formatCurrency(metrics.lastYearFullMonthTotal)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(metrics.lastYearFullMonthTotal)}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Total de {format(new Date(year - 1, month - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              Total mês {format(new Date(year - 1, month - 1, 1), "MMMM", { locale: ptBR })} {year - 1}
             </p>
           </CardContent>
         </Card>
