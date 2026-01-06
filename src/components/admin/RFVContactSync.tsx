@@ -49,11 +49,11 @@ export default function RFVContactSync() {
     setSyncResult(null);
 
     try {
-      // Fetch all patient_data with contact info
+      // Fetch all patient_data with contact info - include all contact fields
       const { data: patients, error: patientError } = await supabase
         .from("patient_data")
         .select("cpf, prontuario, phone, whatsapp, email, name")
-        .or("cpf.not.is.null,prontuario.not.is.null");
+        .or("phone.not.is.null,whatsapp.not.is.null,email.not.is.null");
 
       if (patientError) throw patientError;
 
@@ -131,18 +131,26 @@ export default function RFVContactSync() {
         if (matchedPatient) {
           result.matched++;
           
-          // Check if we need to update
-          const needsUpdate = 
-            (!rfv.phone && (matchedPatient.phone || matchedPatient.whatsapp)) ||
-            (!rfv.email && matchedPatient.email) ||
-            (!rfv.whatsapp && matchedPatient.whatsapp);
+          // Get contact from patient data - prefer whatsapp, then phone
+          const patientPhone = matchedPatient.phone?.replace(/\D/g, '') || '';
+          const patientWhatsapp = matchedPatient.whatsapp?.replace(/\D/g, '') || '';
+          const patientEmail = matchedPatient.email?.trim() || '';
+          
+          // Filter out invalid placeholder numbers
+          const validPatientPhone = patientPhone && patientPhone !== '00000000000' && patientPhone.length >= 10 ? patientPhone : '';
+          const validPatientWhatsapp = patientWhatsapp && patientWhatsapp !== '00000000000' && patientWhatsapp.length >= 10 ? patientWhatsapp : '';
+          
+          // Check if we need to update - update if RFV field is empty AND patient has valid data
+          const shouldUpdatePhone = !rfv.phone && (validPatientWhatsapp || validPatientPhone);
+          const shouldUpdateEmail = !rfv.email && patientEmail && patientEmail.includes('@');
+          const shouldUpdateWhatsapp = !rfv.whatsapp && validPatientWhatsapp;
 
-          if (needsUpdate) {
+          if (shouldUpdatePhone || shouldUpdateEmail || shouldUpdateWhatsapp) {
             updates.push({
               id: rfv.id,
-              phone: rfv.phone || matchedPatient.phone || matchedPatient.whatsapp || undefined,
-              email: rfv.email || matchedPatient.email || undefined,
-              whatsapp: rfv.whatsapp || matchedPatient.whatsapp || matchedPatient.phone || undefined,
+              phone: rfv.phone || validPatientWhatsapp || validPatientPhone || undefined,
+              email: rfv.email || (patientEmail.includes('@') ? patientEmail : undefined),
+              whatsapp: rfv.whatsapp || validPatientWhatsapp || undefined,
             });
           }
         } else {
