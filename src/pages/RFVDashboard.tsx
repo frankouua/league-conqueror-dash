@@ -23,7 +23,7 @@ import {
   ArrowUpRight, ArrowDownRight, Clock, DollarSign, Calendar, Star,
   MessageSquare, Mail, Sparkles, CheckCircle2, Database, Save, History,
   Send, Copy, Check, UserPlus, Megaphone, HandHeart, Award, Square, CheckSquare, Shield,
-  Trash2, Edit
+  Trash2, Edit, ChevronDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -320,6 +320,17 @@ interface RFVCustomer {
   valueScore: number;
   segment: RFVSegment;
   daysSinceLastPurchase: number;
+  // Additional fields
+  profession?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  mainObjective?: string;
+  whyNotDoneYet?: string;
+  hasChildren?: boolean;
+  childrenCount?: number;
+  heightCm?: number;
+  weightKg?: number;
 }
 
 interface ColumnMapping {
@@ -413,6 +424,9 @@ const RFVDashboard = () => {
   const [isSavingContact, setIsSavingContact] = useState(false);
   const [isSearchingFeegow, setIsSearchingFeegow] = useState(false);
   const [feegowResults, setFeegowResults] = useState<any[]>([]);
+  
+  // Expand customer details state
+  const [showExpandedDetails, setShowExpandedDetails] = useState(false);
   
   // Delete customer state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -897,6 +911,17 @@ const RFVDashboard = () => {
           valueScore: row.value_score,
           segment: mapSegmentToKey(row.segment),
           daysSinceLastPurchase: row.days_since_last_purchase,
+          // Additional fields
+          profession: row.profession || undefined,
+          city: row.city || undefined,
+          state: row.state || undefined,
+          country: row.country || undefined,
+          mainObjective: row.main_objective || undefined,
+          whyNotDoneYet: row.why_not_done_yet || undefined,
+          hasChildren: row.has_children,
+          childrenCount: row.children_count,
+          heightCm: row.height_cm,
+          weightKg: row.weight_kg,
         }));
 
         // Recalculate days since last purchase
@@ -2547,14 +2572,14 @@ const RFVDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Customer Summary */}
-                  <div className={`p-4 rounded-lg ${RFV_SEGMENTS[selectedCustomer.segment].bgLight}`}>
+                  {/* Customer Summary - Fixed dark text for visibility */}
+                  <div className={`p-4 rounded-lg border ${RFV_SEGMENTS[selectedCustomer.segment].bgLight} border-gray-200`}>
                     <div className="flex items-center gap-2 mb-3">
                       {(() => {
                         const Icon = RFV_SEGMENTS[selectedCustomer.segment].icon;
                         return <Icon className={`h-5 w-5 ${RFV_SEGMENTS[selectedCustomer.segment].textColor}`} />;
                       })()}
-                      <span className="font-semibold">{selectedCustomer.name}</span>
+                      <span className="font-semibold text-gray-900">{selectedCustomer.name}</span>
                     </div>
                     
                     {/* Action Buttons: Edit & Delete */}
@@ -2562,7 +2587,7 @@ const RFVDashboard = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 gap-2"
+                        className="flex-1 gap-2 bg-white"
                         onClick={() => handleOpenEditContact(selectedCustomer)}
                       >
                         <Edit className="h-3 w-3" />
@@ -2572,7 +2597,7 @@ const RFVDashboard = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 bg-white"
                           onClick={() => {
                             setCustomerToDelete(selectedCustomer);
                             setShowDeleteConfirm(true);
@@ -2585,19 +2610,19 @@ const RFVDashboard = () => {
                     </div>
                     
                     {/* Contact Info */}
-                    <div className="space-y-2 mb-3 pb-3 border-b border-border/50">
+                    <div className="space-y-2 mb-3 pb-3 border-b border-gray-300">
                       {(selectedCustomer.whatsapp || selectedCustomer.phone) ? (
                         <a 
                           href={`https://wa.me/55${(selectedCustomer.whatsapp || selectedCustomer.phone)?.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-green-600 hover:underline"
+                          className="flex items-center gap-2 text-sm text-green-700 hover:underline font-medium"
                         >
                           <Phone className="h-4 w-4" />
                           {selectedCustomer.whatsapp || selectedCustomer.phone}
                         </a>
                       ) : (
-                        <p className="text-xs text-amber-500 flex items-center gap-1">
+                        <p className="text-xs text-amber-600 flex items-center gap-1 font-medium">
                           <AlertCircle className="h-3 w-3" />
                           Sem telefone cadastrado
                         </p>
@@ -2605,20 +2630,20 @@ const RFVDashboard = () => {
                       {selectedCustomer.email && (
                         <a 
                           href={`mailto:${selectedCustomer.email}`}
-                          className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                          className="flex items-center gap-2 text-sm text-blue-700 hover:underline"
                         >
                           <Mail className="h-4 w-4" />
                           {selectedCustomer.email}
                         </a>
                       )}
                       {selectedCustomer.prontuario && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Database className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Database className="h-4 w-4 text-gray-500" />
                           <span>Prontuário: <strong>{selectedCustomer.prontuario}</strong></span>
                         </div>
                       )}
                       {selectedCustomer.cpf && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
                           <span>CPF: {selectedCustomer.cpf}</span>
                         </div>
                       )}
@@ -2627,29 +2652,103 @@ const RFVDashboard = () => {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
-                        <p className="text-muted-foreground text-xs">Compras</p>
-                        <p className="font-bold">{selectedCustomer.totalPurchases}</p>
+                        <p className="text-gray-500 text-xs">Compras</p>
+                        <p className="font-bold text-gray-900">{selectedCustomer.totalPurchases}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-xs">Total Vendido</p>
-                        <p className="font-bold text-green-600">{formatCurrency(selectedCustomer.totalValue)}</p>
+                        <p className="text-gray-500 text-xs">Total Vendido</p>
+                        <p className="font-bold text-green-700">{formatCurrency(selectedCustomer.totalValue)}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-xs">Ticket Médio</p>
-                        <p className="font-bold">{formatCurrency(selectedCustomer.averageTicket)}</p>
+                        <p className="text-gray-500 text-xs">Ticket Médio</p>
+                        <p className="font-bold text-gray-900">{formatCurrency(selectedCustomer.averageTicket)}</p>
                       </div>
                     </div>
                     
                     {/* Days and Dates */}
-                    <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-2 gap-2 text-xs">
+                    <div className="mt-3 pt-3 border-t border-gray-300 grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <p className="text-muted-foreground">Última Compra</p>
-                        <p className="font-medium">{new Date(selectedCustomer.lastPurchaseDate).toLocaleDateString('pt-BR')}</p>
+                        <p className="text-gray-500">Última Compra</p>
+                        <p className="font-medium text-gray-800">{new Date(selectedCustomer.lastPurchaseDate).toLocaleDateString('pt-BR')}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Dias sem Compra</p>
-                        <p className="font-medium">{selectedCustomer.daysSinceLastPurchase}d</p>
+                        <p className="text-gray-500">Dias sem Compra</p>
+                        <p className="font-medium text-gray-800">{selectedCustomer.daysSinceLastPurchase}d</p>
                       </div>
+                    </div>
+
+                    {/* Expand Button for Additional Info */}
+                    <div className="mt-3 pt-3 border-t border-gray-300">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                        onClick={() => setShowExpandedDetails(!showExpandedDetails)}
+                      >
+                        {showExpandedDetails ? 'Ocultar detalhes' : 'Ver mais detalhes'}
+                        <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${showExpandedDetails ? 'rotate-180' : ''}`} />
+                      </Button>
+                      
+                      {showExpandedDetails && (
+                        <div className="mt-3 space-y-2 text-sm">
+                          {selectedCustomer.profession && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Profissão:</span>
+                              <span className="font-medium text-gray-800">{selectedCustomer.profession}</span>
+                            </div>
+                          )}
+                          {(selectedCustomer.city || selectedCustomer.state) && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Localização:</span>
+                              <span className="font-medium text-gray-800">
+                                {[selectedCustomer.city, selectedCustomer.state].filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                          {selectedCustomer.country && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">País:</span>
+                              <span className="font-medium text-gray-800">{selectedCustomer.country}</span>
+                            </div>
+                          )}
+                          {selectedCustomer.mainObjective && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Objetivo:</span>
+                              <span className="font-medium text-gray-800">{selectedCustomer.mainObjective}</span>
+                            </div>
+                          )}
+                          {selectedCustomer.whyNotDoneYet && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Por que não fez:</span>
+                              <span className="font-medium text-gray-800 text-right max-w-[150px]">{selectedCustomer.whyNotDoneYet}</span>
+                            </div>
+                          )}
+                          {selectedCustomer.hasChildren !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Filhos:</span>
+                              <span className="font-medium text-gray-800">
+                                {selectedCustomer.hasChildren ? `Sim (${selectedCustomer.childrenCount || 0})` : 'Não'}
+                              </span>
+                            </div>
+                          )}
+                          {(selectedCustomer.heightCm || selectedCustomer.weightKg) && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Altura/Peso:</span>
+                              <span className="font-medium text-gray-800">
+                                {selectedCustomer.heightCm ? `${selectedCustomer.heightCm}cm` : '-'} / {selectedCustomer.weightKg ? `${selectedCustomer.weightKg}kg` : '-'}
+                              </span>
+                            </div>
+                          )}
+                          {selectedCustomer.firstPurchaseDate && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Primeira compra:</span>
+                              <span className="font-medium text-gray-800">
+                                {new Date(selectedCustomer.firstPurchaseDate).toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
