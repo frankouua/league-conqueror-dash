@@ -1576,365 +1576,34 @@ const RFVDashboard = () => {
           </p>
         </div>
 
-        {/* Upload Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Upload de Dados
-            </CardTitle>
-            <CardDescription>
-              Faça upload da planilha com histórico de compras para gerar a análise RFV
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="file-upload" className="cursor-pointer">
-                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
-                      <FileSpreadsheet className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        {file ? file.name : 'Clique para selecionar ou arraste a planilha'}
-                      </p>
-                    </div>
-                  </Label>
-                  <Input
-                    id="file-upload"
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
+        {/* Info Banner - Data comes from admin import */}
+        <Card className="mb-6 bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <Database className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">Dados carregados automaticamente</p>
+                  <p className="text-sm text-muted-foreground">
+                    Os dados são importados via painel Admin → Importação de Dados → Calcular RFV
+                  </p>
                 </div>
               </div>
-
-              {isProcessing && (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                  <span>Processando arquivo...</span>
-                </div>
-              )}
-
-              {showColumnMapping && (
-                <div className="space-y-4 p-4 bg-muted rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">Mapeamento de Colunas</h3>
-                    <Badge variant="outline" className="text-xs">
-                      {availableColumns.length} colunas encontradas
-                    </Badge>
-                  </div>
-                  {/* Campos obrigatórios */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Campos Obrigatórios</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label>Nome do Cliente *</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.clientName}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, clientName: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Última Compra (Data) *</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.purchaseDate}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, purchaseDate: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Valor Total / LTV *</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.totalValue}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, totalValue: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dados de Contato */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Dados de Contato</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label>Telefone</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.phone}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, phone: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>WhatsApp</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.whatsapp}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, whatsapp: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Email</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.email}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, email: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dados de Histórico */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Histórico de Compras</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div>
-                        <Label>Primeira Compra</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.firstPurchaseDate}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, firstPurchaseDate: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Qtd. Compras</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.totalPurchases}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, totalPurchases: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Ticket Médio</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.averageTicket}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, averageTicket: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Dias Sem Compra</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.daysSinceLastPurchase}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, daysSinceLastPurchase: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Scores RFV */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Scores RFV (se já calculados)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div>
-                        <Label>Score Recência (R)</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.recencyScore}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, recencyScore: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Score Frequência (F)</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.frequencyScore}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, frequencyScore: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Score Valor (V)</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.valueScore}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, valueScore: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Segmento RFV</Label>
-                        <select
-                          className="w-full p-2 border rounded-md bg-background"
-                          value={columnMapping.segment}
-                          onChange={(e) => setColumnMapping({ ...columnMapping, segment: e.target.value })}
-                        >
-                          <option value="">Selecione...</option>
-                          {availableColumns.map(col => (
-                            <option key={col} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  <Button onClick={processWithMapping} disabled={isProcessing}>
-                    {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                    Processar e Gerar Análise RFV
-                  </Button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-sm">
+                  {customers.length.toLocaleString('pt-BR')} clientes
+                </Badge>
+                <Button variant="outline" size="sm" onClick={loadExistingData}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Save Button and Stats */}
-        {hasUnsavedChanges && customers.length > 0 && (
-          <Alert className="mb-6 border-primary bg-primary/10">
-            <Save className="h-4 w-4" />
-            <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <span className="flex-1">Você tem {customers.length} clientes processados. Salve para persistir os dados.</span>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="dataRef" className="text-xs whitespace-nowrap">Data Ref.:</Label>
-                  <Input
-                    id="dataRef"
-                    type="date"
-                    value={dataReferenceDate}
-                    onChange={(e) => setDataReferenceDate(e.target.value)}
-                    className="w-36 h-8"
-                    placeholder="Data dos dados"
-                  />
-                </div>
-                <Button onClick={saveToDatabase} disabled={isSaving}>
-                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
-                  Salvar no Banco
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Upload History */}
-        {uploadLogs.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <History className="h-5 w-5" />
-                Histórico de Uploads da Matriz RFV
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data Upload</TableHead>
-                      <TableHead>Responsável</TableHead>
-                      <TableHead>Arquivo</TableHead>
-                      <TableHead className="text-center">Clientes</TableHead>
-                      <TableHead>Data Ref. Dados</TableHead>
-                      <TableHead>Segmentos</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {uploadLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {new Date(log.uploaded_at).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </TableCell>
-                        <TableCell>{log.uploaded_by_name}</TableCell>
-                        <TableCell className="max-w-[150px] truncate" title={log.file_name}>
-                          {log.file_name || '-'}
-                        </TableCell>
-                        <TableCell className="text-center font-semibold">
-                          {log.total_customers?.toLocaleString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          {log.data_reference_date 
-                            ? new Date(log.data_reference_date).toLocaleDateString('pt-BR')
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {log.segment_breakdown && (
-                            <div className="flex flex-wrap gap-1">
-                              {Object.entries(log.segment_breakdown).map(([seg, count]) => (
-                                <Badge key={seg} variant="outline" className="text-xs">
-                                  {RFV_SEGMENTS[seg as RFVSegment]?.name || seg}: {String(count)}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {isLoadingData && (
           <div className="flex items-center justify-center py-8">
@@ -2348,18 +2017,20 @@ const RFVDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="max-h-[500px] overflow-auto">
-                    <Table>
-                      <TableHeader>
+                  <div className="max-h-[500px] overflow-x-auto overflow-y-auto border rounded-lg">
+                    <Table className="min-w-[1100px]">
+                      <TableHeader className="sticky top-0 bg-background z-10">
                         <TableRow>
-                          <TableHead>Cliente</TableHead>
-                          <TableHead>Contato</TableHead>
-                          <TableHead>Prontuário</TableHead>
-                          <TableHead>Segmento</TableHead>
-                          <TableHead className="text-center">RFV</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead>Última Compra</TableHead>
-                          <TableHead className="text-center">Ação</TableHead>
+                          <TableHead className="min-w-[180px]">Cliente</TableHead>
+                          <TableHead className="min-w-[140px]">Contato</TableHead>
+                          <TableHead className="min-w-[100px]">Prontuário</TableHead>
+                          <TableHead className="min-w-[110px]">Segmento</TableHead>
+                          <TableHead className="text-center min-w-[80px]">RFV</TableHead>
+                          <TableHead className="text-right min-w-[100px]">Total</TableHead>
+                          <TableHead className="text-right min-w-[90px]">Compras</TableHead>
+                          <TableHead className="text-right min-w-[100px]">Ticket</TableHead>
+                          <TableHead className="min-w-[110px]">Última Compra</TableHead>
+                          <TableHead className="text-center min-w-[70px]">Ação</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2435,6 +2106,12 @@ const RFVDashboard = () => {
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {formatCurrency(customer.totalValue)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {customer.totalPurchases}
+                              </TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {formatCurrency(customer.averageTicket)}
                               </TableCell>
                               <TableCell>
                                 <div className="text-sm">
