@@ -2036,9 +2036,18 @@ const RFVDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
+                  {/* Scroll indicator bar */}
+                  <div className="bg-muted/50 border-b px-4 py-2 flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      ⬅️ Arraste para ver todas as colunas ➡️
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Colunas: Ranking, Cliente, Total, Contato, Prontuário, Segmento, RFV, Compras, Ticket, Última, Dias, Ação</span>
+                    </div>
+                  </div>
                   {/* Scrollbar always visible container */}
-                  <div className="border rounded-lg rfv-table-scroll max-h-[650px] overflow-x-scroll overflow-y-auto">
-                    <Table className="min-w-[1200px]">
+                  <div className="border rounded-lg rfv-table-scroll max-h-[600px] overflow-x-auto overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+                    <Table className="min-w-[1400px]">
                       <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                         <TableRow>
                           <TableHead className="w-[45px] text-center bg-background">#</TableHead>
@@ -2178,220 +2187,255 @@ const RFVDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Customer Actions Panel - Hide when expanded */}
-              {!isTableExpanded && (
-              <Card>
+              {/* Customer Actions Panel - Show always when customer selected, can be closed in expanded view */}
+              {selectedCustomer && (
+              <Card className={isTableExpanded ? 'fixed right-4 top-24 w-96 max-h-[calc(100vh-120px)] overflow-y-auto z-50 shadow-2xl' : ''}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Sparkles className="h-5 w-5" />
-                    Ações Recomendadas
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5" />
+                      Ações Recomendadas
+                    </span>
+                    {isTableExpanded && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedCustomer(null)}
+                      >
+                        ✕
+                      </Button>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {selectedCustomer ? (
-                    <>
-                      {/* Customer Summary */}
-                      <div className={`p-4 rounded-lg ${RFV_SEGMENTS[selectedCustomer.segment].bgLight}`}>
-                        <div className="flex items-center gap-2 mb-3">
-                          {(() => {
-                            const Icon = RFV_SEGMENTS[selectedCustomer.segment].icon;
-                            return <Icon className={`h-5 w-5 ${RFV_SEGMENTS[selectedCustomer.segment].textColor}`} />;
-                          })()}
-                          <span className="font-semibold">{selectedCustomer.name}</span>
-                        </div>
-                        
-                        {/* Contact Info */}
-                        <div className="space-y-2 mb-3 pb-3 border-b border-border/50">
-                          {(selectedCustomer.whatsapp || selectedCustomer.phone) && (
-                            <a 
-                              href={`https://wa.me/55${(selectedCustomer.whatsapp || selectedCustomer.phone)?.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-sm text-green-600 hover:underline"
-                            >
-                              <Phone className="h-4 w-4" />
-                              {selectedCustomer.whatsapp || selectedCustomer.phone}
-                            </a>
-                          )}
-                          {selectedCustomer.email && (
-                            <a 
-                              href={`mailto:${selectedCustomer.email}`}
-                              className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
-                            >
-                              <Mail className="h-4 w-4" />
-                              {selectedCustomer.email}
-                            </a>
-                          )}
-                          {selectedCustomer.prontuario && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Database className="h-4 w-4 text-muted-foreground" />
-                              <span>Prontuário: <strong>{selectedCustomer.prontuario}</strong></span>
-                            </div>
-                          )}
-                          {selectedCustomer.cpf && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span>CPF: {selectedCustomer.cpf}</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>
-                            <p className="text-muted-foreground text-xs">Compras</p>
-                            <p className="font-bold">{selectedCustomer.totalPurchases}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground text-xs">Total</p>
-                            <p className="font-bold">{formatCurrency(selectedCustomer.totalValue)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground text-xs">Ticket</p>
-                            <p className="font-bold">{formatCurrency(selectedCustomer.averageTicket)}</p>
-                          </div>
-                        </div>
-                        
-                        {/* Days and Dates */}
-                        <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <p className="text-muted-foreground">Última Compra</p>
-                            <p className="font-medium">{new Date(selectedCustomer.lastPurchaseDate).toLocaleDateString('pt-BR')}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Dias sem Compra</p>
-                            <p className="font-medium">{selectedCustomer.daysSinceLastPurchase}d</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Radar Chart */}
-                      <div className="h-[180px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RadarChart data={radarData}>
-                            <PolarGrid />
-                            <PolarAngleAxis dataKey="subject" />
-                            <PolarRadiusAxis domain={[0, 5]} />
-                            <Radar
-                              name="RFV"
-                              dataKey="value"
-                              stroke="hsl(var(--primary))"
-                              fill="hsl(var(--primary))"
-                              fillOpacity={0.5}
-                            />
-                          </RadarChart>
-                        </ResponsiveContainer>
-                      </div>
-
-                      {/* AI Strategy Button */}
-                      <div className="pt-2">
-                        <Button 
-                          onClick={generateAIStrategy} 
-                          disabled={isLoadingAI}
-                          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                  {/* Customer Summary */}
+                  <div className={`p-4 rounded-lg ${RFV_SEGMENTS[selectedCustomer.segment].bgLight}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      {(() => {
+                        const Icon = RFV_SEGMENTS[selectedCustomer.segment].icon;
+                        return <Icon className={`h-5 w-5 ${RFV_SEGMENTS[selectedCustomer.segment].textColor}`} />;
+                      })()}
+                      <span className="font-semibold">{selectedCustomer.name}</span>
+                    </div>
+                    
+                    {/* Contact Info */}
+                    <div className="space-y-2 mb-3 pb-3 border-b border-border/50">
+                      {(selectedCustomer.whatsapp || selectedCustomer.phone) && (
+                        <a 
+                          href={`https://wa.me/55${(selectedCustomer.whatsapp || selectedCustomer.phone)?.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-green-600 hover:underline"
                         >
-                          {isLoadingAI ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Gerando estratégia...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Gerar Estratégia com IA
-                            </>
-                          )}
-                        </Button>
-                      </div>
-
-                      {/* AI Generated Strategy */}
-                      {aiStrategy && (
-                        <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Sparkles className="h-4 w-4 text-purple-500" />
-                            <h4 className="font-semibold text-sm text-purple-700 dark:text-purple-300">
-                              Estratégia Personalizada (IA)
-                            </h4>
-                          </div>
-                          <div className="prose prose-sm dark:prose-invert max-w-none text-sm whitespace-pre-wrap">
-                            {aiStrategy}
-                          </div>
+                          <Phone className="h-4 w-4" />
+                          {selectedCustomer.whatsapp || selectedCustomer.phone}
+                        </a>
+                      )}
+                      {selectedCustomer.email && (
+                        <a 
+                          href={`mailto:${selectedCustomer.email}`}
+                          className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                        >
+                          <Mail className="h-4 w-4" />
+                          {selectedCustomer.email}
+                        </a>
+                      )}
+                      {selectedCustomer.prontuario && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Database className="h-4 w-4 text-muted-foreground" />
+                          <span>Prontuário: <strong>{selectedCustomer.prontuario}</strong></span>
                         </div>
                       )}
-
-                      {/* Action Cards */}
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Próximas Ações Sugeridas:</h4>
-                        {RFV_SEGMENTS[selectedCustomer.segment].actions.slice(0, 3).map((action, index) => (
-                          <div 
-                            key={index}
-                            className="p-3 border rounded-lg hover:bg-muted cursor-pointer transition-colors"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="font-medium text-sm">{action.title}</p>
-                                <p className="text-xs text-muted-foreground">{action.description}</p>
-                              </div>
-                              <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </div>
-                        ))}
+                      {selectedCustomer.cpf && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>CPF: {selectedCustomer.cpf}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground text-xs">Compras</p>
+                        <p className="font-bold">{selectedCustomer.totalPurchases}</p>
                       </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Total Vendido</p>
+                        <p className="font-bold text-green-600">{formatCurrency(selectedCustomer.totalValue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Ticket Médio</p>
+                        <p className="font-bold">{formatCurrency(selectedCustomer.averageTicket)}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Days and Dates */}
+                    <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">Última Compra</p>
+                        <p className="font-medium">{new Date(selectedCustomer.lastPurchaseDate).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Dias sem Compra</p>
+                        <p className="font-medium">{selectedCustomer.daysSinceLastPurchase}d</p>
+                      </div>
+                    </div>
+                  </div>
 
-                      {/* Quick Actions */}
-                      <div className="flex flex-col gap-2 pt-2">
-                        {/* WhatsApp Button - Main CTA */}
-                        {(selectedCustomer.whatsapp || selectedCustomer.phone) && (
-                          <Button 
-                            size="sm" 
-                            className="w-full bg-green-600 hover:bg-green-700 text-white" 
-                            asChild
-                          >
-                            <a 
-                              href={`https://wa.me/${getWhatsAppNumber(selectedCustomer)}?text=${getWhatsAppMessage(selectedCustomer)}`} 
-                              target="_blank"
-                            >
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              Enviar WhatsApp com Mensagem
-                            </a>
-                          </Button>
-                        )}
-                        
-                        <div className="flex gap-2">
-                          {selectedCustomer.phone && (
-                            <Button size="sm" variant="outline" className="flex-1" asChild>
-                              <a href={`tel:${selectedCustomer.phone}`}>
-                                <Phone className="h-4 w-4 mr-1" />
-                                Ligar
-                              </a>
-                            </Button>
-                          )}
-                          {selectedCustomer.email && (
-                            <Button size="sm" variant="outline" className="flex-1" asChild>
-                              <a href={`mailto:${selectedCustomer.email}`}>
-                                <Mail className="h-4 w-4 mr-1" />
-                                Email
-                              </a>
-                            </Button>
-                          )}
+                  {/* Radar Chart */}
+                  <div className="h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={radarData}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="subject" />
+                        <PolarRadiusAxis domain={[0, 5]} />
+                        <Radar
+                          name="RFV"
+                          dataKey="value"
+                          stroke="hsl(var(--primary))"
+                          fill="hsl(var(--primary))"
+                          fillOpacity={0.5}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* AI Strategy Button */}
+                  <div className="pt-2">
+                    <Button 
+                      onClick={generateAIStrategy} 
+                      disabled={isLoadingAI}
+                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    >
+                      {isLoadingAI ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Gerando estratégia...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Gerar Estratégia com IA
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* AI Generated Strategy */}
+                  {aiStrategy && (
+                    <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Sparkles className="h-4 w-4 text-purple-500" />
+                        <h4 className="font-semibold text-sm text-purple-700 dark:text-purple-300">
+                          Estratégia Personalizada (IA)
+                        </h4>
+                      </div>
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm whitespace-pre-wrap">
+                        {aiStrategy}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Cards */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Próximas Ações Sugeridas:</h4>
+                    {RFV_SEGMENTS[selectedCustomer.segment].actions.slice(0, 3).map((action, index) => (
+                      <div 
+                        key={index}
+                        className="p-3 border rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-medium text-sm">{action.title}</p>
+                            <p className="text-xs text-muted-foreground">{action.description}</p>
+                          </div>
+                          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </div>
+                    ))}
+                  </div>
 
-                      {/* Action History Component */}
-                      <div className="pt-4 border-t">
-                        <RFVActionHistory 
-                          customerId={selectedCustomer.id}
-                          customerName={selectedCustomer.name}
-                        />
-                      </div>
-                    </>
-                  ) : (
+                  {/* Quick Actions */}
+                  <div className="flex flex-col gap-2 pt-2">
+                    {/* WhatsApp Button - Main CTA */}
+                    {(selectedCustomer.whatsapp || selectedCustomer.phone) && (
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                        asChild
+                      >
+                        <a 
+                          href={`https://wa.me/${getWhatsAppNumber(selectedCustomer)}?text=${getWhatsAppMessage(selectedCustomer)}`} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Enviar WhatsApp
+                        </a>
+                      </Button>
+                    )}
+                    
+                    {/* Quick Action Button */}
+                    {(selectedCustomer.whatsapp || selectedCustomer.phone) && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="w-full border-green-500/50 text-green-600 hover:bg-green-50"
+                        onClick={(e) => handleOpenQuickAction(selectedCustomer, e)}
+                      >
+                        <Zap className="h-4 w-4 mr-2" />
+                        Ação Rápida com Script
+                      </Button>
+                    )}
+                    
+                    {/* Secondary Actions */}
+                    <div className="flex gap-2">
+                      {selectedCustomer.phone && (
+                        <Button size="sm" variant="outline" className="flex-1" asChild>
+                          <a href={`tel:${selectedCustomer.phone}`}>
+                            <Phone className="h-4 w-4 mr-1" />
+                            Ligar
+                          </a>
+                        </Button>
+                      )}
+                      {selectedCustomer.email && (
+                        <Button size="sm" variant="outline" className="flex-1" asChild>
+                          <a href={`mailto:${selectedCustomer.email}`}>
+                            <Mail className="h-4 w-4 mr-1" />
+                            Email
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action History Component */}
+                  <div className="pt-4 border-t">
+                    <RFVActionHistory 
+                      customerId={selectedCustomer.id}
+                      customerName={selectedCustomer.name}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              )}
+
+              {/* Empty state when no customer selected and not expanded */}
+              {!selectedCustomer && !isTableExpanded && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Sparkles className="h-5 w-5" />
+                      Ações Recomendadas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <div className="text-center py-8 text-muted-foreground">
                       <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p>Selecione um cliente na lista para ver as ações recomendadas</p>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
               )}
             </div>
 
