@@ -1287,6 +1287,7 @@ export type Database = {
           cpf: string | null
           created_at: string
           created_by: string | null
+          data_cadastro_feegow: string | null
           data_source: string | null
           desires: string | null
           dreams: string | null
@@ -1295,6 +1296,7 @@ export type Database = {
           fears: string | null
           first_contact_date: string | null
           first_purchase_date: string | null
+          foto_url: string | null
           gender: string | null
           has_children: boolean | null
           height_cm: number | null
@@ -1308,6 +1310,12 @@ export type Database = {
           name: string
           nationality: string | null
           neighborhood: string | null
+          no_show_count: number | null
+          nome_mae: string | null
+          nome_pai: string | null
+          observacoes_feegow: string | null
+          origem_id: number | null
+          origem_nome: string | null
           origin: string | null
           origin_detail: string | null
           phone: string | null
@@ -1315,10 +1323,14 @@ export type Database = {
           profession: string | null
           prontuario: string | null
           referral_name: string | null
+          responsavel_legal: string | null
+          rg: string | null
           state: string | null
+          total_agendamentos: number | null
           total_procedures: number | null
           total_value_executed: number | null
           total_value_sold: number | null
+          ultimo_atendimento: string | null
           updated_at: string
           weight_kg: number | null
           whatsapp: string | null
@@ -1335,6 +1347,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           created_by?: string | null
+          data_cadastro_feegow?: string | null
           data_source?: string | null
           desires?: string | null
           dreams?: string | null
@@ -1343,6 +1356,7 @@ export type Database = {
           fears?: string | null
           first_contact_date?: string | null
           first_purchase_date?: string | null
+          foto_url?: string | null
           gender?: string | null
           has_children?: boolean | null
           height_cm?: number | null
@@ -1356,6 +1370,12 @@ export type Database = {
           name: string
           nationality?: string | null
           neighborhood?: string | null
+          no_show_count?: number | null
+          nome_mae?: string | null
+          nome_pai?: string | null
+          observacoes_feegow?: string | null
+          origem_id?: number | null
+          origem_nome?: string | null
           origin?: string | null
           origin_detail?: string | null
           phone?: string | null
@@ -1363,10 +1383,14 @@ export type Database = {
           profession?: string | null
           prontuario?: string | null
           referral_name?: string | null
+          responsavel_legal?: string | null
+          rg?: string | null
           state?: string | null
+          total_agendamentos?: number | null
           total_procedures?: number | null
           total_value_executed?: number | null
           total_value_sold?: number | null
+          ultimo_atendimento?: string | null
           updated_at?: string
           weight_kg?: number | null
           whatsapp?: string | null
@@ -1383,6 +1407,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           created_by?: string | null
+          data_cadastro_feegow?: string | null
           data_source?: string | null
           desires?: string | null
           dreams?: string | null
@@ -1391,6 +1416,7 @@ export type Database = {
           fears?: string | null
           first_contact_date?: string | null
           first_purchase_date?: string | null
+          foto_url?: string | null
           gender?: string | null
           has_children?: boolean | null
           height_cm?: number | null
@@ -1404,6 +1430,12 @@ export type Database = {
           name?: string
           nationality?: string | null
           neighborhood?: string | null
+          no_show_count?: number | null
+          nome_mae?: string | null
+          nome_pai?: string | null
+          observacoes_feegow?: string | null
+          origem_id?: number | null
+          origem_nome?: string | null
           origin?: string | null
           origin_detail?: string | null
           phone?: string | null
@@ -1411,10 +1443,14 @@ export type Database = {
           profession?: string | null
           prontuario?: string | null
           referral_name?: string | null
+          responsavel_legal?: string | null
+          rg?: string | null
           state?: string | null
+          total_agendamentos?: number | null
           total_procedures?: number | null
           total_value_executed?: number | null
           total_value_sold?: number | null
+          ultimo_atendimento?: string | null
           updated_at?: string
           weight_kg?: number | null
           whatsapp?: string | null
@@ -2051,9 +2087,11 @@ export type Database = {
           cpf: string | null
           created_at: string
           created_by: string | null
+          data_cadastro_feegow: string | null
           days_since_last_purchase: number
           email: string | null
           first_purchase_date: string
+          foto_url: string | null
           frequency_score: number
           has_children: boolean | null
           height_cm: number | null
@@ -2061,14 +2099,28 @@ export type Database = {
           last_purchase_date: string
           main_objective: string | null
           name: string
+          no_show_count: number | null
+          nome_mae: string | null
+          nome_pai: string | null
+          observacoes_feegow: string | null
+          origem_id: number | null
+          origem_nome: string | null
           phone: string | null
           profession: string | null
           prontuario: string | null
+          propostas_abertas: number | null
           recency_score: number
+          responsavel_legal: string | null
+          rg: string | null
           segment: string
+          status_financeiro: string | null
+          total_agendamentos: number | null
           total_purchases: number
           total_value: number
+          ultimo_atendimento: string | null
           updated_at: string
+          valor_em_aberto: number | null
+          valor_propostas_pendentes: number | null
           value_score: number
           weight_kg: number | null
           whatsapp: string | null
@@ -2081,9 +2133,11 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           created_by?: string | null
+          data_cadastro_feegow?: string | null
           days_since_last_purchase?: number
           email?: string | null
           first_purchase_date: string
+          foto_url?: string | null
           frequency_score?: number
           has_children?: boolean | null
           height_cm?: number | null
@@ -2091,14 +2145,28 @@ export type Database = {
           last_purchase_date: string
           main_objective?: string | null
           name: string
+          no_show_count?: number | null
+          nome_mae?: string | null
+          nome_pai?: string | null
+          observacoes_feegow?: string | null
+          origem_id?: number | null
+          origem_nome?: string | null
           phone?: string | null
           profession?: string | null
           prontuario?: string | null
+          propostas_abertas?: number | null
           recency_score?: number
+          responsavel_legal?: string | null
+          rg?: string | null
           segment?: string
+          status_financeiro?: string | null
+          total_agendamentos?: number | null
           total_purchases?: number
           total_value?: number
+          ultimo_atendimento?: string | null
           updated_at?: string
+          valor_em_aberto?: number | null
+          valor_propostas_pendentes?: number | null
           value_score?: number
           weight_kg?: number | null
           whatsapp?: string | null
@@ -2111,9 +2179,11 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           created_by?: string | null
+          data_cadastro_feegow?: string | null
           days_since_last_purchase?: number
           email?: string | null
           first_purchase_date?: string
+          foto_url?: string | null
           frequency_score?: number
           has_children?: boolean | null
           height_cm?: number | null
@@ -2121,14 +2191,28 @@ export type Database = {
           last_purchase_date?: string
           main_objective?: string | null
           name?: string
+          no_show_count?: number | null
+          nome_mae?: string | null
+          nome_pai?: string | null
+          observacoes_feegow?: string | null
+          origem_id?: number | null
+          origem_nome?: string | null
           phone?: string | null
           profession?: string | null
           prontuario?: string | null
+          propostas_abertas?: number | null
           recency_score?: number
+          responsavel_legal?: string | null
+          rg?: string | null
           segment?: string
+          status_financeiro?: string | null
+          total_agendamentos?: number | null
           total_purchases?: number
           total_value?: number
+          ultimo_atendimento?: string | null
           updated_at?: string
+          valor_em_aberto?: number | null
+          valor_propostas_pendentes?: number | null
           value_score?: number
           weight_kg?: number | null
           whatsapp?: string | null
