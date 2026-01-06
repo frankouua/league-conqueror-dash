@@ -257,14 +257,50 @@ export default function ComprehensiveDataImport() {
     return { has: true, count: match ? parseInt(match[1]) : 1 };
   };
 
-  // Import persona data
+  // Import persona data - OPTIMIZED with batch processing
   const importPersonaData = async () => {
     const stats: ImportStats = { total: 0, new: 0, updated: 0, skipped: 0, errors: 0 };
+    
+    // Step 1: Pre-fetch all existing records for fast lookup (10% progress)
+    setProgress(5);
+    toast({ title: "Carregando dados existentes...", description: "Preparando para importação rápida" });
+    
+    const existingByProntuario = new Map<string, string>();
+    const existingByCpf = new Map<string, string>();
+    
+    // Fetch existing records in batches
+    const PAGE_SIZE = 1000;
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data: existing } = await supabase
+        .from('patient_data')
+        .select('id, prontuario, cpf')
+        .range(from, from + PAGE_SIZE - 1);
+      
+      if (!existing || existing.length === 0) break;
+      
+      existing.forEach(record => {
+        if (record.prontuario) existingByProntuario.set(record.prontuario, record.id);
+        if (record.cpf) existingByCpf.set(record.cpf.replace(/\D/g, ''), record.id);
+      });
+      
+      if (existing.length < PAGE_SIZE) break;
+    }
+    
+    setProgress(15);
+    console.log(`Loaded ${existingByProntuario.size} existing prontuarios, ${existingByCpf.size} CPFs`);
+    
+    // Step 2: Process all rows and separate into inserts vs updates
+    const toInsert: any[] = [];
+    const toUpdate: { id: string; data: any }[] = [];
     
     for (let i = 0; i < rawData.length; i++) {
       const row = rawData[i];
       stats.total++;
-      setProgress(Math.round((i / rawData.length) * 100));
+      
+      // Update progress every 500 rows
+      if (i % 500 === 0) {
+        setProgress(15 + Math.round((i / rawData.length) * 35)); // 15-50%
+      }
       
       try {
         const prontuario = columnMapping.prontuario ? String(row[columnMapping.prontuario] || '').trim() : null;
@@ -282,78 +318,99 @@ export default function ComprehensiveDataImport() {
           prontuario: prontuario || null,
           cpf: cpf || null,
           name: name,
-          email: columnMapping.email ? String(row[columnMapping.email] || '').trim() : null,
-          phone: columnMapping.phone ? String(row[columnMapping.phone] || '').trim() : null,
+          email: columnMapping.email ? String(row[columnMapping.email] || '').trim() || null : null,
+          phone: columnMapping.phone ? String(row[columnMapping.phone] || '').trim() || null : null,
+          whatsapp: columnMapping.cellphone ? String(row[columnMapping.cellphone] || '').trim() || null : null,
           birth_date: parseDate(row[columnMapping.birth_date]),
           age: row[columnMapping.age] ? parseInt(row[columnMapping.age]) : null,
-          gender: columnMapping.gender ? String(row[columnMapping.gender] || '').trim() : null,
-          nationality: columnMapping.nationality ? String(row[columnMapping.nationality] || '').trim() : null,
-          marital_status: columnMapping.marital_status ? String(row[columnMapping.marital_status] || '').trim() : null,
-          profession: columnMapping.profession ? String(row[columnMapping.profession] || '').trim() : null,
+          gender: columnMapping.gender ? String(row[columnMapping.gender] || '').trim() || null : null,
+          nationality: columnMapping.nationality ? String(row[columnMapping.nationality] || '').trim() || null : null,
+          marital_status: columnMapping.marital_status ? String(row[columnMapping.marital_status] || '').trim() || null : null,
+          profession: columnMapping.profession ? String(row[columnMapping.profession] || '').trim() || null : null,
           has_children: childrenData.has,
           children_count: childrenData.count,
-          country: columnMapping.country ? String(row[columnMapping.country] || '').trim() : null,
-          state: columnMapping.state ? String(row[columnMapping.state] || '').trim() : null,
-          city: columnMapping.city ? String(row[columnMapping.city] || '').trim() : null,
-          neighborhood: columnMapping.neighborhood ? String(row[columnMapping.neighborhood] || '').trim() : null,
-          address: columnMapping.address ? String(row[columnMapping.address] || '').trim() : null,
-          cep: columnMapping.cep ? String(row[columnMapping.cep] || '').trim() : null,
+          country: columnMapping.country ? String(row[columnMapping.country] || '').trim() || null : null,
+          state: columnMapping.state ? String(row[columnMapping.state] || '').trim() || null : null,
+          city: columnMapping.city ? String(row[columnMapping.city] || '').trim() || null : null,
+          neighborhood: columnMapping.neighborhood ? String(row[columnMapping.neighborhood] || '').trim() || null : null,
+          address: columnMapping.address ? String(row[columnMapping.address] || '').trim() || null : null,
+          cep: columnMapping.cep ? String(row[columnMapping.cep] || '').trim() || null : null,
           height_cm: row[columnMapping.height] ? parseFloat(row[columnMapping.height]) : null,
           weight_kg: row[columnMapping.weight] ? parseFloat(row[columnMapping.weight]) : null,
-          origin: columnMapping.origin ? String(row[columnMapping.origin] || '').trim() : null,
-          referral_name: columnMapping.referral_name ? String(row[columnMapping.referral_name] || '').trim() : null,
-          influencer_name: columnMapping.influencer ? String(row[columnMapping.influencer] || '').trim() : null,
-          instagram_handle: columnMapping.instagram ? String(row[columnMapping.instagram] || '').trim() : null,
-          main_objective: columnMapping.main_objective ? String(row[columnMapping.main_objective] || '').trim() : null,
-          why_not_done_yet: columnMapping.why_not_done_yet ? String(row[columnMapping.why_not_done_yet] || '').trim() : null,
+          origin: columnMapping.origin ? String(row[columnMapping.origin] || '').trim() || null : null,
+          referral_name: columnMapping.referral_name ? String(row[columnMapping.referral_name] || '').trim() || null : null,
+          influencer_name: columnMapping.influencer ? String(row[columnMapping.influencer] || '').trim() || null : null,
+          instagram_handle: columnMapping.instagram ? String(row[columnMapping.instagram] || '').trim() || null : null,
+          main_objective: columnMapping.main_objective ? String(row[columnMapping.main_objective] || '').trim() || null : null,
+          why_not_done_yet: columnMapping.why_not_done_yet ? String(row[columnMapping.why_not_done_yet] || '').trim() || null : null,
+          dreams: columnMapping.dreams ? String(row[columnMapping.dreams] || '').trim() || null : null,
+          desires: columnMapping.desires ? String(row[columnMapping.desires] || '').trim() || null : null,
+          fears: columnMapping.fears ? String(row[columnMapping.fears] || '').trim() || null : null,
+          expectations: columnMapping.expectations ? String(row[columnMapping.expectations] || '').trim() || null : null,
           total_value_sold: parseAmount(row[columnMapping.total_value]),
           data_source: 'persona_spreadsheet',
           created_by: user?.id,
         };
 
-        // Check for existing by prontuario or CPF
+        // Check for existing record using in-memory maps (instant lookup)
         let existingId: string | null = null;
-        
-        if (prontuario) {
-          const { data: existing } = await supabase
-            .from('patient_data')
-            .select('id')
-            .eq('prontuario', prontuario)
-            .maybeSingle();
-          if (existing) existingId = existing.id;
-        }
-        
-        if (!existingId && cpf) {
-          const { data: existing } = await supabase
-            .from('patient_data')
-            .select('id')
-            .eq('cpf', cpf)
-            .maybeSingle();
-          if (existing) existingId = existing.id;
-        }
+        if (prontuario) existingId = existingByProntuario.get(prontuario) || null;
+        if (!existingId && cpf) existingId = existingByCpf.get(cpf) || null;
 
         if (existingId) {
-          // Update existing
-          const { error } = await supabase
-            .from('patient_data')
-            .update(patientData)
-            .eq('id', existingId);
-          
-          if (error) throw error;
+          toUpdate.push({ id: existingId, data: patientData });
           stats.updated++;
         } else {
-          // Insert new
-          const { error } = await supabase
-            .from('patient_data')
-            .insert(patientData);
-          
-          if (error) throw error;
+          toInsert.push(patientData);
           stats.new++;
         }
       } catch (err) {
-        console.error("Error importing row:", err);
+        console.error("Error processing row:", err);
         stats.errors++;
       }
+    }
+    
+    setProgress(50);
+    console.log(`Prepared ${toInsert.length} inserts, ${toUpdate.length} updates`);
+    
+    // Step 3: Batch insert new records
+    const BATCH_SIZE = 500;
+    const totalBatches = Math.ceil(toInsert.length / BATCH_SIZE);
+    
+    for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+      const batch = toInsert.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      setProgress(50 + Math.round((batchNum / totalBatches) * 30)); // 50-80%
+      
+      const { error } = await supabase.from('patient_data').insert(batch);
+      if (error) {
+        console.error("Batch insert error:", error);
+        stats.errors += batch.length;
+        stats.new -= batch.length;
+      }
+    }
+    
+    // Step 4: Batch update existing records (in parallel batches)
+    setProgress(80);
+    const UPDATE_BATCH = 50; // Smaller batches for updates
+    const updateBatches = Math.ceil(toUpdate.length / UPDATE_BATCH);
+    
+    for (let i = 0; i < toUpdate.length; i += UPDATE_BATCH) {
+      const batch = toUpdate.slice(i, i + UPDATE_BATCH);
+      const batchNum = Math.floor(i / UPDATE_BATCH) + 1;
+      setProgress(80 + Math.round((batchNum / updateBatches) * 20)); // 80-100%
+      
+      // Execute updates in parallel within each batch
+      await Promise.all(
+        batch.map(async ({ id, data }) => {
+          const { error } = await supabase.from('patient_data').update(data).eq('id', id);
+          if (error) {
+            console.error("Update error:", error);
+            stats.errors++;
+            stats.updated--;
+          }
+        })
+      );
     }
     
     return stats;
