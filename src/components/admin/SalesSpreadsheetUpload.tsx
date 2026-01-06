@@ -1085,30 +1085,76 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     let failed = 0;
     let skipped = 0;
     let deleted = 0;
+    let lockedSkipped = 0;
     const errors: { sale: ParsedSale; error: string }[] = [];
 
     try {
       // Determine table name once
       const tableName = uploadType === 'vendas' ? 'revenue_records' : 'executed_records';
       
-      // Calculate date range from sales
-      const dates = validSales.map(s => s.date).filter(Boolean).sort();
+      // Fetch locked periods
+      const { data: lockedPeriods } = await supabase
+        .from('period_locks')
+        .select('month, year, record_type')
+        .eq('locked', true);
+      
+      // Filter out sales from locked periods
+      const unlockedSales = validSales.filter(sale => {
+        if (!sale.date) return true;
+        const saleDate = new Date(sale.date);
+        const saleMonth = saleDate.getMonth() + 1;
+        const saleYear = saleDate.getFullYear();
+        
+        const isLocked = lockedPeriods?.some(lock => 
+          lock.month === saleMonth && 
+          lock.year === saleYear &&
+          (lock.record_type === 'all' || lock.record_type === uploadType)
+        );
+        
+        if (isLocked) {
+          lockedSkipped++;
+          return false;
+        }
+        return true;
+      });
+
+      if (lockedSkipped > 0) {
+        toast({
+          title: "⚠️ Período Travado",
+          description: `${lockedSkipped} registros ignorados por pertencerem a períodos travados.`,
+        });
+      }
+
+      if (unlockedSales.length === 0) {
+        toast({
+          title: "Todos os registros estão em períodos travados",
+          description: "Destrave o período no painel de administração se precisar importar.",
+          variant: "destructive",
+        });
+        setIsImporting(false);
+        return;
+      }
+      
+      // Calculate date range from unlocked sales only
+      const dates = unlockedSales.map(s => s.date).filter(Boolean).sort();
       const dateRangeStart = dates[0];
       const dateRangeEnd = dates[dates.length - 1];
       
       // If "replace" mode, delete existing records for this date range first
+      // But only for unlocked periods!
       if (importMode === 'replace' && dateRangeStart && dateRangeEnd) {
         // Get unique user IDs from the sales we're about to import
-        const userIds = [...new Set(validSales.map(s => s.matchedUserId).filter(Boolean))];
+        const userIds = [...new Set(unlockedSales.map(s => s.matchedUserId).filter(Boolean))];
         
-        // Delete existing records for these users in this date range
-        const { data: deletedData, error: deleteError } = await supabase
+        // Build date conditions excluding locked periods
+        let deleteQuery = supabase
           .from(tableName)
           .delete()
           .gte('date', dateRangeStart)
           .lte('date', dateRangeEnd)
-          .in('attributed_to_user_id', userIds)
-          .select('id');
+          .in('attributed_to_user_id', userIds);
+        
+        const { data: deletedData, error: deleteError } = await deleteQuery.select('id');
         
         if (deleteError) {
           console.error('Error deleting existing records:', deleteError);
@@ -1118,9 +1164,12 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         }
       }
       
+      // Continue with unlocked sales only
+      const salesToProcess = unlockedSales;
+      
       // Batch insert for better performance - prepare records first
       const recordsToInsert: any[] = [];
-      const salesToCheck = [...validSales];
+      const salesToCheck = [...salesToProcess];
       
       // First, check for duplicates in batch (using parallel promises) - only if "add_new" mode
       const BATCH_SIZE = 50;
