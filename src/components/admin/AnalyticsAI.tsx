@@ -34,27 +34,58 @@ const QUICK_PROMPTS = [
   { label: "Perfil do paciente", prompt: "Qual o perfil típico do nosso paciente? Idade, profissão, objetivos, motivações", icon: Sparkles },
 ];
 
-// Simple markdown formatter
+// Enhanced markdown formatter for beautiful AI responses
 const formatMarkdown = (text: string): string => {
-  return text
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^# (.+)$/gm, '<h3>$1</h3>')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Lists
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/^• (.+)$/gm, '<li>$1</li>')
-    .replace(/^\* (.+)$/gm, '<li>$1</li>')
-    .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
-    // Tables (basic)
-    .replace(/\|(.+)\|/g, (match) => {
-      const cells = match.split('|').filter(c => c.trim());
-      return `<tr>${cells.map(c => `<td>${c.trim()}</td>`).join('')}</tr>`;
-    })
-    // Line breaks
-    .replace(/\n/g, '<br/>');
+  let formatted = text;
+  
+  // Process tables first (more sophisticated handling)
+  const tableRegex = /\|(.+)\|\n\|[-:\s|]+\|\n((?:\|.+\|\n?)+)/g;
+  formatted = formatted.replace(tableRegex, (match, header, body) => {
+    const headerCells = header.split('|').filter((c: string) => c.trim());
+    const headerRow = `<tr class="bg-gradient-to-r from-violet-500/20 to-purple-500/20">${headerCells.map((c: string) => `<th class="px-4 py-3 text-left font-bold text-violet-100 border-b border-violet-500/30">${c.trim()}</th>`).join('')}</tr>`;
+    
+    const bodyRows = body.trim().split('\n').map((row: string, idx: number) => {
+      const cells = row.split('|').filter((c: string) => c.trim());
+      const bgClass = idx % 2 === 0 ? 'bg-violet-900/10' : 'bg-violet-900/5';
+      return `<tr class="${bgClass} hover:bg-violet-500/10 transition-colors">${cells.map((c: string) => `<td class="px-4 py-3 border-b border-violet-500/10">${c.trim()}</td>`).join('')}</tr>`;
+    }).join('');
+    
+    return `<div class="overflow-x-auto my-4 rounded-xl border border-violet-500/20 shadow-lg"><table class="w-full text-sm">${headerRow}${bodyRows}</table></div>`;
+  });
+  
+  // Simple table rows (without separator)
+  formatted = formatted.replace(/\|(.+)\|/g, (match) => {
+    if (match.includes('---')) return '';
+    const cells = match.split('|').filter(c => c.trim());
+    return `<tr class="border-b border-violet-500/10">${cells.map(c => `<td class="px-3 py-2">${c.trim()}</td>`).join('')}</tr>`;
+  });
+  
+  // Headers with emojis preserved
+  formatted = formatted
+    .replace(/^### (.+)$/gm, '<h4 class="text-lg font-bold text-violet-200 mt-6 mb-3 flex items-center gap-2">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 class="text-xl font-bold text-violet-100 mt-6 mb-4 pb-2 border-b border-violet-500/30 flex items-center gap-2">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2 class="text-2xl font-bold text-violet-50 mt-6 mb-4">$1</h2>');
+  
+  // Horizontal rules
+  formatted = formatted.replace(/^---$/gm, '<hr class="my-4 border-violet-500/20" />');
+  
+  // Bold with highlight
+  formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong class="text-violet-200 font-semibold">$1</strong>');
+  
+  // Lists with better styling
+  formatted = formatted.replace(/^- (.+)$/gm, '<li class="ml-4 mb-1 flex items-start gap-2"><span class="text-violet-400 mt-1">•</span><span>$1</span></li>');
+  formatted = formatted.replace(/^• (.+)$/gm, '<li class="ml-4 mb-1 flex items-start gap-2"><span class="text-violet-400 mt-1">•</span><span>$1</span></li>');
+  formatted = formatted.replace(/^\* (.+)$/gm, '<li class="ml-4 mb-1 flex items-start gap-2"><span class="text-violet-400 mt-1">•</span><span>$1</span></li>');
+  formatted = formatted.replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 mb-1 flex items-start gap-2"><span class="text-violet-300 font-bold min-w-[1.5rem]">$1.</span><span>$2</span></li>');
+  
+  // Wrap consecutive list items in ul
+  formatted = formatted.replace(/((?:<li[^>]*>.*<\/li>\s*)+)/g, '<ul class="my-3 space-y-1">$1</ul>');
+  
+  // Line breaks
+  formatted = formatted.replace(/\n\n/g, '</p><p class="mb-3">');
+  formatted = formatted.replace(/\n/g, '<br/>');
+  
+  return `<div class="prose prose-invert max-w-none"><p class="mb-3">${formatted}</p></div>`;
 };
 
 export function AnalyticsAI() {

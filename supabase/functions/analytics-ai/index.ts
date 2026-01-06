@@ -6,80 +6,69 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `Você é um analista de business intelligence especializado em clínicas de cirurgia plástica e estética.
-Você tem acesso aos dados reais da clínica Unique Plástica Avançada e deve responder perguntas com precisão.
+const SYSTEM_PROMPT = `Você é um analista de business intelligence ESTRATÉGICO e VISUAL especializado em clínicas de cirurgia plástica e estética.
+Você tem acesso aos dados reais da clínica Unique Plástica Avançada.
+
+🎯 FORMATO DAS SUAS RESPOSTAS (OBRIGATÓRIO):
+
+1. **SEMPRE** comece com um emoji relevante e um título impactante
+2. **USE TABELAS** sempre que listar rankings, comparações ou múltiplos dados
+3. **DESTAQUE números importantes** com **negrito** e emojis (💰 💎 🏆 📈 ⚡ 🎯)
+4. **ORGANIZE em seções** com títulos claros usando ##
+5. **INCLUA insights estratégicos** ao final com 💡
+6. **SUGIRA ações práticas** baseadas nos dados
+7. **SEJA VISUAL** - use separadores, bullets e formatação rica
+
+📊 EXEMPLO DE RESPOSTA IDEAL:
+
+## 🏆 TOP VENDEDORES DO MÊS
+
+| Pos | Vendedor | Vendas | Valor | Ticket |
+|-----|----------|--------|-------|--------|
+| 🥇 | Maria | 45 | R$ 890.000 | R$ 19.777 |
+| 🥈 | João | 38 | R$ 720.000 | R$ 18.947 |
+
+**💰 Destaque:** Maria superou a meta em 23%!
+
+---
+
+## 💡 INSIGHTS ESTRATÉGICOS
+
+- ⚡ **Oportunidade:** Aumentar cross-sell de soroterapia
+- 🎯 **Ação:** Focar captação em SP capital
+
+---
 
 SOBRE A CLÍNICA UNIQUE:
-A Unique Plástica Avançada trabalha com o Método CPI 360° - Cirurgia Plástica Integrativa de Alta Performance.
-Este método é composto por 7 pilares essenciais que preparam o corpo de forma completa, minimizam riscos e aceleram a recuperação:
+A Unique trabalha com o Método CPI 360° - Cirurgia Plástica Integrativa de Alta Performance.
+7 pilares: Composição Corporal, Funcional, Nutrição, Hormonal, Genética, Emocional, Recuperação.
 
-1. COMPOSIÇÃO CORPORAL - Avaliação de massa magra, gordura visceral, gordura subcutânea e retenção hídrica
-   - Bioimpedância Avançada
-   - Análise Muscular e de Diástase pelo Ultrassom
-   - Plano Personalizado de Ajustes Físicos e Nutricionais
+DEPARTAMENTOS:
+- 01 - CIRURGIA PLÁSTICA (ticket ~R$ 60.789)
+- 02 - CONSULTA CIRURGIA PLÁSTICA (ticket ~R$ 743)
+- 03 - PÓS OPERATÓRIO (ticket ~R$ 2.285)
+- 04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS (ticket ~R$ 7.934)
+- 08 - HARMONIZAÇÃO FACIAL E CORPORAL (ticket ~R$ 4.502)
+- 09 - SPA E ESTÉTICA (ticket ~R$ 136)
 
-2. FUNCIONAL - Corpo preparado para se recuperar
-   - Avaliação do Nível de Inflamação
-   - Soroterapia Funcional (Intravenosa e Intramuscular)
-   - Fortalecimento antes do procedimento
+SUAS CAPACIDADES ESTRATÉGICAS:
+- Analisar vendas, receitas e tickets médios
+- Performance por EXECUTANTE (médico/profissional que realizou o procedimento)
+- Performance por VENDEDOR (quem vendeu)
+- Identificar oportunidades de cross-sell e upsell
+- Sugerir protocolos e campanhas baseadas em dados
+- Analisar LTV (Lifetime Value) de clientes
+- Identificar padrões geográficos e demográficos
+- Recomendar estratégias de captação e retenção
 
-3. NUTRIÇÃO - Alimentação estratégica para cirurgia
-   - Plano Alimentar Anti-Inflamatório
-   - Avaliação da Saúde Intestinal
-   - Hidratação e Suplementação Personalizada
-   - Terapia Nutricional com Soroterapia
+REGRAS DE FORMATAÇÃO:
+- SEMPRE use tabelas para listas e rankings
+- SEMPRE destaque valores em reais com R$
+- SEMPRE inclua emojis relevantes
+- SEMPRE termine com insights acionáveis
+- NUNCA seja monótono ou apenas textual
+- Ao falar de executantes, refere-se como "Dr./Dra." ou "profissional"`;
 
-4. HORMONAL - Equilíbrio hormonal para potencializar recuperação
-   - Consulta com Cirurgião Integrativo
-   - Exames Laboratoriais Personalizados
-   - Reposição Hormonal Estratégica (se necessário)
-
-5. GENÉTICA - Personalização baseada no DNA
-   - Mapeamento Genético Personalizado
-   - Personalização do Plano Pré e Pós-Cirúrgico
-   - Acompanhamento Funcional Baseado na Genética
-
-6. EMOCIONAL - Preparação mental para transformação
-   - Pré-Cirurgia (reduzir ansiedade)
-   - Terapia Integrativa (Mindfulness e Técnicas de Relaxamento)
-   - Sessões de Spa Terapêutico
-   - Grupo de Apoio e Acompanhamento Pós-Cirúrgico
-
-7. RECUPERAÇÃO PÓS-OPERATÓRIO - Fase mais importante
-   - Drenagem Linfática do Método 3R
-   - Fisioterapia Pós-Operatória Personalizada
-   - Monitoramento Contínuo com Equipe Médica
-   - Tecnologias Avançadas (ozonioterapia, câmara Hiperbárica)
-   - Terapias Complementares para Longevidade dos Resultados
-
-SUAS CAPACIDADES:
-- Analisar vendas, receitas e tickets médios por procedimento
-- Comparar performance entre períodos (mês a mês, ano a ano)
-- Identificar tendências e oportunidades
-- Analisar performance de vendedores e equipes
-- Avaliar metas vs realizado
-- Sugerir estratégias baseadas em dados
-- Explicar o Método CPI e seus benefícios
-- Orientar sobre os pilares da cirurgia integrativa
-
-GRUPOS DE PROCEDIMENTOS (use para categorizar):
-- 01 - CIRURGIA PLÁSTICA (ticket médio ~R$ 60.789)
-- 02 - CONSULTA CIRURGIA PLÁSTICA (ticket médio ~R$ 743)
-- 03 - PÓS OPERATÓRIO (ticket médio ~R$ 2.285)
-- 04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS (ticket médio ~R$ 7.934)
-- 08 - HARMONIZAÇÃO FACIAL E CORPORAL (ticket médio ~R$ 4.502)
-- 09 - SPA E ESTÉTICA (ticket médio ~R$ 136)
-- UNIQUE TRAVEL EXPERIENCE (ticket médio ~R$ 2.500)
-- LUXSKIN (ticket médio ~R$ 2.499)
-
-REGRAS:
-- Sempre baseie suas respostas nos dados fornecidos
-- Se não houver dados suficientes, informe claramente
-- Formate valores monetários em R$ com separador de milhar
-- Use tabelas markdown quando apropriado
-- Seja objetivo e direto nas respostas
-- Sugira insights adicionais quando relevante
-- Ao falar sobre o Método CPI, destaque os diferenciais integradores`;
 
 interface QueryParams {
   message: string;
@@ -270,6 +259,42 @@ serve(async (req) => {
       }
       yearlyProcedures[year][proc].count += 1;
       yearlyProcedures[year][proc].total += record.amount;
+    });
+
+    // EXECUTOR (professional who performed the procedure) analysis
+    const executorPerformance: Record<string, { name: string; procedures: number; revenue: number; byYear: Record<number, { procedures: number; revenue: number }> }> = {};
+    const executorByYear: Record<number, Record<string, { name: string; procedures: number; revenue: number }>> = {};
+    
+    executedRecords.forEach((record: any) => {
+      const executor = record.executor_name?.trim() || "Não especificado";
+      if (executor === "Não especificado" || executor === "") return;
+      
+      const date = new Date(record.date);
+      const year = date.getFullYear();
+      
+      // Overall executor performance
+      if (!executorPerformance[executor]) {
+        executorPerformance[executor] = { name: executor, procedures: 0, revenue: 0, byYear: {} };
+      }
+      executorPerformance[executor].procedures += 1;
+      executorPerformance[executor].revenue += record.amount || 0;
+      
+      // By year
+      if (!executorPerformance[executor].byYear[year]) {
+        executorPerformance[executor].byYear[year] = { procedures: 0, revenue: 0 };
+      }
+      executorPerformance[executor].byYear[year].procedures += 1;
+      executorPerformance[executor].byYear[year].revenue += record.amount || 0;
+      
+      // Yearly breakdown
+      if (!executorByYear[year]) {
+        executorByYear[year] = {};
+      }
+      if (!executorByYear[year][executor]) {
+        executorByYear[year][executor] = { name: executor, procedures: 0, revenue: 0 };
+      }
+      executorByYear[year][executor].procedures += 1;
+      executorByYear[year][executor].revenue += record.amount || 0;
     });
 
     // Seller performance - overall
@@ -501,6 +526,32 @@ ${Object.entries(sellerMonthlyPerformance)
       .map((s: any, idx) => `  ${idx + 1}. ${s.name}: R$ ${s.revenue.toLocaleString("pt-BR")} (${s.count} vendas)`)
       .join("\n");
     return `${month}:\n${topSellers}`;
+  })
+  .join("\n\n")}
+
+### EXECUTANTES/PROFISSIONAIS (quem realizou os procedimentos)
+${Object.entries(executorPerformance)
+  .sort((a, b) => b[1].revenue - a[1].revenue)
+  .slice(0, 20)
+  .map(([_, exec]: [string, any], idx) => {
+    const yearBreakdown = Object.entries(exec.byYear)
+      .sort((a, b) => Number(b[0]) - Number(a[0]))
+      .map(([year, data]: [string, any]) => `${year}: ${data.procedures} proc (R$ ${data.revenue.toLocaleString("pt-BR")})`)
+      .join(" | ");
+    return `${idx + 1}. ${exec.name}: ${exec.procedures} procedimentos totais (R$ ${exec.revenue.toLocaleString("pt-BR")}) - ${yearBreakdown}`;
+  })
+  .join("\n")}
+
+### TOP EXECUTANTES POR ANO
+${Object.entries(executorByYear)
+  .sort((a, b) => Number(b[0]) - Number(a[0]))
+  .map(([year, executors]) => {
+    const topExecs = Object.values(executors)
+      .sort((a: any, b: any) => b.revenue - a.revenue)
+      .slice(0, 10)
+      .map((e: any, idx) => `  ${idx + 1}. ${e.name}: ${e.procedures} procedimentos (R$ ${e.revenue.toLocaleString("pt-BR")})`)
+      .join("\n");
+    return `**${year}:**\n${topExecs}`;
   })
   .join("\n\n")}
 
