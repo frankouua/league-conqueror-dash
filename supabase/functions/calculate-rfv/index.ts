@@ -34,15 +34,27 @@ serve(async (req) => {
 
     console.log("Starting RFV calculation...");
 
-    // Fetch all revenue records (vendas/competência)
-    const { data: revenueRecords, error: revenueError } = await supabase
-      .from("revenue_records")
-      .select("*")
-      .order("date", { ascending: false });
+    // Fetch all revenue records (vendas/competência) with pagination (Supabase default limit is 1000)
+    const revenueRecords: any[] = [];
+    const PAGE_SIZE = 1000;
 
-    if (revenueError) throw revenueError;
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const to = from + PAGE_SIZE - 1;
+      const { data, error } = await supabase
+        .from("revenue_records")
+        .select("*")
+        .order("date", { ascending: false })
+        .range(from, to);
 
-    console.log(`Loaded ${revenueRecords?.length || 0} revenue records`);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+
+      revenueRecords.push(...data);
+      if (data.length < PAGE_SIZE) break;
+    }
+
+    console.log(`Loaded ${revenueRecords.length} revenue records`);
+
 
     // Fetch patient data for enrichment
     const { data: patientData, error: patientError } = await supabase
@@ -260,12 +272,15 @@ serve(async (req) => {
 
     for (let i = 0; i < rfvRecords.length; i += BATCH_SIZE) {
       const batch = rfvRecords.slice(i, i + BATCH_SIZE);
-      const { error: insertError } = await supabase
+
+      // Use upsert to avoid failures when the same customer name appears more than once
+      // (table has a unique constraint on name)
+      const { error: upsertError } = await supabase
         .from("rfv_customers")
-        .insert(batch);
-      
-      if (insertError) {
-        console.error("Batch insert error:", insertError);
+        .upsert(batch, { onConflict: "name" });
+
+      if (upsertError) {
+        console.error("Batch upsert error:", upsertError);
         errors += batch.length;
       } else {
         inserted += batch.length;
