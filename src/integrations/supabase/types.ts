@@ -723,6 +723,7 @@ export type Database = {
           procedure_name: string | null
           referral_name: string | null
           registered_by_admin: boolean
+          source_fingerprint: string | null
           team_id: string
           user_id: string
         }
@@ -745,6 +746,7 @@ export type Database = {
           procedure_name?: string | null
           referral_name?: string | null
           registered_by_admin?: boolean
+          source_fingerprint?: string | null
           team_id: string
           user_id: string
         }
@@ -767,6 +769,7 @@ export type Database = {
           procedure_name?: string | null
           referral_name?: string | null
           registered_by_admin?: boolean
+          source_fingerprint?: string | null
           team_id?: string
           user_id?: string
         }
@@ -1793,6 +1796,7 @@ export type Database = {
           procedure_name: string | null
           referral_name: string | null
           registered_by_admin: boolean
+          source_fingerprint: string | null
           team_id: string
           user_id: string
         }
@@ -1815,6 +1819,7 @@ export type Database = {
           procedure_name?: string | null
           referral_name?: string | null
           registered_by_admin?: boolean
+          source_fingerprint?: string | null
           team_id: string
           user_id: string
         }
@@ -1837,6 +1842,7 @@ export type Database = {
           procedure_name?: string | null
           referral_name?: string | null
           registered_by_admin?: boolean
+          source_fingerprint?: string | null
           team_id?: string
           user_id?: string
         }
