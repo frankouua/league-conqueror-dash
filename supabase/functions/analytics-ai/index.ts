@@ -115,10 +115,12 @@ serve(async (req) => {
     // Fetch data from 3 years ago to cover historical analysis
     const threeYearsAgo = new Date(currentYear - 3, 0, 1).toISOString().split("T")[0];
 
-    // Parallel data fetching for efficiency
+    // Fetch all data in parallel with multiple batches for large tables
     const [
-      revenueResult,
-      executedResult,
+      revenueBatch1,
+      revenueBatch2,
+      executedBatch1,
+      executedBatch2,
       goalsResult,
       profilesResult,
       teamsResult,
@@ -127,21 +129,33 @@ serve(async (req) => {
       npsResult,
       patientDataResult,
     ] = await Promise.all([
-      // Revenue records - last 3 years for complete historical analysis
+      // Revenue records - batch 1 (0-4999)
       supabase
         .from("revenue_records")
         .select("*")
         .gte("date", threeYearsAgo)
-        .order("date", { ascending: false })
-        .range(0, 14999),
+        .range(0, 4999),
       
-      // Executed records - last 3 years for complete historical analysis
+      // Revenue records - batch 2 (5000-9999)
+      supabase
+        .from("revenue_records")
+        .select("*")
+        .gte("date", threeYearsAgo)
+        .range(5000, 9999),
+      
+      // Executed records - batch 1 (0-5999)
       supabase
         .from("executed_records")
         .select("*")
         .gte("date", threeYearsAgo)
-        .order("date", { ascending: false })
-        .range(0, 14999),
+        .range(0, 5999),
+      
+      // Executed records - batch 2 (6000-11999)
+      supabase
+        .from("executed_records")
+        .select("*")
+        .gte("date", threeYearsAgo)
+        .range(6000, 11999),
       
       // Goals for current and previous years
       supabase
@@ -158,19 +172,19 @@ serve(async (req) => {
       // RFV customers
       supabase.from("rfv_customers").select("*"),
       
-      // Referral records - last 3 years
+      // Referral records
       supabase
         .from("referral_records")
         .select("*")
         .gte("date", threeYearsAgo),
       
-      // NPS records - last 3 years
+      // NPS records
       supabase
         .from("nps_records")
         .select("*")
         .gte("date", threeYearsAgo),
       
-      // Patient data for demographics and origin analysis
+      // Patient data
       supabase
         .from("patient_data")
         .select("*")
@@ -178,9 +192,14 @@ serve(async (req) => {
         .limit(2000),
     ]);
 
+    // Combine batched results
+    const revenueRecords = [...(revenueBatch1.data || []), ...(revenueBatch2.data || [])];
+    const executedRecords = [...(executedBatch1.data || []), ...(executedBatch2.data || [])];
+
+    console.log(`Fetched ${revenueRecords.length} revenue records`);
+    console.log(`Fetched ${executedRecords.length} executed records`);
+
     // Build context with all data
-    const revenueRecords = revenueResult.data || [];
-    const executedRecords = executedResult.data || [];
     const goals = goalsResult.data || [];
     const profiles = profilesResult.data || [];
     const teams = teamsResult.data || [];
