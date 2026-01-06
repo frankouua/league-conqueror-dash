@@ -32,6 +32,7 @@ interface UploadLog {
   total_revenue_paid: number;
   date_range_start: string | null;
   date_range_end: string | null;
+  upload_type?: string; // 'vendas' | 'executado'
 }
 
 const CHART_COLORS = [
@@ -1989,11 +1990,11 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                 <TableHeader>
                   <TableRow>
                     <TableHead>Data/Hora</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Usuário</TableHead>
                     <TableHead>Arquivo</TableHead>
                     <TableHead className="text-right">Importadas</TableHead>
-                    <TableHead className="text-right">Vendido</TableHead>
-                    <TableHead className="text-right">Recebido</TableHead>
+                    <TableHead className="text-right">Valor Total</TableHead>
                     <TableHead className="text-center">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -2003,14 +2004,22 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                       <TableCell className="whitespace-nowrap">
                         {format(new Date(log.uploaded_at), "dd/MM/yy HH:mm", { locale: ptBR })}
                       </TableCell>
-                      <TableCell>{log.uploaded_by_name}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{log.file_name}</TableCell>
-                      <TableCell className="text-right">{log.imported_rows}</TableCell>
-                      <TableCell className="text-right text-blue-600">
-                        {Number(log.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={log.upload_type === 'executado' 
+                            ? 'border-green-500 text-green-500 bg-green-500/10' 
+                            : 'border-blue-500 text-blue-500 bg-blue-500/10'
+                          }
+                        >
+                          {log.upload_type === 'executado' ? '✅ Executado' : '💰 Vendas'}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-right text-green-600">
-                        {Number(log.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      <TableCell>{log.uploaded_by_name}</TableCell>
+                      <TableCell className="max-w-[180px] truncate" title={log.file_name}>{log.file_name}</TableCell>
+                      <TableCell className="text-right font-medium">{log.imported_rows}</TableCell>
+                      <TableCell className={`text-right font-bold ${log.upload_type === 'executado' ? 'text-green-600' : 'text-blue-600'}`}>
+                        {Number(log.total_revenue_sold || log.total_revenue_paid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
