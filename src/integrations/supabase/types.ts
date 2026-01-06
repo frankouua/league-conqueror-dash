@@ -713,6 +713,7 @@ export type Database = {
           department: string | null
           id: string
           notes: string | null
+          procedure_name: string | null
           registered_by_admin: boolean
           team_id: string
           user_id: string
@@ -726,6 +727,7 @@ export type Database = {
           department?: string | null
           id?: string
           notes?: string | null
+          procedure_name?: string | null
           registered_by_admin?: boolean
           team_id: string
           user_id: string
@@ -739,6 +741,7 @@ export type Database = {
           department?: string | null
           id?: string
           notes?: string | null
+          procedure_name?: string | null
           registered_by_admin?: boolean
           team_id?: string
           user_id?: string
@@ -1540,6 +1543,7 @@ export type Database = {
           department: string | null
           id: string
           notes: string | null
+          procedure_name: string | null
           registered_by_admin: boolean
           team_id: string
           user_id: string
@@ -1553,6 +1557,7 @@ export type Database = {
           department?: string | null
           id?: string
           notes?: string | null
+          procedure_name?: string | null
           registered_by_admin?: boolean
           team_id: string
           user_id: string
@@ -1566,6 +1571,7 @@ export type Database = {
           department?: string | null
           id?: string
           notes?: string | null
+          procedure_name?: string | null
           registered_by_admin?: boolean
           team_id?: string
           user_id?: string

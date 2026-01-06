@@ -196,16 +196,17 @@ serve(async (req) => {
       monthlyRevenue[key].byDepartment[dept].count += 1;
     });
 
-    // Monthly executed
-    const monthlyExecuted: Record<string, { total: number; count: number; byDepartment: Record<string, { total: number; count: number }> }> = {};
+    // Monthly executed with procedure details
+    const monthlyExecuted: Record<string, { total: number; count: number; byDepartment: Record<string, { total: number; count: number }>; byProcedure: Record<string, { total: number; count: number }> }> = {};
     
     executedRecords.forEach((record: any) => {
       const date = new Date(record.date);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       const dept = record.department || "Não especificado";
+      const proc = record.procedure_name || "Não especificado";
       
       if (!monthlyExecuted[key]) {
-        monthlyExecuted[key] = { total: 0, count: 0, byDepartment: {} };
+        monthlyExecuted[key] = { total: 0, count: 0, byDepartment: {}, byProcedure: {} };
       }
       monthlyExecuted[key].total += record.amount;
       monthlyExecuted[key].count += 1;
@@ -215,6 +216,13 @@ serve(async (req) => {
       }
       monthlyExecuted[key].byDepartment[dept].total += record.amount;
       monthlyExecuted[key].byDepartment[dept].count += 1;
+      
+      // Track by procedure name
+      if (!monthlyExecuted[key].byProcedure[proc]) {
+        monthlyExecuted[key].byProcedure[proc] = { total: 0, count: 0 };
+      }
+      monthlyExecuted[key].byProcedure[proc].total += record.amount;
+      monthlyExecuted[key].byProcedure[proc].count += 1;
     });
 
     // Seller performance - overall
@@ -294,11 +302,39 @@ ${Object.entries(monthlyRevenue)
   })
   .join("\n\n")}
 
-### PROCEDIMENTOS EXECUTADOS (últimos 12 meses)
+### PROCEDIMENTOS EXECUTADOS POR NOME (últimos 6 meses)
 ${Object.entries(monthlyExecuted)
   .sort((a, b) => b[0].localeCompare(a[0]))
-  .slice(0, 12)
-  .map(([month, data]) => `- ${month}: R$ ${data.total.toLocaleString("pt-BR")} (${data.count} execuções)`)
+  .slice(0, 6)
+  .map(([month, data]) => {
+    const procs = Object.entries(data.byProcedure)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 15)
+      .map(([proc, info]) => `  • ${proc}: ${info.count} execuções (R$ ${info.total.toLocaleString("pt-BR")})`)
+      .join("\n");
+    return `${month}:\n${procs}`;
+  })
+  .join("\n\n")}
+
+### RESUMO EXECUTADO POR DEPARTAMENTO (últimos 6 meses)
+${Object.entries(monthlyExecuted)
+  .sort((a, b) => b[0].localeCompare(a[0]))
+  .slice(0, 6)
+  .map(([month, data]) => {
+    const depts = Object.entries(data.byDepartment)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 5)
+      .map(([dept, info]) => `  • ${dept}: R$ ${info.total.toLocaleString("pt-BR")} (${info.count} execuções)`)
+      .join("\n");
+    return `${month}:\n${depts}`;
+  })
+  .join("\n\n")}
+
+### PERFORMANCE DE VENDEDORES (acumulado últimos 12 meses)
+${Object.values(sellerPerformance)
+  .sort((a: any, b: any) => b.revenue - a.revenue)
+  .slice(0, 10)
+  .map((seller: any, idx) => `${idx + 1}. ${seller.name} (${seller.team}): R$ ${seller.revenue.toLocaleString("pt-BR")} (${seller.count} vendas)`)
   .join("\n")}
 
 ### PERFORMANCE DE VENDEDORES (acumulado últimos 12 meses)
