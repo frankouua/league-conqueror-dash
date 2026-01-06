@@ -366,13 +366,18 @@ export default function ComprehensiveDataImport() {
       profileByName.set(p.full_name.toLowerCase().trim(), { user_id: p.user_id, team_id: p.team_id });
     });
 
-    const BATCH_SIZE = 50;
+    const BATCH_SIZE = 500; // Increased for faster imports
     const recordsToInsert: any[] = [];
+    const progressInterval = Math.max(1, Math.floor(rawData.length / 20)); // Update progress ~20 times total
 
     for (let i = 0; i < rawData.length; i++) {
       const row = rawData[i];
       stats.total++;
-      setProgress(Math.round((i / rawData.length) * 100));
+      
+      // Update progress less frequently to avoid re-render overhead
+      if (i % progressInterval === 0) {
+        setProgress(Math.round((i / rawData.length) * 50)); // 0-50% for processing
+      }
 
       try {
         const sellerName = columnMapping.seller
@@ -451,9 +456,13 @@ export default function ComprehensiveDataImport() {
       }
     }
 
-    // Batch insert
+    // Batch insert with progress updates
+    const totalBatches = Math.ceil(recordsToInsert.length / BATCH_SIZE);
     for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
       const batch = recordsToInsert.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      setProgress(50 + Math.round((batchNum / totalBatches) * 50)); // 50-100% for inserting
+      
       const { error } = await supabase.from(tableName).insert(batch);
       if (error) {
         console.error("Batch insert error:", error);
