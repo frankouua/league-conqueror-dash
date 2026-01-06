@@ -44,7 +44,7 @@ const MONTH_NAMES_FULL = [
 ];
 
 const MonthComparisonPanel = ({ currentMonth, currentYear }: MonthComparisonPanelProps) => {
-  const { profile, role } = useAuth();
+  // Visão global: todas as vendedoras enxergam todos os dados (exceto “Minhas Metas”)
 
   // Generate last 6 months for comparison
   const monthsToFetch = useMemo(() => {
@@ -78,17 +78,12 @@ const MonthComparisonPanel = ({ currentMonth, currentYear }: MonthComparisonPane
         const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
         const endDate = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
 
-        let query = supabase
+        const { data, error } = await supabase
           .from("revenue_records")
           .select("amount")
           .gte("date", startDate)
           .lte("date", endDate);
 
-        if (role !== "admin" && profile?.team_id) {
-          query = query.eq("team_id", profile.team_id);
-        }
-
-        const { data, error } = await query;
         if (error) {
           console.error("Error fetching revenue:", error);
           continue;
@@ -116,17 +111,12 @@ const MonthComparisonPanel = ({ currentMonth, currentYear }: MonthComparisonPane
         const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
         const endDate = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
 
-        let query = supabase
+        const { data } = await supabase
           .from("referral_records")
           .select("collected, to_surgery")
           .gte("date", startDate)
           .lte("date", endDate);
 
-        if (role !== "admin" && profile?.team_id) {
-          query = query.eq("team_id", profile.team_id);
-        }
-
-        const { data } = await query;
         const collected = (data || []).reduce((sum, r) => sum + Number(r.collected), 0);
         const converted = (data || []).reduce((sum, r) => sum + Number(r.to_surgery), 0);
 
