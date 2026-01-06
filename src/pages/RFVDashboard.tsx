@@ -1395,31 +1395,58 @@ const RFVDashboard = () => {
   const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [searchName, setSearchName] = useState<string>('');
 
-  // Table pagination
+  // Table pagination and sorting
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(100);
+  const [sortBy, setSortBy] = useState<'totalValue' | 'averageTicket' | 'totalPurchases' | 'daysSinceLastPurchase' | 'name'>('totalValue');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const filteredCustomers = customers.filter(c => {
-    // Segment filter
-    if (selectedSegment !== 'all' && c.segment !== selectedSegment) return false;
-    
-    // Name search
-    if (searchName && !c.name.toLowerCase().includes(searchName.toLowerCase())) return false;
-    
-    // Value range filter
-    if (filterMinValue && c.totalValue < parseFloat(filterMinValue)) return false;
-    if (filterMaxValue && c.totalValue > parseFloat(filterMaxValue)) return false;
-    
-    // Days since purchase filter
-    if (filterMinDays && c.daysSinceLastPurchase < parseInt(filterMinDays)) return false;
-    if (filterMaxDays && c.daysSinceLastPurchase > parseInt(filterMaxDays)) return false;
-    
-    // Date range filter (last purchase date)
-    if (filterDateFrom && c.lastPurchaseDate < filterDateFrom) return false;
-    if (filterDateTo && c.lastPurchaseDate > filterDateTo) return false;
-    
-    return true;
-  });
+  const filteredAndSortedCustomers = customers
+    .filter(c => {
+      // Segment filter
+      if (selectedSegment !== 'all' && c.segment !== selectedSegment) return false;
+      
+      // Name search
+      if (searchName && !c.name.toLowerCase().includes(searchName.toLowerCase())) return false;
+      
+      // Value range filter
+      if (filterMinValue && c.totalValue < parseFloat(filterMinValue)) return false;
+      if (filterMaxValue && c.totalValue > parseFloat(filterMaxValue)) return false;
+      
+      // Days since purchase filter
+      if (filterMinDays && c.daysSinceLastPurchase < parseInt(filterMinDays)) return false;
+      if (filterMaxDays && c.daysSinceLastPurchase > parseInt(filterMaxDays)) return false;
+      
+      // Date range filter (last purchase date)
+      if (filterDateFrom && c.lastPurchaseDate < filterDateFrom) return false;
+      if (filterDateTo && c.lastPurchaseDate > filterDateTo) return false;
+      
+      return true;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'totalValue':
+          comparison = a.totalValue - b.totalValue;
+          break;
+        case 'averageTicket':
+          comparison = a.averageTicket - b.averageTicket;
+          break;
+        case 'totalPurchases':
+          comparison = a.totalPurchases - b.totalPurchases;
+          break;
+        case 'daysSinceLastPurchase':
+          comparison = a.daysSinceLastPurchase - b.daysSinceLastPurchase;
+          break;
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+  // Keep backward compatibility with filteredCustomers name
+  const filteredCustomers = filteredAndSortedCustomers;
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -1434,6 +1461,8 @@ const RFVDashboard = () => {
     filterDateFrom,
     filterDateTo,
     customers.length,
+    sortBy,
+    sortOrder,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / tablePageSize));
@@ -1860,7 +1889,7 @@ const RFVDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                   {/* Name Search */}
                   <div>
                     <Label className="text-xs text-muted-foreground">Buscar por Nome</Label>
@@ -1930,6 +1959,33 @@ const RFVDashboard = () => {
                         onChange={(e) => setFilterDateTo(e.target.value)}
                         className="w-1/2"
                       />
+                    </div>
+                  </div>
+
+                  {/* Sort Options */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ordenar por</Label>
+                    <div className="flex gap-2 mt-1">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        <option value="totalValue">💰 Valor Total</option>
+                        <option value="averageTicket">📊 Ticket Médio</option>
+                        <option value="totalPurchases">🛒 Qtd Compras</option>
+                        <option value="daysSinceLastPurchase">📅 Dias sem Compra</option>
+                        <option value="name">🔤 Nome</option>
+                      </select>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                        className="shrink-0"
+                        title={sortOrder === 'desc' ? 'Maior → Menor' : 'Menor → Maior'}
+                      >
+                        {sortOrder === 'desc' ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                      </Button>
                     </div>
                   </div>
                 </div>
