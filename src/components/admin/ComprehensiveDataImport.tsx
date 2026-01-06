@@ -37,6 +37,14 @@ const AVAILABLE_FILES = [
   { name: "Executado 2023-2025", path: "/uploads/EXECUTADO_2023_2024_2025.xlsx", type: "executado" },
 ];
 
+const FILE_TYPES = [
+  { value: "persona", label: "Dados de Persona/Pacientes" },
+  { value: "cadastros", label: "Cadastros de Pacientes (Feegow)" },
+  { value: "vendas", label: "Vendas por Competência" },
+  { value: "executado", label: "Valores Executados" },
+  { value: "formulario", label: "Respostas de Formulário (Sonhos/Desejos/Medos)" },
+];
+
 // Standard field mappings for each type
 const PERSONA_FIELDS = {
   prontuario: "Prontuário",
