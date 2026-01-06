@@ -27,6 +27,9 @@ verify_jwt = false
 [functions.feegow-patient-search]
 verify_jwt = false
 
+[functions.feegow-enrich-contacts]
+verify_jwt = false
+
 [functions.morning-summary]
 verify_jwt = false
 
