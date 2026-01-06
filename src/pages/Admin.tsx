@@ -66,106 +66,106 @@ const Admin = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="cards" className="max-w-5xl mx-auto">
-          <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 mb-8">
-            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-13 h-auto bg-secondary/50 p-1 rounded-xl gap-1">
+        <Tabs defaultValue="cards" className="max-w-6xl mx-auto">
+          <div className="w-full overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 mb-6">
+            <TabsList className="flex flex-wrap justify-center gap-2 h-auto bg-secondary/30 p-3 rounded-2xl min-w-max">
               <TabsTrigger
                 value="cards"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <Award className="w-4 h-4" />
-                <span className="text-[10px]">Cartões</span>
+                <span className="text-xs font-medium">Cartões</span>
               </TabsTrigger>
               <TabsTrigger
                 value="announcements"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <Megaphone className="w-4 h-4" />
-                <span className="text-[10px]">Avisos</span>
+                <span className="text-xs font-medium">Avisos</span>
               </TabsTrigger>
               <TabsTrigger
                 value="campaigns"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <Calendar className="w-4 h-4" />
-                <span className="text-[10px]">Campanhas</span>
+                <span className="text-xs font-medium">Campanhas</span>
               </TabsTrigger>
               <TabsTrigger
                 value="prizes"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <Trophy className="w-4 h-4" />
-                <span className="text-[10px]">Prêmios</span>
+                <span className="text-xs font-medium">Prêmios</span>
               </TabsTrigger>
               <TabsTrigger
                 value="events"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <Zap className="w-4 h-4" />
-                <span className="text-[10px]">Eventos</span>
+                <span className="text-xs font-medium">Eventos</span>
               </TabsTrigger>
               <TabsTrigger
                 value="records"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <FileEdit className="w-4 h-4" />
-                <span className="text-[10px]">Registros</span>
+                <span className="text-xs font-medium">Registros</span>
               </TabsTrigger>
               <TabsTrigger
                 value="sales-upload"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <FileSpreadsheet className="w-4 h-4" />
-                <span className="text-[10px]">Vendas</span>
+                <span className="text-xs font-medium">Vendas</span>
               </TabsTrigger>
               <TabsTrigger
                 value="goals"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <Target className="w-4 h-4" />
-                <span className="text-[10px]">Metas</span>
+                <span className="text-xs font-medium">Metas</span>
               </TabsTrigger>
               <TabsTrigger
                 value="contestations"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <AlertCircle className="w-4 h-4" />
-                <span className="text-[10px]">Contest.</span>
+                <span className="text-xs font-medium">Contestações</span>
               </TabsTrigger>
               <TabsTrigger
                 value="history"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <Shield className="w-4 h-4" />
-                <span className="text-[10px]">Histórico</span>
+                <span className="text-xs font-medium">Histórico</span>
               </TabsTrigger>
               <TabsTrigger
                 value="users"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
                 <Users className="w-4 h-4" />
-                <span className="text-[10px]">Usuários</span>
+                <span className="text-xs font-medium">Usuários</span>
               </TabsTrigger>
               <TabsTrigger
                 value="data-import"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
               >
                 <Database className="w-4 h-4" />
-                <span className="text-[10px]">Dados</span>
+                <span className="text-xs font-medium">Dados</span>
               </TabsTrigger>
               <TabsTrigger
                 value="patients-import"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
               >
                 <UserPlus className="w-4 h-4" />
-                <span className="text-[10px]">Cadastros</span>
+                <span className="text-xs font-medium">Cadastros</span>
               </TabsTrigger>
               <TabsTrigger
                 value="analytics-ai"
-                className="flex flex-col items-center gap-1 py-2 px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
               >
                 <Brain className="w-4 h-4" />
-                <span className="text-[10px]">AI</span>
+                <span className="text-xs font-medium">AI Analytics</span>
               </TabsTrigger>
             </TabsList>
           </div>

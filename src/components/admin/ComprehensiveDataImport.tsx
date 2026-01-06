@@ -44,6 +44,7 @@ const PERSONA_FIELDS = {
   cpf: "CPF do Paciente",
   email: "E-mail",
   phone: "Telefone",
+  cellphone: "Celular",
   total_value: "Soma de Valor",
   marital_status: "Qual o seu estado civil?",
   main_objective: "Qual seu objetivo principal ao realizar sua cirurgia/procedimento?",
@@ -66,6 +67,11 @@ const PERSONA_FIELDS = {
   influencer: "Qual influencer",
   height: "Altura (cm)",
   weight: "Peso (kg)",
+  rg: "RG",
+  dreams: "Sonhos",
+  desires: "Desejos",
+  fears: "Medos",
+  expectations: "Expectativas",
 };
 
 const TRANSACTION_FIELDS = {
@@ -74,7 +80,8 @@ const TRANSACTION_FIELDS = {
   patient_name: ["Paciente", "Nome do Paciente", "Cliente"],
   cpf: ["CPF", "CPF do Paciente", "CPF Cliente"],
   email: ["E-mail", "Email", "E-mail do Paciente"],
-  phone: ["Telefone", "Telefone/WhatsApp", "Celular"],
+  phone: ["Telefone", "Telefone Fixo", "Fone"],
+  cellphone: ["Celular", "Telefone/WhatsApp", "WhatsApp", "Celular/WhatsApp"],
   department: ["Departamento", "Grupo de Procedimentos", "Categoria"],
   procedure: ["Procedimento", "Procedimentos", "Nome Procedimento"],
   seller: ["Vendedor", "Responsável", "Consultor"],
