@@ -110,10 +110,10 @@ serve(async (req) => {
     const patientsByProntuario: Map<string, FeegowPatient> = new Map();
     
     let start = 0;
-    const offset = 100;
+    const offset = 500; // Increased for faster loading
     let hasMore = true;
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 100; // Increased to handle larger patient bases
 
     while (hasMore && attempts < maxAttempts) {
       try {
@@ -135,9 +135,11 @@ serve(async (req) => {
           hasMore = false;
         } else {
           for (const p of patients) {
-            const prontuario = (p.prontuario || p.paciente_id)?.toString();
-            if (prontuario) {
-              patientsByProntuario.set(prontuario, p);
+            // Feegow returns patient ID in 'id' or 'paciente_id' field
+            // Our 'prontuario' in rfv_customers corresponds to Feegow's patient ID
+            const patientId = (p.id || p.paciente_id)?.toString();
+            if (patientId) {
+              patientsByProntuario.set(patientId, { ...p, paciente_id: parseInt(patientId) });
             }
           }
           start += offset;
