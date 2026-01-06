@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Upload, FileSpreadsheet, Database, Users, Target, 
-  CheckCircle2, AlertCircle, Loader2, RefreshCw, Brain 
+  CheckCircle2, AlertCircle, Loader2, RefreshCw, Brain, Zap 
 } from "lucide-react";
 
 interface ColumnMapping {
@@ -491,6 +491,23 @@ export default function ComprehensiveDataImport() {
 
   return (
     <div className="space-y-6">
+      {/* Alert about data */}
+      <Card className="border-amber-500/50 bg-amber-500/5">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-600">Atenção: Reimportação Necessária</p>
+              <p className="text-muted-foreground mt-1">
+                Para ter dados completos de <strong>procedimento</strong>, <strong>origem</strong> e <strong>indicação</strong>, 
+                você precisa reimportar as planilhas de Executado e Competência usando este importador.
+                Os dados antigos não possuem esses campos detalhados.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2 bg-primary/10 rounded-lg">

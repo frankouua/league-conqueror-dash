@@ -26,11 +26,36 @@ interface Message {
 const QUICK_PROMPTS = [
   { label: "Resumo do mês", prompt: "Faça um resumo executivo do mês atual com principais métricas de vendas", icon: BarChart3 },
   { label: "Top vendedores", prompt: "Quem são os top 5 vendedores do mês atual e quanto cada um vendeu?", icon: Users },
-  { label: "Ticket médio", prompt: "Qual o ticket médio por tipo de procedimento nos últimos 3 meses?", icon: TrendingUp },
+  { label: "De onde vêm os pacientes?", prompt: "Analise a origem dos pacientes. De onde eles vêm? Quais canais trazem mais pacientes e maior faturamento?", icon: TrendingUp },
   { label: "Metas vs Realizado", prompt: "Como estamos em relação às metas do mês? Quem está acima e abaixo?", icon: Target },
-  { label: "Oportunidades", prompt: "Identifique 3 oportunidades de melhoria baseadas nos dados atuais", icon: Sparkles },
-  { label: "Comparativo anual", prompt: "Compare o desempenho do mês atual com o mesmo mês do ano passado", icon: BarChart3 },
+  { label: "Quem mais indica?", prompt: "Quem são as pessoas que mais indicam pacientes? Qual o valor gerado por cada indicador?", icon: Users },
+  { label: "Procedimentos 2025", prompt: "Liste os procedimentos executados em 2025 por nome, quantidade e valor total", icon: BarChart3 },
+  { label: "Top Cidades", prompt: "Quais são as cidades que mais trazem pacientes? Analise geograficamente nossa base", icon: Target },
+  { label: "Perfil do paciente", prompt: "Qual o perfil típico do nosso paciente? Idade, profissão, objetivos, motivações", icon: Sparkles },
 ];
+
+// Simple markdown formatter
+const formatMarkdown = (text: string): string => {
+  return text
+    // Headers
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h3>$1</h3>')
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Lists
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/^• (.+)$/gm, '<li>$1</li>')
+    .replace(/^\* (.+)$/gm, '<li>$1</li>')
+    .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
+    // Tables (basic)
+    .replace(/\|(.+)\|/g, (match) => {
+      const cells = match.split('|').filter(c => c.trim());
+      return `<tr>${cells.map(c => `<td>${c.trim()}</td>`).join('')}</tr>`;
+    })
+    // Line breaks
+    .replace(/\n/g, '<br/>');
+};
 
 export function AnalyticsAI() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -193,7 +218,7 @@ export function AnalyticsAI() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {QUICK_PROMPTS.map((prompt, idx) => (
                 <Button
                   key={idx}
@@ -239,8 +264,13 @@ export function AnalyticsAI() {
                       }`}
                     >
                       {message.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <div className="whitespace-pre-wrap">{message.content || "..."}</div>
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>table]:w-full [&>table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-muted [&_td]:border [&_td]:border-border [&_td]:p-2 [&>h3]:text-base [&>h3]:font-semibold [&>h3]:mt-4 [&>h3]:mb-2 [&>h4]:text-sm [&>h4]:font-medium [&>h4]:mt-3 [&>strong]:text-primary">
+                          <div 
+                            className="whitespace-pre-wrap text-sm leading-relaxed"
+                            dangerouslySetInnerHTML={{ 
+                              __html: formatMarkdown(message.content || "...") 
+                            }}
+                          />
                         </div>
                       ) : (
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
