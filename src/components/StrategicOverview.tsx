@@ -104,15 +104,57 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
     },
   });
 
-  // Executed data
+  // Executed data (current month)
   const { data: executedData } = useQuery({
     queryKey: ["strategic-executed-v2", startDate, currentDateStr],
     queryFn: async () => {
       const { data } = await supabase
         .from("executed_records")
-        .select("amount, date")
+        .select("amount, date, executor_name, procedure_name, department")
         .gte("date", startDate)
         .lte("date", currentDateStr);
+      return data || [];
+    },
+  });
+
+  // FULL YEAR data for annual rankings
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+  
+  const { data: yearExecutedData } = useQuery({
+    queryKey: ["strategic-year-executed", year],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("executed_records")
+        .select("amount, executor_name, procedure_name, department, date")
+        .gte("date", yearStart)
+        .lte("date", yearEnd);
+      return data || [];
+    },
+  });
+
+  const { data: yearRevenueData } = useQuery({
+    queryKey: ["strategic-year-revenue", year],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("revenue_records")
+        .select("amount, procedure_name, origin, department, date")
+        .gte("date", yearStart)
+        .lte("date", yearEnd);
+      return data || [];
+    },
+  });
+
+  // Patient data for geographic analysis
+  const { data: patientGeoData } = useQuery({
+    queryKey: ["strategic-patient-geo"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("patient_data")
+        .select("city, state, origin, total_value_sold, profession")
+        .not("city", "is", null)
+        .order("total_value_sold", { ascending: false })
+        .limit(1000);
       return data || [];
     },
   });
@@ -227,6 +269,103 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
         .slice(0, 6),
     };
   }, [revenueData]);
+
+  // ANNUAL RANKINGS - Executantes, Origens, Procedimentos do ano
+  const annualRankings = useMemo(() => {
+    // Top Executantes do ano
+    const executorMap: Record<string, { name: string; procedures: number; revenue: number }> = {};
+    yearExecutedData?.forEach(r => {
+      const executor = r.executor_name?.trim() || "";
+      if (!executor) return;
+      if (!executorMap[executor]) executorMap[executor] = { name: executor, procedures: 0, revenue: 0 };
+      executorMap[executor].procedures += 1;
+      executorMap[executor].revenue += Number(r.amount);
+    });
+    const topExecutors = Object.values(executorMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 8);
+
+    // Top Origens do ano
+    const originMap: Record<string, { name: string; count: number; revenue: number }> = {};
+    yearRevenueData?.forEach(r => {
+      const origin = r.origin?.trim() || "";
+      if (!origin) return;
+      if (!originMap[origin]) originMap[origin] = { name: origin, count: 0, revenue: 0 };
+      originMap[origin].count += 1;
+      originMap[origin].revenue += Number(r.amount);
+    });
+    const topOrigins = Object.values(originMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 8);
+
+    // Top Procedimentos vendidos no ano
+    const procMapYear: Record<string, { name: string; count: number; revenue: number }> = {};
+    yearRevenueData?.forEach(r => {
+      const proc = r.procedure_name?.trim() || "";
+      if (!proc) return;
+      if (!procMapYear[proc]) procMapYear[proc] = { name: proc, count: 0, revenue: 0 };
+      procMapYear[proc].count += 1;
+      procMapYear[proc].revenue += Number(r.amount);
+    });
+    const topProceduresYear = Object.values(procMapYear)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+
+    // Top Cidades
+    const cityMap: Record<string, { name: string; count: number; revenue: number }> = {};
+    patientGeoData?.forEach(p => {
+      const city = p.city?.trim() || "";
+      if (!city) return;
+      if (!cityMap[city]) cityMap[city] = { name: city, count: 0, revenue: 0 };
+      cityMap[city].count += 1;
+      cityMap[city].revenue += Number(p.total_value_sold || 0);
+    });
+    const topCities = Object.values(cityMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 8);
+
+    // Top Estados
+    const stateMap: Record<string, { name: string; count: number; revenue: number }> = {};
+    patientGeoData?.forEach(p => {
+      const state = p.state?.trim() || "";
+      if (!state) return;
+      if (!stateMap[state]) stateMap[state] = { name: state, count: 0, revenue: 0 };
+      stateMap[state].count += 1;
+      stateMap[state].revenue += Number(p.total_value_sold || 0);
+    });
+    const topStates = Object.values(stateMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 6);
+
+    // Top Profissões
+    const profMap: Record<string, number> = {};
+    patientGeoData?.forEach(p => {
+      const prof = p.profession?.trim() || "";
+      if (!prof) return;
+      profMap[prof] = (profMap[prof] || 0) + 1;
+    });
+    const topProfessions = Object.entries(profMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([name, count]) => ({ name, count }));
+
+    // Totais anuais
+    const yearTotalRevenue = yearRevenueData?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    const yearTotalExecuted = yearExecutedData?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    const yearSalesCount = yearRevenueData?.length || 0;
+
+    return {
+      topExecutors,
+      topOrigins,
+      topProceduresYear,
+      topCities,
+      topStates,
+      topProfessions,
+      yearTotalRevenue,
+      yearTotalExecuted,
+      yearSalesCount,
+    };
+  }, [yearExecutedData, yearRevenueData, patientGeoData]);
 
   // Calculate all metrics
   const metrics = useMemo(() => {
@@ -991,6 +1130,231 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
           </CardContent>
         </Card>
       </div>
+
+      {/* SEÇÃO ANUAL - Rankings do Ano */}
+      <Card className="bg-gradient-to-br from-violet-500/5 to-purple-500/5 border-violet-500/20">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-violet-500" />
+              Rankings {year} - Visão Estratégica Anual
+            </CardTitle>
+            <div className="flex gap-2">
+              <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/30">
+                {annualRankings.yearSalesCount} vendas
+              </Badge>
+              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                {formatCurrency(annualRankings.yearTotalRevenue)} vendido
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Grid de Rankings */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Top Executantes */}
+            <Card className="bg-background/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Star className="h-4 w-4 text-amber-500" />
+                  Top Executantes (Profissionais)
+                </CardTitle>
+                <CardDescription className="text-xs">Quem mais realizou procedimentos</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {annualRankings.topExecutors.length > 0 ? (
+                  <div className="space-y-2">
+                    {annualRankings.topExecutors.slice(0, 6).map((exec, idx) => (
+                      <div key={exec.name} className="flex items-center gap-2">
+                        <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                          idx === 0 ? "bg-amber-500 text-white" : 
+                          idx === 1 ? "bg-gray-400 text-white" : 
+                          idx === 2 ? "bg-amber-700 text-white" : 
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between text-xs">
+                            <span className="truncate font-medium">{exec.name}</span>
+                            <span className="text-muted-foreground shrink-0">{exec.procedures}x</span>
+                          </div>
+                          <p className="text-xs text-primary font-semibold">{formatCurrency(exec.revenue)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs text-center py-4">Sem dados de executantes</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Origens do Ano */}
+            <Card className="bg-background/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-500" />
+                  Top Origens {year}
+                </CardTitle>
+                <CardDescription className="text-xs">De onde vêm os pacientes</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {annualRankings.topOrigins.length > 0 ? (
+                  <div className="space-y-2">
+                    {annualRankings.topOrigins.slice(0, 6).map((origin, idx) => (
+                      <div key={origin.name} className="flex items-center gap-2">
+                        <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                          idx === 0 ? "bg-blue-500 text-white" : 
+                          idx === 1 ? "bg-blue-400 text-white" : 
+                          idx === 2 ? "bg-blue-300 text-white" : 
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between text-xs">
+                            <span className="truncate font-medium">{origin.name}</span>
+                            <span className="text-muted-foreground shrink-0">{origin.count}x</span>
+                          </div>
+                          <p className="text-xs text-blue-400 font-semibold">{formatCurrency(origin.revenue)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs text-center py-4">Sem dados de origem</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Procedimentos do Ano */}
+            <Card className="bg-background/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-emerald-500" />
+                  Top Procedimentos {year}
+                </CardTitle>
+                <CardDescription className="text-xs">Mais vendidos no ano</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {annualRankings.topProceduresYear.length > 0 ? (
+                  <div className="space-y-2">
+                    {annualRankings.topProceduresYear.slice(0, 6).map((proc, idx) => (
+                      <div key={proc.name} className="flex items-center gap-2">
+                        <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                          idx === 0 ? "bg-emerald-500 text-white" : 
+                          idx === 1 ? "bg-emerald-400 text-white" : 
+                          idx === 2 ? "bg-emerald-300 text-white" : 
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between text-xs">
+                            <span className="truncate font-medium">{proc.name.substring(0, 25)}</span>
+                            <span className="text-muted-foreground shrink-0">{proc.count}x</span>
+                          </div>
+                          <p className="text-xs text-emerald-400 font-semibold">{formatCurrency(proc.revenue)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs text-center py-4">Sem dados</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Segunda linha - Geografia e Profissões */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Top Cidades */}
+            <Card className="bg-background/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  🏙️ Top Cidades
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {annualRankings.topCities.length > 0 ? (
+                  <div className="space-y-1">
+                    {annualRankings.topCities.slice(0, 6).map((city, idx) => (
+                      <div key={city.name} className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-2">
+                          <span className="text-muted-foreground w-4">{idx + 1}.</span>
+                          <span className="font-medium">{city.name}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs py-0">{city.count}</Badge>
+                          <span className="text-primary font-semibold">{formatCurrency(city.revenue)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs text-center py-4">Sem dados geográficos</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Estados */}
+            <Card className="bg-background/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  🗺️ Top Estados
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {annualRankings.topStates.length > 0 ? (
+                  <div className="space-y-1">
+                    {annualRankings.topStates.map((state, idx) => (
+                      <div key={state.name} className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-2">
+                          <span className="text-muted-foreground w-4">{idx + 1}.</span>
+                          <span className="font-medium">{state.name}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs py-0">{state.count}</Badge>
+                          <span className="text-primary font-semibold">{formatCurrency(state.revenue)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs text-center py-4">Sem dados</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Profissões */}
+            <Card className="bg-background/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  👔 Top Profissões
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {annualRankings.topProfessions.length > 0 ? (
+                  <div className="space-y-1">
+                    {annualRankings.topProfessions.slice(0, 6).map((prof, idx) => (
+                      <div key={prof.name} className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-2">
+                          <span className="text-muted-foreground w-4">{idx + 1}.</span>
+                          <span className="font-medium truncate">{prof.name}</span>
+                        </span>
+                        <Badge variant="outline" className="text-xs py-0">{prof.count} pacientes</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs text-center py-4">Sem dados</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Ações Urgentes */}
       {(metrics.hotLeads > 0 || metrics.atRiskCustomers > 20 || metrics.dailyNeeded > metrics.dailyAvg * 1.3) && (
