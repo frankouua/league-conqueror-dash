@@ -179,37 +179,52 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
     },
   });
 
-  // Top procedures/departments
+  // Top procedures/departments with ticket médio
   const procedureAnalysis = useMemo(() => {
-    if (!revenueData) return { byDepartment: [], byProcedure: [], byOrigin: [] };
+    if (!revenueData) return { byDepartment: [], byProcedure: [], byOrigin: [], ticketByDepartment: [] };
     
-    const deptMap: Record<string, number> = {};
-    const procMap: Record<string, number> = {};
+    const deptMap: Record<string, { total: number; count: number }> = {};
+    const procMap: Record<string, { total: number; count: number }> = {};
     const originMap: Record<string, number> = {};
     
     revenueData.forEach(r => {
       const dept = r.department || "Não informado";
       const proc = r.procedure_name || "Não informado";
       const origin = r.origin || "Não informado";
+      const amount = Number(r.amount);
       
-      deptMap[dept] = (deptMap[dept] || 0) + Number(r.amount);
-      procMap[proc] = (procMap[proc] || 0) + Number(r.amount);
-      originMap[origin] = (originMap[origin] || 0) + Number(r.amount);
+      if (!deptMap[dept]) deptMap[dept] = { total: 0, count: 0 };
+      deptMap[dept].total += amount;
+      deptMap[dept].count += 1;
+      
+      if (!procMap[proc]) procMap[proc] = { total: 0, count: 0 };
+      procMap[proc].total += amount;
+      procMap[proc].count += 1;
+      
+      originMap[origin] = (originMap[origin] || 0) + amount;
     });
     
     return {
       byDepartment: Object.entries(deptMap)
-        .map(([name, value]) => ({ name: name.substring(0, 15), value }))
+        .map(([name, data]) => ({ name: name.substring(0, 15), value: data.total }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5),
       byProcedure: Object.entries(procMap)
-        .map(([name, value]) => ({ name: name.substring(0, 20), value }))
+        .map(([name, data]) => ({ name: name.substring(0, 25), value: data.total, count: data.count }))
         .sort((a, b) => b.value - a.value)
-        .slice(0, 5),
+        .slice(0, 8),
       byOrigin: Object.entries(originMap)
         .map(([name, value]) => ({ name: name.substring(0, 15), value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5),
+      ticketByDepartment: Object.entries(deptMap)
+        .map(([name, data]) => ({ 
+          name: name.substring(0, 12), 
+          ticket: data.count > 0 ? data.total / data.count : 0,
+          count: data.count 
+        }))
+        .sort((a, b) => b.ticket - a.ticket)
+        .slice(0, 6),
     };
   }, [revenueData]);
 
@@ -693,12 +708,12 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
         </CardContent>
       </Card>
 
-      {/* Grid de Análises */}
+      {/* Grid de Análises - Linha 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Top Departamentos */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Top Departamentos</CardTitle>
+            <CardTitle className="text-sm">Top Departamentos (Faturamento)</CardTitle>
           </CardHeader>
           <CardContent>
             {procedureAnalysis.byDepartment.length > 0 ? (
@@ -709,6 +724,35 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
                     <YAxis dataKey="name" type="category" width={80} fontSize={10} />
                     <Tooltip formatter={(value: number) => formatCurrencyFull(value)} />
                     <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm text-center py-8">Sem dados</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Ticket Médio por Departamento */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Ticket Médio por Departamento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {procedureAnalysis.ticketByDepartment.length > 0 ? (
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={procedureAnalysis.ticketByDepartment} layout="vertical">
+                    <XAxis type="number" tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} fontSize={10} />
+                    <YAxis dataKey="name" type="category" width={70} fontSize={10} />
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [formatCurrencyFull(value), "Ticket Médio"]}
+                      labelFormatter={(label) => {
+                        const item = procedureAnalysis.ticketByDepartment.find(d => d.name === label);
+                        return `${label} (${item?.count || 0} vendas)`;
+                      }}
+                    />
+                    <Bar dataKey="ticket" fill="hsl(var(--chart-3))" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -740,6 +784,51 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Grid de Análises - Linha 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Top Procedimentos Vendidos */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Top Procedimentos Vendidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {procedureAnalysis.byProcedure.length > 0 ? (
+              <div className="space-y-2">
+                {procedureAnalysis.byProcedure.map((proc, idx) => (
+                  <div key={proc.name} className="flex items-center gap-2">
+                    <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center ${
+                      idx === 0 ? "bg-amber-500 text-white" : 
+                      idx === 1 ? "bg-gray-400 text-white" : 
+                      idx === 2 ? "bg-amber-700 text-white" : 
+                      "bg-muted text-muted-foreground"
+                    }`}>
+                      {idx + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="truncate font-medium">{proc.name}</span>
+                        <span className="text-muted-foreground ml-2">{proc.count}x</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-muted rounded-full h-1.5">
+                          <div 
+                            className="bg-primary rounded-full h-1.5 transition-all" 
+                            style={{ width: `${(proc.value / procedureAnalysis.byProcedure[0].value) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-primary">{formatCurrency(proc.value)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm text-center py-8">Sem dados</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* RFV Distribution */}
         <Card>
@@ -748,7 +837,7 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
           </CardHeader>
           <CardContent>
             {rfvPieData.length > 0 ? (
-              <div className="h-[180px]">
+              <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPie>
                     <Pie
@@ -757,10 +846,10 @@ export default function StrategicOverview({ month, year }: StrategicOverviewProp
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={60}
-                      label={({ name, percent }) => `${name.substring(0, 8)} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={70}
+                      label={({ name, percent }) => `${name.substring(0, 10)} ${(percent * 100).toFixed(0)}%`}
                       labelLine={false}
-                      fontSize={9}
+                      fontSize={10}
                     >
                       {rfvPieData.map((_, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
