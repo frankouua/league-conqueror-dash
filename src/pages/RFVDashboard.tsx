@@ -2880,10 +2880,17 @@ const RFVDashboard = () => {
                   </div>
 
                   {/* Action History Component */}
-                  <div className="pt-4 border-t">
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <History className="h-4 w-4 text-primary" />
+                      <h4 className="font-semibold text-sm">Histórico de Interações</h4>
+                    </div>
                     <RFVActionHistory 
                       customerId={selectedCustomer.id}
                       customerName={selectedCustomer.name}
+                      onActionAdded={() => {
+                        toast({ title: "Ação registrada!", description: "Histórico atualizado." });
+                      }}
                     />
                   </div>
                 </CardContent>
