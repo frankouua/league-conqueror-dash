@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database, UserPlus } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, FileSpreadsheet, Calendar, Brain, Database } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,7 +17,6 @@ import AnnouncementsManager from "@/components/admin/AnnouncementsManager";
 import CampaignsManager from "@/components/admin/CampaignsManager";
 import SalesSpreadsheetUpload from "@/components/admin/SalesSpreadsheetUpload";
 import ComprehensiveDataImport from "@/components/admin/ComprehensiveDataImport";
-import PatientDataImport from "@/components/admin/PatientDataImport";
 import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
 
 const Admin = () => {
@@ -154,13 +153,6 @@ const Admin = () => {
                 <span className="text-xs font-medium">Dados</span>
               </TabsTrigger>
               <TabsTrigger
-                value="patients-import"
-                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span className="text-xs font-medium">Cadastros</span>
-              </TabsTrigger>
-              <TabsTrigger
                 value="analytics-ai"
                 className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
               >
@@ -219,10 +211,6 @@ const Admin = () => {
 
           <TabsContent value="data-import" className="animate-scale-in">
             <ComprehensiveDataImport />
-          </TabsContent>
-
-          <TabsContent value="patients-import" className="animate-scale-in">
-            <PatientDataImport />
           </TabsContent>
 
           <TabsContent value="analytics-ai" className="animate-scale-in">
