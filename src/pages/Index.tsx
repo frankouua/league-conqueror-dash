@@ -160,14 +160,13 @@ const Index = () => {
               </Select>
             </div>
 
-            {/* Live Indicator */}
-            {isCurrentPeriod && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            {/* Last Updated Indicator */}
+            {lastUpdated && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs text-muted-foreground">
+                  Atualizado {format(lastUpdated, "dd/MM 'às' HH:mm", { locale: ptBR })}
                 </span>
-                <span className="text-xs font-medium text-emerald-500">Ao Vivo</span>
               </div>
             )}
             
@@ -176,15 +175,6 @@ const Index = () => {
                 <Clock className="w-3.5 h-3.5 text-amber-500" />
                 <span className="text-xs font-medium text-amber-500">
                   {MONTHS[selectedMonth - 1]} {selectedYear}
-                </span>
-              </div>
-            )}
-            
-            {lastUpdated && isCurrentPeriod && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50 border border-border">
-                <Clock className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs text-muted-foreground">
-                  {format(lastUpdated, "HH:mm", { locale: ptBR })}
                 </span>
               </div>
             )}
