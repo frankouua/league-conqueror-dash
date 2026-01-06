@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,7 @@ import PeriodLockManager from "@/components/admin/PeriodLockManager";
 import RFVContactSync from "@/components/admin/RFVContactSync";
 import { CommercialAssistantReport } from "@/components/admin/CommercialAssistantReport";
 import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
+import AlertsManager from "@/components/admin/AlertsManager";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -182,6 +183,13 @@ const Admin = () => {
                 <Brain className="w-4 h-4" />
                 <span className="text-xs font-medium">Analytics AI</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="alerts"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-orange-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
+              >
+                <Bell className="w-4 h-4" />
+                <span className="text-xs font-medium">Alertas</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -241,6 +249,10 @@ const Admin = () => {
 
           <TabsContent value="analytics-ai" className="animate-scale-in">
             <AnalyticsAI />
+          </TabsContent>
+
+          <TabsContent value="alerts" className="animate-scale-in">
+            <AlertsManager />
           </TabsContent>
         </Tabs>
 

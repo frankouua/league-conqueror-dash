@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.analytics-ai]
 verify_jwt = false
+
+[functions.daily-seller-alerts]
+verify_jwt = false
