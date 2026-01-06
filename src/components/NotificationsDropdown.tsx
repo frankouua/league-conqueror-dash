@@ -257,18 +257,64 @@ const NotificationsDropdown = () => {
     }
     
     // Navigate based on notification type
-    if (notification.type === "stale_lead" || 
-        notification.type === "new_referral" || 
-        notification.type === "lead_assigned" ||
-        notification.type === "lead_milestone" ||
-        notification.type === "lead_alert" ||
-        notification.type === "lead_status_update" ||
-        notification.type === "lead_reminder" ||
-        notification.type === "lead_reminder_2h" ||
-        notification.type === "lead_reminder_24h") {
-      navigate("/referral-leads");
-    } else if (notification.type === "goal_reminder" || notification.type === "goal_near") {
-      navigate("/onboarding-goals");
+    switch (notification.type) {
+      // Lead-related notifications → Pipeline de Indicações
+      case "stale_lead":
+      case "new_referral":
+      case "lead_assigned":
+      case "lead_milestone":
+      case "lead_alert":
+      case "lead_status_update":
+      case "lead_reminder":
+      case "lead_reminder_2h":
+      case "lead_reminder_24h":
+        navigate("/referral-leads");
+        break;
+      
+      // Goal-related notifications → Metas
+      case "goal_reminder":
+      case "goal_near":
+      case "goal_individual":
+      case "goal_team":
+        navigate("/onboarding-goals");
+        break;
+      
+      // Achievement/milestone notifications → Dashboard principal
+      case "milestone":
+      case "achievement":
+        navigate("/");
+        break;
+      
+      // User approval notifications → Admin/Usuários
+      case "user_approval":
+        navigate("/admin?tab=users");
+        break;
+      
+      // Campaign suggestions → Admin/Campanhas
+      case "campaign_suggestion":
+        navigate("/admin?tab=campaigns");
+        break;
+      
+      // Seller alerts → Admin/Usuários
+      case "seller_critical":
+      case "seller_warning":
+        navigate("/admin?tab=users");
+        break;
+      
+      // Reports → Relatórios
+      case "morning_summary":
+      case "weekly_report":
+        navigate("/reports");
+        break;
+      
+      // Admin announcements → just mark as read (no specific page)
+      case "admin_announcement":
+        // No navigation, just opens the popup
+        break;
+      
+      default:
+        // For unknown types, just mark as read
+        break;
     }
   };
 
