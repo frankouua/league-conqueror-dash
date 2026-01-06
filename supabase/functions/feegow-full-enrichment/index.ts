@@ -133,15 +133,22 @@ serve(async (req) => {
         
         // Debug: log first patient structure on first page
         if (attempts === 0 && patients.length > 0) {
-          console.log('Sample patient structure:', JSON.stringify(patients[0]));
+          const sampleKeys = Object.keys(patients[0]);
+          console.log('Patient fields available:', sampleKeys.join(', '));
+          console.log('Sample ID fields:', JSON.stringify({
+            id: patients[0].id,
+            paciente_id: patients[0].paciente_id,
+            local_id: patients[0].local_id,
+            prontuario: patients[0].prontuario
+          }));
         }
         
         if (patients.length === 0) {
           hasMore = false;
         } else {
           for (const p of patients) {
-            // Try all possible ID fields from Feegow
-            const patientId = (p.id || p.paciente_id || p.local_id || p.prontuario)?.toString();
+            // Try all possible ID fields from Feegow - need to find correct one
+            const patientId = (p.local_id || p.id || p.paciente_id || p.prontuario)?.toString();
             if (patientId) {
               patientsByProntuario.set(patientId, { ...p, paciente_id: parseInt(patientId) });
             }
