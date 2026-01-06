@@ -1229,7 +1229,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_source: string | null
+          desires: string | null
+          dreams: string | null
           email: string | null
+          expectations: string | null
+          fears: string | null
           first_contact_date: string | null
           first_purchase_date: string | null
           gender: string | null
@@ -1248,6 +1252,7 @@ export type Database = {
           origin: string | null
           origin_detail: string | null
           phone: string | null
+          preferred_procedures: string | null
           profession: string | null
           prontuario: string | null
           referral_name: string | null
@@ -1272,7 +1277,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_source?: string | null
+          desires?: string | null
+          dreams?: string | null
           email?: string | null
+          expectations?: string | null
+          fears?: string | null
           first_contact_date?: string | null
           first_purchase_date?: string | null
           gender?: string | null
@@ -1291,6 +1300,7 @@ export type Database = {
           origin?: string | null
           origin_detail?: string | null
           phone?: string | null
+          preferred_procedures?: string | null
           profession?: string | null
           prontuario?: string | null
           referral_name?: string | null
@@ -1315,7 +1325,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_source?: string | null
+          desires?: string | null
+          dreams?: string | null
           email?: string | null
+          expectations?: string | null
+          fears?: string | null
           first_contact_date?: string | null
           first_purchase_date?: string | null
           gender?: string | null
@@ -1334,6 +1348,7 @@ export type Database = {
           origin?: string | null
           origin_detail?: string | null
           phone?: string | null
+          preferred_procedures?: string | null
           profession?: string | null
           prontuario?: string | null
           referral_name?: string | null
