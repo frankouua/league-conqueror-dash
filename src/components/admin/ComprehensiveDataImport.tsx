@@ -641,14 +641,14 @@ export default function ComprehensiveDataImport() {
                       {Array.isArray(label) ? label[0] : label}
                     </Label>
                     <Select
-                      value={columnMapping[field] || ""}
-                      onValueChange={(val) => setColumnMapping(prev => ({ ...prev, [field]: val }))}
+                      value={columnMapping[field] || "__none__"}
+                      onValueChange={(val) => setColumnMapping(prev => ({ ...prev, [field]: val === "__none__" ? "" : val }))}
                     >
                       <SelectTrigger className="h-8 text-sm">
                         <SelectValue placeholder="Não mapeado" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Não mapeado</SelectItem>
+                        <SelectItem value="__none__">Não mapeado</SelectItem>
                         {columns.map((col) => (
                           <SelectItem key={col} value={col}>{col}</SelectItem>
                         ))}
