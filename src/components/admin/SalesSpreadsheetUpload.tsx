@@ -370,32 +370,30 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   };
 
   const calculateMetrics = (sales: ParsedSale[]): SalesMetrics => {
-    // Include all non-error sales (including negative values for cancellations)
-    const validSales = sales.filter(s => s.status !== 'error' && (s.amountSold !== 0 || s.amountPaid !== 0));
-    const errorSales = sales.filter(s => s.status === 'error');
-    const zeroValueSales = sales.filter(s => s.status !== 'error' && s.amountSold === 0 && s.amountPaid === 0);
-    const negativeSales = validSales.filter(s => s.amountSold < 0 || s.amountPaid < 0);
+    // IMPORTANTE: Considerar TODAS as linhas, não apenas as "válidas"
+    // Incluir linhas com valor zero (cortesias, retornos) e valores negativos (cancelamentos)
+    const allSalesWithDate = sales.filter(s => s.date); // Apenas exigir data
+    const errorSales = sales.filter(s => !s.date);
+    const zeroValueSales = allSalesWithDate.filter(s => s.amountSold === 0 && s.amountPaid === 0);
+    const negativeSales = allSalesWithDate.filter(s => s.amountSold < 0 || s.amountPaid < 0);
     
-    // Debug logs
-    console.log('=== DEBUG MÉTRICAS ===');
-    console.log('Total de linhas:', sales.length);
-    console.log('Linhas válidas:', validSales.length);
-    console.log('Linhas com erro:', errorSales.length);
-    console.log('Linhas com valor zero:', zeroValueSales.length);
-    console.log('Cancelamentos (valores negativos):', negativeSales.length);
+    // Debug logs para auditoria
+    console.log('=== AUDITORIA DE IMPORTAÇÃO ===');
+    console.log('📊 Total de linhas na planilha:', sales.length);
+    console.log('✅ Linhas com data válida:', allSalesWithDate.length);
+    console.log('❌ Linhas sem data (serão ignoradas):', errorSales.length);
+    console.log('🆓 Linhas com valor zero (serão importadas):', zeroValueSales.length);
+    console.log('🔄 Cancelamentos/estornos (valores negativos):', negativeSales.length);
     
-    const totalSales = validSales.length;
-    const totalRevenueSold = validSales.reduce((sum, s) => sum + s.amountSold, 0);
-    const totalRevenuePaid = validSales.reduce((sum, s) => sum + s.amountPaid, 0);
+    const totalSales = allSalesWithDate.length;
+    const totalRevenueSold = allSalesWithDate.reduce((sum, s) => sum + s.amountSold, 0);
+    const totalRevenuePaid = allSalesWithDate.reduce((sum, s) => sum + s.amountPaid, 0);
     
-    console.log('Soma Valor Vendido:', totalRevenueSold);
-    console.log('Soma Valor Recebido:', totalRevenuePaid);
+    console.log('💰 SOMA TOTAL VENDIDO:', totalRevenueSold.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+    console.log('💵 SOMA TOTAL RECEBIDO:', totalRevenuePaid.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
     
-    // Log primeiras 5 vendas para verificar parsing
-    console.log('Primeiras 5 vendas (debug):');
-    validSales.slice(0, 5).forEach((s, i) => {
-      console.log(`  ${i+1}. Vendido: ${s.amountSold}, Pago: ${s.amountPaid}, Vendedor: ${s.sellerName}`);
-    });
+    // Validar contra o que será importado
+    const validSales = allSalesWithDate; // Agora TODAS as linhas com data são válidas
     
     // Calculate unique clients by normalized name
     const clientMap = new Map<string, { name: string; totalSold: number; totalPaid: number; purchases: number }>();
@@ -749,28 +747,9 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             matchedTeamName = teamNamesById.get(matchedTeamId) || null;
           }
 
-          // Both amounts are exactly zero - mark as error but keep seller info
-          if (amountSold === 0 && amountPaid === 0) {
-            return {
-              date: parsedDate,
-              department,
-              procedure,
-              clientName,
-              clientCpf,
-              clientEmail,
-              clientPhone,
-              clientProntuario,
-              sellerName,
-              amountSold: 0,
-              amountPaid: 0,
-              matchedUserId,
-              matchedTeamId,
-              matchedTeamName,
-              status: 'error' as const,
-              errorMessage: 'Valor zero',
-              paymentStatus,
-            };
-          }
+          // IMPORTANTE: Linhas com valor zero são VÁLIDAS e devem ser importadas
+          // Exemplos: cortesias, bônus, serviços inclusos, retornos sem cobrança
+          // NÃO marcar como erro - apenas avisar se necessário
 
           // Note: negative values (cancellations/refunds) are valid and will be included
 
@@ -1068,16 +1047,35 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   };
 
   const importSales = async (salesToImport?: ParsedSale[]) => {
-    const validSales = salesToImport || parsedSales.filter(s => s.status === 'matched' && s.matchedUserId && s.matchedTeamId);
+    // IMPORTAR 100% DAS LINHAS: aceitar matched, unmatched (atribuir ao admin) e até error (exceto sem data)
+    const allSales = salesToImport || parsedSales.filter(s => s.date); // Apenas exigir data válida
     
-    if (validSales.length === 0) {
+    if (allSales.length === 0) {
       toast({
         title: "Nenhuma venda para importar",
-        description: "Não há vendas válidas com vendedor mapeado.",
+        description: "Não há vendas com data válida na planilha.",
         variant: "destructive",
       });
       return;
     }
+    
+    // Buscar um user/team padrão para linhas sem vendedor mapeado
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('user_id, team_id')
+      .not('team_id', 'is', null)
+      .limit(1)
+      .single();
+    
+    const defaultUserId = adminProfile?.user_id || user?.id;
+    const defaultTeamId = adminProfile?.team_id;
+    
+    // Converter vendas sem mapeamento para usar o padrão
+    const validSales = allSales.map(sale => ({
+      ...sale,
+      matchedUserId: sale.matchedUserId || defaultUserId || null,
+      matchedTeamId: sale.matchedTeamId || defaultTeamId || null,
+    })).filter(s => s.matchedUserId && s.matchedTeamId);
 
     setIsImporting(true);
     setImportErrors([]); // Clear previous errors
@@ -1222,11 +1220,16 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             notes,
             department: sale.department || null,
             procedure_name: sale.procedure || null,
+            patient_name: sale.clientName || null,
+            patient_cpf: sale.clientCpf?.replace(/\D/g, '') || null,
+            patient_prontuario: sale.clientProntuario || null,
+            patient_email: sale.clientEmail || null,
+            patient_phone: sale.clientPhone || null,
             user_id: sale.matchedUserId!,
             team_id: sale.matchedTeamId!,
             attributed_to_user_id: sale.matchedUserId,
             counts_for_individual: true,
-            registered_by_admin: false,
+            registered_by_admin: !sale.sellerName || sale.status === 'unmatched',
             _originalSale: sale, // Keep reference for error tracking
           });
         }
@@ -1249,11 +1252,16 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             notes,
             department: sale.department || null,
             procedure_name: sale.procedure || null,
+            patient_name: sale.clientName || null,
+            patient_cpf: sale.clientCpf?.replace(/\D/g, '') || null,
+            patient_prontuario: sale.clientProntuario || null,
+            patient_email: sale.clientEmail || null,
+            patient_phone: sale.clientPhone || null,
             user_id: sale.matchedUserId!,
             team_id: sale.matchedTeamId!,
             attributed_to_user_id: sale.matchedUserId,
             counts_for_individual: true,
-            registered_by_admin: false,
+            registered_by_admin: !sale.sellerName || sale.status === 'unmatched',
             _originalSale: sale,
           });
         }
