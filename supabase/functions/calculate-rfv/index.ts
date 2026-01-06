@@ -76,12 +76,13 @@ serve(async (req) => {
     const customerMap = new Map<string, CustomerData>();
 
     for (const record of revenueRecords || []) {
-      // Determine customer key (prefer CPF > prontuario > name)
+      // Determine customer key (prefer CPF > prontuario > name for GROUPING)
       const cpf = record.patient_cpf?.replace(/\D/g, "") || null;
       const prontuario = record.patient_prontuario || null;
-      const name = record.patient_name || record.notes?.match(/Cliente: ([^|]+)/)?.[1]?.trim() || "Desconhecido";
+      const rawName = record.patient_name || record.notes?.match(/Cliente: ([^|]+)/)?.[1]?.trim() || null;
       
-      let customerKey = cpf || prontuario || name.toLowerCase().trim();
+      // For grouping, use CPF or prontuario as key to merge same customer
+      let customerKey = cpf || prontuario || (rawName ? rawName.toLowerCase().trim() : null);
       
       if (!customerKey || customerKey === "desconhecido") continue;
 
@@ -91,10 +92,13 @@ serve(async (req) => {
         if (cpf) enrichedData = patientByCpf.get(cpf);
         if (!enrichedData && prontuario) enrichedData = patientByProntuario.get(prontuario);
 
+        // Always prefer actual name over CPF/prontuario for display
+        const displayName = enrichedData?.name || rawName || "Desconhecido";
+
         customerMap.set(customerKey, {
           cpf,
           prontuario,
-          name: enrichedData?.name || name,
+          name: displayName,
           email: enrichedData?.email || record.patient_email || null,
           phone: enrichedData?.phone || record.patient_phone || null,
           purchases: [],
@@ -102,6 +106,12 @@ serve(async (req) => {
       }
 
       const customer = customerMap.get(customerKey)!;
+      
+      // Update name if we get a better one (actual name vs CPF)
+      if (rawName && customer.name !== rawName && (!customer.name || /^\d+$/.test(customer.name))) {
+        customer.name = rawName;
+      }
+      
       customer.purchases.push({
         date: record.date,
         amount: record.amount || 0,
@@ -228,34 +238,63 @@ serve(async (req) => {
       return "Outros";
     };
 
-    // Process and prepare for insert
-    const rfvRecords = customers.map((customer) => {
+    // Process and prepare for insert - dedupe by normalized name
+    const rfvByName = new Map<string, any>();
+    
+    for (const customer of customers) {
       const r = scoreRecency(customer.daysSinceLastPurchase);
       const f = scoreFrequency(customer.frequency);
       const v = scoreValue(customer.totalValue);
       const segment = getSegment(r, f, v);
+      
+      const normalizedName = customer.name.toLowerCase().trim();
+      
+      // If we already have this customer, merge the data (sum values, take best scores)
+      const existing = rfvByName.get(normalizedName);
+      if (existing) {
+        existing.total_value += customer.totalValue;
+        existing.total_purchases += customer.frequency;
+        existing.average_ticket = existing.total_value / existing.total_purchases;
+        // Recalculate scores with merged data
+        existing.value_score = Math.max(existing.value_score, v);
+        existing.frequency_score = Math.max(existing.frequency_score, f);
+        existing.recency_score = Math.max(existing.recency_score, r);
+        if (customer.lastPurchaseDate > existing.last_purchase_date) {
+          existing.last_purchase_date = customer.lastPurchaseDate;
+          existing.days_since_last_purchase = customer.daysSinceLastPurchase;
+        }
+        if (!existing.first_purchase_date || customer.firstPurchaseDate < existing.first_purchase_date) {
+          existing.first_purchase_date = customer.firstPurchaseDate;
+        }
+        if (!existing.cpf && customer.cpf) existing.cpf = customer.cpf;
+        if (!existing.email && customer.email) existing.email = customer.email;
+        if (!existing.phone && customer.phone) existing.phone = customer.phone;
+        existing.segment = getSegment(existing.recency_score, existing.frequency_score, existing.value_score);
+      } else {
+        rfvByName.set(normalizedName, {
+          name: customer.name, // Keep original casing
+          cpf: customer.cpf,
+          prontuario: customer.prontuario,
+          email: customer.email,
+          phone: customer.phone,
+          whatsapp: customer.phone,
+          first_purchase_date: customer.firstPurchaseDate,
+          last_purchase_date: customer.lastPurchaseDate,
+          days_since_last_purchase: customer.daysSinceLastPurchase,
+          total_purchases: customer.frequency,
+          total_value: customer.totalValue,
+          average_ticket: customer.averageTicket,
+          recency_score: r,
+          frequency_score: f,
+          value_score: v,
+          segment,
+        });
+      }
+    }
+    
+    const rfvRecords = Array.from(rfvByName.values());
 
-      return {
-        name: customer.name,
-        cpf: customer.cpf,
-        prontuario: customer.prontuario,
-        email: customer.email,
-        phone: customer.phone,
-        whatsapp: customer.phone,
-        first_purchase_date: customer.firstPurchaseDate,
-        last_purchase_date: customer.lastPurchaseDate,
-        days_since_last_purchase: customer.daysSinceLastPurchase,
-        total_purchases: customer.frequency,
-        total_value: customer.totalValue,
-        average_ticket: customer.averageTicket,
-        recency_score: r,
-        frequency_score: f,
-        value_score: v,
-        segment,
-      };
-    });
-
-    console.log(`Prepared ${rfvRecords.length} RFV records`);
+    console.log(`Prepared ${rfvRecords.length} unique RFV records`);
 
     // Clear existing RFV data and insert new
     const { error: deleteError } = await supabase
