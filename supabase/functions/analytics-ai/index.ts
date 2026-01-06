@@ -111,6 +111,9 @@ serve(async (req) => {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
+    
+    // Fetch data from 3 years ago to cover historical analysis
+    const threeYearsAgo = new Date(currentYear - 3, 0, 1).toISOString().split("T")[0];
 
     // Parallel data fetching for efficiency
     const [
@@ -124,25 +127,27 @@ serve(async (req) => {
       npsResult,
       patientDataResult,
     ] = await Promise.all([
-      // Revenue records - last 12 months
+      // Revenue records - last 3 years for complete historical analysis
       supabase
         .from("revenue_records")
         .select("*")
-        .gte("date", new Date(currentYear - 1, currentMonth - 1, 1).toISOString().split("T")[0])
-        .order("date", { ascending: false }),
+        .gte("date", threeYearsAgo)
+        .order("date", { ascending: false })
+        .range(0, 14999),
       
-      // Executed records - last 12 months
+      // Executed records - last 3 years for complete historical analysis
       supabase
         .from("executed_records")
         .select("*")
-        .gte("date", new Date(currentYear - 1, currentMonth - 1, 1).toISOString().split("T")[0])
-        .order("date", { ascending: false }),
+        .gte("date", threeYearsAgo)
+        .order("date", { ascending: false })
+        .range(0, 14999),
       
-      // Goals for current and previous year
+      // Goals for current and previous years
       supabase
         .from("predefined_goals")
         .select("*")
-        .gte("year", currentYear - 1),
+        .gte("year", currentYear - 2),
       
       // All profiles
       supabase.from("profiles").select("*"),
@@ -153,24 +158,24 @@ serve(async (req) => {
       // RFV customers
       supabase.from("rfv_customers").select("*"),
       
-      // Referral records - last 12 months
+      // Referral records - last 3 years
       supabase
         .from("referral_records")
         .select("*")
-        .gte("date", new Date(currentYear - 1, currentMonth - 1, 1).toISOString().split("T")[0]),
+        .gte("date", threeYearsAgo),
       
-      // NPS records - last 12 months
+      // NPS records - last 3 years
       supabase
         .from("nps_records")
         .select("*")
-        .gte("date", new Date(currentYear - 1, currentMonth - 1, 1).toISOString().split("T")[0]),
+        .gte("date", threeYearsAgo),
       
       // Patient data for demographics and origin analysis
       supabase
         .from("patient_data")
         .select("*")
         .order("total_value_sold", { ascending: false })
-        .limit(1000),
+        .limit(2000),
     ]);
 
     // Build context with all data
@@ -208,9 +213,13 @@ serve(async (req) => {
     // Monthly executed with procedure details
     const monthlyExecuted: Record<string, { total: number; count: number; byDepartment: Record<string, { total: number; count: number }>; byProcedure: Record<string, { total: number; count: number }> }> = {};
     
+    // ANNUAL procedure totals for quick lookups
+    const yearlyProcedures: Record<number, Record<string, { count: number; total: number }>> = {};
+    
     executedRecords.forEach((record: any) => {
       const date = new Date(record.date);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const year = date.getFullYear();
+      const key = `${year}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       const dept = record.department || "Não especificado";
       const proc = record.procedure_name || "Não especificado";
       
@@ -232,6 +241,16 @@ serve(async (req) => {
       }
       monthlyExecuted[key].byProcedure[proc].total += record.amount;
       monthlyExecuted[key].byProcedure[proc].count += 1;
+      
+      // ANNUAL totals by procedure name
+      if (!yearlyProcedures[year]) {
+        yearlyProcedures[year] = {};
+      }
+      if (!yearlyProcedures[year][proc]) {
+        yearlyProcedures[year][proc] = { count: 0, total: 0 };
+      }
+      yearlyProcedures[year][proc].count += 1;
+      yearlyProcedures[year][proc].total += record.amount;
     });
 
     // Seller performance - overall
@@ -397,14 +416,27 @@ ${Object.entries(monthlyRevenue)
   })
   .join("\n\n")}
 
-### PROCEDIMENTOS EXECUTADOS POR NOME (últimos 6 meses)
+### PROCEDIMENTOS EXECUTADOS POR ANO (TOTAIS ANUAIS)
+${Object.entries(yearlyProcedures)
+  .sort((a, b) => Number(b[0]) - Number(a[0]))
+  .map(([year, procs]) => {
+    const topProcs = Object.entries(procs)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 30)
+      .map(([proc, info]) => `  • ${proc}: ${info.count} execuções (R$ ${info.total.toLocaleString("pt-BR")})`)
+      .join("\n");
+    return `**${year}:**\n${topProcs}`;
+  })
+  .join("\n\n")}
+
+### PROCEDIMENTOS EXECUTADOS POR MÊS (últimos 6 meses)
 ${Object.entries(monthlyExecuted)
   .sort((a, b) => b[0].localeCompare(a[0]))
   .slice(0, 6)
   .map(([month, data]) => {
     const procs = Object.entries(data.byProcedure)
       .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 15)
+      .slice(0, 10)
       .map(([proc, info]) => `  • ${proc}: ${info.count} execuções (R$ ${info.total.toLocaleString("pt-BR")})`)
       .join("\n");
     return `${month}:\n${procs}`;
