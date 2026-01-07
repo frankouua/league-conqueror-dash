@@ -11,8 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
@@ -24,12 +23,9 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { CRMLead } from '@/hooks/useCRM';
-import { CRMWhatsAppTemplates } from './CRMWhatsAppTemplates';
 
 interface Message {
   id: string;
@@ -456,7 +452,7 @@ export function CRMWhatsAppChat({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowTemplates(true)}
+              onClick={() => {/* Template selection placeholder */}}
             >
               <Smile className="h-5 w-5 text-muted-foreground" />
             </Button>
@@ -499,14 +495,6 @@ export function CRMWhatsAppChat({
             )}
           </div>
         </div>
-
-        {/* Templates Sheet */}
-        <CRMWhatsAppTemplates
-          open={showTemplates}
-          onClose={() => setShowTemplates(false)}
-          onSelectTemplate={handleSelectTemplate}
-          leadName={lead.name}
-        />
       </SheetContent>
     </Sheet>
   );
