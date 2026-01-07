@@ -3595,6 +3595,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_approved_user: { Args: never; Returns: boolean }
       reject_user: {
         Args: { _reason?: string; _user_id: string }
         Returns: undefined
