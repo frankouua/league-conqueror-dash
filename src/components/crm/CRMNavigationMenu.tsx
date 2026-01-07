@@ -173,7 +173,7 @@ export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount 
   const isAdmin = role === 'admin';
 
   // Quick access buttons (most used)
-  const quickAccessItems: CRMViewMode[] = ['kanban', 'postsale', 'whatsapp', 'routine'];
+  const quickAccessItems: CRMViewMode[] = ['kanban', 'whatsapp', 'routine'];
 
   const CurrentIcon = getViewIcon(viewMode);
   
