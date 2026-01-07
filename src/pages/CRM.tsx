@@ -62,6 +62,10 @@ const CRM = () => {
     aiAnalyzedOnly: false,
     unassignedOnly: false,
     recentOnly: false,
+    highValueOnly: false,
+    qualifiedOnly: false,
+    wonOnly: false,
+    lostOnly: false,
   });
   const [newLeadDialogOpen, setNewLeadDialogOpen] = useState(false);
   const [initialStageId, setInitialStageId] = useState<string | undefined>();
@@ -107,8 +111,14 @@ const CRM = () => {
       const matchesAI = !filters.aiAnalyzedOnly || !!lead.ai_analyzed_at;
       const matchesUnassigned = !filters.unassignedOnly || !lead.assigned_to;
       const matchesRecent = !filters.recentOnly || new Date(lead.created_at) > oneDayAgo;
+      const matchesHighValue = !filters.highValueOnly || (lead.estimated_value && lead.estimated_value >= 10000);
+      const matchesQualified = !filters.qualifiedOnly || (lead.lead_score && lead.lead_score >= 25);
+      const matchesWon = !filters.wonOnly || !!lead.won_at;
+      const matchesLost = !filters.lostOnly || !!lead.lost_at;
 
-      return matchesSearch && matchesStale && matchesPriority && matchesAI && matchesUnassigned && matchesRecent;
+      return matchesSearch && matchesStale && matchesPriority && matchesAI && 
+             matchesUnassigned && matchesRecent && matchesHighValue && 
+             matchesQualified && matchesWon && matchesLost;
     });
   }, [leads, searchQuery, filters]);
 
