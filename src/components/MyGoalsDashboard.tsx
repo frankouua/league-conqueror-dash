@@ -39,6 +39,7 @@ import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { POSITION_DETAILS } from "@/constants/positionDetails";
 import { useToast } from "@/hooks/use-toast";
+import IndividualDepartmentProgress from "@/components/IndividualDepartmentProgress";
 
 const POSITION_LABELS: Record<string, { label: string; description: string; focus: string[] }> = {
   comercial_1_captacao: { 
@@ -636,6 +637,9 @@ const MyGoalsDashboard = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Department Progress Tables */}
+          <IndividualDepartmentProgress />
         </TabsContent>
 
         {/* Desempenho Tab */}
