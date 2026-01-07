@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Trophy, TrendingUp, TrendingDown, Minus, DollarSign } from "lucide-react";
 import brasaoLioness from "@/assets/brasao-lioness-team.png";
 import brasaoTroia from "@/assets/brasao-troia-team.png";
@@ -161,4 +162,4 @@ const TeamRankingCard = ({
   );
 };
 
-export default TeamRankingCard;
+export default memo(TeamRankingCard);
