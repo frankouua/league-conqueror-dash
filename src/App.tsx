@@ -31,6 +31,7 @@ const TVDisplay = lazy(() => import("./pages/TVDisplay"));
 const CommercialGuides = lazy(() => import("./pages/CommercialGuides"));
 const Cancellations = lazy(() => import("./pages/Cancellations"));
 const CommercialAssistantPage = lazy(() => import("./pages/CommercialAssistantPage"));
+const CRM = lazy(() => import("./pages/CRM"));
 const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="/guias-comerciais" element={<ProtectedRoute><CommercialGuides /></ProtectedRoute>} />
               <Route path="/cancellations" element={<ProtectedRoute><Cancellations /></ProtectedRoute>} />
               <Route path="/assistente-comercial" element={<ProtectedRoute><CommercialAssistantPage /></ProtectedRoute>} />
+              <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
               <Route path="/rfv" element={<ProtectedRoute><RFVDashboard /></ProtectedRoute>} />
               <Route path="/historical-upload" element={<ProtectedRoute requireAdmin><HistoricalUpload /></ProtectedRoute>} />
               <Route path="/sales-dashboard" element={<ProtectedRoute requireAdmin><SalesDashboard /></ProtectedRoute>} />

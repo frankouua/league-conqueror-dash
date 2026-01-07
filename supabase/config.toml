@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.daily-seller-alerts]
 verify_jwt = false
+
+[functions.crm-ai-qualify]
+verify_jwt = false

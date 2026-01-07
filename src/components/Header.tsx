@@ -2,7 +2,7 @@ import {
   LogIn, LogOut, User, Plus, Home, Shield, BarChart3, 
   BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
   ChevronDown, Settings, AlertCircle, UserPlus, MessageSquareText,
-  ShieldAlert, Flame, Bot, Megaphone
+  ShieldAlert, Flame, Bot, Megaphone, Kanban
 } from "lucide-react";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { Button } from "@/components/ui/button";
@@ -85,8 +85,9 @@ const Header = () => {
     { path: "/register", label: "Registrar", icon: Plus },
   ];
 
-  // Dropdown: Comercial (RFV, Indicações, Cancelamentos)
+  // Dropdown: Comercial (CRM, RFV, Indicações, Cancelamentos)
   const comercialLinks = [
+    { path: "/crm", label: "CRM", icon: Kanban },
     { path: "/rfv", label: "Clientes RFV", icon: Target },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
