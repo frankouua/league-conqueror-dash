@@ -5,7 +5,7 @@ import {
   User, Phone, Mail, MessageSquare, Clock, Calendar, Tag, Star,
   Sparkles, AlertTriangle, CheckCircle2, Circle, Plus, Send,
   ArrowRight, History, ListTodo, FileText, TrendingUp, Brain, Loader2,
-  Edit2, Trash2, X
+  Edit2, Trash2, X, ClipboardCheck
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ import { CRMLeadEditForm } from './CRMLeadEditForm';
 import { CRMBANTDisplay } from './CRMBANTDisplay';
 import { CRMQuickActions } from './CRMQuickActions';
 import { CRMTransferDialog } from './CRMTransferDialog';
+import { CRMLeadChecklist } from './CRMLeadChecklist';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -239,8 +240,12 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               </ScrollArea>
             ) : (
               /* Content Tabs */
-              <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="mx-6 mt-4 grid grid-cols-4 w-auto">
+              <Tabs defaultValue="checklist" className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="mx-6 mt-4 grid grid-cols-5 w-auto">
+              <TabsTrigger value="checklist" className="gap-1">
+                <ClipboardCheck className="h-4 w-4" />
+                Checklist
+              </TabsTrigger>
               <TabsTrigger value="overview" className="gap-1">
                 <FileText className="h-4 w-4" />
                 Resumo
@@ -265,6 +270,19 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
             </TabsList>
 
             <ScrollArea className="flex-1 px-6 py-4">
+              {/* Checklist Tab */}
+              <TabsContent value="checklist" className="m-0 space-y-4">
+                {lead && (
+                  <CRMLeadChecklist 
+                    lead={lead} 
+                    stage={currentStage || null}
+                    onSurgeryDateChange={() => {
+                      // Refresh lead data
+                    }}
+                  />
+                )}
+              </TabsContent>
+
               {/* Overview Tab */}
               <TabsContent value="overview" className="m-0 space-y-4">
                 {/* Quick Stats */}

@@ -837,6 +837,50 @@ export type Database = {
           },
         ]
       }
+      crm_lead_checklist_progress: {
+        Row: {
+          action_index: number
+          completed: boolean | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          stage_key: string
+          updated_at: string
+        }
+        Insert: {
+          action_index: number
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          stage_key: string
+          updated_at?: string
+        }
+        Update: {
+          action_index?: number
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          stage_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_checklist_progress_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_lead_history: {
         Row: {
           action_type: string
@@ -954,6 +998,8 @@ export type Database = {
           patient_data_id: string | null
           phone: string | null
           pipeline_id: string
+          post_surgery_checklist_completed: boolean | null
+          pre_surgery_checklist_completed: boolean | null
           prontuario: string | null
           referral_lead_id: string | null
           rfv_customer_id: string | null
@@ -961,6 +1007,9 @@ export type Database = {
           source_detail: string | null
           stage_id: string
           stale_since: string | null
+          surgery_date: string | null
+          surgery_location: string | null
+          surgery_notes: string | null
           tags: string[] | null
           team_id: string | null
           timing_score: number | null
@@ -1001,6 +1050,8 @@ export type Database = {
           patient_data_id?: string | null
           phone?: string | null
           pipeline_id: string
+          post_surgery_checklist_completed?: boolean | null
+          pre_surgery_checklist_completed?: boolean | null
           prontuario?: string | null
           referral_lead_id?: string | null
           rfv_customer_id?: string | null
@@ -1008,6 +1059,9 @@ export type Database = {
           source_detail?: string | null
           stage_id: string
           stale_since?: string | null
+          surgery_date?: string | null
+          surgery_location?: string | null
+          surgery_notes?: string | null
           tags?: string[] | null
           team_id?: string | null
           timing_score?: number | null
@@ -1048,6 +1102,8 @@ export type Database = {
           patient_data_id?: string | null
           phone?: string | null
           pipeline_id?: string
+          post_surgery_checklist_completed?: boolean | null
+          pre_surgery_checklist_completed?: boolean | null
           prontuario?: string | null
           referral_lead_id?: string | null
           rfv_customer_id?: string | null
@@ -1055,6 +1111,9 @@ export type Database = {
           source_detail?: string | null
           stage_id?: string
           stale_since?: string | null
+          surgery_date?: string | null
+          surgery_location?: string | null
+          surgery_notes?: string | null
           tags?: string[] | null
           team_id?: string | null
           timing_score?: number | null
