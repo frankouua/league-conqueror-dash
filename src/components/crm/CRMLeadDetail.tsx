@@ -5,7 +5,7 @@ import {
   User, Phone, Mail, MessageSquare, Clock, Calendar, Tag, Star,
   Sparkles, AlertTriangle, CheckCircle2, Circle, Plus, Send,
   ArrowRight, History, ListTodo, FileText, TrendingUp, Brain, Loader2,
-  Edit2, Trash2, X, ClipboardCheck
+  Edit2, Trash2, X, ClipboardCheck, MessagesSquare
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -35,12 +35,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { CRMLead, CRMStage, useCRMLeadDetail, useCRM, useCRMLeads } from '@/hooks/useCRM';
+import { CRMLead, CRMStage, useCRMLeadDetail, useCRM, useCRMLeads, LeadTemperature } from '@/hooks/useCRM';
 import { CRMLeadEditForm } from './CRMLeadEditForm';
 import { CRMBANTDisplay } from './CRMBANTDisplay';
 import { CRMQuickActions } from './CRMQuickActions';
 import { CRMTransferDialog } from './CRMTransferDialog';
 import { CRMLeadChecklist } from './CRMLeadChecklist';
+import { CRMTemperatureBadge, CRMTemperatureSelector } from './CRMTemperatureBadge';
+import { CRMInternalChat } from './CRMInternalChat';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -123,6 +125,12 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                   <div className="flex-1 min-w-0">
                     <SheetTitle className="text-xl flex items-center gap-2">
                       {lead?.name || initialLead.name}
+                      {lead?.temperature && (
+                        <CRMTemperatureBadge 
+                          temperature={lead.temperature} 
+                          size="sm"
+                        />
+                      )}
                       {lead?.is_priority && <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />}
                       {lead?.is_stale && (
                         <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
@@ -247,31 +255,35 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
             ) : (
               /* Content Tabs */
               <Tabs defaultValue="checklist" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="mx-6 mt-4 grid grid-cols-5 w-auto">
-              <TabsTrigger value="checklist" className="gap-1">
+            <TabsList className="mx-6 mt-4 grid grid-cols-6 w-auto">
+              <TabsTrigger value="checklist" className="gap-1 text-xs">
                 <ClipboardCheck className="h-4 w-4" />
-                Checklist
+                <span className="hidden sm:inline">Checklist</span>
               </TabsTrigger>
-              <TabsTrigger value="overview" className="gap-1">
+              <TabsTrigger value="overview" className="gap-1 text-xs">
                 <FileText className="h-4 w-4" />
-                Resumo
+                <span className="hidden sm:inline">Resumo</span>
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-1">
+              <TabsTrigger value="chat" className="gap-1 text-xs">
+                <MessagesSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">Chat</span>
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="gap-1 text-xs">
                 <ListTodo className="h-4 w-4" />
-                Tarefas
+                <span className="hidden sm:inline">Tarefas</span>
                 {tasks.filter(t => !t.is_completed).length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center text-[10px]">
                     {tasks.filter(t => !t.is_completed).length}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="history" className="gap-1">
+              <TabsTrigger value="history" className="gap-1 text-xs">
                 <History className="h-4 w-4" />
-                Histórico
+                <span className="hidden sm:inline">Histórico</span>
               </TabsTrigger>
-              <TabsTrigger value="ai" className="gap-1">
+              <TabsTrigger value="ai" className="gap-1 text-xs">
                 <Sparkles className="h-4 w-4" />
-                IA
+                <span className="hidden sm:inline">IA</span>
               </TabsTrigger>
             </TabsList>
 
@@ -286,6 +298,13 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       // Refresh lead data
                     }}
                   />
+                )}
+              </TabsContent>
+
+              {/* Chat Tab */}
+              <TabsContent value="chat" className="m-0 h-[400px]">
+                {lead && (
+                  <CRMInternalChat leadId={lead.id} leadName={lead.name} />
                 )}
               </TabsContent>
 

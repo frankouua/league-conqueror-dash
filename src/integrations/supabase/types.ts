@@ -837,6 +837,50 @@ export type Database = {
           },
         ]
       }
+      crm_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_internal: boolean | null
+          lead_id: string
+          message_type: string | null
+          metadata: Json | null
+          sender_id: string
+          sender_name: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          lead_id: string
+          message_type?: string | null
+          metadata?: Json | null
+          sender_id: string
+          sender_name?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          lead_id?: string
+          message_type?: string | null
+          metadata?: Json | null
+          sender_id?: string
+          sender_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_chat_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_lead_checklist_progress: {
         Row: {
           action_index: number
@@ -1012,6 +1056,7 @@ export type Database = {
           surgery_notes: string | null
           tags: string[] | null
           team_id: string | null
+          temperature: string | null
           timing_score: number | null
           total_interactions: number | null
           updated_at: string
@@ -1064,6 +1109,7 @@ export type Database = {
           surgery_notes?: string | null
           tags?: string[] | null
           team_id?: string | null
+          temperature?: string | null
           timing_score?: number | null
           total_interactions?: number | null
           updated_at?: string
@@ -1116,6 +1162,7 @@ export type Database = {
           surgery_notes?: string | null
           tags?: string[] | null
           team_id?: string | null
+          temperature?: string | null
           timing_score?: number | null
           total_interactions?: number | null
           updated_at?: string

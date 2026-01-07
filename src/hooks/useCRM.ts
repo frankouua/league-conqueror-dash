@@ -34,6 +34,8 @@ export interface CRMStage {
   updated_at: string;
 }
 
+export type LeadTemperature = 'hot' | 'warm' | 'cold';
+
 export interface CRMLead {
   id: string;
   name: string;
@@ -80,6 +82,8 @@ export interface CRMLead {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Temperature field
+  temperature: LeadTemperature;
   // Surgery fields
   surgery_date: string | null;
   surgery_location: string | null;

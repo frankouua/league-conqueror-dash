@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Save, X, Target, FileText, Briefcase } from 'lucide-react';
+import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Save, X, Target, FileText, Briefcase, Thermometer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { CRMLead, CRMStage, useCRMLeads } from '@/hooks/useCRM';
+import { CRMLead, CRMStage, useCRMLeads, LeadTemperature } from '@/hooks/useCRM';
+import { CRMTemperatureSelector } from './CRMTemperatureBadge';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +99,7 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
     tags: lead?.tags || [],
     interested_procedures: lead?.interested_procedures || [],
     is_priority: lead?.is_priority || false,
+    temperature: lead?.temperature || 'warm' as LeadTemperature,
     // BANT Scores
     budget_score: lead?.budget_score || 0,
     authority_score: lead?.authority_score || 0,
@@ -197,6 +199,7 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
         tags: formData.tags.length > 0 ? formData.tags : null,
         interested_procedures: formData.interested_procedures.length > 0 ? formData.interested_procedures : null,
         is_priority: formData.is_priority,
+        temperature: formData.temperature,
         budget_score: formData.budget_score || null,
         authority_score: formData.authority_score || null,
         need_score: formData.need_score || null,
@@ -427,6 +430,18 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
                 ⭐ {formData.is_priority ? 'Prioritário' : 'Marcar Prioritário'}
               </Button>
             </div>
+          </div>
+
+          {/* Temperature */}
+          <div className="space-y-2 pt-2 border-t">
+            <Label className="flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Temperatura do Lead
+            </Label>
+            <CRMTemperatureSelector
+              value={formData.temperature}
+              onChange={(temp) => setFormData(prev => ({ ...prev, temperature: temp }))}
+            />
           </div>
 
           {/* BANT Qualification */}

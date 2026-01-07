@@ -8,6 +8,7 @@ import { CRMPipelineSelector } from "@/components/crm/CRMPipelineSelector";
 import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
 import { CRMPipelineMetrics } from "@/components/crm/CRMPipelineMetrics";
 import { CRMExportButton } from "@/components/crm/CRMExportButton";
+import { CRMExportPDF } from "@/components/crm/CRMExportPDF";
 import { CRMRFVIntegration } from "@/components/crm/CRMRFVIntegration";
 import { CRMRFVMatrixImport } from "@/components/crm/CRMRFVMatrixImport";
 import { CRMCampaignIntegration } from "@/components/crm/CRMCampaignIntegration";
