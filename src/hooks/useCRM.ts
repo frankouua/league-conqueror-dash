@@ -80,6 +80,12 @@ export interface CRMLead {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Surgery fields
+  surgery_date: string | null;
+  surgery_location: string | null;
+  surgery_notes: string | null;
+  pre_surgery_checklist_completed: boolean | null;
+  post_surgery_checklist_completed: boolean | null;
   // Joined data
   assigned_profile?: { full_name: string } | null;
   stage?: CRMStage | null;

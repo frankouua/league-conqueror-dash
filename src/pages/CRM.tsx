@@ -38,6 +38,7 @@ import { CRMConversionFunnel } from "@/components/crm/CRMConversionFunnel";
 import { CRMTeamPerformance } from "@/components/crm/CRMTeamPerformance";
 import { CRMGamificationDashboard } from "@/components/crm/CRMGamificationDashboard";
 import { CRMIntegrations } from "@/components/crm/CRMIntegrations";
+import { CRMNavigationMenu, CRMViewMode } from "@/components/crm/CRMNavigationMenu";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -110,12 +111,7 @@ const CRM = () => {
   const [chatLead, setChatLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
-  const [viewMode, setViewMode] = useState<
-    'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' | 
-    'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' | 
-    'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals' |
-    'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
-  >('kanban');
+  const [viewMode, setViewMode] = useState<CRMViewMode>('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
     priorityOnly: false,
@@ -261,101 +257,14 @@ const CRM = () => {
           </div>
         </div>
 
-        {/* Navigation Tabs - Expanded */}
+        {/* Simplified Navigation Menu */}
         <Card className="border-dashed">
-          <CardContent className="p-2">
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
-              <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-0">
-                <TabsTrigger value="overview" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <PieChart className="w-4 h-4" />
-                  <span className="hidden md:inline">Overview</span>
-                </TabsTrigger>
-                <TabsTrigger value="kanban" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <LayoutGrid className="w-4 h-4" />
-                  <span className="hidden md:inline">Kanban</span>
-                </TabsTrigger>
-                <TabsTrigger value="whatsapp" className="gap-1.5 px-3 data-[state=active]:bg-green-500 data-[state=active]:text-white">
-                  <Bot className="w-4 h-4" />
-                  <span className="hidden md:inline">WhatsApp IA</span>
-                </TabsTrigger>
-                <TabsTrigger value="contacts" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Phone className="w-4 h-4" />
-                  <span className="hidden md:inline">Contatos</span>
-                </TabsTrigger>
-                <TabsTrigger value="routine" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Clock className="w-4 h-4" />
-                  <span className="hidden md:inline">Rotina</span>
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <MessageSquare className="w-4 h-4" />
-                  <span className="hidden md:inline">Chat Equipe</span>
-                </TabsTrigger>
-                <TabsTrigger value="postsale" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Heart className="w-4 h-4" />
-                  <span className="hidden md:inline">Pós-Venda</span>
-                </TabsTrigger>
-                <TabsTrigger value="metrics" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <BarChart3 className="w-4 h-4" />
-                  <span className="hidden md:inline">Métricas</span>
-                </TabsTrigger>
-                <TabsTrigger value="rfv" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Target className="w-4 h-4" />
-                  <span className="hidden md:inline">RFV</span>
-                </TabsTrigger>
-                <TabsTrigger value="campaigns" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="hidden md:inline">Campanhas</span>
-                </TabsTrigger>
-                <TabsTrigger value="protocols" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Package className="w-4 h-4" />
-                  <span className="hidden md:inline">Protocolos</span>
-                </TabsTrigger>
-                <TabsTrigger value="automations" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Zap className="w-4 h-4" />
-                  <span className="hidden md:inline">Automações</span>
-                </TabsTrigger>
-                <TabsTrigger value="marketing" className="gap-1.5 px-3 data-[state=active]:bg-purple-500 data-[state=active]:text-white">
-                  <Mail className="w-4 h-4" />
-                  <span className="hidden md:inline">Marketing</span>
-                </TabsTrigger>
-                <TabsTrigger value="connections" className="gap-1.5 px-3 data-[state=active]:bg-green-600 data-[state=active]:text-white">
-                  <Smartphone className="w-4 h-4" />
-                  <span className="hidden md:inline">Conexões</span>
-                </TabsTrigger>
-                <TabsTrigger value="leaderboard" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Trophy className="w-4 h-4" />
-                  <span className="hidden md:inline">Ranking</span>
-                </TabsTrigger>
-                <TabsTrigger value="calendar" className="gap-1.5 px-3 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                  <Calendar className="w-4 h-4" />
-                  <span className="hidden md:inline">Agenda</span>
-                </TabsTrigger>
-                <TabsTrigger value="proposals" className="gap-1.5 px-3 data-[state=active]:bg-indigo-500 data-[state=active]:text-white">
-                  <FileText className="w-4 h-4" />
-                  <span className="hidden md:inline">Propostas</span>
-                </TabsTrigger>
-                <TabsTrigger value="predictive" className="gap-1.5 px-3 data-[state=active]:bg-violet-500 data-[state=active]:text-white">
-                  <Brain className="w-4 h-4" />
-                  <span className="hidden md:inline">IA Preditiva</span>
-                </TabsTrigger>
-                <TabsTrigger value="funnel" className="gap-1.5 px-3 data-[state=active]:bg-pink-500 data-[state=active]:text-white">
-                  <FilterIcon className="w-4 h-4" />
-                  <span className="hidden md:inline">Funil</span>
-                </TabsTrigger>
-                <TabsTrigger value="team-performance" className="gap-1.5 px-3 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
-                  <UserCheck className="w-4 h-4" />
-                  <span className="hidden md:inline">Time</span>
-                </TabsTrigger>
-                <TabsTrigger value="gamification" className="gap-1.5 px-3 data-[state=active]:bg-yellow-500 data-[state=active]:text-black">
-                  <Gamepad2 className="w-4 h-4" />
-                  <span className="hidden md:inline">Copa League</span>
-                </TabsTrigger>
-                <TabsTrigger value="integrations" className="gap-1.5 px-3 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                  <Link2 className="w-4 h-4" />
-                  <span className="hidden md:inline">Integrações</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <CardContent className="p-3">
+            <CRMNavigationMenu
+              viewMode={viewMode}
+              onViewChange={setViewMode}
+              staleCount={quickStats.staleCount}
+            />
           </CardContent>
         </Card>
 
