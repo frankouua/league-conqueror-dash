@@ -80,14 +80,14 @@ const Header = () => {
   // Main navigation items (simplified)
   const mainNavLinks = [
     { path: "/", label: "Dashboard", icon: Home },
+    { path: "/crm", label: "CRM", icon: Kanban },
     { path: "/onboarding-goals", label: "Metas", icon: TrendingUp, showBadge: goalProgress?.isNearGoal || goalProgress?.hasReachedGoal },
     { path: "/campanhas", label: "Campanhas", icon: Megaphone },
     { path: "/register", label: "Registrar", icon: Plus },
   ];
 
-  // Dropdown: Comercial (CRM, RFV, Indicações, Cancelamentos)
+  // Dropdown: Comercial (RFV, Indicações, Cancelamentos)
   const comercialLinks = [
-    { path: "/crm", label: "CRM", icon: Kanban },
     { path: "/rfv", label: "Clientes RFV", icon: Target },
     { path: "/referral-leads", label: "Indicações", icon: UserPlus },
     { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
