@@ -34,6 +34,8 @@ const DEPARTMENT_MAPPING: Record<string, string> = {
   "08 - HARMONIZAÇÃO FACIAL E CORPORAL": "Harmonização Facial e Corporal",
   "09 - SPA E ESTÉTICA": "Spa e Estética",
   "16 - OUTROS": "Unique Travel Experience",
+  "LUXSKIN": "Luxskin",
+  "15 - LUXSKIN": "Luxskin",
 };
 
 // Short names for display
