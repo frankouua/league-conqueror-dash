@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Header from "@/components/Header";
 import { CRMKanban } from "@/components/crm/CRMKanban";
 import { CRMStats } from "@/components/crm/CRMStats";
@@ -119,6 +119,7 @@ const CRM = () => {
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [chatLead, setChatLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [viewMode, setViewMode] = useState<CRMViewMode>('kanban');
   const [filters, setFilters] = useState({
@@ -147,6 +148,14 @@ const CRM = () => {
     }
   }, [pipelines, selectedPipeline]);
 
+  // Debounce search for performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Use the leads hook for the selected pipeline
   const { leads, isLoading: leadsLoading, refetch } = useCRMLeads(selectedPipeline);
 
@@ -163,12 +172,13 @@ const CRM = () => {
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     return leads.filter(lead => {
-      // Search filter
-      const matchesSearch = !searchQuery || 
-        lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.phone?.includes(searchQuery) ||
-        lead.whatsapp?.includes(searchQuery);
+      // Search filter with debounced value
+      const searchLower = debouncedSearch.toLowerCase();
+      const matchesSearch = !debouncedSearch || 
+        lead.name.toLowerCase().includes(searchLower) ||
+        lead.email?.toLowerCase().includes(searchLower) ||
+        lead.phone?.includes(debouncedSearch) ||
+        lead.whatsapp?.includes(debouncedSearch);
       
       // Quick filters
       const matchesStale = !filters.staleOnly || lead.is_stale;
@@ -185,7 +195,7 @@ const CRM = () => {
              matchesUnassigned && matchesRecent && matchesHighValue && 
              matchesQualified && matchesWon && matchesLost;
     });
-  }, [leads, searchQuery, filters]);
+  }, [leads, debouncedSearch, filters]);
 
   const isLoading = pipelinesLoading || stagesLoading || leadsLoading;
 
