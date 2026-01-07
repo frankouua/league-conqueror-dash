@@ -236,66 +236,66 @@ export function AnalyticsAIFloating() {
       <Button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-6 right-24 h-14 w-14 rounded-full shadow-lg z-50",
+          "fixed bottom-4 right-20 sm:bottom-6 sm:right-24 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg z-50",
           "bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700",
           "transition-all duration-300 hover:scale-110",
           isOpen && "hidden"
         )}
         title="Analytics AI - Análises Inteligentes"
       >
-        <Brain className="h-6 w-6" />
+        <Brain className="h-5 w-5 sm:h-6 sm:w-6" />
       </Button>
 
-      {/* Chat Panel */}
+      {/* Chat Panel - Responsive sizing */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-[450px] h-[650px] shadow-2xl z-50 flex flex-col border-violet-200/50">
-          <CardHeader className="bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-t-lg py-3 px-4">
+        <Card className="fixed inset-4 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[600px] md:w-[450px] md:h-[650px] shadow-2xl z-50 flex flex-col border-violet-200/50">
+          <CardHeader className="bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-t-lg py-2 sm:py-3 px-3 sm:px-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <Brain className="h-6 w-6" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                  <Brain className="h-4 w-4 sm:h-6 sm:w-6" />
                 </div>
-                <div>
-                  <CardTitle className="text-base font-semibold">Analytics AI</CardTitle>
-                  <p className="text-xs text-white/80">Análises inteligentes para gestores</p>
+                <div className="min-w-0">
+                  <CardTitle className="text-sm sm:text-base font-semibold truncate">Analytics AI</CardTitle>
+                  <p className="text-[10px] sm:text-xs text-white/80 truncate">Análises inteligentes para gestores</p>
                 </div>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-0.5 sm:gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-white hover:bg-white/20"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-white hover:bg-white/20"
                   onClick={handleExpandToFullScreen}
                   title="Expandir para tela cheia"
                 >
-                  <Maximize2 className="h-4 w-4" />
+                  <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-white hover:bg-white/20"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-white hover:bg-white/20"
                   onClick={clearMessages}
                   title="Limpar conversa"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-white hover:bg-white/20"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-white hover:bg-white/20"
                   onClick={() => setIsOpen(false)}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>
             
-            <div className="mt-2 flex gap-2 flex-wrap">
-              <Badge variant="secondary" className="bg-white/20 text-white text-xs">
-                🔒 Exclusivo Gestores
+            <div className="mt-2 flex gap-1.5 sm:gap-2 flex-wrap">
+              <Badge variant="secondary" className="bg-white/20 text-white text-[10px] sm:text-xs px-1.5 sm:px-2">
+                🔒 Gestores
               </Badge>
-              <Badge variant="secondary" className="bg-white/20 text-white text-xs">
-                📊 Dados em Tempo Real
+              <Badge variant="secondary" className="bg-white/20 text-white text-[10px] sm:text-xs px-1.5 sm:px-2">
+                📊 Tempo Real
               </Badge>
             </div>
           </CardHeader>
@@ -389,23 +389,23 @@ export function AnalyticsAIFloating() {
               )}
             </ScrollArea>
 
-            <form onSubmit={handleSubmit} className="p-3 border-t bg-background">
+            <form onSubmit={handleSubmit} className="p-2 sm:p-3 border-t bg-background">
               <div className="flex gap-2">
                 <Textarea
                   ref={textareaRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Pergunte sobre vendas, metas, equipes..."
+                  placeholder="Pergunte sobre vendas, metas..."
                   disabled={isLoading}
-                  className="flex-1 min-h-[44px] max-h-[120px] resize-none"
+                  className="flex-1 min-h-[40px] sm:min-h-[44px] max-h-[100px] sm:max-h-[120px] resize-none text-sm"
                   rows={1}
                 />
                 <Button 
                   type="submit" 
                   size="icon"
                   disabled={isLoading || !input.trim()}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 h-11 w-11"
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 h-10 w-10 sm:h-11 sm:w-11 shrink-0"
                 >
                   <Send className="h-4 w-4" />
                 </Button>

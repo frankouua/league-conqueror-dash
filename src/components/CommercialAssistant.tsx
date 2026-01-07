@@ -48,65 +48,65 @@ const CommercialAssistantComponent = () => {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - Responsive positioning */}
       <Button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50",
+          "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg z-50",
           "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
           "transition-all duration-300 hover:scale-110",
           isOpen && "hidden"
         )}
       >
-        <MessageCircle className="h-6 w-6" />
+        <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
       </Button>
 
-      {/* Chat Panel */}
+      {/* Chat Panel - Responsive sizing */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-[400px] h-[600px] shadow-2xl z-50 flex flex-col border-amber-200/50">
-          <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg py-3 px-4">
+        <Card className="fixed inset-4 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[380px] sm:h-[550px] md:w-[400px] md:h-[600px] shadow-2xl z-50 flex flex-col border-amber-200/50">
+          <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg py-2 sm:py-3 px-3 sm:px-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <Bot className="h-6 w-6" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                  <Bot className="h-4 w-4 sm:h-6 sm:w-6" />
                 </div>
-                <div>
-                  <CardTitle className="text-base font-semibold">Assistente Comercial</CardTitle>
-                  <p className="text-xs text-white/80">Seu coach de vendas IA</p>
+                <div className="min-w-0">
+                  <CardTitle className="text-sm sm:text-base font-semibold truncate">Assistente Comercial</CardTitle>
+                  <p className="text-[10px] sm:text-xs text-white/80 truncate">Seu coach de vendas IA</p>
                 </div>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-0.5 sm:gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-white hover:bg-white/20"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-white hover:bg-white/20"
                   onClick={clearMessages}
                   title="Limpar conversa"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-white hover:bg-white/20"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-white hover:bg-white/20"
                   onClick={() => setIsOpen(false)}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>
             
-            {/* Seller Context */}
+            {/* Seller Context - Compact on mobile */}
             {sellerContext && sellerContext.monthlyGoal && sellerContext.monthlyGoal > 0 && (
-              <div className="mt-2 flex gap-2 flex-wrap">
-                <Badge variant="secondary" className="bg-white/20 text-white text-xs">
-                  Meta: R$ {sellerContext.monthlyGoal.toLocaleString('pt-BR')}
+              <div className="mt-2 flex gap-1.5 sm:gap-2 flex-wrap">
+                <Badge variant="secondary" className="bg-white/20 text-white text-[10px] sm:text-xs px-1.5 sm:px-2">
+                  Meta: R$ {(sellerContext.monthlyGoal / 1000).toFixed(0)}k
                 </Badge>
-                <Badge variant="secondary" className="bg-white/20 text-white text-xs">
-                  {sellerContext.progress?.toFixed(0)}% atingido
+                <Badge variant="secondary" className="bg-white/20 text-white text-[10px] sm:text-xs px-1.5 sm:px-2">
+                  {sellerContext.progress?.toFixed(0)}%
                 </Badge>
-                <Badge variant="secondary" className="bg-white/20 text-white text-xs">
-                  {sellerContext.daysRemaining} dias restantes
+                <Badge variant="secondary" className="bg-white/20 text-white text-[10px] sm:text-xs px-1.5 sm:px-2">
+                  {sellerContext.daysRemaining}d
                 </Badge>
               </div>
             )}
@@ -198,7 +198,7 @@ const CommercialAssistantComponent = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="p-3 border-t bg-background">
+            <form onSubmit={handleSubmit} className="p-2 sm:p-3 border-t bg-background">
               <div className="flex gap-2">
                 <Input
                   ref={inputRef}
@@ -206,13 +206,13 @@ const CommercialAssistantComponent = () => {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Digite sua dúvida..."
                   disabled={isLoading}
-                  className="flex-1"
+                  className="flex-1 h-9 sm:h-10 text-sm"
                 />
                 <Button 
                   type="submit" 
                   size="icon"
                   disabled={isLoading || !input.trim()}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 h-9 w-9 sm:h-10 sm:w-10 shrink-0"
                 >
                   <Send className="h-4 w-4" />
                 </Button>

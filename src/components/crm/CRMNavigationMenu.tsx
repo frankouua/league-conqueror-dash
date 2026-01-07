@@ -184,9 +184,9 @@ export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount 
   })).filter(group => group.items.length > 0);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
       {/* Quick Access Buttons */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1">
         {quickAccessItems.map(item => {
           const menuItem = MENU_GROUPS.flatMap(g => g.items).find(i => i.value === item);
           if (!menuItem) return null;
@@ -200,24 +200,24 @@ export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount 
               variant={isActive ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                "gap-1.5",
+                "gap-1 sm:gap-1.5 h-8 px-2 sm:px-3",
                 isActive && "bg-primary text-primary-foreground",
                 menuItem.color && !isActive && menuItem.color
               )}
               onClick={() => onViewChange(item)}
             >
               <Icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{menuItem.label}</span>
+              <span className="hidden sm:inline text-xs sm:text-sm">{menuItem.label}</span>
             </Button>
           );
         })}
       </div>
 
-      {/* Separator */}
-      <div className="h-6 w-px bg-border mx-1" />
+      {/* Separator - hide on very small screens */}
+      <div className="hidden xs:block h-6 w-px bg-border mx-0.5 sm:mx-1" />
 
       {/* Dropdown Menus */}
-      <div className="flex items-center gap-1 flex-wrap">
+      <div className="flex items-center gap-0.5 sm:gap-1 flex-wrap">
         {filteredMenuGroups.filter(g => g.id !== 'principal').map(group => {
           const GroupIcon = group.icon;
           const hasActiveItem = group.items.some(i => i.value === viewMode);
@@ -234,12 +234,12 @@ export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount 
                   variant={hasActiveItem ? 'secondary' : 'ghost'}
                   size="sm"
                   className={cn(
-                    "gap-1",
+                    "gap-0.5 sm:gap-1 h-8 px-2 sm:px-3",
                     hasActiveItem && "bg-secondary"
                   )}
                 >
                   <GroupIcon className="w-4 h-4" />
-                  <span className="hidden md:inline">
+                  <span className="hidden md:inline text-xs sm:text-sm">
                     {hasActiveItem && activeItem ? activeItem.label : group.label}
                   </span>
                   <ChevronDown className="w-3 h-3" />
