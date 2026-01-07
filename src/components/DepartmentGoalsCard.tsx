@@ -6,6 +6,9 @@ import { Progress } from "@/components/ui/progress";
 import { Building2, TrendingUp, Target, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DEPARTMENTS } from "@/constants/departments";
+import { PaceBadge, PaceIndicator } from "@/components/PaceBadge";
+import { calculatePaceMetrics } from "@/lib/paceAnalysis";
+import { cn } from "@/lib/utils";
 
 interface DepartmentGoalsCardProps {
   month: number;
@@ -14,9 +17,14 @@ interface DepartmentGoalsCardProps {
 }
 
 const DepartmentGoalsCard = ({ month, year, filterDepartment }: DepartmentGoalsCardProps) => {
+  const now = new Date();
+  const currentDay = now.getDate();
+  const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear();
+  
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate(); // Gets correct last day of month
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const daysInMonth = lastDay;
 
   // Fetch department goals
   const { data: departmentGoalsRaw, isLoading: goalsLoading } = useQuery({
@@ -130,6 +138,11 @@ const DepartmentGoalsCard = ({ month, year, filterDepartment }: DepartmentGoalsC
   const totalMeta3 = departmentGoals?.reduce((sum, g) => sum + Number(g.meta3_goal), 0) || 0;
   const totalRevenue = revenueByDepartment?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
 
+  // Pace analysis
+  const paceMetrics = isCurrentMonth 
+    ? calculatePaceMetrics(totalMeta1, totalRevenue, currentDay, daysInMonth)
+    : null;
+
   if (goalsLoading) {
     return (
       <Card>
@@ -215,20 +228,41 @@ const DepartmentGoalsCard = ({ month, year, filterDepartment }: DepartmentGoalsC
           </div>
         </div>
 
-        {/* Current Total Revenue */}
-        <div className="p-4 bg-primary/10 rounded-xl border border-primary/30">
+        {/* Current Total Revenue with Pace Analysis */}
+        <div className={cn(
+          "p-4 rounded-xl border-2 transition-all",
+          paceMetrics ? paceMetrics.bgColor : "bg-primary/10",
+          paceMetrics ? paceMetrics.borderColor : "border-primary/30"
+        )}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
               <span className="font-medium">Faturamento Total Atual</span>
             </div>
-            <span className="text-2xl font-bold text-primary">{formatCurrency(totalRevenue)}</span>
+            <div className="flex items-center gap-2">
+              {isCurrentMonth && paceMetrics && (
+                <PaceBadge
+                  monthlyGoal={totalMeta1}
+                  currentValue={totalRevenue}
+                  currentDay={currentDay}
+                  totalDaysInMonth={daysInMonth}
+                />
+              )}
+              <span className="text-2xl font-bold text-primary">{formatCurrency(totalRevenue)}</span>
+            </div>
           </div>
           <Progress value={getProgressPercent(totalRevenue, totalMeta1)} className="h-3" />
-          <p className="text-sm text-muted-foreground mt-2">
-            {getProgressPercent(totalRevenue, totalMeta1)}% da Meta 1 | 
-            Faltam {formatCurrency(Math.max(0, totalMeta1 - totalRevenue))} para Meta 1
-          </p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-sm text-muted-foreground">
+              {getProgressPercent(totalRevenue, totalMeta1)}% da Meta 1 | 
+              Faltam {formatCurrency(Math.max(0, totalMeta1 - totalRevenue))} para Meta 1
+            </p>
+            {isCurrentMonth && paceMetrics && (
+              <p className={cn("text-sm font-medium", paceMetrics.textColor)}>
+                Esperado hoje: {formatCurrency(paceMetrics.expected)}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Department Table */}

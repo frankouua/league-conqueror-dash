@@ -59,6 +59,9 @@ import {
 } from "recharts";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PaceBadge } from "@/components/PaceBadge";
+import { calculatePaceMetrics } from "@/lib/paceAnalysis";
+import { cn } from "@/lib/utils";
 
 interface SellerDashboardProps {
   month: number;
@@ -109,6 +112,12 @@ export default function SellerDashboard({
 }: SellerDashboardProps) {
   const [selectedSeller, setSelectedSeller] = useState<SellerData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Pace analysis variables
+  const now = new Date();
+  const currentDay = now.getDate();
+  const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear();
+  const daysInMonth = new Date(year, month, 0).getDate();
 
   // Fetch teams
   const { data: teams } = useQuery({
@@ -397,11 +406,18 @@ export default function SellerDashboard({
                 );
                 const StatusIcon = status.icon;
                 const metrics = getSellerMetrics(seller.userId);
+                const paceMetrics = isCurrentMonth && seller.meta1Goal > 0
+                  ? calculatePaceMetrics(seller.meta1Goal, seller.meta1Actual, currentDay, daysInMonth)
+                  : null;
 
                 return (
                   <Card
                     key={seller.userId}
-                    className="cursor-pointer hover:border-primary/50 transition-all"
+                    className={cn(
+                      "cursor-pointer hover:border-primary/50 transition-all",
+                      paceMetrics && paceMetrics.borderColor,
+                      paceMetrics && paceMetrics.bgColor.replace("/20", "/5")
+                    )}
                     onClick={() => openSellerDialog(seller)}
                   >
                     <CardContent className="p-4">
@@ -428,6 +444,15 @@ export default function SellerDashboard({
                             {seller.confirmed && (
                               <CheckCircle2 className="w-4 h-4 text-green-500" />
                             )}
+                            {isCurrentMonth && paceMetrics && (
+                              <PaceBadge
+                                monthlyGoal={seller.meta1Goal}
+                                currentValue={seller.meta1Actual}
+                                currentDay={currentDay}
+                                totalDaysInMonth={daysInMonth}
+                                compact
+                              />
+                            )}
                           </div>
                           <div className="flex items-center gap-2 flex-wrap mt-1">
                             <Badge variant="secondary" className="text-xs">
@@ -452,11 +477,18 @@ export default function SellerDashboard({
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </div>
 
-                      {/* Progress bar */}
+                      {/* Progress bar with pace analysis */}
                       <div className="mt-3">
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
                           <span>{formatCurrency(seller.meta1Actual)}</span>
-                          <span>Meta 1: {formatCurrency(seller.meta1Goal)}</span>
+                          <div className="flex items-center gap-2">
+                            {isCurrentMonth && paceMetrics && (
+                              <span className={cn("font-medium", paceMetrics.textColor)}>
+                                Esp: {formatCurrency(paceMetrics.expected)}
+                              </span>
+                            )}
+                            <span>Meta 1: {formatCurrency(seller.meta1Goal)}</span>
+                          </div>
                         </div>
                         <Progress value={Math.min(seller.meta1Percent, 100)} className="h-2" />
                       </div>
