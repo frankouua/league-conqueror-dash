@@ -94,7 +94,7 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
       let clinicRevenue = 0;
 
       const [
-        { data: allRevenue },
+        { data: allRevenue, error: revenueError },
         { data: allNps },
         { data: allTestimonials },
         { data: allReferrals },
@@ -112,6 +112,14 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
         supabase.from("special_events").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
         supabase.from("cancellations").select("*").in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]).gte("cancellation_request_date", startOfMonth).lte("cancellation_request_date", endOfMonth),
       ]);
+
+      // Debug log para verificar dados de receita
+      console.log("[useTeamScores] Date range:", startOfMonth, "to", endOfMonth);
+      console.log("[useTeamScores] Revenue records fetched:", allRevenue?.length, "Error:", revenueError);
+      if (allRevenue && allRevenue.length > 0) {
+        const total = allRevenue.reduce((sum, r) => sum + Number(r.amount), 0);
+        console.log("[useTeamScores] Total revenue sum:", total);
+      }
 
       for (const team of teamsData) {
         let revenuePoints = 0;

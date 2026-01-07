@@ -335,15 +335,6 @@ const Index = () => {
               />
             </div>
 
-            {/* Online Users Widget */}
-            <OnlineUsersWidget />
-
-            <TimeCounters
-              daysRemainingMonth={daysRemainingMonth}
-              daysRemainingSemester={daysRemainingSemester > 0 ? daysRemainingSemester : 0}
-              daysRemainingYear={daysRemainingYear}
-            />
-
             {/* Team Rankings */}
             {teams.length >= 2 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 overflow-hidden">
@@ -377,6 +368,30 @@ const Index = () => {
                 </p>
               </div>
             )}
+
+            {/* Auxiliary Information - Collapsible */}
+            <Collapsible open={auxInfoOpen} onOpenChange={setAuxInfoOpen}>
+              <Card className="bg-muted/30 border-border">
+                <CollapsibleTrigger className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors rounded-t-lg">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm font-medium">Informações Auxiliares</span>
+                    <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">
+                      {daysRemainingMonth}d restantes
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${auxInfoOpen ? "rotate-180" : ""}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-4 pb-4 space-y-4">
+                  <OnlineUsersWidget />
+                  <TimeCounters
+                    daysRemainingMonth={daysRemainingMonth}
+                    daysRemainingSemester={daysRemainingSemester > 0 ? daysRemainingSemester : 0}
+                    daysRemainingYear={daysRemainingYear}
+                  />
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
 
             {/* Team Members Overview - NEW */}
             <TeamMembersOverview month={selectedMonth} year={selectedYear} />
