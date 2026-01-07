@@ -139,6 +139,18 @@ function LeadCard({ lead, onClick, isDragging }: LeadCardProps) {
   const hasAI = !!lead.ai_analyzed_at;
   const isStale = lead.is_stale;
   const isPriority = lead.is_priority;
+  
+  // Calculate BANT score if available
+  const bantScores = [
+    lead.budget_score,
+    lead.authority_score,
+    lead.need_score,
+    lead.timing_score,
+  ].filter((s): s is number => s !== null);
+  
+  const avgBantScore = bantScores.length > 0 
+    ? bantScores.reduce((a, b) => a + b, 0) / bantScores.length 
+    : null;
 
   return (
     <Card
@@ -204,6 +216,47 @@ function LeadCard({ lead, onClick, isDragging }: LeadCardProps) {
           </div>
         )}
       </div>
+
+      {/* BANT Mini Score */}
+      {avgBantScore !== null && (
+        <div className="flex items-center gap-1 mb-2">
+          <div className="flex gap-0.5">
+            {[
+              { score: lead.budget_score, label: 'B', color: 'bg-green-500' },
+              { score: lead.authority_score, label: 'A', color: 'bg-blue-500' },
+              { score: lead.need_score, label: 'N', color: 'bg-purple-500' },
+              { score: lead.timing_score, label: 'T', color: 'bg-orange-500' },
+            ].map((item, idx) => (
+              <Tooltip key={idx}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      "w-4 h-4 rounded text-[8px] font-bold flex items-center justify-center text-white",
+                      item.score === null ? "bg-muted text-muted-foreground" :
+                      item.score >= 8 ? item.color :
+                      item.score >= 5 ? "bg-yellow-500" :
+                      "bg-red-500"
+                    )}
+                  >
+                    {item.label}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {item.label === 'B' && 'Budget'}: {item.score ?? '-'}/10
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+          <span className={cn(
+            "text-[10px] font-medium ml-1",
+            avgBantScore >= 7 ? "text-green-600" :
+            avgBantScore >= 5 ? "text-yellow-600" :
+            "text-red-600"
+          )}>
+            {avgBantScore.toFixed(0)}
+          </span>
+        </div>
+      )}
 
       {/* Tags */}
       {lead.tags && lead.tags.length > 0 && (

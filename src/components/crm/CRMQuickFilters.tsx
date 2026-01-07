@@ -39,6 +39,10 @@ interface CRMQuickFiltersProps {
     aiAnalyzedOnly: boolean;
     unassignedOnly: boolean;
     recentOnly: boolean;
+    highValueOnly: boolean;
+    qualifiedOnly: boolean;
+    wonOnly: boolean;
+    lostOnly: boolean;
   };
   onFiltersChange: (filters: CRMQuickFiltersProps['filters']) => void;
   activeFiltersCount: number;
@@ -87,6 +91,20 @@ export function CRMQuickFilters({
       color: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20',
       active: filters.recentOnly,
     },
+    {
+      id: 'highValueOnly',
+      label: 'Alto Valor',
+      icon: Filter,
+      color: 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20',
+      active: filters.highValueOnly,
+    },
+    {
+      id: 'qualifiedOnly',
+      label: 'Qualificados',
+      icon: Filter,
+      color: 'text-cyan-500 bg-cyan-500/10 hover:bg-cyan-500/20',
+      active: filters.qualifiedOnly,
+    },
   ];
 
   const toggleFilter = (filterId: string) => {
@@ -103,6 +121,10 @@ export function CRMQuickFilters({
       aiAnalyzedOnly: false,
       unassignedOnly: false,
       recentOnly: false,
+      highValueOnly: false,
+      qualifiedOnly: false,
+      wonOnly: false,
+      lostOnly: false,
     });
     onSearchChange('');
   };
