@@ -119,7 +119,7 @@ Responda APENAS com um JSON válido no seguinte formato:
 
     console.log('Calling Lovable AI for lead qualification...');
 
-    const aiResponse = await fetch('https://api.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -131,8 +131,6 @@ Responda APENAS com um JSON válido no seguinte formato:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: leadContext }
         ],
-        temperature: 0.3,
-        max_tokens: 1000,
       }),
     });
 
