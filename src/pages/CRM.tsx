@@ -36,6 +36,8 @@ import { CRMCalendarIntegration } from "@/components/crm/CRMCalendarIntegration"
 import { CRMPredictiveAnalytics } from "@/components/crm/CRMPredictiveAnalytics";
 import { CRMConversionFunnel } from "@/components/crm/CRMConversionFunnel";
 import { CRMTeamPerformance } from "@/components/crm/CRMTeamPerformance";
+import { CRMGamificationDashboard } from "@/components/crm/CRMGamificationDashboard";
+import { CRMIntegrations } from "@/components/crm/CRMIntegrations";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +69,9 @@ import {
   Search,
   Brain,
   Filter as FilterIcon,
-  UserCheck
+  UserCheck,
+  Gamepad2,
+  Link2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -110,7 +114,7 @@ const CRM = () => {
     'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' | 
     'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' | 
     'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals' |
-    'predictive' | 'funnel' | 'team-performance'
+    'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
   >('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
@@ -342,6 +346,14 @@ const CRM = () => {
                   <UserCheck className="w-4 h-4" />
                   <span className="hidden md:inline">Time</span>
                 </TabsTrigger>
+                <TabsTrigger value="gamification" className="gap-1.5 px-3 data-[state=active]:bg-yellow-500 data-[state=active]:text-black">
+                  <Gamepad2 className="w-4 h-4" />
+                  <span className="hidden md:inline">Copa League</span>
+                </TabsTrigger>
+                <TabsTrigger value="integrations" className="gap-1.5 px-3 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                  <Link2 className="w-4 h-4" />
+                  <span className="hidden md:inline">Integrações</span>
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </CardContent>
@@ -506,6 +518,14 @@ const CRM = () => {
 
         {viewMode === 'team-performance' && (
           <CRMTeamPerformance />
+        )}
+
+        {viewMode === 'gamification' && (
+          <CRMGamificationDashboard />
+        )}
+
+        {viewMode === 'integrations' && (
+          <CRMIntegrations />
         )}
         
         {viewMode === 'leaderboard' && (
