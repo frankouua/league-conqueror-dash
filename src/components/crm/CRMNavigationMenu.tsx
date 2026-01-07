@@ -24,7 +24,8 @@ import {
   Gamepad2,
   Link2,
   TrendingUp,
-  Package
+  Package,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type CRMViewMode = 
   | 'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' 
@@ -52,17 +54,20 @@ interface CRMNavigationMenuProps {
   aiCount?: number;
 }
 
+interface MenuItem {
+  value: CRMViewMode;
+  label: string;
+  icon: any;
+  color?: string;
+  badge?: string | number;
+  adminOnly?: boolean;
+}
+
 interface MenuGroup {
   id: string;
   label: string;
   icon: any;
-  items: {
-    value: CRMViewMode;
-    label: string;
-    icon: any;
-    color?: string;
-    badge?: string | number;
-  }[];
+  items: MenuItem[];
 }
 
 const MENU_GROUPS: MenuGroup[] = [
@@ -137,7 +142,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Configurações',
     icon: Settings,
     items: [
-      { value: 'pipeline-manager', label: 'Pipelines & Etapas', icon: LayoutGrid, color: 'text-primary' },
+      { value: 'pipeline-manager', label: 'Pipelines & Etapas', icon: LayoutGrid, color: 'text-primary', adminOnly: true },
       { value: 'integrations', label: 'Integrações', icon: Link2 },
     ]
   }
@@ -163,11 +168,19 @@ const getViewIcon = (viewMode: CRMViewMode): any => {
 
 export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount }: CRMNavigationMenuProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const { role } = useAuth();
+  const isAdmin = role === 'admin';
 
   // Quick access buttons (most used)
   const quickAccessItems: CRMViewMode[] = ['kanban', 'postsale', 'whatsapp', 'routine'];
 
   const CurrentIcon = getViewIcon(viewMode);
+  
+  // Filter menu groups based on user role
+  const filteredMenuGroups = MENU_GROUPS.map(group => ({
+    ...group,
+    items: group.items.filter(item => !item.adminOnly || isAdmin)
+  })).filter(group => group.items.length > 0);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -204,7 +217,7 @@ export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount 
 
       {/* Dropdown Menus */}
       <div className="flex items-center gap-1 flex-wrap">
-        {MENU_GROUPS.filter(g => g.id !== 'principal').map(group => {
+        {filteredMenuGroups.filter(g => g.id !== 'principal').map(group => {
           const GroupIcon = group.icon;
           const hasActiveItem = group.items.some(i => i.value === viewMode);
           const activeItem = group.items.find(i => i.value === viewMode);

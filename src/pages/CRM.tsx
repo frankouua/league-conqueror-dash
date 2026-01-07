@@ -44,6 +44,7 @@ import { CRMWhatsAppTemplates } from "@/components/crm/CRMWhatsAppTemplates";
 import { CRMSmartAlerts } from "@/components/crm/CRMSmartAlerts";
 import { CRMPipelineManager } from "@/components/crm/CRMPipelineManager";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -76,7 +77,8 @@ import {
   Filter as FilterIcon,
   UserCheck,
   Gamepad2,
-  Link2
+  Link2,
+  Settings
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -108,6 +110,8 @@ const useLeadCountsPerPipeline = () => {
 const CRM = () => {
   const { pipelines, stages, pipelinesLoading, stagesLoading } = useCRM();
   const { data: leadCountData } = useLeadCountsPerPipeline();
+  const { role } = useAuth();
+  const isAdmin = role === 'admin';
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
@@ -456,8 +460,22 @@ const CRM = () => {
           }} />
         )}
 
-        {viewMode === 'pipeline-manager' && (
+        {viewMode === 'pipeline-manager' && isAdmin && (
           <CRMPipelineManager />
+        )}
+        
+        {viewMode === 'pipeline-manager' && !isAdmin && (
+          <Card className="p-8 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <Settings className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold">Acesso Restrito</h3>
+              <p className="text-muted-foreground">
+                Apenas gestores e administradores podem gerenciar pipelines e etapas.
+              </p>
+            </div>
+          </Card>
         )}
         
         {viewMode === 'leaderboard' && (
