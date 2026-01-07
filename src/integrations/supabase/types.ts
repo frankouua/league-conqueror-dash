@@ -1366,6 +1366,36 @@ export type Database = {
         }
         Relationships: []
       }
+      department_quantity_goals: {
+        Row: {
+          created_at: string
+          department_name: string
+          id: string
+          month: number
+          quantity_goal: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          department_name: string
+          id?: string
+          month: number
+          quantity_goal?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          department_name?: string
+          id?: string
+          month?: number
+          quantity_goal?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       executed_records: {
         Row: {
           amount: number

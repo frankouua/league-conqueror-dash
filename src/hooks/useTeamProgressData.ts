@@ -15,6 +15,14 @@ interface TeamProgressData {
   totalSold: number;
 }
 
+interface TeamQuantityData {
+  teamId: string;
+  teamName: string;
+  departments: DepartmentProgress[];
+  totalGoal: number;
+  totalSold: number;
+}
+
 // Map database department strings to department_goals names
 const DEPARTMENT_MAPPING: Record<string, string> = {
   "01 - CIRURGIA PLÁSTICA": "Cirurgia Plástica",
@@ -22,7 +30,7 @@ const DEPARTMENT_MAPPING: Record<string, string> = {
   "03 - PÓS OPERATÓRIO": "Pós Operatório",
   "04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS": "Soroterapia / Protocolos Nutricionais",
   "05 - RETORNO": "Retorno",
-  "06 - RETOQUE - CIRURGIA PLÁSTICA": "Cirurgia Plástica", // Agrupa com cirurgia
+  "06 - RETOQUE - CIRURGIA PLÁSTICA": "Cirurgia Plástica",
   "08 - HARMONIZAÇÃO FACIAL E CORPORAL": "Harmonização Facial e Corporal",
   "09 - SPA E ESTÉTICA": "Spa e Estética",
   "16 - OUTROS": "Unique Travel Experience",
@@ -42,6 +50,7 @@ const SHORT_NAMES: Record<string, string> = {
 
 export const useTeamProgressData = (month: number, year: number) => {
   const [teamsProgress, setTeamsProgress] = useState<TeamProgressData[]>([]);
+  const [teamsQuantity, setTeamsQuantity] = useState<TeamQuantityData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -57,11 +66,17 @@ export const useTeamProgressData = (month: number, year: number) => {
       const [
         { data: teams },
         { data: departmentGoals },
+        { data: quantityGoals },
         { data: revenueRecords },
       ] = await Promise.all([
         supabase.from("teams").select("id, name").order("name"),
         supabase
           .from("department_goals")
+          .select("*")
+          .eq("month", month)
+          .eq("year", year),
+        supabase
+          .from("department_quantity_goals")
           .select("*")
           .eq("month", month)
           .eq("year", year),
@@ -74,18 +89,23 @@ export const useTeamProgressData = (month: number, year: number) => {
 
       if (!teams || teams.length === 0) {
         setTeamsProgress([]);
+        setTeamsQuantity([]);
         return;
       }
 
-      // Build goal map by department name -> meta1_goal (using meta 1 as base)
+      // Build goal maps
       const goalsByDept: Record<string, number> = {};
       departmentGoals?.forEach((dg) => {
         goalsByDept[dg.department_name] = dg.meta1_goal;
       });
 
-      // Process each team
+      const qtyGoalsByDept: Record<string, number> = {};
+      quantityGoals?.forEach((qg) => {
+        qtyGoalsByDept[qg.department_name] = qg.quantity_goal;
+      });
+
+      // Process each team for revenue progress
       const progressData: TeamProgressData[] = teams.map((team) => {
-        // Aggregate revenue by mapped department
         const deptSales: Record<string, number> = {};
         
         revenueRecords
@@ -100,14 +120,11 @@ export const useTeamProgressData = (month: number, year: number) => {
             deptSales[mappedDept] += Number(r.amount) || 0;
           });
 
-        // Build departments array with goals
         const departments: DepartmentProgress[] = [];
         let totalGoal = 0;
         let totalSold = 0;
 
-        // Add all departments with goals
         Object.entries(goalsByDept).forEach(([deptName, goal]) => {
-          // Each team gets 50% of clinic goal (2 teams)
           const teamGoal = goal / 2;
           const sold = deptSales[deptName] || 0;
           
@@ -121,7 +138,51 @@ export const useTeamProgressData = (month: number, year: number) => {
           totalSold += sold;
         });
 
-        // Sort by goal descending (most important first)
+        departments.sort((a, b) => b.goal - a.goal);
+
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          departments,
+          totalGoal,
+          totalSold,
+        };
+      });
+
+      // Process each team for quantity progress
+      const quantityData: TeamQuantityData[] = teams.map((team) => {
+        const deptCounts: Record<string, number> = {};
+        
+        revenueRecords
+          ?.filter((r) => r.team_id === team.id)
+          .forEach((r) => {
+            const rawDept = r.department || "";
+            const mappedDept = DEPARTMENT_MAPPING[rawDept] || "Outros";
+            
+            if (!deptCounts[mappedDept]) {
+              deptCounts[mappedDept] = 0;
+            }
+            deptCounts[mappedDept] += 1; // Count each record
+          });
+
+        const departments: DepartmentProgress[] = [];
+        let totalGoal = 0;
+        let totalSold = 0;
+
+        Object.entries(qtyGoalsByDept).forEach(([deptName, goal]) => {
+          const teamGoal = Math.ceil(goal / 2); // Each team gets half
+          const sold = deptCounts[deptName] || 0;
+          
+          departments.push({
+            name: SHORT_NAMES[deptName] || deptName,
+            goal: teamGoal,
+            sold,
+          });
+          
+          totalGoal += teamGoal;
+          totalSold += sold;
+        });
+
         departments.sort((a, b) => b.goal - a.goal);
 
         return {
@@ -134,6 +195,7 @@ export const useTeamProgressData = (month: number, year: number) => {
       });
 
       setTeamsProgress(progressData);
+      setTeamsQuantity(quantityData);
     } catch (error) {
       console.error("Error fetching team progress:", error);
     } finally {
@@ -145,5 +207,5 @@ export const useTeamProgressData = (month: number, year: number) => {
     fetchData();
   }, [fetchData]);
 
-  return { teamsProgress, isLoading, refetch: fetchData };
+  return { teamsProgress, teamsQuantity, isLoading, refetch: fetchData };
 };
