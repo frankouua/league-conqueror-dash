@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, memo, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Plus, MoreVertical, Clock, User, Phone, Mail, Sparkles, AlertTriangle } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -139,22 +139,25 @@ interface LeadCardProps {
   isDragging: boolean;
 }
 
-function LeadCard({ lead, onClick, isDragging }: LeadCardProps) {
+// Memoized LeadCard for performance - prevents re-renders when other leads change
+const LeadCard = memo(function LeadCard({ lead, onClick, isDragging }: LeadCardProps) {
   const hasAI = !!lead.ai_analyzed_at;
   const isStale = lead.is_stale;
   const isPriority = lead.is_priority;
   
-  // Calculate BANT score if available
-  const bantScores = [
-    lead.budget_score,
-    lead.authority_score,
-    lead.need_score,
-    lead.timing_score,
-  ].filter((s): s is number => s !== null);
-  
-  const avgBantScore = bantScores.length > 0 
-    ? bantScores.reduce((a, b) => a + b, 0) / bantScores.length 
-    : null;
+  // Memoize BANT calculation
+  const avgBantScore = useMemo(() => {
+    const bantScores = [
+      lead.budget_score,
+      lead.authority_score,
+      lead.need_score,
+      lead.timing_score,
+    ].filter((s): s is number => s !== null);
+    
+    return bantScores.length > 0 
+      ? bantScores.reduce((a, b) => a + b, 0) / bantScores.length 
+      : null;
+  }, [lead.budget_score, lead.authority_score, lead.need_score, lead.timing_score]);
 
   return (
     <Card
@@ -334,4 +337,4 @@ function LeadCard({ lead, onClick, isDragging }: LeadCardProps) {
       )}
     </Card>
   );
-}
+});

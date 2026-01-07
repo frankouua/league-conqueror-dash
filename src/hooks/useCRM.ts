@@ -136,7 +136,7 @@ export function useCRM() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all pipelines
+  // Fetch all pipelines with longer cache
   const { data: pipelines = [], isLoading: pipelinesLoading } = useQuery({
     queryKey: ['crm-pipelines'],
     queryFn: async () => {
@@ -150,9 +150,11 @@ export function useCRM() {
       return data as CRMPipeline[];
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes - pipelines rarely change
+    gcTime: 1000 * 60 * 30,   // 30 minutes cache
   });
 
-  // Fetch all stages
+  // Fetch all stages with longer cache
   const { data: stages = [], isLoading: stagesLoading } = useQuery({
     queryKey: ['crm-stages'],
     queryFn: async () => {
@@ -165,6 +167,8 @@ export function useCRM() {
       return data as CRMStage[];
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes - stages rarely change
+    gcTime: 1000 * 60 * 30,   // 30 minutes cache
   });
 
   // Get stages for a specific pipeline
@@ -186,7 +190,7 @@ export function useCRMLeads(pipelineId?: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch leads for a pipeline
+  // Fetch leads for a pipeline with optimized caching
   const { data: leads = [], isLoading, refetch } = useQuery({
     queryKey: ['crm-leads', pipelineId],
     queryFn: async () => {
@@ -203,7 +207,7 @@ export function useCRMLeads(pipelineId?: string) {
       
       if (error) throw error;
 
-      // Fetch assigned profiles
+      // Fetch assigned profiles in batch
       const userIds = [...new Set((data || []).map(l => l.assigned_to).filter(Boolean))];
       let profileMap = new Map();
       
@@ -222,6 +226,8 @@ export function useCRMLeads(pipelineId?: string) {
       })) as CRMLead[];
     },
     enabled: !!user,
+    staleTime: 1000 * 30, // 30 seconds - leads change more frequently
+    gcTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
   // Real-time subscription for leads
