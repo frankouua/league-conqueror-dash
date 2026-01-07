@@ -230,13 +230,19 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
             </div>
 
             {/* Edit Form or Content Tabs */}
-            {isEditing && lead ? (
+            {isEditing ? (
               <ScrollArea className="flex-1 p-6">
-                <CRMLeadEditForm
-                  lead={lead}
-                  stages={pipelineStages}
-                  onClose={() => setIsEditing(false)}
-                />
+                {lead ? (
+                  <CRMLeadEditForm
+                    lead={lead}
+                    stages={pipelineStages}
+                    onClose={() => setIsEditing(false)}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </ScrollArea>
             ) : (
               /* Content Tabs */

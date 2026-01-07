@@ -73,7 +73,7 @@ const PROCEDURES = [
 export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps) {
   const { toast } = useToast();
   const { profile, role } = useAuth();
-  const { updateLead, moveLead } = useCRMLeads(lead.pipeline_id);
+  const { updateLead, moveLead } = useCRMLeads(lead?.pipeline_id || '');
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -81,29 +81,41 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
   const [newTag, setNewTag] = useState('');
   
   const [formData, setFormData] = useState({
-    name: lead.name || '',
-    phone: lead.phone || '',
-    whatsapp: lead.whatsapp || '',
-    email: lead.email || '',
-    cpf: lead.cpf || '',
-    prontuario: lead.prontuario || '',
-    source: lead.source || 'manual',
-    source_detail: lead.source_detail || '',
-    stage_id: lead.stage_id,
-    assigned_to: lead.assigned_to || '',
-    team_id: lead.team_id || '',
-    estimated_value: lead.estimated_value?.toString() || '',
-    contract_value: lead.contract_value?.toString() || '',
-    notes: lead.notes || '',
-    tags: lead.tags || [],
-    interested_procedures: lead.interested_procedures || [],
-    is_priority: lead.is_priority || false,
+    name: lead?.name || '',
+    phone: lead?.phone || '',
+    whatsapp: lead?.whatsapp || '',
+    email: lead?.email || '',
+    cpf: lead?.cpf || '',
+    prontuario: lead?.prontuario || '',
+    source: lead?.source || 'manual',
+    source_detail: lead?.source_detail || '',
+    stage_id: lead?.stage_id || '',
+    assigned_to: lead?.assigned_to || '',
+    team_id: lead?.team_id || '',
+    estimated_value: lead?.estimated_value?.toString() || '',
+    contract_value: lead?.contract_value?.toString() || '',
+    notes: lead?.notes || '',
+    tags: lead?.tags || [],
+    interested_procedures: lead?.interested_procedures || [],
+    is_priority: lead?.is_priority || false,
     // BANT Scores
-    budget_score: lead.budget_score || 0,
-    authority_score: lead.authority_score || 0,
-    need_score: lead.need_score || 0,
-    timing_score: lead.timing_score || 0,
+    budget_score: lead?.budget_score || 0,
+    authority_score: lead?.authority_score || 0,
+    need_score: lead?.need_score || 0,
+    timing_score: lead?.timing_score || 0,
   });
+
+  // Guard against missing lead
+  if (!lead) {
+    return (
+      <Card className="p-8 text-center">
+        <p className="text-muted-foreground">Lead não encontrado</p>
+        <Button variant="outline" onClick={onClose} className="mt-4">
+          Voltar
+        </Button>
+      </Card>
+    );
+  }
 
   useEffect(() => {
     const fetchData = async () => {
