@@ -4,7 +4,8 @@ import { ptBR } from 'date-fns/locale';
 import {
   User, Phone, Mail, MessageSquare, Clock, Calendar, Tag, Star,
   Sparkles, AlertTriangle, CheckCircle2, Circle, Plus, Send,
-  ArrowRight, History, ListTodo, FileText, TrendingUp, Brain, Loader2
+  ArrowRight, History, ListTodo, FileText, TrendingUp, Brain, Loader2,
+  Edit2, Trash2, X
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -23,8 +24,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { CRMLead, CRMStage, useCRMLeadDetail, useCRM } from '@/hooks/useCRM';
+import { CRMLead, CRMStage, useCRMLeadDetail, useCRM, useCRMLeads } from '@/hooks/useCRM';
+import { CRMLeadEditForm } from './CRMLeadEditForm';
+import { CRMBANTDisplay } from './CRMBANTDisplay';
+import { CRMQuickActions } from './CRMQuickActions';
+import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
   lead: CRMLead | null;
@@ -33,6 +48,7 @@ interface CRMLeadDetailProps {
 }
 
 export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetailProps) {
+  const { toast } = useToast();
   const { stages } = useCRM();
   const {
     lead,
@@ -45,9 +61,14 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
     analyzeLead,
   } = useCRMLeadDetail(initialLead?.id || null);
 
+  const { updateLead, deleteLead } = useCRMLeads(initialLead?.pipeline_id);
+
   const [newNote, setNewNote] = useState('');
   const [newTask, setNewTask] = useState({ title: '', due_date: '', priority: 'medium' });
   const [showNewTask, setShowNewTask] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
 
   const currentStage = stages.find(s => s.id === lead?.stage_id);
   const pipelineStages = stages.filter(s => s.pipeline_id === lead?.pipeline_id);
@@ -70,109 +91,154 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
     setShowNewTask(false);
   };
 
+  const handleTogglePriority = async () => {
+    if (!lead) return;
+    await updateLead.mutateAsync({
+      id: lead.id,
+      is_priority: !lead.is_priority,
+    });
+    toast({ title: lead.is_priority ? 'Prioridade removida' : 'Lead marcado como prioritário!' });
+  };
+
+  const handleDelete = async () => {
+    if (!lead) return;
+    await deleteLead.mutateAsync(lead.id);
+    setShowDeleteDialog(false);
+    onClose();
+  };
+
   if (!initialLead) return null;
 
   return (
-    <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-2xl p-0 overflow-hidden">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6 border-b bg-muted/30">
-            <SheetHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <SheetTitle className="text-xl flex items-center gap-2">
-                    {lead?.name || initialLead.name}
-                    {lead?.is_priority && <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />}
-                  </SheetTitle>
-                  {lead?.source_detail && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      via {lead.source} • {lead.source_detail}
-                    </p>
-                  )}
+    <>
+      <Sheet open={open} onOpenChange={onClose}>
+        <SheetContent className="w-full sm:max-w-2xl p-0 overflow-hidden">
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="p-6 border-b bg-muted/30">
+              <SheetHeader>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <SheetTitle className="text-xl flex items-center gap-2">
+                      {lead?.name || initialLead.name}
+                      {lead?.is_priority && <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />}
+                      {lead?.is_stale && (
+                        <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Parado
+                        </Badge>
+                      )}
+                    </SheetTitle>
+                    {lead?.source && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        via {lead.source} {lead.source_detail && `• ${lead.source_detail}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                      className="gap-1"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => analyzeLead.mutate()}
+                      disabled={analyzeLead.isPending}
+                      className="gap-1"
+                    >
+                      {analyzeLead.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Brain className="h-4 w-4" />
+                      )}
+                      <span className="hidden sm:inline">IA</span>
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => analyzeLead.mutate()}
-                  disabled={analyzeLead.isPending}
-                  className="gap-2"
-                >
-                  {analyzeLead.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Brain className="h-4 w-4" />
-                  )}
-                  Analisar com IA
-                </Button>
-              </div>
-            </SheetHeader>
+              </SheetHeader>
 
-            {/* Contact Info */}
-            <div className="flex flex-wrap gap-4 mt-4">
-              {lead?.phone && (
-                <a
-                  href={`tel:${lead.phone}`}
-                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-                >
-                  <Phone className="h-4 w-4" />
-                  {lead.phone}
-                </a>
+              {/* Quick Actions */}
+              {lead && (
+                <div className="mt-4 flex items-center justify-between">
+                  <CRMQuickActions
+                    lead={lead}
+                    onTogglePriority={handleTogglePriority}
+                    onDelete={() => setShowDeleteDialog(true)}
+                    onTransfer={() => setShowTransferDialog(true)}
+                  />
+                  
+                  {/* Contact Info */}
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    {lead.phone && (
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3.5 w-3.5" />
+                        {lead.phone}
+                      </span>
+                    )}
+                    {lead.email && (
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3.5 w-3.5" />
+                        <span className="truncate max-w-[150px]">{lead.email}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
               )}
-              {lead?.whatsapp && (
-                <a
-                  href={`https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm hover:text-green-500 transition-colors"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  WhatsApp
-                </a>
-              )}
-              {lead?.email && (
-                <a
-                  href={`mailto:${lead.email}`}
-                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-                >
-                  <Mail className="h-4 w-4" />
-                  {lead.email}
-                </a>
+
+              {/* Stage Progress */}
+              {currentStage && (
+                <div className="mt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge style={{ backgroundColor: currentStage.color, color: 'white' }}>
+                      {currentStage.name}
+                    </Badge>
+                    {lead?.days_in_stage !== undefined && lead.days_in_stage > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        há {lead.days_in_stage} dias neste estágio
+                      </span>
+                    )}
+                    {lead?.ai_analyzed_at && (
+                      <Badge variant="outline" className="border-purple-500 text-purple-500 text-xs ml-auto">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        IA
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    {pipelineStages.map((stage) => (
+                      <div
+                        key={stage.id}
+                        className={cn(
+                          "h-1.5 flex-1 rounded-full transition-colors",
+                          (stage.order_index || 0) <= (currentStage.order_index || 0)
+                            ? "bg-primary"
+                            : "bg-muted"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* Stage Progress */}
-            {currentStage && (
-              <div className="mt-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge style={{ backgroundColor: currentStage.color, color: 'white' }}>
-                    {currentStage.name}
-                  </Badge>
-                  {lead?.days_in_stage > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      há {lead.days_in_stage} dias neste estágio
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  {pipelineStages.map((stage, i) => (
-                    <div
-                      key={stage.id}
-                      className={cn(
-                        "h-1.5 flex-1 rounded-full transition-colors",
-                        stage.order_index <= currentStage.order_index
-                          ? "bg-primary"
-                          : "bg-muted"
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Content Tabs */}
-          <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
+            {/* Edit Form or Content Tabs */}
+            {isEditing && lead ? (
+              <ScrollArea className="flex-1 p-6">
+                <CRMLeadEditForm
+                  lead={lead}
+                  stages={pipelineStages}
+                  onClose={() => setIsEditing(false)}
+                />
+              </ScrollArea>
+            ) : (
+              /* Content Tabs */
+              <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="mx-6 mt-4 grid grid-cols-4 w-auto">
               <TabsTrigger value="overview" className="gap-1">
                 <FileText className="h-4 w-4" />
@@ -232,27 +298,15 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm">Qualificação BANT</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs w-20">Budget</span>
-                        <Progress value={(lead.budget_score || 0) * 10} className="flex-1" />
-                        <span className="text-xs w-6 text-right">{lead.budget_score || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs w-20">Authority</span>
-                        <Progress value={(lead.authority_score || 0) * 10} className="flex-1" />
-                        <span className="text-xs w-6 text-right">{lead.authority_score || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs w-20">Need</span>
-                        <Progress value={(lead.need_score || 0) * 10} className="flex-1" />
-                        <span className="text-xs w-6 text-right">{lead.need_score || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs w-20">Timing</span>
-                        <Progress value={(lead.timing_score || 0) * 10} className="flex-1" />
-                        <span className="text-xs w-6 text-right">{lead.timing_score || 0}</span>
-                      </div>
+                    <CardContent>
+                      <CRMBANTDisplay
+                        scores={{
+                          budget: lead.budget_score || 0,
+                          authority: lead.authority_score || 0,
+                          need: lead.need_score || 0,
+                          timing: lead.timing_score || 0,
+                        }}
+                      />
                     </CardContent>
                   </Card>
                 )}
@@ -558,8 +612,29 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               </TabsContent>
             </ScrollArea>
           </Tabs>
+            )}
         </div>
       </SheetContent>
     </Sheet>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir Lead</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir este lead? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
