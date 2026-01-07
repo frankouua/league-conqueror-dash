@@ -19,6 +19,9 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
+import { PaceBadge, PaceIndicator } from "@/components/PaceBadge";
+import { calculatePaceMetrics } from "@/lib/paceAnalysis";
+import { cn } from "@/lib/utils";
 
 interface ExecutiveKPIsProps {
   month: number;
@@ -154,6 +157,9 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
     // Progress based on Meta 3 (our main goal)
     const goalProgress = meta3 > 0 ? (totalRevenue / meta3) * 100 : 0;
 
+    // PACE ANALYSIS - Compare current vs expected for today
+    const paceMetrics = calculatePaceMetrics(meta3, totalRevenue, currentDay, daysInMonth);
+
     // Projections
     const dailyAverage = currentDay > 0 ? totalRevenue / currentDay : 0;
     const projectedTotal = dailyAverage * daysInMonth;
@@ -220,6 +226,7 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
       activeSellers,
       avgPerSeller,
       dailyAverage,
+      paceMetrics, // Add pace metrics
     };
   }, [revenueData, prevRevenueData, leadsData, cancellationsData, deptGoals, sellersData, currentDay, daysInMonth, daysRemaining, businessDaysRemaining]);
 
@@ -241,21 +248,31 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
       {/* Main KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Faturamento */}
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
+        <Card className={cn(
+          "bg-gradient-to-br border-2 transition-all",
+          metrics.paceMetrics.bgColor,
+          metrics.paceMetrics.borderColor
+        )}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <DollarSign className="w-5 h-5 text-primary" />
-              {metrics.revenueGrowth !== 0 && (
-                <Badge variant={metrics.revenueGrowth > 0 ? "default" : "destructive"} className="text-xs gap-1">
-                  {metrics.revenueGrowth > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {Math.abs(metrics.revenueGrowth).toFixed(0)}%
-                </Badge>
-              )}
+              <PaceBadge 
+                monthlyGoal={metrics.meta3}
+                currentValue={metrics.totalRevenue}
+                currentDay={currentDay}
+                totalDaysInMonth={daysInMonth}
+                compact
+              />
             </div>
             <p className="text-2xl font-black text-primary">{formatCompact(metrics.totalRevenue)}</p>
             <p className="text-xs text-muted-foreground">Faturamento</p>
             <Progress value={Math.min(metrics.goalProgress, 100)} className="h-1.5 mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">{metrics.goalProgress.toFixed(0)}% da Meta 3</p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">{metrics.goalProgress.toFixed(0)}% da Meta 3</p>
+              <p className={cn("text-xs font-medium", metrics.paceMetrics.textColor)}>
+                Esp: {formatCompact(metrics.paceMetrics.expected)}
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -276,8 +293,13 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
           </CardContent>
         </Card>
 
-        {/* Meta Diária */}
-        <Card className="border-amber-500/30 bg-amber-500/5">
+        {/* Meta Diária - com comparação de ritmo */}
+        <Card className={cn(
+          "border-2 transition-all",
+          metrics.dailyAverage >= metrics.paceMetrics.dailyTarget 
+            ? "border-success/50 bg-success/10" 
+            : "border-amber-500/30 bg-amber-500/5"
+        )}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Target className="w-5 h-5 text-amber-500" />
@@ -285,9 +307,23 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
             </div>
             <p className="text-2xl font-black text-amber-600">{formatCompact(metrics.dailyNeededBusiness)}</p>
             <p className="text-xs text-muted-foreground">Meta/Dia Útil</p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Média atual: {formatCurrency(metrics.dailyAverage)}/dia
-            </p>
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Média atual:</span>
+                <span className={cn(
+                  "font-medium",
+                  metrics.dailyAverage >= metrics.paceMetrics.dailyTarget ? "text-success" : "text-amber-500"
+                )}>
+                  {formatCurrency(metrics.dailyAverage)}/dia
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Meta diária:</span>
+                <span className="text-muted-foreground">
+                  {formatCurrency(metrics.paceMetrics.dailyTarget)}/dia
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
