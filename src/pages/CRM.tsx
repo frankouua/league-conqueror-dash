@@ -7,6 +7,7 @@ import { CRMLeadDetail } from "@/components/crm/CRMLeadDetail";
 import { CRMPipelineSelector } from "@/components/crm/CRMPipelineSelector";
 import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
 import { CRMPipelineMetrics } from "@/components/crm/CRMPipelineMetrics";
+import { CRMExportButton } from "@/components/crm/CRMExportButton";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -172,6 +173,11 @@ const CRM = () => {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+
+            <CRMExportButton 
+              leads={filteredLeads} 
+              pipelineName={pipelines.find(p => p.id === selectedPipeline)?.name}
+            />
             
             <Button
               variant="outline"
