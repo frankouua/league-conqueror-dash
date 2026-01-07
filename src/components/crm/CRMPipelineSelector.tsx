@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Users, Target, Zap, LayoutGrid, Briefcase, Star, TrendingUp } from 'lucide-react';
+import { Users, Target, Zap, LayoutGrid, Briefcase, Star, TrendingUp, Share2, Grid3X3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -20,31 +20,48 @@ interface CRMPipelineSelectorProps {
   valueCounts?: Record<string, number>;
 }
 
-const pipelineConfig: Record<string, { icon: typeof Users; gradient: string; description: string }> = {
+const pipelineConfig: Record<string, { icon: typeof Users; gradient: string; iconColor: string; description: string }> = {
+  social_selling: {
+    icon: Share2,
+    gradient: 'from-pink-500 to-rose-500',
+    iconColor: 'text-pink-400',
+    description: 'Vendas via Redes Sociais',
+  },
   sdr: {
     icon: Users,
     gradient: 'from-blue-500 to-cyan-500',
+    iconColor: 'text-blue-400',
     description: 'Prospecção e Qualificação',
   },
   closer: {
     icon: Target,
     gradient: 'from-green-500 to-emerald-500',
+    iconColor: 'text-green-400',
     description: 'Vendas e Fechamento',
   },
   cs: {
     icon: Zap,
     gradient: 'from-purple-500 to-pink-500',
+    iconColor: 'text-purple-400',
     description: 'Pós-Venda e Experiência',
   },
   farmer: {
     icon: LayoutGrid,
     gradient: 'from-orange-500 to-amber-500',
+    iconColor: 'text-orange-400',
     description: 'Fidelização e Recorrência',
   },
   influencer: {
     icon: Star,
     gradient: 'from-rose-500 to-red-500',
+    iconColor: 'text-rose-400',
     description: 'UniInfluencers',
+  },
+  rfv_matrix: {
+    icon: Grid3X3,
+    gradient: 'from-cyan-500 to-teal-500',
+    iconColor: 'text-cyan-400',
+    description: 'Matriz RFV - Segmentação',
   },
 };
 
@@ -61,6 +78,7 @@ export function CRMPipelineSelector({
         const config = pipelineConfig[pipeline.pipeline_type] || {
           icon: Briefcase,
           gradient: 'from-gray-500 to-slate-500',
+          iconColor: 'text-gray-400',
           description: pipeline.description || '',
         };
         const Icon = config.icon;
@@ -86,10 +104,10 @@ export function CRMPipelineSelector({
                     "w-10 h-10 rounded-lg flex items-center justify-center mb-2",
                     "bg-gradient-to-br",
                     config.gradient,
-                    !isSelected && "opacity-60"
+                    !isSelected && "opacity-80"
                   )}
                 >
-                  <Icon className="w-5 h-5 text-white" />
+                  <Icon className="w-5 h-5 text-white drop-shadow-sm" />
                 </div>
                 
                 <span className={cn(
