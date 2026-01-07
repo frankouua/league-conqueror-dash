@@ -22,6 +22,11 @@ import { CRMSmartSuggestions } from "@/components/crm/CRMSmartSuggestions";
 import { CRMNotificationsPanel } from "@/components/crm/CRMNotificationsPanel";
 import { CRMAIAssistant } from "@/components/crm/CRMAIAssistant";
 import { CRMPerformanceDashboard } from "@/components/crm/CRMPerformanceDashboard";
+import { CRMPostSaleFlow } from "@/components/crm/CRMPostSaleFlow";
+import { CRMTeamRoutine } from "@/components/crm/CRMTeamRoutine";
+import { CRMGroupChat } from "@/components/crm/CRMGroupChat";
+import { CRMContactPoints } from "@/components/crm/CRMContactPoints";
+import { CRMWhatsAppMonitor } from "@/components/crm/CRMWhatsAppMonitor";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +46,12 @@ import {
   Brain,
   Trophy,
   TrendingUp,
-  Package
+  Package,
+  MessageSquare,
+  Clock,
+  Phone,
+  Heart,
+  Bot
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -77,7 +87,11 @@ const CRM = () => {
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' | 'automations' | 'leaderboard'>('kanban');
+  const [viewMode, setViewMode] = useState<
+    'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' | 
+    'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' | 
+    'contacts' | 'postsale'
+  >('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
     priorityOnly: false,
@@ -181,44 +195,6 @@ const CRM = () => {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* View Mode Toggle - Expanded */}
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
-              <TabsList className="h-9 flex-wrap">
-                <TabsTrigger value="overview" className="gap-1.5 px-3">
-                  <PieChart className="w-4 h-4" />
-                  <span className="hidden md:inline">Overview</span>
-                </TabsTrigger>
-                <TabsTrigger value="kanban" className="gap-1.5 px-3">
-                  <LayoutGrid className="w-4 h-4" />
-                  <span className="hidden md:inline">Kanban</span>
-                </TabsTrigger>
-                <TabsTrigger value="metrics" className="gap-1.5 px-3">
-                  <BarChart3 className="w-4 h-4" />
-                  <span className="hidden md:inline">Métricas</span>
-                </TabsTrigger>
-                <TabsTrigger value="rfv" className="gap-1.5 px-3">
-                  <Target className="w-4 h-4" />
-                  <span className="hidden md:inline">RFV</span>
-                </TabsTrigger>
-                <TabsTrigger value="campaigns" className="gap-1.5 px-3">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="hidden md:inline">Campanhas</span>
-                </TabsTrigger>
-                <TabsTrigger value="protocols" className="gap-1.5 px-3">
-                  <Package className="w-4 h-4" />
-                  <span className="hidden md:inline">Protocolos</span>
-                </TabsTrigger>
-                <TabsTrigger value="automations" className="gap-1.5 px-3">
-                  <Zap className="w-4 h-4" />
-                  <span className="hidden md:inline">Automações</span>
-                </TabsTrigger>
-                <TabsTrigger value="leaderboard" className="gap-1.5 px-3">
-                  <Trophy className="w-4 h-4" />
-                  <span className="hidden md:inline">Ranking</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
             <CRMExportButton 
               leads={filteredLeads} 
               pipelineName={pipelines.find(p => p.id === selectedPipeline)?.name}
@@ -239,6 +215,68 @@ const CRM = () => {
             </Button>
           </div>
         </div>
+
+        {/* Navigation Tabs - Expanded */}
+        <Card className="border-dashed">
+          <CardContent className="p-2">
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
+              <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-0">
+                <TabsTrigger value="overview" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <PieChart className="w-4 h-4" />
+                  <span className="hidden md:inline">Overview</span>
+                </TabsTrigger>
+                <TabsTrigger value="kanban" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden md:inline">Kanban</span>
+                </TabsTrigger>
+                <TabsTrigger value="whatsapp" className="gap-1.5 px-3 data-[state=active]:bg-green-500 data-[state=active]:text-white">
+                  <Bot className="w-4 h-4" />
+                  <span className="hidden md:inline">WhatsApp IA</span>
+                </TabsTrigger>
+                <TabsTrigger value="contacts" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Phone className="w-4 h-4" />
+                  <span className="hidden md:inline">Contatos</span>
+                </TabsTrigger>
+                <TabsTrigger value="routine" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span className="hidden md:inline">Rotina</span>
+                </TabsTrigger>
+                <TabsTrigger value="chat" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="hidden md:inline">Chat Equipe</span>
+                </TabsTrigger>
+                <TabsTrigger value="postsale" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Heart className="w-4 h-4" />
+                  <span className="hidden md:inline">Pós-Venda</span>
+                </TabsTrigger>
+                <TabsTrigger value="metrics" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="hidden md:inline">Métricas</span>
+                </TabsTrigger>
+                <TabsTrigger value="rfv" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Target className="w-4 h-4" />
+                  <span className="hidden md:inline">RFV</span>
+                </TabsTrigger>
+                <TabsTrigger value="campaigns" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="hidden md:inline">Campanhas</span>
+                </TabsTrigger>
+                <TabsTrigger value="protocols" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Package className="w-4 h-4" />
+                  <span className="hidden md:inline">Protocolos</span>
+                </TabsTrigger>
+                <TabsTrigger value="automations" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Zap className="w-4 h-4" />
+                  <span className="hidden md:inline">Automações</span>
+                </TabsTrigger>
+                <TabsTrigger value="leaderboard" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Trophy className="w-4 h-4" />
+                  <span className="hidden md:inline">Ranking</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
 
         {/* Pipeline Selector - Only show for relevant views */}
         {['kanban', 'metrics', 'overview'].includes(viewMode) && (
@@ -300,11 +338,8 @@ const CRM = () => {
         {/* View Mode Content */}
         {viewMode === 'overview' && (
           <div className="space-y-6">
-            {/* Smart Suggestions at top */}
             <CRMSmartSuggestions />
-            
             <CRMPerformanceDashboard />
-            
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <CRMGoalIntegration />
@@ -314,7 +349,6 @@ const CRM = () => {
                 <CRMSalesCoachGeneral />
               </div>
             </div>
-            
             <div className="grid lg:grid-cols-2 gap-6">
               <CRMActivityFeed />
               <CRMAIAssistant />
@@ -329,6 +363,26 @@ const CRM = () => {
             onLeadClick={handleLeadClick}
             onNewLead={handleNewLead}
           />
+        )}
+
+        {viewMode === 'whatsapp' && (
+          <CRMWhatsAppMonitor />
+        )}
+
+        {viewMode === 'contacts' && (
+          <CRMContactPoints />
+        )}
+
+        {viewMode === 'routine' && (
+          <CRMTeamRoutine />
+        )}
+
+        {viewMode === 'chat' && (
+          <CRMGroupChat />
+        )}
+
+        {viewMode === 'postsale' && (
+          <CRMPostSaleFlow />
         )}
         
         {viewMode === 'metrics' && (
