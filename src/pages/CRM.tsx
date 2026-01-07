@@ -45,6 +45,8 @@ import { CRMSurgeryDashboard } from "@/components/crm/CRMSurgeryDashboard";
 import { CRMWhatsAppTemplates } from "@/components/crm/CRMWhatsAppTemplates";
 import { CRMSmartAlerts } from "@/components/crm/CRMSmartAlerts";
 import { CRMPipelineManager } from "@/components/crm/CRMPipelineManager";
+import { CRMWebhooksManager } from "@/components/crm/CRMWebhooksManager";
+import { CRMNotificationsBell } from "@/components/crm/CRMNotificationsBell";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";

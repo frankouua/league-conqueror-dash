@@ -881,6 +881,74 @@ export type Database = {
           },
         ]
       }
+      crm_form_responses: {
+        Row: {
+          campaign_name: string | null
+          created_at: string
+          form_name: string
+          form_source: string | null
+          id: string
+          ip_address: string | null
+          lead_id: string | null
+          processed_at: string | null
+          raw_payload: Json | null
+          responses: Json
+          submitted_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          campaign_name?: string | null
+          created_at?: string
+          form_name: string
+          form_source?: string | null
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          processed_at?: string | null
+          raw_payload?: Json | null
+          responses?: Json
+          submitted_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          campaign_name?: string | null
+          created_at?: string
+          form_name?: string
+          form_source?: string | null
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          processed_at?: string | null
+          raw_payload?: Json | null
+          responses?: Json
+          submitted_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_form_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_lead_checklist_progress: {
         Row: {
           action_index: number
@@ -1214,6 +1282,63 @@ export type Database = {
           },
         ]
       }
+      crm_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          lead_id: string | null
+          message: string
+          metadata: Json | null
+          notification_type: string
+          read_at: string | null
+          team_id: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          lead_id?: string | null
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          read_at?: string | null
+          team_id?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          lead_id?: string | null
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          read_at?: string | null
+          team_id?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_notifications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_notifications_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_pipelines: {
         Row: {
           color: string | null
@@ -1373,6 +1498,69 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_webhooks: {
+        Row: {
+          created_at: string
+          created_by: string
+          default_assigned_to: string | null
+          default_pipeline_id: string | null
+          default_stage_id: string | null
+          description: string | null
+          field_mapping: Json | null
+          form_source: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+          webhook_key: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          default_assigned_to?: string | null
+          default_pipeline_id?: string | null
+          default_stage_id?: string | null
+          description?: string | null
+          field_mapping?: Json | null
+          form_source?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+          webhook_key?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          default_assigned_to?: string | null
+          default_pipeline_id?: string | null
+          default_stage_id?: string | null
+          description?: string | null
+          field_mapping?: Json | null
+          form_source?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+          webhook_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_webhooks_default_pipeline_id_fkey"
+            columns: ["default_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_webhooks_default_stage_id_fkey"
+            columns: ["default_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
             referencedColumns: ["id"]
           },
         ]
