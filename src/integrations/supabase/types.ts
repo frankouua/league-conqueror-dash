@@ -723,6 +723,554 @@ export type Database = {
           },
         ]
       }
+      crm_automation_logs: {
+        Row: {
+          actions_executed: Json | null
+          automation_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          status: string
+        }
+        Insert: {
+          actions_executed?: Json | null
+          automation_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          status?: string
+        }
+        Update: {
+          actions_executed?: Json | null
+          automation_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "crm_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_automation_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_automations: {
+        Row: {
+          actions: Json
+          conditions: Json | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_run_at: string | null
+          name: string
+          pipeline_id: string | null
+          run_count: number | null
+          stage_id: string | null
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          name: string
+          pipeline_id?: string | null
+          run_count?: number | null
+          stage_id?: string | null
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          name?: string
+          pipeline_id?: string | null
+          run_count?: number | null
+          stage_id?: string | null
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_automations_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_automations_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_lead_history: {
+        Row: {
+          action_type: string
+          ai_analysis: Json | null
+          created_at: string
+          description: string | null
+          from_pipeline_id: string | null
+          from_stage_id: string | null
+          id: string
+          lead_id: string
+          metadata: Json | null
+          performed_by: string
+          title: string | null
+          to_pipeline_id: string | null
+          to_stage_id: string | null
+        }
+        Insert: {
+          action_type: string
+          ai_analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          from_pipeline_id?: string | null
+          from_stage_id?: string | null
+          id?: string
+          lead_id: string
+          metadata?: Json | null
+          performed_by: string
+          title?: string | null
+          to_pipeline_id?: string | null
+          to_stage_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          ai_analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          from_pipeline_id?: string | null
+          from_stage_id?: string | null
+          id?: string
+          lead_id?: string
+          metadata?: Json | null
+          performed_by?: string
+          title?: string | null
+          to_pipeline_id?: string | null
+          to_stage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_history_from_pipeline_id_fkey"
+            columns: ["from_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_history_to_pipeline_id_fkey"
+            columns: ["to_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_leads: {
+        Row: {
+          ai_analyzed_at: string | null
+          ai_intent: string | null
+          ai_next_action: string | null
+          ai_sentiment: string | null
+          ai_summary: string | null
+          assigned_to: string | null
+          authority_score: number | null
+          budget_score: number | null
+          contract_value: number | null
+          cpf: string | null
+          created_at: string
+          created_by: string
+          custom_fields: Json | null
+          days_in_stage: number | null
+          email: string | null
+          estimated_value: number | null
+          first_contact_at: string | null
+          id: string
+          interested_procedures: string[] | null
+          is_priority: boolean | null
+          is_stale: boolean | null
+          last_activity_at: string | null
+          lead_score: number | null
+          lost_at: string | null
+          lost_reason: string | null
+          name: string
+          need_score: number | null
+          notes: string | null
+          patient_data_id: string | null
+          phone: string | null
+          pipeline_id: string
+          prontuario: string | null
+          referral_lead_id: string | null
+          rfv_customer_id: string | null
+          source: string | null
+          source_detail: string | null
+          stage_id: string
+          stale_since: string | null
+          tags: string[] | null
+          team_id: string | null
+          timing_score: number | null
+          total_interactions: number | null
+          updated_at: string
+          whatsapp: string | null
+          won_at: string | null
+        }
+        Insert: {
+          ai_analyzed_at?: string | null
+          ai_intent?: string | null
+          ai_next_action?: string | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          authority_score?: number | null
+          budget_score?: number | null
+          contract_value?: number | null
+          cpf?: string | null
+          created_at?: string
+          created_by: string
+          custom_fields?: Json | null
+          days_in_stage?: number | null
+          email?: string | null
+          estimated_value?: number | null
+          first_contact_at?: string | null
+          id?: string
+          interested_procedures?: string[] | null
+          is_priority?: boolean | null
+          is_stale?: boolean | null
+          last_activity_at?: string | null
+          lead_score?: number | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          name: string
+          need_score?: number | null
+          notes?: string | null
+          patient_data_id?: string | null
+          phone?: string | null
+          pipeline_id: string
+          prontuario?: string | null
+          referral_lead_id?: string | null
+          rfv_customer_id?: string | null
+          source?: string | null
+          source_detail?: string | null
+          stage_id: string
+          stale_since?: string | null
+          tags?: string[] | null
+          team_id?: string | null
+          timing_score?: number | null
+          total_interactions?: number | null
+          updated_at?: string
+          whatsapp?: string | null
+          won_at?: string | null
+        }
+        Update: {
+          ai_analyzed_at?: string | null
+          ai_intent?: string | null
+          ai_next_action?: string | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          authority_score?: number | null
+          budget_score?: number | null
+          contract_value?: number | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string
+          custom_fields?: Json | null
+          days_in_stage?: number | null
+          email?: string | null
+          estimated_value?: number | null
+          first_contact_at?: string | null
+          id?: string
+          interested_procedures?: string[] | null
+          is_priority?: boolean | null
+          is_stale?: boolean | null
+          last_activity_at?: string | null
+          lead_score?: number | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          name?: string
+          need_score?: number | null
+          notes?: string | null
+          patient_data_id?: string | null
+          phone?: string | null
+          pipeline_id?: string
+          prontuario?: string | null
+          referral_lead_id?: string | null
+          rfv_customer_id?: string | null
+          source?: string | null
+          source_detail?: string | null
+          stage_id?: string
+          stale_since?: string | null
+          tags?: string[] | null
+          team_id?: string | null
+          timing_score?: number | null
+          total_interactions?: number | null
+          updated_at?: string
+          whatsapp?: string | null
+          won_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_patient_data_id_fkey"
+            columns: ["patient_data_id"]
+            isOneToOne: false
+            referencedRelation: "patient_data"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_referral_lead_id_fkey"
+            columns: ["referral_lead_id"]
+            isOneToOne: false
+            referencedRelation: "referral_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_rfv_customer_id_fkey"
+            columns: ["rfv_customer_id"]
+            isOneToOne: false
+            referencedRelation: "rfv_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_pipelines: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          order_index: number | null
+          pipeline_type: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          order_index?: number | null
+          pipeline_type: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          order_index?: number | null
+          pipeline_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_stages: {
+        Row: {
+          auto_actions: Json | null
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_lost_stage: boolean | null
+          is_win_stage: boolean | null
+          name: string
+          order_index: number | null
+          pipeline_id: string
+          required_fields: Json | null
+          sla_hours: number | null
+          updated_at: string
+        }
+        Insert: {
+          auto_actions?: Json | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_lost_stage?: boolean | null
+          is_win_stage?: boolean | null
+          name: string
+          order_index?: number | null
+          pipeline_id: string
+          required_fields?: Json | null
+          sla_hours?: number | null
+          updated_at?: string
+        }
+        Update: {
+          auto_actions?: Json | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_lost_stage?: boolean | null
+          is_win_stage?: boolean | null
+          name?: string
+          order_index?: number | null
+          pipeline_id?: string
+          required_fields?: Json | null
+          sla_hours?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_stages_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_tasks: {
+        Row: {
+          assigned_to: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string
+          id: string
+          is_completed: boolean | null
+          is_overdue: boolean | null
+          lead_id: string
+          priority: string | null
+          reminder_at: string | null
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date: string
+          id?: string
+          is_completed?: boolean | null
+          is_overdue?: boolean | null
+          lead_id: string
+          priority?: string | null
+          reminder_at?: string | null
+          task_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          is_completed?: boolean | null
+          is_overdue?: boolean | null
+          lead_id?: string
+          priority?: string | null
+          reminder_at?: string | null
+          task_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_goals: {
         Row: {
           created_at: string
