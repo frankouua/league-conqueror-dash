@@ -75,7 +75,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { value: 'kanban', label: 'Kanban', icon: LayoutGrid },
       { value: 'surgery', label: 'Cirurgias', icon: Calendar, color: 'text-red-500' },
       { value: 'alerts', label: 'Alertas', icon: Clock, color: 'text-orange-500' },
-      { value: 'postsale', label: 'Pós-Venda', icon: Heart, color: 'text-pink-500' },
+      { value: 'postsale', label: 'Atividades', icon: Heart, color: 'text-pink-500' },
     ]
   },
   {

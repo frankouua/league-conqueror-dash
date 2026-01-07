@@ -21,7 +21,7 @@ import { CRMSmartSuggestions } from "@/components/crm/CRMSmartSuggestions";
 import { CRMNotificationsPanel } from "@/components/crm/CRMNotificationsPanel";
 import { CRMAIAssistant } from "@/components/crm/CRMAIAssistant";
 import { CRMPerformanceDashboard } from "@/components/crm/CRMPerformanceDashboard";
-import { CRMPostSaleFlow } from "@/components/crm/CRMPostSaleFlow";
+import { CRMLeadActivities } from "@/components/crm/CRMLeadActivities";
 import { CRMTeamRoutine } from "@/components/crm/CRMTeamRoutine";
 import { CRMGroupChat } from "@/components/crm/CRMGroupChat";
 import { CRMContactPoints } from "@/components/crm/CRMContactPoints";
@@ -375,7 +375,7 @@ const CRM = () => {
         )}
 
         {viewMode === 'postsale' && (
-          <CRMPostSaleFlow />
+          <CRMLeadActivities />
         )}
         
         {viewMode === 'metrics' && (
