@@ -24,7 +24,6 @@ import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 import SellerDashboard from "@/components/SellerDashboard";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { HistoricalTrendsPanel } from "@/components/HistoricalTrendsPanel";
-// GoalGapAnalysis removido - consolidado em ProceduresGoalTracker
 import ExecutiveKPIs from "@/components/ExecutiveKPIs";
 import DailyGoalsPanel from "@/components/DailyGoalsPanel";
 import LeadResponseMetrics from "@/components/LeadResponseMetrics";
@@ -35,7 +34,9 @@ import MonthComparisonPanel from "@/components/MonthComparisonPanel";
 import TeamMembersOverview from "@/components/TeamMembersOverview";
 import ProceduresGoalTracker from "@/components/ProceduresGoalTracker";
 import HistoricalComparison from "@/components/HistoricalComparison";
+import TeamProgressTable from "@/components/TeamProgressTable";
 import { useTeamScores } from "@/hooks/useTeamScores";
+import { useTeamProgressData } from "@/hooks/useTeamProgressData";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
 import MyGoalsDashboard from "@/components/MyGoalsDashboard";
@@ -81,7 +82,12 @@ const Index = () => {
     selectedMonth,
     selectedYear
   );
+  const { teamsProgress } = useTeamProgressData(selectedMonth, selectedYear);
   const { pendingGoal } = usePredefinedGoals();
+
+  // Calculate current day and total days for pace analysis
+  const currentDay = isCurrentPeriod ? now.getDate() : new Date(selectedYear, selectedMonth, 0).getDate();
+  const totalDaysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
 
   // Get top 2 teams
   const team1 = teams[0];
@@ -366,6 +372,26 @@ const Index = () => {
                 <p className="text-muted-foreground">
                   Nenhuma equipe cadastrada ainda.
                 </p>
+              </div>
+            )}
+
+            {/* Team Progress Table - Meta vs Vendido vs Esperado */}
+            {teamsProgress.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Progresso por Categoria
+                  </h3>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    Dia {currentDay} de {totalDaysInMonth}
+                  </span>
+                </div>
+                <TeamProgressTable
+                  teamsData={teamsProgress}
+                  currentDay={currentDay}
+                  totalDaysInMonth={totalDaysInMonth}
+                />
               </div>
             )}
 
