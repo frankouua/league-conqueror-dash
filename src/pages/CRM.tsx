@@ -8,6 +8,7 @@ import { CRMPipelineSelector } from "@/components/crm/CRMPipelineSelector";
 import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
 import { CRMPipelineMetrics } from "@/components/crm/CRMPipelineMetrics";
 import { CRMExportButton } from "@/components/crm/CRMExportButton";
+import { CRMOverviewDashboard } from "@/components/crm/CRMOverviewDashboard";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,8 @@ import {
   Sparkles,
   Activity,
   BarChart3,
-  LayoutGrid
+  LayoutGrid,
+  PieChart
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -56,7 +58,7 @@ const CRM = () => {
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<'kanban' | 'metrics'>('kanban');
+  const [viewMode, setViewMode] = useState<'overview' | 'kanban' | 'metrics'>('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
     priorityOnly: false,
@@ -161,8 +163,12 @@ const CRM = () => {
 
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'kanban' | 'metrics')}>
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'overview' | 'kanban' | 'metrics')}>
               <TabsList className="h-9">
+                <TabsTrigger value="overview" className="gap-1.5 px-3">
+                  <PieChart className="w-4 h-4" />
+                  <span className="hidden sm:inline">Overview</span>
+                </TabsTrigger>
                 <TabsTrigger value="kanban" className="gap-1.5 px-3">
                   <LayoutGrid className="w-4 h-4" />
                   <span className="hidden sm:inline">Kanban</span>
@@ -245,7 +251,10 @@ const CRM = () => {
         <CRMStats pipelineId={selectedPipeline || undefined} />
 
         {/* View Mode Content */}
-        {viewMode === 'kanban' ? (
+        {viewMode === 'overview' ? (
+          /* Overview Dashboard */
+          <CRMOverviewDashboard />
+        ) : viewMode === 'kanban' ? (
           /* Kanban */
           <CRMKanban
             pipelineId={selectedPipeline}
