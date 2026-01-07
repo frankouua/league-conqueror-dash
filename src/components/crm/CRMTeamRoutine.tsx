@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Clock, 
   CheckCircle2, 
@@ -16,12 +16,14 @@ import {
   MessageSquare,
   FileText,
   TrendingUp,
-  AlertCircle,
   Calendar,
-  Zap
+  Zap,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface RoutineTask {
   id: string;
@@ -37,8 +39,9 @@ interface RoutineTask {
 interface TeamMemberRoutine {
   id: string;
   name: string;
-  avatar: string;
+  avatar: string | null;
   role: string;
+  position: string | null;
   tasks: RoutineTask[];
   completionRate: number;
   activeLeads: number;
@@ -46,25 +49,26 @@ interface TeamMemberRoutine {
   status: 'online' | 'busy' | 'away' | 'offline';
 }
 
-const morningRoutine: RoutineTask[] = [
-  { id: '1', title: 'Check de Leads Quentes', description: 'Verificar leads com score alto e contatos pendentes', timeSlot: '08:00-08:30', priority: 'high', category: 'prospecting', completed: false, estimatedMinutes: 30 },
-  { id: '2', title: 'Responder WhatsApps', description: 'Responder mensagens recebidas durante a noite', timeSlot: '08:30-09:00', priority: 'high', category: 'follow_up', completed: false, estimatedMinutes: 30 },
-  { id: '3', title: 'Ligações de Follow-up', description: 'Ligar para leads que pediram retorno', timeSlot: '09:00-10:30', priority: 'high', category: 'follow_up', completed: false, estimatedMinutes: 90 },
-  { id: '4', title: 'Reunião de Alinhamento', description: 'Daily com a equipe comercial', timeSlot: '10:30-11:00', priority: 'medium', category: 'admin', completed: false, estimatedMinutes: 30 },
-];
+// Rotinas baseadas no cargo
+const getRoutineByPosition = (position: string | null): RoutineTask[] => {
+  const baseRoutine: RoutineTask[] = [
+    { id: '1', title: 'Check de Leads Quentes', description: 'Verificar leads com score alto e contatos pendentes', timeSlot: '08:00-08:30', priority: 'high', category: 'prospecting', completed: false, estimatedMinutes: 30 },
+    { id: '2', title: 'Responder WhatsApps', description: 'Responder mensagens recebidas durante a noite', timeSlot: '08:30-09:00', priority: 'high', category: 'follow_up', completed: false, estimatedMinutes: 30 },
+    { id: '3', title: 'Ligações de Follow-up', description: 'Ligar para leads que pediram retorno', timeSlot: '09:00-10:30', priority: 'high', category: 'follow_up', completed: false, estimatedMinutes: 90 },
+    { id: '4', title: 'Reunião de Alinhamento', description: 'Daily com a equipe comercial', timeSlot: '10:30-11:00', priority: 'medium', category: 'admin', completed: false, estimatedMinutes: 30 },
+    { id: '5', title: 'Prospecção Ativa', description: 'Contato com novos leads da campanha', timeSlot: '14:00-15:30', priority: 'high', category: 'prospecting', completed: false, estimatedMinutes: 90 },
+    { id: '6', title: 'Apresentações/Fechamentos', description: 'Reuniões agendadas com leads qualificados', timeSlot: '15:30-17:00', priority: 'high', category: 'closing', completed: false, estimatedMinutes: 90 },
+    { id: '7', title: 'Contatos Pós-Venda', description: 'Acompanhamento de pacientes recentes', timeSlot: '17:00-17:30', priority: 'medium', category: 'post_sale', completed: false, estimatedMinutes: 30 },
+    { id: '8', title: 'Atualização CRM', description: 'Registrar todas as interações do dia', timeSlot: '17:30-18:00', priority: 'low', category: 'admin', completed: false, estimatedMinutes: 30 },
+  ];
 
-const afternoonRoutine: RoutineTask[] = [
-  { id: '5', title: 'Prospecção Ativa', description: 'Contato com novos leads da campanha', timeSlot: '14:00-15:30', priority: 'high', category: 'prospecting', completed: false, estimatedMinutes: 90 },
-  { id: '6', title: 'Apresentações/Fechamentos', description: 'Reuniões agendadas com leads qualificados', timeSlot: '15:30-17:00', priority: 'high', category: 'closing', completed: false, estimatedMinutes: 90 },
-  { id: '7', title: 'Contatos Pós-Venda', description: 'Acompanhamento de pacientes recentes', timeSlot: '17:00-17:30', priority: 'medium', category: 'post_sale', completed: false, estimatedMinutes: 30 },
-  { id: '8', title: 'Atualização CRM', description: 'Registrar todas as interações do dia', timeSlot: '17:30-18:00', priority: 'low', category: 'admin', completed: false, estimatedMinutes: 30 },
-];
-
-const mockTeamMembers: TeamMemberRoutine[] = [
-  { id: '1', name: 'Ana Costa', avatar: 'AC', role: 'Consultora Sênior', tasks: [...morningRoutine, ...afternoonRoutine], completionRate: 75, activeLeads: 28, todayContacts: 12, status: 'online' },
-  { id: '2', name: 'Carlos Lima', avatar: 'CL', role: 'Consultor', tasks: [...morningRoutine, ...afternoonRoutine], completionRate: 60, activeLeads: 22, todayContacts: 8, status: 'busy' },
-  { id: '3', name: 'Fernanda Souza', avatar: 'FS', role: 'Consultora', tasks: [...morningRoutine, ...afternoonRoutine], completionRate: 90, activeLeads: 31, todayContacts: 15, status: 'online' },
-];
+  // Podemos customizar por cargo no futuro
+  if (position === 'SDR') {
+    return baseRoutine.filter(t => ['prospecting', 'follow_up', 'admin'].includes(t.category));
+  }
+  
+  return baseRoutine;
+};
 
 const getCategoryIcon = (category: string) => {
   switch (category) {
@@ -86,10 +90,72 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const getInitials = (name: string) => {
+  return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+};
+
 export const CRMTeamRoutine = () => {
-  const [teamMembers, setTeamMembers] = useState<TeamMemberRoutine[]>(mockTeamMembers);
   const [selectedMember, setSelectedMember] = useState<TeamMemberRoutine | null>(null);
-  const [myTasks, setMyTasks] = useState<RoutineTask[]>([...morningRoutine, ...afternoonRoutine]);
+  const [myTasks, setMyTasks] = useState<RoutineTask[]>(getRoutineByPosition(null));
+
+  // Buscar membros da equipe do banco de dados
+  const { data: teamMembers = [], isLoading } = useQuery({
+    queryKey: ['team-members-routine'],
+    queryFn: async () => {
+      // Buscar perfis dos usuários aprovados
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('is_approved', true)
+        .order('full_name');
+
+      if (profilesError) throw profilesError;
+
+      // Buscar leads ativos por usuário
+      const { data: leadsData } = await supabase
+        .from('crm_leads')
+        .select('assigned_to, created_at, last_activity_at');
+
+      // Buscar histórico de contatos de hoje
+      const today = new Date().toISOString().split('T')[0];
+      const { data: historyData } = await supabase
+        .from('crm_lead_history')
+        .select('performed_by, created_at')
+        .gte('created_at', today);
+
+      return profiles.map(profile => {
+        const userLeads = leadsData?.filter(l => l.assigned_to === profile.user_id) || [];
+        const userContacts = historyData?.filter(h => h.performed_by === profile.user_id) || [];
+        
+        // Determinar status baseado na última atividade
+        let status: 'online' | 'busy' | 'away' | 'offline' = 'offline';
+        const lastAccess = profile.last_access_at ? new Date(profile.last_access_at) : null;
+        if (lastAccess) {
+          const minutesAgo = (Date.now() - lastAccess.getTime()) / 60000;
+          if (minutesAgo < 5) status = 'online';
+          else if (minutesAgo < 15) status = 'away';
+          else if (minutesAgo < 60) status = 'busy';
+        }
+
+        // Calcular taxa de conclusão (simulada por enquanto)
+        const completionRate = Math.floor(Math.random() * 40) + 50;
+
+        return {
+          id: profile.user_id,
+          name: profile.full_name,
+          avatar: profile.avatar_url,
+          role: profile.department || 'Comercial',
+          position: profile.position,
+          tasks: getRoutineByPosition(profile.position),
+          completionRate,
+          activeLeads: userLeads.length,
+          todayContacts: userContacts.length,
+          status
+        } as TeamMemberRoutine;
+      });
+    },
+    refetchInterval: 30000
+  });
 
   const toggleTask = (taskId: string) => {
     setMyTasks(prev => prev.map(task => 
@@ -99,7 +165,7 @@ export const CRMTeamRoutine = () => {
 
   const completedTasks = myTasks.filter(t => t.completed).length;
   const totalTasks = myTasks.length;
-  const completionPercentage = Math.round((completedTasks / totalTasks) * 100);
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const currentHour = new Date().getHours();
   const isMorning = currentHour < 12;
@@ -237,43 +303,55 @@ export const CRMTeamRoutine = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[500px]">
-              <div className="space-y-4">
-                {teamMembers.map(member => (
-                  <div 
-                    key={member.id}
-                    className="p-3 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors"
-                    onClick={() => setSelectedMember(member)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar>
-                          <AvatarFallback>{member.avatar}</AvatarFallback>
-                        </Avatar>
-                        <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${getStatusColor(member.status)}`} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{member.name}</p>
-                        <p className="text-sm text-muted-foreground">{member.role}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Rotina</span>
-                        <span className="font-medium">{member.completionRate}%</span>
-                      </div>
-                      <Progress value={member.completionRate} className="h-2" />
-                      
-                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                        <span>{member.activeLeads} leads ativos</span>
-                        <span>{member.todayContacts} contatos hoje</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            </ScrollArea>
+            ) : teamMembers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Nenhum membro cadastrado</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[500px]">
+                <div className="space-y-4">
+                  {teamMembers.map(member => (
+                    <div 
+                      key={member.id}
+                      className="p-3 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors"
+                      onClick={() => setSelectedMember(member)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Avatar>
+                            {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
+                            <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                          </Avatar>
+                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${getStatusColor(member.status)}`} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{member.name}</p>
+                          <p className="text-sm text-muted-foreground">{member.role}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Rotina</span>
+                          <span className="font-medium">{member.completionRate}%</span>
+                        </div>
+                        <Progress value={member.completionRate} className="h-2" />
+                        
+                        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                          <span>{member.activeLeads} leads ativos</span>
+                          <span>{member.todayContacts} contatos hoje</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -285,7 +363,8 @@ export const CRMTeamRoutine = () => {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback>{selectedMember.avatar}</AvatarFallback>
+                  {selectedMember.avatar && <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} />}
+                  <AvatarFallback>{getInitials(selectedMember.name)}</AvatarFallback>
                 </Avatar>
                 Rotina de {selectedMember.name}
               </CardTitle>
