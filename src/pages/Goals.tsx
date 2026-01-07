@@ -42,6 +42,7 @@ import GoalProgressDashboard from "@/components/GoalProgressDashboard";
 import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
 import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
 import IndividualGoalsForm from "@/components/IndividualGoalsForm";
+import PersonalGoalsByDepartment from "@/components/PersonalGoalsByDepartment";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -331,7 +332,13 @@ const Goals = () => {
           {/* My Goals Tab */}
           <TabsContent value="my-goals" className="space-y-6">
             {user ? (
-              <IndividualGoalsForm month={selectedMonth} year={selectedYear} />
+              <>
+                {/* Metas Pessoais por Departamento com Meta 1, 2, 3 */}
+                <PersonalGoalsByDepartment month={selectedMonth} year={selectedYear} />
+                
+                {/* Formulário de edição de metas */}
+                <IndividualGoalsForm month={selectedMonth} year={selectedYear} />
+              </>
             ) : (
               <Card>
                 <CardContent className="py-8 text-center">
