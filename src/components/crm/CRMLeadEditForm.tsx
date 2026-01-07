@@ -105,19 +105,9 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
     timing_score: lead?.timing_score || 0,
   });
 
-  // Guard against missing lead
-  if (!lead) {
-    return (
-      <Card className="p-8 text-center">
-        <p className="text-muted-foreground">Lead não encontrado</p>
-        <Button variant="outline" onClick={onClose} className="mt-4">
-          Voltar
-        </Button>
-      </Card>
-    );
-  }
-
   useEffect(() => {
+    if (!lead) return;
+    
     const fetchData = async () => {
       let membersQuery = supabase
         .from('profiles')
@@ -141,7 +131,19 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
     };
 
     fetchData();
-  }, [profile?.team_id, role]);
+  }, [lead, profile?.team_id, role]);
+
+  // Guard against missing lead - MUST be after all hooks
+  if (!lead) {
+    return (
+      <Card className="p-8 text-center">
+        <p className="text-muted-foreground">Lead não encontrado</p>
+        <Button variant="outline" onClick={onClose} className="mt-4">
+          Voltar
+        </Button>
+      </Card>
+    );
+  }
 
   const handleProcedureToggle = (procedure: string) => {
     setFormData(prev => ({
