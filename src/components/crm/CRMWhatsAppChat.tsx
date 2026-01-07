@@ -5,7 +5,8 @@ import {
   Send, Smile, Paperclip, Mic, Image, FileText, Video,
   MoreVertical, Phone, Search, Star, Archive, Trash2,
   Check, CheckCheck, Clock, AlertCircle, Bot, Sparkles,
-  ChevronDown, X, Reply, Forward, Copy, Pin, Save
+  ChevronDown, X, Reply, Forward, Copy, Pin, Save,
+  MessageSquare, PanelRightClose, PanelRightOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { CRMLead } from '@/hooks/useCRM';
+import { CRMChatScriptsPanel } from './CRMChatScriptsPanel';
 
 interface Message {
   id: string;
@@ -131,7 +133,7 @@ export function CRMWhatsAppChat({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [showAIPanel, setShowAIPanel] = useState(true);
-  const [showTemplates, setShowTemplates] = useState(false);
+  const [showScriptsPanel, setShowScriptsPanel] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -181,7 +183,7 @@ export function CRMWhatsAppChat({
 
   const handleSelectTemplate = (template: string) => {
     setNewMessage(template);
-    setShowTemplates(false);
+    setShowScriptsPanel(false);
   };
 
   const getStatusIcon = (status: Message['status']) => {
@@ -212,66 +214,87 @@ export function CRMWhatsAppChat({
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col bg-background">
-        {/* Header */}
-        <div className="flex items-center gap-3 p-4 border-b bg-gradient-to-r from-green-600 to-green-700 text-white shrink-0">
-          <Avatar className="h-10 w-10 ring-2 ring-white/20">
-            <AvatarFallback className="bg-white/20 text-white font-bold">
-              {lead.name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold truncate text-base">{lead.name}</h3>
-            <p className="text-xs text-white/80 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse" />
-              {lead.whatsapp || lead.phone || 'Sem WhatsApp'}
-            </p>
+      <SheetContent 
+        side="right" 
+        className={cn(
+          "p-0 flex bg-background transition-all duration-300",
+          showScriptsPanel ? "w-full sm:max-w-4xl" : "w-full sm:max-w-xl"
+        )}
+      >
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <div className="flex items-center gap-3 p-4 border-b bg-gradient-to-r from-green-600 to-green-700 text-white shrink-0">
+            <Avatar className="h-10 w-10 ring-2 ring-white/20">
+              <AvatarFallback className="bg-white/20 text-white font-bold">
+                {lead.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold truncate text-base">{lead.name}</h3>
+              <p className="text-xs text-white/80 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse" />
+                {lead.whatsapp || lead.phone || 'Sem WhatsApp'}
+              </p>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={cn(
+                      "text-white hover:bg-white/10 h-9 w-9",
+                      showScriptsPanel && "bg-white/20"
+                    )}
+                    onClick={() => setShowScriptsPanel(!showScriptsPanel)}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Scripts & Templates</TooltipContent>
+              </Tooltip>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9">
+                <Phone className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "text-white hover:bg-white/10 h-9 w-9",
+                  showAIPanel && "bg-white/20"
+                )}
+                onClick={() => setShowAIPanel(!showAIPanel)}
+              >
+                <Bot className="h-4 w-4" />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover">
+                  <DropdownMenuItem className="gap-2 cursor-pointer">
+                    <Star className="h-4 w-4" />
+                    Marcar como favorito
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-2 cursor-pointer">
+                    <Archive className="h-4 w-4" />
+                    Arquivar conversa
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="gap-2 text-destructive cursor-pointer">
+                    <Trash2 className="h-4 w-4" />
+                    Excluir conversa
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9">
-              <Phone className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9">
-              <Search className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "text-white hover:bg-white/10 h-9 w-9",
-                showAIPanel && "bg-white/20"
-              )}
-              onClick={() => setShowAIPanel(!showAIPanel)}
-            >
-              <Bot className="h-4 w-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover">
-                <DropdownMenuItem className="gap-2 cursor-pointer">
-                  <Star className="h-4 w-4" />
-                  Marcar como favorito
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 cursor-pointer">
-                  <Archive className="h-4 w-4" />
-                  Arquivar conversa
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="gap-2 text-destructive cursor-pointer">
-                  <Trash2 className="h-4 w-4" />
-                  Excluir conversa
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
 
         {/* AI Panel - Redesigned */}
         {showAIPanel && (
@@ -534,6 +557,18 @@ export function CRMWhatsAppChat({
             )}
           </div>
         </div>
+        </div>
+        
+        {/* Scripts Panel */}
+        {showScriptsPanel && (
+          <div className="w-80 border-l bg-background shrink-0">
+            <CRMChatScriptsPanel
+              lead={lead}
+              onSelectTemplate={handleSelectTemplate}
+              onClose={() => setShowScriptsPanel(false)}
+            />
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
