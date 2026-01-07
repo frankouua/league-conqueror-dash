@@ -297,8 +297,24 @@ async function importTransactionData(supabase: any, data: any[], fileType: strin
       const dateValue = findColumn(row, ["Data", "Data de Venda", "Data Pagamento", "Data Competência", "Data da Venda"]);
       const date = parseDate(dateValue);
       
-      // CRITICAL: Accept ALL amounts including zero and negative (cortesias, estornos)
-      const amount = parseAmount(findColumn(row, ["Valor", "Valor Vendido", "Valor Total", "Valor Pago"]));
+      // CRITICAL: Use "Valor Pago" first (actual paid amount), then fall back to "Valor"
+      // "Valor Pago" = actually paid, "Valor" = contracted value which may not be paid yet
+      const valorPago = findColumn(row, ["Valor Pago"]);
+      const valorNormal = findColumn(row, ["Valor", "Valor Vendido", "Valor Total"]);
+      
+      // Prefer "Valor Pago" - skip rows with "-" or empty "Valor Pago" (not yet paid)
+      let amount = 0;
+      if (valorPago !== null && valorPago !== "" && valorPago !== "-") {
+        amount = parseAmount(valorPago);
+      } else if (valorNormal !== null && valorNormal !== "" && valorNormal !== "-") {
+        // Only use "Valor" if no "Valor Pago" column exists in the spreadsheet
+        amount = parseAmount(valorNormal);
+      } else {
+        // Skip rows with no paid value (Em aberto status)
+        console.log(`[SKIP] Row ${stats.total}: No paid value (Valor Pago = "${valorPago}")`);
+        stats.skipped++;
+        continue;
+      }
 
       // Only skip if no date - we process ALL rows with valid dates
       if (!date) {
