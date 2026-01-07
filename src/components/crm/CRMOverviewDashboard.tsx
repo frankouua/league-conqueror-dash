@@ -1,15 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { 
   TrendingUp, TrendingDown, Users, DollarSign, 
-  Target, Clock, Award, AlertTriangle, ArrowUpRight,
+  Target, Clock, Award, AlertTriangle,
   Zap, BarChart3, PieChart
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { format, subDays, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { subDays, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface MetricCard {
