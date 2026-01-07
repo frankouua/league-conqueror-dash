@@ -460,18 +460,42 @@ ${Object.entries(monthlyRevenue)
   })
   .join("\n\n")}
 
-### PROCEDIMENTOS EXECUTADOS POR ANO (TOTAIS ANUAIS)
+### PROCEDIMENTOS EXECUTADOS POR ANO (TOTAIS ANUAIS - TOP 50)
 ${Object.entries(yearlyProcedures)
   .sort((a, b) => Number(b[0]) - Number(a[0]))
   .map(([year, procs]) => {
     const topProcs = Object.entries(procs)
       .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 30)
+      .slice(0, 50)
       .map(([proc, info]) => `  • ${proc}: ${info.count} execuções (R$ ${info.total.toLocaleString("pt-BR")})`)
       .join("\n");
     return `**${year}:**\n${topProcs}`;
   })
   .join("\n\n")}
+
+### BUSCA ESPECÍFICA DE PROCEDIMENTOS (todos que contêm termos comuns)
+${(() => {
+  const searchTerms = ['botox', 'lipo', 'mama', 'abdominoplastia', 'rinoplastia', 'blefaroplastia', 'harmonização', 'peeling', 'laser', 'prótese'];
+  const results: string[] = [];
+  
+  Object.entries(yearlyProcedures)
+    .sort((a, b) => Number(b[0]) - Number(a[0]))
+    .forEach(([year, procs]) => {
+      searchTerms.forEach(term => {
+        const matching = Object.entries(procs)
+          .filter(([proc, _]) => proc.toLowerCase().includes(term))
+          .sort((a, b) => b[1].count - a[1].count);
+        
+        if (matching.length > 0) {
+          const total = matching.reduce((acc, [_, info]) => acc + info.count, 0);
+          const totalValue = matching.reduce((acc, [_, info]) => acc + info.total, 0);
+          results.push(`${year} - "${term.toUpperCase()}": ${total} total (R$ ${totalValue.toLocaleString("pt-BR")}) - ${matching.map(([p, i]) => `${p.substring(0, 40)}: ${i.count}`).join(', ')}`);
+        }
+      });
+    });
+  
+  return results.join("\n");
+})()}
 
 ### PROCEDIMENTOS EXECUTADOS POR MÊS (últimos 6 meses)
 ${Object.entries(monthlyExecuted)
