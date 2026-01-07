@@ -264,7 +264,7 @@ const Index = () => {
                 className="whitespace-nowrap text-sm px-3 py-2 gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg"
               >
                 <Users className="w-4 h-4" />
-                Vendedoras
+                Vendedores
               </TabsTrigger>
               <TabsTrigger 
                 value="departamentos" 
