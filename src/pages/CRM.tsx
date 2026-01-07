@@ -6,16 +6,20 @@ import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
 import { CRMLeadDetail } from "@/components/crm/CRMLeadDetail";
 import { CRMPipelineSelector } from "@/components/crm/CRMPipelineSelector";
 import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
+import { CRMPipelineMetrics } from "@/components/crm/CRMPipelineMetrics";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Plus, 
   RefreshCw, 
   Users,
   Sparkles,
-  Activity
+  Activity,
+  BarChart3,
+  LayoutGrid
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -51,6 +55,7 @@ const CRM = () => {
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<'kanban' | 'metrics'>('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
     priorityOnly: false,
@@ -144,6 +149,20 @@ const CRM = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'kanban' | 'metrics')}>
+              <TabsList className="h-9">
+                <TabsTrigger value="kanban" className="gap-1.5 px-3">
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden sm:inline">Kanban</span>
+                </TabsTrigger>
+                <TabsTrigger value="metrics" className="gap-1.5 px-3">
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Métricas</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
             <Button
               variant="outline"
               size="sm"
@@ -209,13 +228,22 @@ const CRM = () => {
         {/* Stats */}
         <CRMStats pipelineId={selectedPipeline || undefined} />
 
-        {/* Kanban */}
-        <CRMKanban
-          pipelineId={selectedPipeline}
-          stages={pipelineStages}
-          onLeadClick={handleLeadClick}
-          onNewLead={handleNewLead}
-        />
+        {/* View Mode Content */}
+        {viewMode === 'kanban' ? (
+          /* Kanban */
+          <CRMKanban
+            pipelineId={selectedPipeline}
+            stages={pipelineStages}
+            onLeadClick={handleLeadClick}
+            onNewLead={handleNewLead}
+          />
+        ) : (
+          /* Metrics View */
+          <div className="grid lg:grid-cols-2 gap-6">
+            <CRMPipelineMetrics pipelineId={selectedPipeline} />
+            <CRMStats pipelineId={selectedPipeline || undefined} />
+          </div>
+        )}
 
         {/* New Lead Dialog */}
         <CRMNewLeadDialog
