@@ -322,7 +322,7 @@ const CRM = () => {
             )}
             {quickStats.totalValue > 0 && (
               <Badge variant="outline" className="border-green-500/50 text-green-500">
-                R$ {(quickStats.totalValue / 1000).toFixed(0)}k em pipeline
+                R$ {Math.round(quickStats.totalValue / 1000).toLocaleString('pt-BR')}k em pipeline
               </Badge>
             )}
           </div>
