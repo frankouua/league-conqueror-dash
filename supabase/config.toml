@@ -59,3 +59,18 @@ verify_jwt = false
 
 [functions.crm-ai-qualify]
 verify_jwt = false
+
+[functions.crm-generate-scripts]
+verify_jwt = false
+
+[functions.calculate-rfv]
+verify_jwt = false
+
+[functions.import-rfv-to-crm]
+verify_jwt = false
+
+[functions.import-spreadsheet-data]
+verify_jwt = false
+
+[functions.crm-webhook]
+verify_jwt = false
