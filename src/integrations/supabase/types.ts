@@ -2181,6 +2181,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          is_admin: boolean | null
           is_approved: boolean | null
           last_access_at: string | null
           phone: string | null
@@ -2200,6 +2201,7 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          is_admin?: boolean | null
           is_approved?: boolean | null
           last_access_at?: string | null
           phone?: string | null
@@ -2219,6 +2221,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          is_admin?: boolean | null
           is_approved?: boolean | null
           last_access_at?: string | null
           phone?: string | null
@@ -3326,6 +3329,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
       reject_user: {
         Args: { _reason?: string; _user_id: string }
         Returns: undefined
