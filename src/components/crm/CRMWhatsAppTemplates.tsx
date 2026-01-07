@@ -154,8 +154,8 @@ Quer saber mais? 💝`,
 ];
 
 export function CRMWhatsAppTemplates({
-  leadName,
-  leadPhone,
+  leadName = '',
+  leadPhone = '',
   procedures,
   stage,
   onClose,
@@ -165,8 +165,9 @@ export function CRMWhatsAppTemplates({
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const formatMessage = (template: string): string => {
+    const name = leadName ? leadName.split(' ')[0] : '[NOME]';
     let formatted = template
-      .replace(/{nome}/g, leadName.split(' ')[0])
+      .replace(/{nome}/g, name)
       .replace(/{procedimento}/g, procedures?.[0] || 'procedimento de interesse')
       .replace(/{data}/g, '[DATA]')
       .replace(/{horario}/g, '[HORÁRIO]');
