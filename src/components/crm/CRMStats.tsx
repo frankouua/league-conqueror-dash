@@ -25,17 +25,22 @@ export function CRMStats({ pipelineId }: CRMStatsProps) {
     );
   }
 
+  const formatValueK = (value: number) => {
+    const valueInK = Math.round(value / 1000);
+    return valueInK.toLocaleString('pt-BR');
+  };
+
   const statCards = [
     {
       label: 'Total de Leads',
-      value: stats.totalLeads,
+      value: stats.totalLeads.toLocaleString('pt-BR'),
       icon: Users,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
     },
     {
       label: 'Valor em Pipeline',
-      value: `R$ ${(stats.totalValue / 1000).toFixed(0)}k`,
+      value: `R$ ${formatValueK(stats.totalValue)}k`,
       icon: DollarSign,
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
@@ -49,8 +54,8 @@ export function CRMStats({ pipelineId }: CRMStatsProps) {
     },
     {
       label: 'Ganhos',
-      value: stats.wonLeads,
-      subValue: stats.wonValue > 0 ? `R$ ${(stats.wonValue / 1000).toFixed(0)}k` : null,
+      value: stats.wonLeads.toLocaleString('pt-BR'),
+      subValue: stats.wonValue > 0 ? `R$ ${formatValueK(stats.wonValue)}k` : null,
       icon: CheckCircle2,
       color: 'text-emerald-500',
       bgColor: 'bg-emerald-500/10',
