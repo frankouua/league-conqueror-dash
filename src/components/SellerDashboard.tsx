@@ -644,6 +644,7 @@ export default function SellerDashboard({
                 {/* Department Progress Tables */}
                 <SellerDepartmentProgress 
                   userId={selectedSeller.userId} 
+                  userName={selectedSeller.name}
                   month={month} 
                   year={year} 
                 />

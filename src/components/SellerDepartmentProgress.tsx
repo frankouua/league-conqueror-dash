@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DollarSign, Hash } from "lucide-react";
+import { DollarSign, Hash, TrendingDown, TrendingUp } from "lucide-react";
+import { CLINIC_GOALS } from "@/constants/clinicGoals";
 
 // Map database department strings to department_goals names
 const DEPARTMENT_MAPPING: Record<string, string> = {
@@ -44,6 +45,12 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+const formatCompact = (value: number) => {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `${Math.round(value / 1000)}K`;
+  return value.toString();
+};
+
 interface DepartmentData {
   name: string;
   goal: number;
@@ -52,17 +59,18 @@ interface DepartmentData {
 
 interface SellerDepartmentProgressProps {
   userId: string;
+  userName?: string;
   month: number;
   year: number;
 }
 
-const SellerDepartmentProgress = ({ userId, month, year }: SellerDepartmentProgressProps) => {
+const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepartmentProgressProps) => {
   const now = new Date();
   const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear();
   const currentDay = isCurrentMonth ? now.getDate() : new Date(year, month, 0).getDate();
   const totalDaysInMonth = new Date(year, month, 0).getDate();
 
-  // Fetch department goals (revenue)
+  // Fetch department goals (revenue) - use meta3_goal
   const { data: departmentGoals = [] } = useQuery({
     queryKey: ["department-goals", month, year],
     queryFn: async () => {
@@ -137,12 +145,13 @@ const SellerDepartmentProgress = ({ userId, month, year }: SellerDepartmentProgr
     }
   });
 
-  // Calculate individual share of goals
+  // Calculate individual share of goals based on META 3
   const individualShareDivisor = Math.max(sellerCount, 1);
+  const individualMeta3Goal = CLINIC_GOALS.META_3 / individualShareDivisor;
 
-  // Build revenue department data
+  // Build revenue department data using meta3_goal
   const revenueDepartments: DepartmentData[] = departmentGoals.map((dg) => {
-    const individualGoal = dg.meta1_goal / individualShareDivisor;
+    const individualGoal = dg.meta3_goal / individualShareDivisor;
     return {
       name: SHORT_NAMES[dg.department_name] || dg.department_name,
       goal: individualGoal,
@@ -170,14 +179,34 @@ const SellerDepartmentProgress = ({ userId, month, year }: SellerDepartmentProgr
   const totalQuantityGoal = quantityDepartments.reduce((s, d) => s + d.goal, 0);
   const totalQuantitySold = quantityDepartments.reduce((s, d) => s + d.sold, 0);
 
+  // Calculate expected for current day
+  const expectedRevenue = (totalRevenueGoal / totalDaysInMonth) * currentDay;
+  const expectedQuantity = Math.ceil((totalQuantityGoal / totalDaysInMonth) * currentDay);
+
   const revenueProgress = totalRevenueGoal > 0 ? (totalRevenueSold / totalRevenueGoal) * 100 : 0;
   const quantityProgress = totalQuantityGoal > 0 ? (totalQuantitySold / totalQuantityGoal) * 100 : 0;
+
+  // Pace calculations
+  const revenuePaceDiff = expectedRevenue > 0 ? ((totalRevenueSold - expectedRevenue) / expectedRevenue) * 100 : 0;
+  const quantityPaceDiff = expectedQuantity > 0 ? ((totalQuantitySold - expectedQuantity) / expectedQuantity) * 100 : 0;
 
   const getStatusBadge = (sold: number, goal: number, expected: number) => {
     if (sold >= goal) return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">Meta!</Badge>;
     if (sold >= expected) return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">Acima</Badge>;
     if (sold >= expected * 0.8) return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px]">Abaixo</Badge>;
     return <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px]">Crítico</Badge>;
+  };
+
+  const getPaceBadge = (paceDiff: number) => {
+    const isPositive = paceDiff >= 0;
+    const Icon = isPositive ? TrendingUp : TrendingDown;
+    const color = isPositive ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-red-500/20 text-red-400 border-red-500/30";
+    return (
+      <Badge className={`${color} text-[10px] flex items-center gap-1`}>
+        <Icon className="w-3 h-3" />
+        {isPositive ? "+" : ""}{paceDiff.toFixed(0)}%
+      </Badge>
+    );
   };
 
   if (departmentGoals.length === 0 && quantityGoals.length === 0) {
@@ -190,11 +219,23 @@ const SellerDepartmentProgress = ({ userId, month, year }: SellerDepartmentProgr
       {revenueDepartments.length > 0 && (
         <Card className="bg-card/50 border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <DollarSign className="w-4 h-4 text-primary" />
-              Progresso por Departamento (Faturamento)
-              <Badge variant="outline" className="ml-2 text-[10px]">R$</Badge>
-            </CardTitle>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <DollarSign className="w-4 h-4 text-primary" />
+                Faturamento {userName && <span className="text-muted-foreground">• {userName}</span>}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-primary">{formatCompact(totalRevenueSold)}</span>
+                  {" / "}
+                  <span className="text-emerald-400">{formatCompact(expectedRevenue)}</span>
+                  {" / "}
+                  <span>{formatCompact(totalRevenueGoal)}</span>
+                </span>
+                {getPaceBadge(revenuePaceDiff)}
+                <Badge variant="outline" className="text-[10px]">Dia {currentDay}/{totalDaysInMonth}</Badge>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-3">
             <Table>
@@ -242,11 +283,7 @@ const SellerDepartmentProgress = ({ userId, month, year }: SellerDepartmentProgr
                 </TableRow>
               </TableBody>
             </Table>
-            <div className="mt-2 space-y-1">
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>Progresso: {revenueProgress.toFixed(1)}%</span>
-                <span>Dia {currentDay}/{totalDaysInMonth}</span>
-              </div>
+            <div className="mt-2">
               <Progress value={revenueProgress} className="h-1.5" />
             </div>
           </CardContent>
@@ -257,11 +294,23 @@ const SellerDepartmentProgress = ({ userId, month, year }: SellerDepartmentProgr
       {quantityDepartments.length > 0 && (
         <Card className="bg-card/50 border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Hash className="w-4 h-4 text-primary" />
-              Progresso por Departamento (Quantidade)
-              <Badge variant="outline" className="ml-2 text-[10px]"># Qtd</Badge>
-            </CardTitle>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Hash className="w-4 h-4 text-primary" />
+                Quantidade {userName && <span className="text-muted-foreground">• {userName}</span>}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-primary">{totalQuantitySold}</span>
+                  {" / "}
+                  <span className="text-emerald-400">{expectedQuantity}</span>
+                  {" / "}
+                  <span>{totalQuantityGoal}</span>
+                </span>
+                {getPaceBadge(quantityPaceDiff)}
+                <Badge variant="outline" className="text-[10px]">Dia {currentDay}/{totalDaysInMonth}</Badge>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-3">
             <Table>
@@ -303,11 +352,7 @@ const SellerDepartmentProgress = ({ userId, month, year }: SellerDepartmentProgr
                 </TableRow>
               </TableBody>
             </Table>
-            <div className="mt-2 space-y-1">
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>Progresso: {quantityProgress.toFixed(1)}%</span>
-                <span>Dia {currentDay}/{totalDaysInMonth}</span>
-              </div>
+            <div className="mt-2">
               <Progress value={quantityProgress} className="h-1.5" />
             </div>
           </CardContent>
