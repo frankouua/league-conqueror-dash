@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,7 @@ import { ptBR } from "date-fns/locale";
 import { PaceBadge } from "@/components/PaceBadge";
 import { calculatePaceMetrics } from "@/lib/paceAnalysis";
 import { cn } from "@/lib/utils";
+import SellerDepartmentProgress from "@/components/SellerDepartmentProgress";
 
 interface SellerDashboardProps {
   month: number;
@@ -73,6 +75,7 @@ interface SellerDashboardProps {
 interface SellerData {
   userId: string;
   name: string;
+  avatarUrl: string | null;
   department: string | null;
   position: string | null;
   teamId: string;
@@ -267,6 +270,7 @@ export default function SellerDashboard({
         return {
           userId: profile.user_id,
           name: profile.full_name,
+          avatarUrl: profile.avatar_url,
           department: profile.department,
           position: profile.position,
           teamId: profile.team_id || "",
@@ -387,12 +391,12 @@ export default function SellerDashboard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Dashboard por Vendedora
+            Dashboard por Vendedor
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Clique em uma vendedora para ver detalhes completos de performance
+            Clique em um vendedor para ver detalhes completos de performance
           </p>
           
           <ScrollArea className="h-[500px]">
@@ -520,7 +524,7 @@ export default function SellerDashboard({
               {sellersData.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhuma vendedora com metas configuradas para este período</p>
+                  <p>Nenhum vendedor com metas configuradas para este período</p>
                 </div>
               )}
             </div>
@@ -534,10 +538,13 @@ export default function SellerDashboard({
           {selectedSeller && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
+                <DialogTitle className="flex items-center gap-4">
+                  <Avatar className="w-16 h-16 border-2 border-primary/30">
+                    <AvatarImage src={selectedSeller.avatarUrl || undefined} alt={selectedSeller.name} />
+                    <AvatarFallback className="text-xl bg-primary/20 text-primary font-bold">
+                      {selectedSeller.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <span className="text-xl">{selectedSeller.name}</span>
                     <div className="flex items-center gap-2 mt-1">
@@ -633,6 +640,13 @@ export default function SellerDashboard({
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Department Progress Tables */}
+                <SellerDepartmentProgress 
+                  userId={selectedSeller.userId} 
+                  month={month} 
+                  year={year} 
+                />
 
                 {/* Comparison with equivalent seller */}
                 {(() => {
