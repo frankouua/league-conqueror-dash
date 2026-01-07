@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Header from "@/components/Header";
 import { CRMKanban } from "@/components/crm/CRMKanban";
 import { CRMStats } from "@/components/crm/CRMStats";
@@ -29,6 +29,10 @@ import { CRMWhatsAppMonitor } from "@/components/crm/CRMWhatsAppMonitor";
 import { CRMWhatsAppChat } from "@/components/crm/CRMWhatsAppChat";
 import { CRMWhatsAppConnections } from "@/components/crm/CRMWhatsAppConnections";
 import { CRMMarketingAutomations } from "@/components/crm/CRMMarketingAutomations";
+import { CRMKeyboardShortcuts } from "@/components/crm/CRMKeyboardShortcuts";
+import { CRMGlobalSearch } from "@/components/crm/CRMGlobalSearch";
+import { CRMProposalTemplates } from "@/components/crm/CRMProposalTemplates";
+import { CRMCalendarIntegration } from "@/components/crm/CRMCalendarIntegration";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +58,10 @@ import {
   Heart,
   Bot,
   Smartphone,
-  Mail
+  Mail,
+  Calendar,
+  FileText,
+  Search
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -86,15 +93,17 @@ const useLeadCountsPerPipeline = () => {
 const CRM = () => {
   const { pipelines, stages, pipelinesLoading, stagesLoading } = useCRM();
   const { data: leadCountData } = useLeadCountsPerPipeline();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [chatLead, setChatLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [viewMode, setViewMode] = useState<
     'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' | 
     'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' | 
-    'contacts' | 'postsale' | 'connections' | 'marketing'
+    'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
   >('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
@@ -188,6 +197,23 @@ const CRM = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      
+      {/* Keyboard Shortcuts */}
+      <CRMKeyboardShortcuts
+        onNavigate={(view) => setViewMode(view as typeof viewMode)}
+        onNewLead={() => setNewLeadDialogOpen(true)}
+        onRefresh={() => refetch()}
+        onFocusSearch={() => setShowGlobalSearch(true)}
+      />
+      
+      {/* Global Search */}
+      <CRMGlobalSearch
+        leads={leads}
+        onSelectLead={handleLeadClick}
+        onNavigate={(view) => setViewMode(view as typeof viewMode)}
+        isOpen={showGlobalSearch}
+        onOpenChange={setShowGlobalSearch}
+      />
       
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Header */}
@@ -288,6 +314,14 @@ const CRM = () => {
                 <TabsTrigger value="leaderboard" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Trophy className="w-4 h-4" />
                   <span className="hidden md:inline">Ranking</span>
+                </TabsTrigger>
+                <TabsTrigger value="calendar" className="gap-1.5 px-3 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                  <Calendar className="w-4 h-4" />
+                  <span className="hidden md:inline">Agenda</span>
+                </TabsTrigger>
+                <TabsTrigger value="proposals" className="gap-1.5 px-3 data-[state=active]:bg-indigo-500 data-[state=active]:text-white">
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden md:inline">Propostas</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
