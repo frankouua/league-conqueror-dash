@@ -60,6 +60,7 @@ const PIPELINE_TYPES = [
   { value: 'cs', label: 'Pós-Venda (CS)', icon: Zap, color: 'from-purple-500 to-pink-500' },
   { value: 'farmer', label: 'Fidelização (Farmer)', icon: LayoutGrid, color: 'from-orange-500 to-amber-500' },
   { value: 'social_selling', label: 'Social Selling', icon: Share2, color: 'from-pink-500 to-rose-500' },
+  { value: 'rfv_matrix', label: 'Matriz RFV', icon: LayoutGrid, color: 'from-cyan-500 to-teal-500' },
   { value: 'resgate', label: 'Resgate de Leads', icon: TrendingUp, color: 'from-red-500 to-orange-500' },
   { value: 'influencer', label: 'Influencers', icon: Star, color: 'from-yellow-500 to-amber-500' },
   { value: 'custom', label: 'Personalizado', icon: Briefcase, color: 'from-gray-500 to-slate-500' },

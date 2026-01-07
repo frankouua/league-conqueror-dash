@@ -9,6 +9,7 @@ import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
 import { CRMPipelineMetrics } from "@/components/crm/CRMPipelineMetrics";
 import { CRMExportButton } from "@/components/crm/CRMExportButton";
 import { CRMRFVIntegration } from "@/components/crm/CRMRFVIntegration";
+import { CRMRFVMatrixImport } from "@/components/crm/CRMRFVMatrixImport";
 import { CRMCampaignIntegration } from "@/components/crm/CRMCampaignIntegration";
 import { CRMProtocolIntegration } from "@/components/crm/CRMProtocolIntegration";
 import { CRMSalesMetrics } from "@/components/crm/CRMSalesMetrics";
@@ -395,6 +396,18 @@ const CRM = () => {
         
         {viewMode === 'rfv' && (
           <CRMRFVIntegration />
+        )}
+
+        {viewMode === 'rfv-matrix' && (
+          <div className="space-y-6">
+            <CRMRFVMatrixImport />
+            <CRMKanban 
+              pipelineId="66666666-6666-6666-6666-666666666666"
+              stages={stages.filter(s => s.pipeline_id === "66666666-6666-6666-6666-666666666666")}
+              onLeadClick={handleLeadClick}
+              onNewLead={handleNewLead}
+            />
+          </div>
         )}
         
         {viewMode === 'campaigns' && (
