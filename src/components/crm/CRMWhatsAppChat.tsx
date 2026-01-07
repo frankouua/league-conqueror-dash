@@ -217,23 +217,23 @@ export function CRMWhatsAppChat({
       <SheetContent 
         side="right" 
         className={cn(
-          "p-0 flex bg-background transition-all duration-300",
+          "p-0 flex bg-card transition-all duration-300 border-l border-border",
           showScriptsPanel ? "w-full sm:max-w-4xl" : "w-full sm:max-w-xl"
         )}
       >
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-3 p-4 border-b bg-gradient-to-r from-green-600 to-green-700 text-white shrink-0">
-            <Avatar className="h-10 w-10 ring-2 ring-white/20">
-              <AvatarFallback className="bg-white/20 text-white font-bold">
+          {/* Header - Gold themed */}
+          <div className="flex items-center gap-3 p-4 border-b border-border bg-gradient-to-r from-primary/20 to-primary/10 shrink-0">
+            <Avatar className="h-10 w-10 ring-2 ring-primary/30">
+              <AvatarFallback className="bg-primary text-primary-foreground font-bold">
                 {lead.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold truncate text-base">{lead.name}</h3>
-              <p className="text-xs text-white/80 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse" />
+              <h3 className="font-semibold truncate text-base text-foreground">{lead.name}</h3>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 {lead.whatsapp || lead.phone || 'Sem WhatsApp'}
               </p>
             </div>
@@ -244,8 +244,8 @@ export function CRMWhatsAppChat({
                     variant="ghost" 
                     size="icon" 
                     className={cn(
-                      "text-white hover:bg-white/10 h-9 w-9",
-                      showScriptsPanel && "bg-white/20"
+                      "text-foreground hover:bg-primary/20 h-9 w-9",
+                      showScriptsPanel && "bg-primary/20 text-primary"
                     )}
                     onClick={() => setShowScriptsPanel(!showScriptsPanel)}
                   >
@@ -254,15 +254,15 @@ export function CRMWhatsAppChat({
                 </TooltipTrigger>
                 <TooltipContent>Scripts & Templates</TooltipContent>
               </Tooltip>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9">
+              <Button variant="ghost" size="icon" className="text-foreground hover:bg-primary/20 h-9 w-9">
                 <Phone className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "text-white hover:bg-white/10 h-9 w-9",
-                  showAIPanel && "bg-white/20"
+                  "text-foreground hover:bg-primary/20 h-9 w-9",
+                  showAIPanel && "bg-primary/20 text-primary"
                 )}
                 onClick={() => setShowAIPanel(!showAIPanel)}
               >
@@ -270,48 +270,48 @@ export function CRMWhatsAppChat({
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9">
+                  <Button variant="ghost" size="icon" className="text-foreground hover:bg-primary/20 h-9 w-9">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-popover">
-                  <DropdownMenuItem className="gap-2 cursor-pointer">
+                <DropdownMenuContent align="end" className="bg-popover border-border">
+                  <DropdownMenuItem className="gap-2 cursor-pointer text-foreground">
                     <Star className="h-4 w-4" />
                     Marcar como favorito
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="gap-2 cursor-pointer">
+                  <DropdownMenuItem className="gap-2 cursor-pointer text-foreground">
                     <Archive className="h-4 w-4" />
                     Arquivar conversa
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-border" />
                   <DropdownMenuItem className="gap-2 text-destructive cursor-pointer">
                     <Trash2 className="h-4 w-4" />
                     Excluir conversa
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9" onClick={onClose}>
+              <Button variant="ghost" size="icon" className="text-foreground hover:bg-primary/20 h-9 w-9" onClick={onClose}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-        {/* AI Panel - Redesigned */}
+        {/* AI Panel - Themed with gold */}
         {showAIPanel && (
-          <div className="p-4 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/40 dark:to-violet-950/40 border-b space-y-3 shrink-0">
+          <div className="p-4 bg-secondary/50 border-b border-border space-y-3 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-primary" />
                 </div>
-                <span className="font-medium text-purple-900 dark:text-purple-100">
+                <span className="font-medium text-foreground">
                   Análise da IA
                 </span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-7 text-xs text-purple-600 hover:text-purple-700"
+                className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary"
                 onClick={() => setShowAIPanel(false)}
               >
                 Ocultar
@@ -320,24 +320,24 @@ export function CRMWhatsAppChat({
 
             {getLatestAIAnalysis() && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-white dark:bg-background rounded-lg border shadow-sm">
+                <div className="p-3 bg-card rounded-lg border border-border">
                   <span className="text-xs text-muted-foreground block mb-1">Sentimento:</span>
                   <Badge
                     variant="outline"
                     className={cn(
-                      "font-medium",
-                      getLatestAIAnalysis()?.sentiment === 'positive' && "border-green-500 text-green-600 bg-green-50",
-                      getLatestAIAnalysis()?.sentiment === 'neutral' && "border-yellow-500 text-yellow-600 bg-yellow-50",
-                      getLatestAIAnalysis()?.sentiment === 'negative' && "border-red-500 text-red-600 bg-red-50"
+                      "font-medium border",
+                      getLatestAIAnalysis()?.sentiment === 'positive' && "border-green-500/50 text-green-400 bg-green-500/10",
+                      getLatestAIAnalysis()?.sentiment === 'neutral' && "border-yellow-500/50 text-yellow-400 bg-yellow-500/10",
+                      getLatestAIAnalysis()?.sentiment === 'negative' && "border-red-500/50 text-red-400 bg-red-500/10"
                     )}
                   >
                     {getLatestAIAnalysis()?.sentiment === 'positive' ? '😊 Positivo' :
                       getLatestAIAnalysis()?.sentiment === 'neutral' ? '😐 Neutro' : '😔 Negativo'}
                   </Badge>
                 </div>
-                <div className="p-3 bg-white dark:bg-background rounded-lg border shadow-sm">
+                <div className="p-3 bg-card rounded-lg border border-border">
                   <span className="text-xs text-muted-foreground block mb-1">Intenção:</span>
-                  <span className="text-sm font-medium capitalize">
+                  <span className="text-sm font-medium capitalize text-foreground">
                     {getLatestAIAnalysis()?.intent?.replace(/_/g, ' ')}
                   </span>
                 </div>
@@ -345,19 +345,19 @@ export function CRMWhatsAppChat({
             )}
 
             {Object.keys(extractedData).length > 0 && (
-              <div className="p-3 bg-white dark:bg-background rounded-lg border shadow-sm">
+              <div className="p-3 bg-card rounded-lg border border-border">
                 <p className="text-xs text-muted-foreground mb-2 font-medium">Dados extraídos:</p>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(extractedData).map(([key, value]) => (
-                    <Badge key={key} variant="secondary" className="text-xs py-1">
+                    <Badge key={key} variant="secondary" className="text-xs py-1 bg-secondary border border-border">
                       <span className="text-muted-foreground mr-1">{key.replace(/_/g, ' ')}:</span>
-                      <span className="font-medium">{value as string}</span>
+                      <span className="font-medium text-foreground">{value as string}</span>
                     </Badge>
                   ))}
                 </div>
                 <Button
                   size="sm"
-                  className="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  className="mt-3 w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                   onClick={() => onDataExtracted?.(extractedData)}
                 >
                   <Save className="h-3.5 w-3.5 mr-1.5" />
@@ -367,14 +367,14 @@ export function CRMWhatsAppChat({
             )}
 
             {getLatestAIAnalysis()?.suggestedAction && (
-              <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-800">
-                <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+              <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
                     💡
                   </span>
                   <span>
-                    <strong className="block text-xs uppercase tracking-wide mb-0.5">Próxima ação:</strong>
-                    {getLatestAIAnalysis()?.suggestedAction}
+                    <strong className="block text-xs uppercase tracking-wide mb-0.5 text-primary">Próxima ação:</strong>
+                    <span className="text-foreground">{getLatestAIAnalysis()?.suggestedAction}</span>
                   </span>
                 </p>
               </div>
@@ -383,7 +383,7 @@ export function CRMWhatsAppChat({
         )}
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-4 bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-950">
+        <ScrollArea className="flex-1 p-4 bg-background">
           <div className="space-y-4 max-w-lg mx-auto">
             {messages.map((message) => (
               <div
@@ -395,22 +395,22 @@ export function CRMWhatsAppChat({
               >
                 <div
                   className={cn(
-                    "relative max-w-[85%] rounded-2xl p-3 shadow-md",
+                    "relative max-w-[85%] rounded-2xl p-3 shadow-sm",
                     message.sender === 'me'
-                      ? "bg-gradient-to-br from-green-400 to-green-500 text-white rounded-br-sm"
-                      : "bg-white dark:bg-slate-800 rounded-bl-sm"
+                      ? "bg-primary text-primary-foreground rounded-br-sm"
+                      : "bg-card border border-border rounded-bl-sm"
                   )}
                 >
                   {/* AI indicator for contact messages */}
                   {message.sender === 'contact' && message.aiAnalysis && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="absolute -left-7 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                          <Sparkles className="h-3 w-3 text-purple-500" />
+                        <div className="absolute -left-7 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Sparkles className="h-3 w-3 text-primary" />
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="left" className="max-w-[250px] bg-popover">
-                        <p className="text-xs">
+                      <TooltipContent side="left" className="max-w-[250px] bg-popover border-border">
+                        <p className="text-xs text-foreground">
                           <strong>Sentimento:</strong> {message.aiAnalysis.sentiment}<br />
                           <strong>Intenção:</strong> {message.aiAnalysis.intent}
                         </p>
@@ -420,13 +420,13 @@ export function CRMWhatsAppChat({
 
                   <p className={cn(
                     "text-sm whitespace-pre-wrap break-words leading-relaxed",
-                    message.sender === 'me' ? "text-white" : "text-foreground"
+                    message.sender === 'me' ? "text-primary-foreground" : "text-foreground"
                   )}>
                     {message.content}
                   </p>
                   <div className={cn(
                     "flex items-center justify-end gap-1 mt-1.5",
-                    message.sender === 'me' ? "text-white/70" : "text-muted-foreground"
+                    message.sender === 'me' ? "text-primary-foreground/70" : "text-muted-foreground"
                   )}>
                     <span className="text-[10px]">
                       {format(message.timestamp, 'HH:mm', { locale: ptBR })}
@@ -442,26 +442,26 @@ export function CRMWhatsAppChat({
                         size="icon"
                         className={cn(
                           "absolute -right-10 top-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity",
-                          "hover:bg-muted rounded-full"
+                          "hover:bg-secondary rounded-full text-foreground"
                         )}
                       >
                         <ChevronDown className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-popover">
-                      <DropdownMenuItem onClick={() => setReplyingTo(message)} className="cursor-pointer">
+                    <DropdownMenuContent align="end" className="bg-popover border-border">
+                      <DropdownMenuItem onClick={() => setReplyingTo(message)} className="cursor-pointer text-foreground">
                         <Reply className="h-4 w-4 mr-2" />
                         Responder
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
+                      <DropdownMenuItem className="cursor-pointer text-foreground">
                         <Forward className="h-4 w-4 mr-2" />
                         Encaminhar
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
+                      <DropdownMenuItem className="cursor-pointer text-foreground">
                         <Copy className="h-4 w-4 mr-2" />
                         Copiar
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
+                      <DropdownMenuItem className="cursor-pointer text-foreground">
                         <Pin className="h-4 w-4 mr-2" />
                         Fixar
                       </DropdownMenuItem>
@@ -473,11 +473,11 @@ export function CRMWhatsAppChat({
 
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-sm p-4 shadow-md">
+                <div className="bg-card border border-border rounded-2xl rounded-bl-sm p-4 shadow-sm">
                   <div className="flex gap-1.5">
-                    <span className="w-2.5 h-2.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-2.5 h-2.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-2.5 h-2.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <span className="w-2.5 h-2.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2.5 h-2.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2.5 h-2.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               </div>
@@ -489,45 +489,45 @@ export function CRMWhatsAppChat({
 
         {/* Reply Preview */}
         {replyingTo && (
-          <div className="px-4 py-2 bg-muted/50 border-t flex items-center gap-2 shrink-0">
-            <div className="w-1 h-10 bg-green-500 rounded-full" />
+          <div className="px-4 py-2 bg-secondary/50 border-t border-border flex items-center gap-2 shrink-0">
+            <div className="w-1 h-10 bg-primary rounded-full" />
             <div className="flex-1 min-w-0">
-              <span className="text-xs font-medium text-green-600">Respondendo</span>
+              <span className="text-xs font-medium text-primary">Respondendo</span>
               <p className="text-sm text-muted-foreground truncate">{replyingTo.content}</p>
             </div>
-            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => setReplyingTo(null)}>
+            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 text-foreground hover:bg-secondary" onClick={() => setReplyingTo(null)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
         )}
 
         {/* Input Area */}
-        <div className="p-3 bg-background border-t shrink-0">
+        <div className="p-3 bg-card border-t border-border shrink-0">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 h-10 w-10 rounded-full hover:bg-muted"
+              className="shrink-0 h-10 w-10 rounded-full hover:bg-secondary text-muted-foreground"
               onClick={() => {/* Template selection placeholder */}}
             >
-              <Smile className="h-5 w-5 text-muted-foreground" />
+              <Smile className="h-5 w-5" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-full hover:bg-muted">
-                  <Paperclip className="h-5 w-5 text-muted-foreground" />
+                <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-full hover:bg-secondary text-muted-foreground">
+                  <Paperclip className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-popover">
-                <DropdownMenuItem className="gap-2 cursor-pointer">
+              <DropdownMenuContent className="bg-popover border-border">
+                <DropdownMenuItem className="gap-2 cursor-pointer text-foreground">
                   <Image className="h-4 w-4" />
                   Imagem
                 </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 cursor-pointer">
+                <DropdownMenuItem className="gap-2 cursor-pointer text-foreground">
                   <FileText className="h-4 w-4" />
                   Documento
                 </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 cursor-pointer">
+                <DropdownMenuItem className="gap-2 cursor-pointer text-foreground">
                   <Video className="h-4 w-4" />
                   Vídeo
                 </DropdownMenuItem>
@@ -539,20 +539,20 @@ export function CRMWhatsAppChat({
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                className="pr-10 rounded-full bg-muted/50 border-muted focus-visible:ring-green-500"
+                className="pr-10 rounded-full bg-secondary/50 border-border focus-visible:ring-primary text-foreground placeholder:text-muted-foreground"
               />
             </div>
             {newMessage ? (
               <Button 
                 size="icon" 
                 onClick={handleSendMessage} 
-                className="shrink-0 h-10 w-10 rounded-full bg-green-600 hover:bg-green-700 shadow-md"
+                className="shrink-0 h-10 w-10 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
               >
                 <Send className="h-5 w-5" />
               </Button>
             ) : (
-              <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-full hover:bg-muted">
-                <Mic className="h-5 w-5 text-muted-foreground" />
+              <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10 rounded-full hover:bg-secondary text-muted-foreground">
+                <Mic className="h-5 w-5" />
               </Button>
             )}
           </div>
@@ -561,7 +561,7 @@ export function CRMWhatsAppChat({
         
         {/* Scripts Panel */}
         {showScriptsPanel && (
-          <div className="w-80 border-l bg-background shrink-0">
+          <div className="w-80 border-l border-border bg-card shrink-0">
             <CRMChatScriptsPanel
               lead={lead}
               onSelectTemplate={handleSelectTemplate}

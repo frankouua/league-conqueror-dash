@@ -299,18 +299,18 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-card">
       {/* Header */}
-      <div className="p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30">
+      <div className="p-4 border-b border-border bg-secondary/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
-              <MessageSquare className="h-4 w-4 text-violet-600" />
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+              <MessageSquare className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm">Scripts & Templates</h3>
+              <h3 className="font-semibold text-sm text-foreground">Scripts & Templates</h3>
               <p className="text-xs text-muted-foreground">
-                Etapa atual: <Badge variant="outline" className="ml-1 text-xs">{currentStage}</Badge>
+                Etapa atual: <Badge variant="outline" className="ml-1 text-xs border-border">{currentStage}</Badge>
               </p>
             </div>
           </div>
@@ -319,16 +319,16 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
 
       {/* Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="flex-1 flex flex-col">
-        <TabsList className="mx-4 mt-3 grid grid-cols-3">
-          <TabsTrigger value="templates" className="text-xs gap-1">
+        <TabsList className="mx-4 mt-3 grid grid-cols-3 bg-secondary">
+          <TabsTrigger value="templates" className="text-xs gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <MessageSquare className="h-3 w-3" />
             Etapa
           </TabsTrigger>
-          <TabsTrigger value="general" className="text-xs gap-1">
+          <TabsTrigger value="general" className="text-xs gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Zap className="h-3 w-3" />
             Gerais
           </TabsTrigger>
-          <TabsTrigger value="ai" className="text-xs gap-1">
+          <TabsTrigger value="ai" className="text-xs gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Sparkles className="h-3 w-3" />
             IA
           </TabsTrigger>
@@ -339,14 +339,14 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
           <TabsContent value="templates" className="m-0 space-y-3">
             <div className="flex items-center gap-2 mb-3">
               <Target className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Templates para "{currentStage}"</span>
+              <span className="text-sm font-medium text-foreground">Templates para "{currentStage}"</span>
             </div>
             
             {stageTemplates.map((template) => (
-              <Card key={template.id} className="hover:border-primary/50 transition-colors">
+              <Card key={template.id} className="hover:border-primary/50 transition-colors bg-card border-border">
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-medium text-sm">{template.title}</h4>
+                    <h4 className="font-medium text-sm text-foreground">{template.title}</h4>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -376,7 +376,7 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
                   {template.tags && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {template.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-[10px] py-0">
+                        <Badge key={tag} variant="secondary" className="text-[10px] py-0 bg-secondary text-foreground border-border">
                           {tag}
                         </Badge>
                       ))}
@@ -386,7 +386,7 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
               </Card>
             ))}
 
-            <Separator className="my-4" />
+            <Separator className="my-4 bg-border" />
 
             {/* Outras etapas */}
             <div className="space-y-2">
@@ -399,7 +399,7 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
                       key={stage}
                       variant="outline"
                       size="sm"
-                      className="justify-start text-xs h-8"
+                      className="justify-start text-xs h-8 border-border text-foreground hover:bg-secondary"
                       onClick={() => {
                         // Mostrar templates dessa etapa
                         toast({ 
@@ -419,15 +419,15 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
           {/* Templates Gerais */}
           <TabsContent value="general" className="m-0 space-y-3">
             <div className="flex items-center gap-2 mb-3">
-              <Zap className="h-4 w-4 text-amber-500" />
-              <span className="text-sm font-medium">Templates Gerais</span>
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Templates Gerais</span>
             </div>
 
             {GENERAL_TEMPLATES.map((template) => (
-              <Card key={template.id} className="hover:border-primary/50 transition-colors">
+              <Card key={template.id} className="hover:border-primary/50 transition-colors bg-card border-border">
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-medium text-sm">{template.title}</h4>
+                    <h4 className="font-medium text-sm text-foreground">{template.title}</h4>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -463,15 +463,15 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
           <TabsContent value="ai" className="m-0 space-y-3">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-500" />
-                <span className="text-sm font-medium">Sugestões Inteligentes</span>
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Sugestões Inteligentes</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={generateAIScripts}
                 disabled={isLoadingAI}
-                className="h-7 text-xs"
+                className="h-7 text-xs border-border text-foreground hover:bg-secondary"
               >
                 {isLoadingAI ? (
                   <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -483,13 +483,13 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
             </div>
 
             {/* Contexto do Lead */}
-            <Card className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border-purple-200 dark:border-purple-800">
+            <Card className="bg-primary/10 border-primary/30">
               <CardContent className="p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Lightbulb className="h-4 w-4 text-purple-600" />
-                  <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Contexto Analisado</span>
+                  <Lightbulb className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium text-foreground">Contexto Analisado</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-2 gap-2 text-xs text-foreground">
                   <div className="flex items-center gap-1">
                     <Target className="h-3 w-3 text-muted-foreground" />
                     <span>Etapa: {currentStage}</span>
@@ -506,7 +506,7 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
                   )}
                   {lead.is_stale && (
                     <div className="col-span-2">
-                      <Badge variant="outline" className="border-orange-500 text-orange-600 text-[10px]">
+                      <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-500/10 text-[10px]">
                         ⚠️ Lead parado - priorizar reengajamento
                       </Badge>
                     </div>
@@ -518,20 +518,20 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
             {/* Scripts Gerados */}
             {isLoadingAI ? (
               <div className="flex flex-col items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-2" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
                 <p className="text-sm text-muted-foreground">Gerando scripts personalizados...</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {aiScripts.map((script, index) => (
-                  <Card key={index} className="border-purple-200 dark:border-purple-800 hover:border-purple-400 transition-colors">
+                  <Card key={index} className="border-primary/30 hover:border-primary/50 transition-colors bg-card">
                     <CardContent className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
-                            <Sparkles className="h-3 w-3 text-purple-600" />
+                          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                            <Sparkles className="h-3 w-3 text-primary" />
                           </div>
-                          <h4 className="font-medium text-sm">{script.title}</h4>
+                          <h4 className="font-medium text-sm text-foreground">{script.title}</h4>
                         </div>
                         <div className="flex gap-1">
                           <Button
@@ -556,7 +556,7 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
                           </Button>
                         </div>
                       </div>
-                      <p className="text-xs mb-2">{script.content}</p>
+                      <p className="text-xs mb-2 text-foreground">{script.content}</p>
                       <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                         <TrendingUp className="h-3 w-3" />
                         {script.reasoning}
