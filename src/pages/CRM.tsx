@@ -361,6 +361,7 @@ const CRM = () => {
             stages={pipelineStages}
             onLeadClick={handleLeadClick}
             onNewLead={handleNewLead}
+            filteredLeads={filteredLeads}
           />
         )}
 

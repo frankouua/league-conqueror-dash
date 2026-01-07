@@ -16,10 +16,14 @@ interface CRMKanbanProps {
   stages: CRMStage[];
   onLeadClick: (lead: CRMLead) => void;
   onNewLead: (stageId: string) => void;
+  filteredLeads?: CRMLead[];
 }
 
-export function CRMKanban({ pipelineId, stages, onLeadClick, onNewLead }: CRMKanbanProps) {
-  const { leads, moveLead } = useCRMLeads(pipelineId);
+export function CRMKanban({ pipelineId, stages, onLeadClick, onNewLead, filteredLeads }: CRMKanbanProps) {
+  const { leads: allLeads, moveLead } = useCRMLeads(pipelineId);
+  
+  // Use filtered leads if provided, otherwise use all leads
+  const leads = filteredLeads ?? allLeads;
 
   // Group leads by stage
   const leadsByStage = useMemo(() => {
