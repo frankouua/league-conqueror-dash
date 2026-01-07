@@ -41,7 +41,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type CRMViewMode = 
-  | 'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' 
+  | 'overview' | 'kanban' | 'metrics' | 'rfv' | 'rfv-matrix' | 'campaigns' | 'protocols' 
   | 'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' 
   | 'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
   | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
@@ -114,6 +114,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { value: 'funnel', label: 'Funil', icon: Filter, color: 'text-pink-500' },
       { value: 'predictive', label: 'IA Preditiva', icon: Brain, color: 'text-violet-500' },
       { value: 'rfv', label: 'RFV', icon: Target },
+      { value: 'rfv-matrix', label: 'Matriz RFV', icon: LayoutGrid, color: 'text-cyan-500' },
     ]
   },
   {
