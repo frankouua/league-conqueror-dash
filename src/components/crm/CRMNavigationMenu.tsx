@@ -43,7 +43,7 @@ export type CRMViewMode =
   | 'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' 
   | 'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
   | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
-  | 'surgery' | 'templates' | 'alerts';
+  | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager';
 
 interface CRMNavigationMenuProps {
   viewMode: CRMViewMode;
@@ -137,6 +137,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Configurações',
     icon: Settings,
     items: [
+      { value: 'pipeline-manager', label: 'Pipelines & Etapas', icon: LayoutGrid, color: 'text-primary' },
       { value: 'integrations', label: 'Integrações', icon: Link2 },
     ]
   }

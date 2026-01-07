@@ -42,6 +42,7 @@ import { CRMNavigationMenu, CRMViewMode } from "@/components/crm/CRMNavigationMe
 import { CRMSurgeryDashboard } from "@/components/crm/CRMSurgeryDashboard";
 import { CRMWhatsAppTemplates } from "@/components/crm/CRMWhatsAppTemplates";
 import { CRMSmartAlerts } from "@/components/crm/CRMSmartAlerts";
+import { CRMPipelineManager } from "@/components/crm/CRMPipelineManager";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -453,6 +454,10 @@ const CRM = () => {
             const lead = leads.find(l => l.id === leadId);
             if (lead) setSelectedLead(lead);
           }} />
+        )}
+
+        {viewMode === 'pipeline-manager' && (
+          <CRMPipelineManager />
         )}
         
         {viewMode === 'leaderboard' && (
