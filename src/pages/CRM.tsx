@@ -33,6 +33,9 @@ import { CRMKeyboardShortcuts } from "@/components/crm/CRMKeyboardShortcuts";
 import { CRMGlobalSearch } from "@/components/crm/CRMGlobalSearch";
 import { CRMProposalTemplates } from "@/components/crm/CRMProposalTemplates";
 import { CRMCalendarIntegration } from "@/components/crm/CRMCalendarIntegration";
+import { CRMPredictiveAnalytics } from "@/components/crm/CRMPredictiveAnalytics";
+import { CRMConversionFunnel } from "@/components/crm/CRMConversionFunnel";
+import { CRMTeamPerformance } from "@/components/crm/CRMTeamPerformance";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +64,10 @@ import {
   Mail,
   Calendar,
   FileText,
-  Search
+  Search,
+  Brain,
+  Filter as FilterIcon,
+  UserCheck
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -103,7 +109,8 @@ const CRM = () => {
   const [viewMode, setViewMode] = useState<
     'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' | 
     'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' | 
-    'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
+    'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals' |
+    'predictive' | 'funnel' | 'team-performance'
   >('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
@@ -323,6 +330,18 @@ const CRM = () => {
                   <FileText className="w-4 h-4" />
                   <span className="hidden md:inline">Propostas</span>
                 </TabsTrigger>
+                <TabsTrigger value="predictive" className="gap-1.5 px-3 data-[state=active]:bg-violet-500 data-[state=active]:text-white">
+                  <Brain className="w-4 h-4" />
+                  <span className="hidden md:inline">IA Preditiva</span>
+                </TabsTrigger>
+                <TabsTrigger value="funnel" className="gap-1.5 px-3 data-[state=active]:bg-pink-500 data-[state=active]:text-white">
+                  <FilterIcon className="w-4 h-4" />
+                  <span className="hidden md:inline">Funil</span>
+                </TabsTrigger>
+                <TabsTrigger value="team-performance" className="gap-1.5 px-3 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
+                  <UserCheck className="w-4 h-4" />
+                  <span className="hidden md:inline">Time</span>
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </CardContent>
@@ -467,6 +486,26 @@ const CRM = () => {
 
         {viewMode === 'connections' && (
           <CRMWhatsAppConnections />
+        )}
+
+        {viewMode === 'calendar' && (
+          <CRMCalendarIntegration />
+        )}
+
+        {viewMode === 'proposals' && (
+          <CRMProposalTemplates />
+        )}
+
+        {viewMode === 'predictive' && (
+          <CRMPredictiveAnalytics />
+        )}
+
+        {viewMode === 'funnel' && (
+          <CRMConversionFunnel />
+        )}
+
+        {viewMode === 'team-performance' && (
+          <CRMTeamPerformance />
         )}
         
         {viewMode === 'leaderboard' && (
