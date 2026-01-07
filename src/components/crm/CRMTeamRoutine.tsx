@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, 
   CheckCircle2, 
@@ -18,12 +19,18 @@ import {
   TrendingUp,
   Calendar,
   Zap,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  ListTodo,
+  Bell,
+  User,
+  ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface RoutineTask {
   id: string;
@@ -34,6 +41,19 @@ interface RoutineTask {
   category: 'prospecting' | 'follow_up' | 'closing' | 'post_sale' | 'admin';
   completed: boolean;
   estimatedMinutes: number;
+}
+
+interface LeadActivity {
+  id: string;
+  leadId: string;
+  leadName: string;
+  stageName: string;
+  stageKey: string;
+  action: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  completed: boolean;
+  actionIndex: number;
 }
 
 interface TeamMemberRoutine {
@@ -49,7 +69,76 @@ interface TeamMemberRoutine {
   status: 'online' | 'busy' | 'away' | 'offline';
 }
 
-// Rotinas baseadas no cargo
+// Checklists por etapa
+const STAGE_CHECKLISTS: Record<string, { name: string; items: { id: string; title: string; description: string; required: boolean }[] }> = {
+  'novo_lead': {
+    name: 'Novo Lead',
+    items: [
+      { id: 'first_contact', title: 'Primeiro contato em até 5 min', description: 'Entrar em contato imediatamente', required: true },
+      { id: 'qualify_interest', title: 'Qualificar interesse', description: 'Identificar procedimento de interesse', required: true },
+      { id: 'collect_info', title: 'Coletar informações básicas', description: 'Nome, telefone, email', required: true },
+    ]
+  },
+  'tentando_contato': {
+    name: 'Tentando Contato',
+    items: [
+      { id: 'attempt_1', title: '1ª tentativa de contato', description: 'Ligar ou WhatsApp', required: true },
+      { id: 'attempt_2', title: '2ª tentativa (após 2h)', description: 'Tentar outro canal', required: false },
+      { id: 'attempt_3', title: '3ª tentativa (próximo dia)', description: 'Última tentativa', required: false },
+    ]
+  },
+  'contato_realizado': {
+    name: 'Contato Realizado',
+    items: [
+      { id: 'send_material', title: 'Enviar material informativo', description: 'PDFs e vídeos do procedimento', required: true },
+      { id: 'schedule_eval', title: 'Agendar avaliação', description: 'Marcar consulta com médico', required: true },
+      { id: 'confirm_whatsapp', title: 'Confirmar via WhatsApp', description: 'Enviar confirmação do agendamento', required: true },
+    ]
+  },
+  'agendado': {
+    name: 'Agendado',
+    items: [
+      { id: 'reminder_24h', title: 'Lembrete 24h antes', description: 'Confirmar presença', required: true },
+      { id: 'send_location', title: 'Enviar localização', description: 'Endereço e orientações', required: true },
+    ]
+  },
+  'venda_fechada': {
+    name: 'Venda Fechada',
+    items: [
+      { id: 'confirm_payment', title: 'Confirmar pagamento', description: 'Verificar entrada/primeira parcela', required: true },
+      { id: 'schedule_surgery', title: 'Definir data da cirurgia', description: 'Agendar procedimento', required: true },
+      { id: 'send_pre_op', title: 'Enviar orientações pré-op', description: 'Instruções e exames', required: true },
+    ]
+  },
+  'pre_cirurgia': {
+    name: 'Pré-Cirurgia',
+    items: [
+      { id: 'check_exams', title: 'Verificar exames', description: 'Confirmar entrega de todos os exames', required: true },
+      { id: 'confirm_surgery', title: 'Confirmar cirurgia 48h antes', description: 'Ligação de confirmação', required: true },
+    ]
+  },
+  'pos_imediato': {
+    name: 'Pós-Operatório Imediato',
+    items: [
+      { id: 'call_day1', title: 'Ligar no D+1', description: 'Perguntar como está, verificar dor', required: true },
+      { id: 'check_meds', title: 'Verificar medicação', description: 'Confirmar que está tomando remédios', required: true },
+    ]
+  },
+};
+
+const getStageKey = (stageName: string): string => {
+  const mapping: Record<string, string> = {
+    'Novo Lead': 'novo_lead',
+    'Tentando Contato': 'tentando_contato',
+    'Contato Realizado': 'contato_realizado',
+    'Agendado': 'agendado',
+    'Venda Fechada': 'venda_fechada',
+    'Pré-Cirurgia': 'pre_cirurgia',
+    'Pós-Op Imediato': 'pos_imediato',
+  };
+  return mapping[stageName] || '';
+};
+
 const getRoutineByPosition = (position: string | null): RoutineTask[] => {
   const baseRoutine: RoutineTask[] = [
     { id: '1', title: 'Check de Leads Quentes', description: 'Verificar leads com score alto e contatos pendentes', timeSlot: '08:00-08:30', priority: 'high', category: 'prospecting', completed: false, estimatedMinutes: 30 },
@@ -61,8 +150,7 @@ const getRoutineByPosition = (position: string | null): RoutineTask[] => {
     { id: '7', title: 'Contatos Pós-Venda', description: 'Acompanhamento de pacientes recentes', timeSlot: '17:00-17:30', priority: 'medium', category: 'post_sale', completed: false, estimatedMinutes: 30 },
     { id: '8', title: 'Atualização CRM', description: 'Registrar todas as interações do dia', timeSlot: '17:30-18:00', priority: 'low', category: 'admin', completed: false, estimatedMinutes: 30 },
   ];
-
-  // Podemos customizar por cargo no futuro
+  
   if (position === 'SDR') {
     return baseRoutine.filter(t => ['prospecting', 'follow_up', 'admin'].includes(t.category));
   }
@@ -97,12 +185,121 @@ const getInitials = (name: string) => {
 export const CRMTeamRoutine = () => {
   const [selectedMember, setSelectedMember] = useState<TeamMemberRoutine | null>(null);
   const [myTasks, setMyTasks] = useState<RoutineTask[]>(getRoutineByPosition(null));
+  const [activeTab, setActiveTab] = useState('routine');
+  const queryClient = useQueryClient();
 
-  // Buscar membros da equipe do banco de dados
+  // Buscar atividades pendentes de leads do usuário atual
+  const { data: pendingActivities = [], isLoading: activitiesLoading } = useQuery({
+    queryKey: ['my-pending-activities'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      // Buscar leads atribuídos ao usuário
+      const { data: leads, error } = await supabase
+        .from('crm_leads')
+        .select(`
+          id, name,
+          stage:crm_stages!inner(name)
+        `)
+        .eq('assigned_to', user.id)
+        .is('lost_at', null)
+        .is('won_at', null);
+
+      if (error) throw error;
+
+      // Buscar progresso do checklist
+      const leadIds = leads?.map(l => l.id) || [];
+      const { data: progress } = await supabase
+        .from('crm_lead_checklist_progress')
+        .select('*')
+        .in('lead_id', leadIds);
+
+      const activities: LeadActivity[] = [];
+
+      leads?.forEach(lead => {
+        const stageName = (lead.stage as any)?.name || '';
+        const stageKey = getStageKey(stageName);
+        const checklist = STAGE_CHECKLISTS[stageKey];
+
+        if (checklist) {
+          checklist.items.forEach((item, index) => {
+            const completed = progress?.some(p => 
+              p.lead_id === lead.id && 
+              p.stage_key === stageKey && 
+              p.action_index === index && 
+              p.completed
+            ) || false;
+
+            if (!completed && item.required) {
+              activities.push({
+                id: `${lead.id}-${stageKey}-${index}`,
+                leadId: lead.id,
+                leadName: lead.name,
+                stageName: checklist.name,
+                stageKey,
+                action: item.title,
+                description: item.description,
+                priority: item.required ? 'high' : 'medium',
+                completed: false,
+                actionIndex: index
+              });
+            }
+          });
+        }
+      });
+
+      return activities.slice(0, 10); // Limitar a 10 atividades
+    },
+    refetchInterval: 60000
+  });
+
+  // Mutation para completar atividade de lead
+  const completeActivityMutation = useMutation({
+    mutationFn: async (activity: LeadActivity) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      const { data: existing } = await supabase
+        .from('crm_lead_checklist_progress')
+        .select('id')
+        .eq('lead_id', activity.leadId)
+        .eq('stage_key', activity.stageKey)
+        .eq('action_index', activity.actionIndex)
+        .single();
+
+      if (existing) {
+        await supabase
+          .from('crm_lead_checklist_progress')
+          .update({ 
+            completed: true, 
+            completed_at: new Date().toISOString(),
+            completed_by: user.id 
+          })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('crm_lead_checklist_progress')
+          .insert({
+            lead_id: activity.leadId,
+            stage_key: activity.stageKey,
+            action_index: activity.actionIndex,
+            completed: true,
+            completed_by: user.id,
+            completed_at: new Date().toISOString()
+          });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-pending-activities'] });
+      toast.success('Atividade concluída!');
+    }
+  });
+
+  // Buscar membros da equipe
   const { data: teamMembers = [], isLoading } = useQuery({
     queryKey: ['team-members-routine'],
     queryFn: async () => {
-      // Buscar perfis dos usuários aprovados
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -111,12 +308,10 @@ export const CRMTeamRoutine = () => {
 
       if (profilesError) throw profilesError;
 
-      // Buscar leads ativos por usuário
       const { data: leadsData } = await supabase
         .from('crm_leads')
         .select('assigned_to, created_at, last_activity_at');
 
-      // Buscar histórico de contatos de hoje
       const today = new Date().toISOString().split('T')[0];
       const { data: historyData } = await supabase
         .from('crm_lead_history')
@@ -127,7 +322,6 @@ export const CRMTeamRoutine = () => {
         const userLeads = leadsData?.filter(l => l.assigned_to === profile.user_id) || [];
         const userContacts = historyData?.filter(h => h.performed_by === profile.user_id) || [];
         
-        // Determinar status baseado na última atividade
         let status: 'online' | 'busy' | 'away' | 'offline' = 'offline';
         const lastAccess = profile.last_access_at ? new Date(profile.last_access_at) : null;
         if (lastAccess) {
@@ -137,7 +331,6 @@ export const CRMTeamRoutine = () => {
           else if (minutesAgo < 60) status = 'busy';
         }
 
-        // Calcular taxa de conclusão (simulada por enquanto)
         const completionRate = Math.floor(Math.random() * 40) + 50;
 
         return {
@@ -175,7 +368,7 @@ export const CRMTeamRoutine = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Rotina da Equipe</h2>
+          <h2 className="text-2xl font-bold">Rotina do Dia</h2>
           <p className="text-muted-foreground">
             {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
@@ -185,17 +378,17 @@ export const CRMTeamRoutine = () => {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
               <div>
-                <p className="text-sm text-muted-foreground">Concluídas</p>
+                <p className="text-sm text-muted-foreground">Rotina</p>
                 <p className="font-bold">{completedTasks}/{totalTasks}</p>
               </div>
             </div>
           </Card>
           <Card className="px-4 py-2">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-500" />
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
               <div>
-                <p className="text-sm text-muted-foreground">Período</p>
-                <p className="font-bold">{isMorning ? 'Manhã' : 'Tarde'}</p>
+                <p className="text-sm text-muted-foreground">Pendentes</p>
+                <p className="font-bold">{pendingActivities.length}</p>
               </div>
             </div>
           </Card>
@@ -203,94 +396,147 @@ export const CRMTeamRoutine = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Minha Rotina */}
+        {/* Rotina + Atividades */}
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Minha Rotina de Hoje
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{completionPercentage}%</span>
-                <Progress value={completionPercentage} className="w-24" />
-              </div>
-            </div>
+          <CardHeader className="pb-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="routine" className="gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Rotina Fixa
+                </TabsTrigger>
+                <TabsTrigger value="activities" className="gap-2">
+                  <ListTodo className="h-4 w-4" />
+                  Atividades de Leads
+                  {pendingActivities.length > 0 && (
+                    <Badge variant="destructive" className="ml-1 h-5 px-1.5">
+                      {pendingActivities.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {/* Período da Manhã */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Coffee className="h-4 w-4 text-orange-500" />
-                  <h3 className="font-medium">Manhã</h3>
-                </div>
-                <div className="space-y-2">
-                  {myTasks.filter(t => parseInt(t.timeSlot.split(':')[0]) < 12).map(task => (
-                    <div 
-                      key={task.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                        task.completed ? 'bg-green-50 dark:bg-green-950/20 border-green-200' : 'bg-card hover:bg-accent/50'
-                      }`}
-                    >
-                      <Checkbox 
-                        checked={task.completed}
-                        onCheckedChange={() => toggleTask(task.id)}
-                      />
-                      {getCategoryIcon(task.category)}
-                      <div className="flex-1">
-                        <p className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                          {task.title}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{task.description}</p>
+            {activeTab === 'routine' ? (
+              <div className="space-y-6">
+                {/* Período da Manhã */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Coffee className="h-4 w-4 text-orange-500" />
+                    <h3 className="font-medium">Manhã</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {myTasks.filter(t => parseInt(t.timeSlot.split(':')[0]) < 12).map(task => (
+                      <div 
+                        key={task.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                          task.completed ? 'bg-green-50 dark:bg-green-950/20 border-green-200' : 'bg-card hover:bg-accent/50'
+                        }`}
+                      >
+                        <Checkbox 
+                          checked={task.completed}
+                          onCheckedChange={() => toggleTask(task.id)}
+                        />
+                        {getCategoryIcon(task.category)}
+                        <div className="flex-1">
+                          <p className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                            {task.title}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{task.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>
+                            {task.timeSlot}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>
-                          {task.timeSlot}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">{task.estimatedMinutes}min</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Período da Tarde */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-purple-500" />
-                  <h3 className="font-medium">Tarde</h3>
-                </div>
-                <div className="space-y-2">
-                  {myTasks.filter(t => parseInt(t.timeSlot.split(':')[0]) >= 12).map(task => (
-                    <div 
-                      key={task.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                        task.completed ? 'bg-green-50 dark:bg-green-950/20 border-green-200' : 'bg-card hover:bg-accent/50'
-                      }`}
-                    >
-                      <Checkbox 
-                        checked={task.completed}
-                        onCheckedChange={() => toggleTask(task.id)}
-                      />
-                      {getCategoryIcon(task.category)}
-                      <div className="flex-1">
-                        <p className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                          {task.title}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{task.description}</p>
+                {/* Período da Tarde */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-purple-500" />
+                    <h3 className="font-medium">Tarde</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {myTasks.filter(t => parseInt(t.timeSlot.split(':')[0]) >= 12).map(task => (
+                      <div 
+                        key={task.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                          task.completed ? 'bg-green-50 dark:bg-green-950/20 border-green-200' : 'bg-card hover:bg-accent/50'
+                        }`}
+                      >
+                        <Checkbox 
+                          checked={task.completed}
+                          onCheckedChange={() => toggleTask(task.id)}
+                        />
+                        {getCategoryIcon(task.category)}
+                        <div className="flex-1">
+                          <p className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                            {task.title}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{task.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>
+                            {task.timeSlot}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>
-                          {task.timeSlot}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">{task.estimatedMinutes}min</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {activitiesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : pendingActivities.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-green-500" />
+                    <p className="font-medium text-foreground">Tudo em dia!</p>
+                    <p className="text-sm">Não há atividades pendentes para seus leads</p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2 pr-4">
+                      {pendingActivities.map(activity => (
+                        <div 
+                          key={activity.id}
+                          className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                        >
+                          <Checkbox 
+                            checked={activity.completed}
+                            onCheckedChange={() => completeActivityMutation.mutate(activity)}
+                            disabled={completeActivityMutation.isPending}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <User className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm font-medium text-primary">{activity.leadName}</span>
+                              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                              <Badge variant="outline" className="text-xs">
+                                {activity.stageName}
+                              </Badge>
+                            </div>
+                            <p className="font-medium">{activity.action}</p>
+                            <p className="text-sm text-muted-foreground">{activity.description}</p>
+                          </div>
+                          <Badge variant={activity.priority === 'high' ? 'destructive' : 'secondary'}>
+                            {activity.priority === 'high' ? 'Urgente' : 'Normal'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -406,16 +652,14 @@ export const CRMTeamRoutine = () => {
               {selectedMember.tasks.map(task => (
                 <div 
                   key={task.id}
-                  className="flex items-center gap-3 p-2 rounded bg-accent/30"
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50"
                 >
                   {getCategoryIcon(task.category)}
-                  <span className="flex-1">{task.title}</span>
-                  <Badge variant="outline">{task.timeSlot}</Badge>
-                  {task.completed ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <div className="flex-1">
+                    <p className="font-medium">{task.title}</p>
+                    <p className="text-sm text-muted-foreground">{task.description}</p>
+                  </div>
+                  <Badge variant="secondary">{task.timeSlot}</Badge>
                 </div>
               ))}
             </div>
