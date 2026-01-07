@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, LayoutDashboard, User, History, Brain } from "lucide-react";
+import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, LayoutDashboard, User, History, Brain, ChevronDown } from "lucide-react";
 import { MonthlyTeamRankingChart } from "@/components/MonthlyTeamRankingChart";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import { format } from "date-fns";
@@ -44,6 +44,8 @@ import OnlineUsersWidget from "@/components/OnlineUsersWidget";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card } from "@/components/ui/card";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
 import uniqueLogo from "@/assets/logo-unique-cpa.png";
 
@@ -52,28 +54,28 @@ const MONTHS = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
-// Calculate days remaining
-const now = new Date();
-const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-const endOfSemester = now.getMonth() < 6 
-  ? new Date(now.getFullYear(), 5, 30) 
-  : new Date(now.getFullYear(), 11, 31);
-const endOfYear = new Date(now.getFullYear(), 11, 31);
-
-const daysRemainingMonth = Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-const daysRemainingSemester = Math.ceil((endOfSemester.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
 const Index = () => {
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const endOfSemester = now.getMonth() < 6 
+    ? new Date(now.getFullYear(), 5, 30) 
+    : new Date(now.getFullYear(), 11, 31);
+  const endOfYear = new Date(now.getFullYear(), 11, 31);
+
+  const daysRemainingMonth = Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const daysRemainingSemester = Math.ceil((endOfSemester.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
   const { role, profile } = useAuth();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(() => now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(() => now.getFullYear());
   const [activeTab, setActiveTab] = useState("times");
   const [filterSeller, setFilterSeller] = useState<string | null>(null);
   const [filterDepartment, setFilterDepartment] = useState<string | null>(null);
+  const [auxInfoOpen, setAuxInfoOpen] = useState(false);
   
   const isCurrentPeriod = selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear();
-  
+
   const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores(
     profile?.team_id,
     selectedMonth,
