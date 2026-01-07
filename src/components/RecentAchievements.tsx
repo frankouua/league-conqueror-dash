@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Star, Award, AlertTriangle, Trophy, Users, Heart, ThumbsUp, Zap, Target } from "lucide-react";
 
 export interface Achievement {
@@ -127,4 +128,4 @@ const RecentAchievements = ({ achievements }: RecentAchievementsProps) => {
   );
 };
 
-export default RecentAchievements;
+export default memo(RecentAchievements);

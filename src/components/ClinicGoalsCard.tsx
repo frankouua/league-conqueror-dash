@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Gift } from "lucide-react";
 
 interface ClinicGoalsCardProps {
@@ -93,4 +94,4 @@ const ClinicGoalsCard = ({
   );
 };
 
-export default ClinicGoalsCard;
+export default memo(ClinicGoalsCard);

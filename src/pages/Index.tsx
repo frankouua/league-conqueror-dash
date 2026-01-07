@@ -1,48 +1,13 @@
-import { useState } from "react";
-import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, LayoutDashboard, User, History, Brain, ChevronDown } from "lucide-react";
-import { MonthlyTeamRankingChart } from "@/components/MonthlyTeamRankingChart";
+import { useState, lazy, Suspense, memo, useMemo, useCallback } from "react";
+import { Loader2, PartyPopper, Clock, Calendar, Trophy, Users, Building2, TrendingUp, Target, User, History, Brain, ChevronDown } from "lucide-react";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Header from "@/components/Header";
-import TeamRankingCard from "@/components/TeamRankingCard";
-import ClinicGoalsCard from "@/components/ClinicGoalsCard";
-import DepartmentGoalsCard from "@/components/DepartmentGoalsCard";
-import RecentAchievements from "@/components/RecentAchievements";
-import TimeCounters from "@/components/TimeCounters";
-import EvolutionChart from "@/components/EvolutionChart";
-import ChampionsDisplay from "@/components/ChampionsDisplay";
-import StreakRecordsDisplay from "@/components/StreakRecordsDisplay";
-import TeamComparisonCard from "@/components/TeamComparisonCard";
-import TeamBadgesDisplay from "@/components/TeamBadgesDisplay";
-import TeamPrizesDisplay from "@/components/TeamPrizesDisplay";
-import QuickInsightsPanel from "@/components/QuickInsightsPanel";
-import GoalAchievementSummary from "@/components/GoalAchievementSummary";
-import { SoldVsExecutedPanel } from "@/components/SoldVsExecutedPanel";
-import { GoalConfirmationDialog } from "@/components/GoalConfirmationDialog";
-import GoalTrackingDashboard from "@/components/GoalTrackingDashboard";
-import SellerDashboard from "@/components/SellerDashboard";
-import { DashboardFilters } from "@/components/DashboardFilters";
-import { HistoricalTrendsPanel } from "@/components/HistoricalTrendsPanel";
-import ExecutiveKPIs from "@/components/ExecutiveKPIs";
-import DailyGoalsPanel from "@/components/DailyGoalsPanel";
-import LeadResponseMetrics from "@/components/LeadResponseMetrics";
-import AchievementsBadgesDisplay from "@/components/AchievementsBadgesDisplay";
-import SmartDailyGoals from "@/components/SmartDailyGoals";
-import SalesForecastPanel from "@/components/SalesForecastPanel";
-import MonthComparisonPanel from "@/components/MonthComparisonPanel";
-import TeamMembersOverview from "@/components/TeamMembersOverview";
-import ProceduresGoalTracker from "@/components/ProceduresGoalTracker";
-import HistoricalComparison from "@/components/HistoricalComparison";
-import TeamProgressTable from "@/components/TeamProgressTable";
-import TeamQuantityTable from "@/components/TeamQuantityTable";
 import { useTeamScores } from "@/hooks/useTeamScores";
 import { useTeamProgressData } from "@/hooks/useTeamProgressData";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
-import MyGoalsDashboard from "@/components/MyGoalsDashboard";
-import StrategicOverview from "@/components/StrategicOverview";
-import OnlineUsersWidget from "@/components/OnlineUsersWidget";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -51,22 +16,74 @@ import { Card } from "@/components/ui/card";
 import copaLogo from "@/assets/logo-copa-unique-league.png";
 import uniqueLogo from "@/assets/logo-unique-cpa.png";
 
+// Lazy load heavy components for faster initial render
+const TeamRankingCard = lazy(() => import("@/components/TeamRankingCard"));
+const ClinicGoalsCard = lazy(() => import("@/components/ClinicGoalsCard"));
+const DepartmentGoalsCard = lazy(() => import("@/components/DepartmentGoalsCard"));
+const RecentAchievements = lazy(() => import("@/components/RecentAchievements"));
+const TimeCounters = lazy(() => import("@/components/TimeCounters"));
+const EvolutionChart = lazy(() => import("@/components/EvolutionChart"));
+const ChampionsDisplay = lazy(() => import("@/components/ChampionsDisplay"));
+const StreakRecordsDisplay = lazy(() => import("@/components/StreakRecordsDisplay"));
+const TeamComparisonCard = lazy(() => import("@/components/TeamComparisonCard"));
+const TeamBadgesDisplay = lazy(() => import("@/components/TeamBadgesDisplay"));
+const TeamPrizesDisplay = lazy(() => import("@/components/TeamPrizesDisplay"));
+const QuickInsightsPanel = lazy(() => import("@/components/QuickInsightsPanel"));
+const GoalAchievementSummary = lazy(() => import("@/components/GoalAchievementSummary"));
+const SoldVsExecutedPanel = lazy(() => import("@/components/SoldVsExecutedPanel").then(m => ({ default: m.SoldVsExecutedPanel })));
+const GoalConfirmationDialog = lazy(() => import("@/components/GoalConfirmationDialog").then(m => ({ default: m.GoalConfirmationDialog })));
+const GoalTrackingDashboard = lazy(() => import("@/components/GoalTrackingDashboard"));
+const SellerDashboard = lazy(() => import("@/components/SellerDashboard"));
+const DashboardFilters = lazy(() => import("@/components/DashboardFilters").then(m => ({ default: m.DashboardFilters })));
+const HistoricalTrendsPanel = lazy(() => import("@/components/HistoricalTrendsPanel").then(m => ({ default: m.HistoricalTrendsPanel })));
+const ExecutiveKPIs = lazy(() => import("@/components/ExecutiveKPIs"));
+const DailyGoalsPanel = lazy(() => import("@/components/DailyGoalsPanel"));
+const LeadResponseMetrics = lazy(() => import("@/components/LeadResponseMetrics"));
+const AchievementsBadgesDisplay = lazy(() => import("@/components/AchievementsBadgesDisplay"));
+const SmartDailyGoals = lazy(() => import("@/components/SmartDailyGoals"));
+const SalesForecastPanel = lazy(() => import("@/components/SalesForecastPanel"));
+const MonthComparisonPanel = lazy(() => import("@/components/MonthComparisonPanel"));
+const TeamMembersOverview = lazy(() => import("@/components/TeamMembersOverview"));
+const ProceduresGoalTracker = lazy(() => import("@/components/ProceduresGoalTracker"));
+const HistoricalComparison = lazy(() => import("@/components/HistoricalComparison"));
+const TeamProgressTable = lazy(() => import("@/components/TeamProgressTable"));
+const TeamQuantityTable = lazy(() => import("@/components/TeamQuantityTable"));
+const MyGoalsDashboard = lazy(() => import("@/components/MyGoalsDashboard"));
+const StrategicOverview = lazy(() => import("@/components/StrategicOverview"));
+const OnlineUsersWidget = lazy(() => import("@/components/OnlineUsersWidget"));
+const MonthlyTeamRankingChart = lazy(() => import("@/components/MonthlyTeamRankingChart").then(m => ({ default: m.MonthlyTeamRankingChart })));
+
+// Mini loading component for lazy loaded content
+const MiniLoader = memo(() => (
+  <div className="flex items-center justify-center p-8">
+    <Loader2 className="w-6 h-6 animate-spin text-primary/50" />
+  </div>
+));
+
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
 const Index = () => {
-  const now = new Date();
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const endOfSemester = now.getMonth() < 6 
-    ? new Date(now.getFullYear(), 5, 30) 
-    : new Date(now.getFullYear(), 11, 31);
-  const endOfYear = new Date(now.getFullYear(), 11, 31);
-
-  const daysRemainingMonth = Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  const daysRemainingSemester = Math.ceil((endOfSemester.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  const daysRemainingYear = Math.ceil((endOfYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const now = useMemo(() => new Date(), []);
+  
+  // Memoized date calculations
+  const { endOfMonth, endOfSemester, endOfYear, daysRemainingMonth, daysRemainingSemester, daysRemainingYear } = useMemo(() => {
+    const eom = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const eos = now.getMonth() < 6 
+      ? new Date(now.getFullYear(), 5, 30) 
+      : new Date(now.getFullYear(), 11, 31);
+    const eoy = new Date(now.getFullYear(), 11, 31);
+    return {
+      endOfMonth: eom,
+      endOfSemester: eos,
+      endOfYear: eoy,
+      daysRemainingMonth: Math.ceil((eom.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+      daysRemainingSemester: Math.ceil((eos.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+      daysRemainingYear: Math.ceil((eoy.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+    };
+  }, [now]);
 
   const { role, profile } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(() => now.getMonth() + 1);
@@ -76,7 +93,10 @@ const Index = () => {
   const [filterDepartment, setFilterDepartment] = useState<string | null>(null);
   const [auxInfoOpen, setAuxInfoOpen] = useState(false);
   
-  const isCurrentPeriod = selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear();
+  const isCurrentPeriod = useMemo(() => 
+    selectedMonth === (now.getMonth() + 1) && selectedYear === now.getFullYear(), 
+    [selectedMonth, selectedYear, now]
+  );
 
   const { teams, achievements, chartData, totalClinicRevenue, isLoading, lastUpdated, triggerCelebration } = useTeamScores(
     profile?.team_id,
@@ -86,15 +106,32 @@ const Index = () => {
   const { teamsProgress, teamsQuantity } = useTeamProgressData(selectedMonth, selectedYear);
   const { pendingGoal } = usePredefinedGoals();
 
-  // Calculate current day and total days for pace analysis
-  const currentDay = isCurrentPeriod ? now.getDate() : new Date(selectedYear, selectedMonth, 0).getDate();
-  const totalDaysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+  // Memoized calculations
+  const currentDay = useMemo(() => 
+    isCurrentPeriod ? now.getDate() : new Date(selectedYear, selectedMonth, 0).getDate(),
+    [isCurrentPeriod, now, selectedYear, selectedMonth]
+  );
+  const totalDaysInMonth = useMemo(() => 
+    new Date(selectedYear, selectedMonth, 0).getDate(),
+    [selectedYear, selectedMonth]
+  );
 
-  // Get top 2 teams
-  const team1 = teams[0];
-  const team2 = teams[1];
+  // Memoized team data
+  const { team1, team2, pointsDifference } = useMemo(() => {
+    const t1 = teams[0];
+    const t2 = teams[1];
+    return {
+      team1: t1,
+      team2: t2,
+      pointsDifference: t1 && t2 ? Math.abs(t1.totalPoints - t2.totalPoints) : 0,
+    };
+  }, [teams]);
 
-  const pointsDifference = team1 && team2 ? Math.abs(team1.totalPoints - team2.totalPoints) : 0;
+  // Memoized callbacks for filters
+  const handleMonthChange = useCallback((v: string) => setSelectedMonth(Number(v)), []);
+  const handleYearChange = useCallback((v: string) => setSelectedYear(Number(v)), []);
+  const handleTabChange = useCallback((v: string) => setActiveTab(v), []);
+  const handleCelebrate = useCallback(() => triggerCelebration("goal"), [triggerCelebration]);
 
   if (isLoading) {
     return (
@@ -113,12 +150,13 @@ const Index = () => {
 
       {/* Goal Confirmation Dialog */}
       {pendingGoal && (
-        <GoalConfirmationDialog 
-          goal={pendingGoal} 
-          onClose={() => window.location.reload()} 
-        />
+        <Suspense fallback={null}>
+          <GoalConfirmationDialog 
+            goal={pendingGoal} 
+            onClose={() => window.location.reload()} 
+          />
+        </Suspense>
       )}
-
       <main className="container mx-auto px-4 py-4">
         {/* Compact Hero Section - Optimized for TV */}
         <div className="text-center mb-4 animate-slide-up">
@@ -291,83 +329,95 @@ const Index = () => {
           
           {/* Filters - shown for relevant tabs */}
           {(activeTab === "vendido-executado" || activeTab === "vendedoras" || activeTab === "departamentos" || activeTab === "o-que-falta") && (
-            <DashboardFilters
-              selectedSeller={filterSeller}
-              selectedDepartment={filterDepartment}
-              onSellerFilterChange={setFilterSeller}
-              onDepartmentFilterChange={setFilterDepartment}
-            />
+            <Suspense fallback={<MiniLoader />}>
+              <DashboardFilters
+                selectedSeller={filterSeller}
+                selectedDepartment={filterDepartment}
+                onSellerFilterChange={setFilterSeller}
+                onDepartmentFilterChange={setFilterDepartment}
+              />
+            </Suspense>
           )}
           </div>
 
           {/* VISÃO GERAL TAB - Strategic Executive Summary */}
           <TabsContent value="visao-geral" className="animate-fade-in">
-            <StrategicOverview month={selectedMonth} year={selectedYear} />
+            <Suspense fallback={<MiniLoader />}>
+              <StrategicOverview month={selectedMonth} year={selectedYear} />
+            </Suspense>
           </TabsContent>
 
           {/* MINHAS METAS TAB - Individual Performance */}
           <TabsContent value="minhas-metas" className="animate-fade-in">
-            <MyGoalsDashboard />
+            <Suspense fallback={<MiniLoader />}>
+              <MyGoalsDashboard />
+            </Suspense>
           </TabsContent>
 
           {/* TIMES TAB - Team Rankings & General Stats */}
           <TabsContent value="times" className="space-y-8 animate-fade-in">
             {/* Executive KPIs - Main Numbers */}
-            <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
+            <Suspense fallback={<MiniLoader />}>
+              <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
+            </Suspense>
 
             {/* Team Badges Display */}
             <div className="animate-scale-in">
-              <TeamBadgesDisplay 
-                layout="tv" 
-                size="xl" 
-                winningTeam={
-                  team1 && team2 
-                    ? team1.totalPoints > team2.totalPoints 
-                      ? team1.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
-                      : team2.totalPoints > team1.totalPoints
-                      ? team2.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
-                      : "tie"
-                    : null
-                }
-                team1={team1 ? {
-                  name: team1.name,
-                  totalPoints: team1.totalPoints,
-                  totalRevenue: team1.totalRevenue
-                } : null}
-                team2={team2 ? {
-                  name: team2.name,
-                  totalPoints: team2.totalPoints,
-                  totalRevenue: team2.totalRevenue
-                } : null}
-              />
+              <Suspense fallback={<MiniLoader />}>
+                <TeamBadgesDisplay 
+                  layout="tv" 
+                  size="xl" 
+                  winningTeam={
+                    team1 && team2 
+                      ? team1.totalPoints > team2.totalPoints 
+                        ? team1.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
+                        : team2.totalPoints > team1.totalPoints
+                        ? team2.name.toLowerCase().includes("lioness") ? "lioness" : "troia"
+                        : "tie"
+                      : null
+                  }
+                  team1={team1 ? {
+                    name: team1.name,
+                    totalPoints: team1.totalPoints,
+                    totalRevenue: team1.totalRevenue
+                  } : null}
+                  team2={team2 ? {
+                    name: team2.name,
+                    totalPoints: team2.totalPoints,
+                    totalRevenue: team2.totalRevenue
+                  } : null}
+                />
+              </Suspense>
             </div>
 
             {/* Team Rankings */}
             {teams.length >= 2 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 overflow-hidden">
-                <TeamRankingCard
-                  position={1}
-                  teamName={team1.name}
-                  totalPoints={team1.totalPoints}
-                  revenuePoints={team1.revenuePoints}
-                  qualityPoints={team1.qualityPoints}
-                  modifierPoints={team1.modifierPoints}
-                  totalRevenue={team1.totalRevenue}
-                  pointsDifference={pointsDifference}
-                  isLeading={true}
-                />
-                <TeamRankingCard
-                  position={2}
-                  teamName={team2.name}
-                  totalPoints={team2.totalPoints}
-                  revenuePoints={team2.revenuePoints}
-                  qualityPoints={team2.qualityPoints}
-                  modifierPoints={team2.modifierPoints}
-                  totalRevenue={team2.totalRevenue}
-                  pointsDifference={-pointsDifference}
-                  isLeading={false}
-                />
-              </div>
+              <Suspense fallback={<MiniLoader />}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 overflow-hidden">
+                  <TeamRankingCard
+                    position={1}
+                    teamName={team1.name}
+                    totalPoints={team1.totalPoints}
+                    revenuePoints={team1.revenuePoints}
+                    qualityPoints={team1.qualityPoints}
+                    modifierPoints={team1.modifierPoints}
+                    totalRevenue={team1.totalRevenue}
+                    pointsDifference={pointsDifference}
+                    isLeading={true}
+                  />
+                  <TeamRankingCard
+                    position={2}
+                    teamName={team2.name}
+                    totalPoints={team2.totalPoints}
+                    revenuePoints={team2.revenuePoints}
+                    qualityPoints={team2.qualityPoints}
+                    modifierPoints={team2.modifierPoints}
+                    totalRevenue={team2.totalRevenue}
+                    pointsDifference={-pointsDifference}
+                    isLeading={false}
+                  />
+                </div>
+              </Suspense>
             ) : (
               <div className="text-center py-12 bg-gradient-card rounded-2xl border border-border">
                 <p className="text-muted-foreground">
@@ -378,42 +428,46 @@ const Index = () => {
 
             {/* Team Progress Table - Meta vs Vendido vs Esperado (R$) */}
             {teamsProgress.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold text-foreground">
-                    Progresso por Categoria (R$)
-                  </h3>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    Dia {currentDay} de {totalDaysInMonth}
-                  </span>
+              <Suspense fallback={<MiniLoader />}>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Progresso por Categoria (R$)
+                    </h3>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      Dia {currentDay} de {totalDaysInMonth}
+                    </span>
+                  </div>
+                  <TeamProgressTable
+                    teamsData={teamsProgress}
+                    currentDay={currentDay}
+                    totalDaysInMonth={totalDaysInMonth}
+                  />
                 </div>
-                <TeamProgressTable
-                  teamsData={teamsProgress}
-                  currentDay={currentDay}
-                  totalDaysInMonth={totalDaysInMonth}
-                />
-              </div>
+              </Suspense>
             )}
 
             {/* Team Quantity Table - Meta vs Vendido vs Esperado (Qtd) */}
             {teamsQuantity.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-secondary-foreground" />
-                  <h3 className="text-lg font-semibold text-foreground">
-                    Progresso por Categoria (Quantidade)
-                  </h3>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    Procedimentos vendidos
-                  </span>
+              <Suspense fallback={<MiniLoader />}>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-secondary-foreground" />
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Progresso por Categoria (Quantidade)
+                    </h3>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      Procedimentos vendidos
+                    </span>
+                  </div>
+                  <TeamQuantityTable
+                    teamsData={teamsQuantity}
+                    currentDay={currentDay}
+                    totalDaysInMonth={totalDaysInMonth}
+                  />
                 </div>
-                <TeamQuantityTable
-                  teamsData={teamsQuantity}
-                  currentDay={currentDay}
-                  totalDaysInMonth={totalDaysInMonth}
-                />
-              </div>
+              </Suspense>
             )}
 
             {/* Auxiliary Information - Collapsible */}
@@ -430,133 +484,174 @@ const Index = () => {
                   <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${auxInfoOpen ? "rotate-180" : ""}`} />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="px-4 pb-4 space-y-4">
-                  <OnlineUsersWidget />
-                  <TimeCounters
-                    daysRemainingMonth={daysRemainingMonth}
-                    daysRemainingSemester={daysRemainingSemester > 0 ? daysRemainingSemester : 0}
-                    daysRemainingYear={daysRemainingYear}
-                  />
+                  <Suspense fallback={<MiniLoader />}>
+                    <OnlineUsersWidget />
+                    <TimeCounters
+                      daysRemainingMonth={daysRemainingMonth}
+                      daysRemainingSemester={daysRemainingSemester > 0 ? daysRemainingSemester : 0}
+                      daysRemainingYear={daysRemainingYear}
+                    />
+                  </Suspense>
                 </CollapsibleContent>
               </Card>
             </Collapsible>
 
-            {/* Team Members Overview - NEW */}
-            <TeamMembersOverview month={selectedMonth} year={selectedYear} />
+            {/* Team Members Overview */}
+            <Suspense fallback={<MiniLoader />}>
+              <TeamMembersOverview month={selectedMonth} year={selectedYear} />
+            </Suspense>
 
             {/* Daily Goals & Lead Response Metrics */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
-              <LeadResponseMetrics month={selectedMonth} year={selectedYear} />
-            </div>
+            <Suspense fallback={<MiniLoader />}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
+                <LeadResponseMetrics month={selectedMonth} year={selectedYear} />
+              </div>
+            </Suspense>
 
             {/* Quick Insights & Team Comparison */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <QuickInsightsPanel month={selectedMonth} year={selectedYear} />
-              <TeamComparisonCard />
-            </div>
+            <Suspense fallback={<MiniLoader />}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <QuickInsightsPanel month={selectedMonth} year={selectedYear} />
+                <TeamComparisonCard />
+              </div>
+            </Suspense>
 
             {/* Monthly Team Ranking Chart */}
-            <MonthlyTeamRankingChart />
+            <Suspense fallback={<MiniLoader />}>
+              <MonthlyTeamRankingChart />
+            </Suspense>
 
             {/* Champions & Streak Records */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ChampionsDisplay />
-              <StreakRecordsDisplay />
-            </div>
+            <Suspense fallback={<MiniLoader />}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ChampionsDisplay />
+                <StreakRecordsDisplay />
+              </div>
+            </Suspense>
 
             {/* Team Prizes */}
-            <TeamPrizesDisplay />
+            <Suspense fallback={<MiniLoader />}>
+              <TeamPrizesDisplay />
+            </Suspense>
 
             {/* Clinic Goals & Chart */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ClinicGoalsCard
-                currentRevenue={totalClinicRevenue}
-                goal1={CLINIC_GOALS.META_1}
-                goal2={CLINIC_GOALS.META_2}
-                goal3={CLINIC_GOALS.META_3}
-              />
-              <EvolutionChart
-                data={chartData}
-                team1Name={team1?.name || "Lioness Team"}
-                team2Name={team2?.name || "Tróia Team"}
-              />
-            </div>
+            <Suspense fallback={<MiniLoader />}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ClinicGoalsCard
+                  currentRevenue={totalClinicRevenue}
+                  goal1={CLINIC_GOALS.META_1}
+                  goal2={CLINIC_GOALS.META_2}
+                  goal3={CLINIC_GOALS.META_3}
+                />
+                <EvolutionChart
+                  data={chartData}
+                  team1Name={team1?.name || "Lioness Team"}
+                  team2Name={team2?.name || "Tróia Team"}
+                />
+              </div>
+            </Suspense>
 
             {/* Achievements & Badges System */}
-            <AchievementsBadgesDisplay showAll month={selectedMonth} year={selectedYear} />
+            <Suspense fallback={<MiniLoader />}>
+              <AchievementsBadgesDisplay showAll month={selectedMonth} year={selectedYear} />
+            </Suspense>
 
             {/* Recent Achievements */}
             {achievements.length > 0 && (
-              <RecentAchievements achievements={achievements} />
+              <Suspense fallback={<MiniLoader />}>
+                <RecentAchievements achievements={achievements} />
+              </Suspense>
             )}
           </TabsContent>
 
           {/* O QUE FALTA TAB */}
           <TabsContent value="o-que-falta" className="space-y-8 animate-fade-in">
-            {/* Main Goal Tracker - Consolidated view */}
-            <ProceduresGoalTracker month={selectedMonth} year={selectedYear} />
+            <Suspense fallback={<MiniLoader />}>
+              <ProceduresGoalTracker month={selectedMonth} year={selectedYear} />
+            </Suspense>
             
-            <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
+            <Suspense fallback={<MiniLoader />}>
+              <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
+            </Suspense>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SmartDailyGoals month={selectedMonth} year={selectedYear} />
-              <SalesForecastPanel month={selectedMonth} year={selectedYear} />
-            </div>
+            <Suspense fallback={<MiniLoader />}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SmartDailyGoals month={selectedMonth} year={selectedYear} />
+                <SalesForecastPanel month={selectedMonth} year={selectedYear} />
+              </div>
+            </Suspense>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
-              <LeadResponseMetrics month={selectedMonth} year={selectedYear} />
-            </div>
+            <Suspense fallback={<MiniLoader />}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
+                <LeadResponseMetrics month={selectedMonth} year={selectedYear} />
+              </div>
+            </Suspense>
             
-            <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
+            <Suspense fallback={<MiniLoader />}>
+              <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
+            </Suspense>
           </TabsContent>
 
           {/* VENDIDO VS EXECUTADO TAB */}
           <TabsContent value="vendido-executado" className="space-y-8 animate-fade-in">
-            <SoldVsExecutedPanel 
-              month={selectedMonth} 
-              year={selectedYear} 
-              filterSeller={filterSeller}
-              filterDepartment={filterDepartment}
-            />
+            <Suspense fallback={<MiniLoader />}>
+              <SoldVsExecutedPanel 
+                month={selectedMonth} 
+                year={selectedYear} 
+                filterSeller={filterSeller}
+                filterDepartment={filterDepartment}
+              />
+            </Suspense>
             
-            {/* Month Comparison */}
-            <MonthComparisonPanel 
-              currentMonth={selectedMonth} 
-              currentYear={selectedYear} 
-            />
+            <Suspense fallback={<MiniLoader />}>
+              <MonthComparisonPanel 
+                currentMonth={selectedMonth} 
+                currentYear={selectedYear} 
+              />
+            </Suspense>
             
-            {/* Historical Trends */}
-            <HistoricalTrendsPanel 
-              currentMonth={selectedMonth} 
-              currentYear={selectedYear} 
-            />
+            <Suspense fallback={<MiniLoader />}>
+              <HistoricalTrendsPanel 
+                currentMonth={selectedMonth} 
+                currentYear={selectedYear} 
+              />
+            </Suspense>
             
-            <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
+            <Suspense fallback={<MiniLoader />}>
+              <GoalAchievementSummary month={selectedMonth} year={selectedYear} />
+            </Suspense>
           </TabsContent>
 
           {/* POR VENDEDORA TAB */}
           <TabsContent value="vendedoras" className="space-y-8 animate-fade-in">
-            <SellerDashboard 
-              month={selectedMonth} 
-              year={selectedYear} 
-              filterSeller={filterSeller}
-              filterDepartment={filterDepartment}
-            />
+            <Suspense fallback={<MiniLoader />}>
+              <SellerDashboard 
+                month={selectedMonth} 
+                year={selectedYear} 
+                filterSeller={filterSeller}
+                filterDepartment={filterDepartment}
+              />
+            </Suspense>
           </TabsContent>
 
           {/* POR DEPARTAMENTO TAB */}
           <TabsContent value="departamentos" className="space-y-8 animate-fade-in">
-            <DepartmentGoalsCard 
-              month={selectedMonth} 
-              year={selectedYear} 
-              filterDepartment={filterDepartment}
-            />
+            <Suspense fallback={<MiniLoader />}>
+              <DepartmentGoalsCard 
+                month={selectedMonth} 
+                year={selectedYear} 
+                filterDepartment={filterDepartment}
+              />
+            </Suspense>
           </TabsContent>
 
           {/* HISTÓRICO TAB - Year-over-Year Comparisons */}
           <TabsContent value="historico" className="space-y-8 animate-fade-in">
-            <HistoricalComparison />
+            <Suspense fallback={<MiniLoader />}>
+              <HistoricalComparison />
+            </Suspense>
           </TabsContent>
         </Tabs>
 
