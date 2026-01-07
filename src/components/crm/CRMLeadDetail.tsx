@@ -116,25 +116,25 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
   return (
     <>
       <Sheet open={open} onOpenChange={onClose}>
-        <SheetContent className="w-full sm:max-w-2xl p-0 overflow-hidden">
+        <SheetContent className="w-full sm:max-w-xl md:max-w-2xl p-0 overflow-hidden">
           <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="p-6 border-b bg-muted/30">
+            <div className="p-4 sm:p-6 border-b bg-muted/30">
               <SheetHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <SheetTitle className="text-xl flex items-center gap-2">
-                      {lead?.name || initialLead.name}
+                    <SheetTitle className="text-lg sm:text-xl flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <span className="truncate">{lead?.name || initialLead.name}</span>
                       {lead?.temperature && (
                         <CRMTemperatureBadge 
                           temperature={lead.temperature} 
                           size="sm"
                         />
                       )}
-                      {lead?.is_priority && <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />}
+                      {lead?.is_priority && <Star className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 fill-yellow-500 shrink-0" />}
                       {lead?.is_stale && (
-                        <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
+                        <Badge variant="outline" className="border-orange-500 text-orange-500 text-[10px] sm:text-xs shrink-0">
+                          <AlertTriangle className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
                           Parado
                         </Badge>
                       )}
@@ -145,27 +145,27 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setIsEditing(true)}
-                      className="gap-1"
+                      className="gap-1 h-8 px-2 sm:px-3"
                     >
-                      <Edit2 className="h-4 w-4" />
-                      Editar
+                      <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="hidden xs:inline">Editar</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => analyzeLead.mutate()}
                       disabled={analyzeLead.isPending}
-                      className="gap-1"
+                      className="gap-1 h-8 px-2 sm:px-3"
                     >
                       {analyzeLead.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                       ) : (
-                        <Brain className="h-4 w-4" />
+                        <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       )}
                       <span className="hidden sm:inline">IA</span>
                     </Button>
@@ -183,18 +183,18 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                     onTransfer={() => setShowTransferDialog(true)}
                   />
                   
-                  {/* Contact Info */}
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  {/* Contact Info - Stack on mobile */}
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground">
                     {lead.phone && (
                       <span className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5" />
-                        {lead.phone}
+                        <Phone className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                        <span className="truncate max-w-[120px] sm:max-w-none">{lead.phone}</span>
                       </span>
                     )}
                     {lead.email && (
                       <span className="flex items-center gap-1">
-                        <Mail className="h-3.5 w-3.5" />
-                        <span className="truncate max-w-[150px]">{lead.email}</span>
+                        <Mail className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                        <span className="truncate max-w-[120px] sm:max-w-[150px]">{lead.email}</span>
                       </span>
                     )}
                   </div>
@@ -255,41 +255,41 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
             ) : (
               /* Content Tabs */
               <Tabs defaultValue="checklist" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="mx-6 mt-4 grid grid-cols-6 w-auto">
-              <TabsTrigger value="checklist" className="gap-1 text-xs">
-                <ClipboardCheck className="h-4 w-4" />
-                <span className="hidden sm:inline">Checklist</span>
+            <TabsList className="mx-3 sm:mx-6 mt-3 sm:mt-4 grid grid-cols-6 w-auto gap-0.5 sm:gap-1">
+              <TabsTrigger value="checklist" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                <ClipboardCheck className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Check</span>
               </TabsTrigger>
-              <TabsTrigger value="overview" className="gap-1 text-xs">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Resumo</span>
+              <TabsTrigger value="overview" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Resumo</span>
               </TabsTrigger>
-              <TabsTrigger value="chat" className="gap-1 text-xs">
-                <MessagesSquare className="h-4 w-4" />
-                <span className="hidden sm:inline">Chat</span>
+              <TabsTrigger value="chat" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                <MessagesSquare className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Chat</span>
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-1 text-xs">
-                <ListTodo className="h-4 w-4" />
-                <span className="hidden sm:inline">Tarefas</span>
+              <TabsTrigger value="tasks" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                <ListTodo className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Tarefas</span>
                 {tasks.filter(t => !t.is_completed).length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center text-[10px]">
+                  <Badge variant="secondary" className="ml-0.5 sm:ml-1 h-4 w-4 sm:h-5 sm:w-5 p-0 justify-center text-[8px] sm:text-[10px]">
                     {tasks.filter(t => !t.is_completed).length}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="history" className="gap-1 text-xs">
-                <History className="h-4 w-4" />
-                <span className="hidden sm:inline">Histórico</span>
+              <TabsTrigger value="history" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                <History className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Hist.</span>
               </TabsTrigger>
-              <TabsTrigger value="ai" className="gap-1 text-xs">
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">IA</span>
+              <TabsTrigger value="ai" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">IA</span>
               </TabsTrigger>
             </TabsList>
 
-            <ScrollArea className="flex-1 px-6 py-4">
+            <ScrollArea className="flex-1 px-3 sm:px-6 py-3 sm:py-4">
               {/* Checklist Tab */}
-              <TabsContent value="checklist" className="m-0 space-y-4">
+              <TabsContent value="checklist" className="m-0 space-y-3 sm:space-y-4">
                 {lead && (
                   <CRMLeadChecklist 
                     lead={lead} 
@@ -302,36 +302,36 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               </TabsContent>
 
               {/* Chat Tab */}
-              <TabsContent value="chat" className="m-0 h-[400px]">
+              <TabsContent value="chat" className="m-0 h-[350px] sm:h-[400px]">
                 {lead && (
                   <CRMInternalChat leadId={lead.id} leadName={lead.name} />
                 )}
               </TabsContent>
 
               {/* Overview Tab */}
-              <TabsContent value="overview" className="m-0 space-y-4">
+              <TabsContent value="overview" className="m-0 space-y-3 sm:space-y-4">
                 {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <Card>
-                    <CardContent className="p-3 text-center">
-                      <p className="text-2xl font-bold text-green-600">
+                    <CardContent className="p-2 sm:p-3 text-center">
+                      <p className="text-lg sm:text-2xl font-bold text-green-600">
                         {lead?.estimated_value
                           ? `R$ ${(lead.estimated_value / 1000).toFixed(0)}k`
                           : '-'}
                       </p>
-                      <p className="text-xs text-muted-foreground">Valor Estimado</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Valor Est.</p>
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardContent className="p-3 text-center">
-                      <p className="text-2xl font-bold">{lead?.lead_score || 0}</p>
-                      <p className="text-xs text-muted-foreground">Lead Score</p>
+                    <CardContent className="p-2 sm:p-3 text-center">
+                      <p className="text-lg sm:text-2xl font-bold">{lead?.lead_score || 0}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Lead Score</p>
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardContent className="p-3 text-center">
-                      <p className="text-2xl font-bold">{lead?.total_interactions || 0}</p>
-                      <p className="text-xs text-muted-foreground">Interações</p>
+                    <CardContent className="p-2 sm:p-3 text-center">
+                      <p className="text-lg sm:text-2xl font-bold">{lead?.total_interactions || 0}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Interações</p>
                     </CardContent>
                   </Card>
                 </div>

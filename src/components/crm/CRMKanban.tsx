@@ -55,11 +55,11 @@ export function CRMKanban({ pipelineId, stages, onLeadClick, onNewLead, filtered
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <ScrollArea className="w-full">
-        <div className="flex gap-4 p-4 min-w-max">
+        <div className="flex gap-3 sm:gap-4 p-2 sm:p-4 min-w-max">
           {stages.map((stage, index) => (
             <div
               key={stage.id}
-              className="w-80 flex-shrink-0"
+              className="w-72 sm:w-80 flex-shrink-0"
             >
               {/* Stage Header */}
               <div
@@ -96,7 +96,7 @@ export function CRMKanban({ pipelineId, stages, onLeadClick, onNewLead, filtered
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={cn(
-                      "min-h-[calc(100vh-280px)] rounded-b-lg p-2 transition-colors",
+                      "min-h-[calc(100vh-320px)] sm:min-h-[calc(100vh-280px)] rounded-b-lg p-1.5 sm:p-2 transition-colors",
                       "bg-muted/30 border border-t-0 border-border/50",
                       snapshot.isDraggingOver && "bg-primary/5 border-primary/30"
                     )}
