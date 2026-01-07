@@ -39,6 +39,9 @@ import { CRMTeamPerformance } from "@/components/crm/CRMTeamPerformance";
 import { CRMGamificationDashboard } from "@/components/crm/CRMGamificationDashboard";
 import { CRMIntegrations } from "@/components/crm/CRMIntegrations";
 import { CRMNavigationMenu, CRMViewMode } from "@/components/crm/CRMNavigationMenu";
+import { CRMSurgeryDashboard } from "@/components/crm/CRMSurgeryDashboard";
+import { CRMWhatsAppTemplates } from "@/components/crm/CRMWhatsAppTemplates";
+import { CRMSmartAlerts } from "@/components/crm/CRMSmartAlerts";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -435,6 +438,21 @@ const CRM = () => {
 
         {viewMode === 'integrations' && (
           <CRMIntegrations />
+        )}
+
+        {viewMode === 'surgery' && (
+          <CRMSurgeryDashboard />
+        )}
+
+        {viewMode === 'templates' && (
+          <CRMWhatsAppTemplates />
+        )}
+
+        {viewMode === 'alerts' && (
+          <CRMSmartAlerts onLeadClick={(leadId) => {
+            const lead = leads.find(l => l.id === leadId);
+            if (lead) setSelectedLead(lead);
+          }} />
         )}
         
         {viewMode === 'leaderboard' && (
