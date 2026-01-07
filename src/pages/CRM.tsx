@@ -1,39 +1,63 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/Header";
 import { CRMKanban } from "@/components/crm/CRMKanban";
 import { CRMStats } from "@/components/crm/CRMStats";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
 import { CRMLeadDetail } from "@/components/crm/CRMLeadDetail";
+import { CRMPipelineSelector } from "@/components/crm/CRMPipelineSelector";
+import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   Plus, 
   RefreshCw, 
-  Filter,
-  Search,
   Users,
-  Target,
-  Zap,
-  LayoutGrid
+  Sparkles,
+  Activity
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
+// Fetch lead counts per pipeline
+const useLeadCountsPerPipeline = () => {
+  return useQuery({
+    queryKey: ['crm-lead-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('crm_leads')
+        .select('pipeline_id, estimated_value');
+      
+      if (error) throw error;
+      
+      const counts: Record<string, number> = {};
+      const values: Record<string, number> = {};
+      
+      data?.forEach(lead => {
+        counts[lead.pipeline_id] = (counts[lead.pipeline_id] || 0) + 1;
+        values[lead.pipeline_id] = (values[lead.pipeline_id] || 0) + (lead.estimated_value || 0);
+      });
+      
+      return { counts, values };
+    },
+  });
+};
 
 const CRM = () => {
   const { pipelines, stages, pipelinesLoading, stagesLoading } = useCRM();
+  const { data: leadCountData } = useLeadCountsPerPipeline();
   
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterAssigned, setFilterAssigned] = useState<string>("all");
+  const [filters, setFilters] = useState({
+    staleOnly: false,
+    priorityOnly: false,
+    aiAnalyzedOnly: false,
+    unassignedOnly: false,
+    recentOnly: false,
+  });
   const [newLeadDialogOpen, setNewLeadDialogOpen] = useState(false);
   const [initialStageId, setInitialStageId] = useState<string | undefined>();
 
@@ -52,22 +76,36 @@ const CRM = () => {
   // Use the leads hook for the selected pipeline
   const { leads, isLoading: leadsLoading, refetch } = useCRMLeads(selectedPipeline);
 
-  const currentPipeline = pipelines.find(p => p.id === selectedPipeline);
   const pipelineStages = stages.filter(s => s.pipeline_id === selectedPipeline);
 
-  // Apply filters
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = !searchQuery || 
-      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.phone?.includes(searchQuery);
-    
-    const matchesAssigned = filterAssigned === "all" || 
-      (filterAssigned === "unassigned" && !lead.assigned_to) ||
-      lead.assigned_to === filterAssigned;
+  // Calculate active filters count
+  const activeFiltersCount = useMemo(() => {
+    return Object.values(filters).filter(Boolean).length;
+  }, [filters]);
 
-    return matchesSearch && matchesAssigned;
-  });
+  // Apply filters
+  const filteredLeads = useMemo(() => {
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    return leads.filter(lead => {
+      // Search filter
+      const matchesSearch = !searchQuery || 
+        lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lead.phone?.includes(searchQuery) ||
+        lead.whatsapp?.includes(searchQuery);
+      
+      // Quick filters
+      const matchesStale = !filters.staleOnly || lead.is_stale;
+      const matchesPriority = !filters.priorityOnly || lead.is_priority;
+      const matchesAI = !filters.aiAnalyzedOnly || !!lead.ai_analyzed_at;
+      const matchesUnassigned = !filters.unassignedOnly || !lead.assigned_to;
+      const matchesRecent = !filters.recentOnly || new Date(lead.created_at) > oneDayAgo;
+
+      return matchesSearch && matchesStale && matchesPriority && matchesAI && matchesUnassigned && matchesRecent;
+    });
+  }, [leads, searchQuery, filters]);
 
   const isLoading = pipelinesLoading || stagesLoading || leadsLoading;
 
@@ -80,48 +118,28 @@ const CRM = () => {
     setSelectedLead(lead);
   };
 
-  const getPipelineIcon = (type: string) => {
-    switch (type) {
-      case 'sdr': return Users;
-      case 'closer': return Target;
-      case 'cs': return Zap;
-      case 'farmer': return LayoutGrid;
-      default: return Users;
-    }
-  };
-
-  const getPipelineColor = (type: string) => {
-    switch (type) {
-      case 'sdr': return 'bg-blue-500/10 text-blue-500 border-blue-500/30';
-      case 'closer': return 'bg-green-500/10 text-green-500 border-green-500/30';
-      case 'cs': return 'bg-purple-500/10 text-purple-500 border-purple-500/30';
-      case 'farmer': return 'bg-orange-500/10 text-orange-500 border-orange-500/30';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
-
-  // Count leads per pipeline (need all leads for this)
-  const getLeadsCountForPipeline = (pipelineId: string) => {
-    if (pipelineId === selectedPipeline) {
-      return leads.length;
-    }
-    return 0; // We only have leads for selected pipeline
-  };
+  // Calculate quick stats for current pipeline
+  const quickStats = useMemo(() => {
+    const staleCount = leads.filter(l => l.is_stale).length;
+    const aiCount = leads.filter(l => l.ai_analyzed_at).length;
+    const totalValue = leads.reduce((acc, l) => acc + (l.estimated_value || 0), 0);
+    return { staleCount, aiCount, totalValue };
+  }, [leads]);
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Users className="w-6 h-6 text-primary" />
               CRM Unique
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Gerencie leads, oportunidades e relacionamentos
+              Gerencie leads, oportunidades e relacionamentos com inteligência
             </p>
           </div>
 
@@ -142,77 +160,62 @@ const CRM = () => {
           </div>
         </div>
 
-        {/* Pipeline Tabs */}
-        <Tabs 
-          value={selectedPipeline} 
-          onValueChange={setSelectedPipeline}
-          className="space-y-4"
-        >
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-            <TabsList className="h-auto p-1 bg-muted/50 flex-wrap">
-              {pipelines.map((pipeline) => {
-                const Icon = getPipelineIcon(pipeline.pipeline_type);
-                const leadsCount = getLeadsCountForPipeline(pipeline.id);
-                return (
-                  <TabsTrigger
-                    key={pipeline.id}
-                    value={pipeline.id}
-                    className="gap-2 data-[state=active]:bg-background"
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{pipeline.name}</span>
-                    {selectedPipeline === pipeline.id && (
-                      <Badge 
-                        variant="secondary" 
-                        className={`ml-1 ${getPipelineColor(pipeline.pipeline_type)}`}
-                      >
-                        {leadsCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+        {/* Pipeline Selector */}
+        <Card className="border-dashed">
+          <CardContent className="p-4">
+            <CRMPipelineSelector
+              pipelines={pipelines}
+              selectedPipeline={selectedPipeline}
+              onSelect={setSelectedPipeline}
+              leadCounts={leadCountData?.counts}
+              valueCounts={leadCountData?.values}
+            />
+          </CardContent>
+        </Card>
 
-            {/* Filters */}
-            <div className="flex items-center gap-2 flex-1 lg:justify-end">
-              <div className="relative flex-1 lg:max-w-xs">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar lead..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={filterAssigned} onValueChange={setFilterAssigned}>
-                <SelectTrigger className="w-[160px]">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filtrar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="unassigned">Sem responsável</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Quick Stats Bar */}
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Activity className="w-4 h-4" />
+            <span><strong>{leads.length}</strong> leads no pipeline</span>
           </div>
+          {quickStats.staleCount > 0 && (
+            <Badge variant="outline" className="border-orange-500/50 text-orange-500">
+              {quickStats.staleCount} parados
+            </Badge>
+          )}
+          {quickStats.aiCount > 0 && (
+            <Badge variant="outline" className="border-purple-500/50 text-purple-500">
+              <Sparkles className="w-3 h-3 mr-1" />
+              {quickStats.aiCount} analisados
+            </Badge>
+          )}
+          {quickStats.totalValue > 0 && (
+            <Badge variant="outline" className="border-green-500/50 text-green-500">
+              R$ {(quickStats.totalValue / 1000).toFixed(0)}k em pipeline
+            </Badge>
+          )}
+        </div>
 
-          {/* Stats */}
-          <CRMStats pipelineId={selectedPipeline || undefined} />
+        {/* Filters */}
+        <CRMQuickFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          filters={filters}
+          onFiltersChange={setFilters}
+          activeFiltersCount={activeFiltersCount}
+        />
 
-          {/* Kanban for each pipeline */}
-          {pipelines.map((pipeline) => (
-            <TabsContent key={pipeline.id} value={pipeline.id} className="mt-0">
-              <CRMKanban
-                pipelineId={pipeline.id}
-                stages={stages.filter(s => s.pipeline_id === pipeline.id)}
-                onLeadClick={handleLeadClick}
-                onNewLead={handleNewLead}
-              />
-            </TabsContent>
-          ))}
-        </Tabs>
+        {/* Stats */}
+        <CRMStats pipelineId={selectedPipeline || undefined} />
+
+        {/* Kanban */}
+        <CRMKanban
+          pipelineId={selectedPipeline}
+          stages={pipelineStages}
+          onLeadClick={handleLeadClick}
+          onNewLead={handleNewLead}
+        />
 
         {/* New Lead Dialog */}
         <CRMNewLeadDialog
