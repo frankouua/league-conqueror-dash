@@ -9,6 +9,16 @@ import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
 import { CRMPipelineMetrics } from "@/components/crm/CRMPipelineMetrics";
 import { CRMExportButton } from "@/components/crm/CRMExportButton";
 import { CRMOverviewDashboard } from "@/components/crm/CRMOverviewDashboard";
+import { CRMRFVIntegration } from "@/components/crm/CRMRFVIntegration";
+import { CRMCampaignIntegration } from "@/components/crm/CRMCampaignIntegration";
+import { CRMProtocolIntegration } from "@/components/crm/CRMProtocolIntegration";
+import { CRMSalesMetrics } from "@/components/crm/CRMSalesMetrics";
+import { CRMAutomations } from "@/components/crm/CRMAutomations";
+import { CRMActivityFeed } from "@/components/crm/CRMActivityFeed";
+import { CRMLeaderboard } from "@/components/crm/CRMLeaderboard";
+import { CRMSalesCoachGeneral } from "@/components/crm/CRMSalesCoachGeneral";
+import { CRMGoalIntegration } from "@/components/crm/CRMGoalIntegration";
+import { CRMSmartSuggestions } from "@/components/crm/CRMSmartSuggestions";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +32,13 @@ import {
   Activity,
   BarChart3,
   LayoutGrid,
-  PieChart
+  PieChart,
+  Target,
+  Zap,
+  Brain,
+  Trophy,
+  TrendingUp,
+  Package
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -58,7 +74,7 @@ const CRM = () => {
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<'overview' | 'kanban' | 'metrics'>('kanban');
+  const [viewMode, setViewMode] = useState<'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' | 'automations' | 'leaderboard'>('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
     priorityOnly: false,
@@ -161,21 +177,41 @@ const CRM = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'overview' | 'kanban' | 'metrics')}>
-              <TabsList className="h-9">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* View Mode Toggle - Expanded */}
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
+              <TabsList className="h-9 flex-wrap">
                 <TabsTrigger value="overview" className="gap-1.5 px-3">
                   <PieChart className="w-4 h-4" />
-                  <span className="hidden sm:inline">Overview</span>
+                  <span className="hidden md:inline">Overview</span>
                 </TabsTrigger>
                 <TabsTrigger value="kanban" className="gap-1.5 px-3">
                   <LayoutGrid className="w-4 h-4" />
-                  <span className="hidden sm:inline">Kanban</span>
+                  <span className="hidden md:inline">Kanban</span>
                 </TabsTrigger>
                 <TabsTrigger value="metrics" className="gap-1.5 px-3">
                   <BarChart3 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Métricas</span>
+                  <span className="hidden md:inline">Métricas</span>
+                </TabsTrigger>
+                <TabsTrigger value="rfv" className="gap-1.5 px-3">
+                  <Target className="w-4 h-4" />
+                  <span className="hidden md:inline">RFV</span>
+                </TabsTrigger>
+                <TabsTrigger value="campaigns" className="gap-1.5 px-3">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="hidden md:inline">Campanhas</span>
+                </TabsTrigger>
+                <TabsTrigger value="protocols" className="gap-1.5 px-3">
+                  <Package className="w-4 h-4" />
+                  <span className="hidden md:inline">Protocolos</span>
+                </TabsTrigger>
+                <TabsTrigger value="automations" className="gap-1.5 px-3">
+                  <Zap className="w-4 h-4" />
+                  <span className="hidden md:inline">Automações</span>
+                </TabsTrigger>
+                <TabsTrigger value="leaderboard" className="gap-1.5 px-3">
+                  <Trophy className="w-4 h-4" />
+                  <span className="hidden md:inline">Ranking</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -201,72 +237,113 @@ const CRM = () => {
           </div>
         </div>
 
-        {/* Pipeline Selector */}
-        <Card className="border-dashed">
-          <CardContent className="p-4">
-            <CRMPipelineSelector
-              pipelines={pipelines}
-              selectedPipeline={selectedPipeline}
-              onSelect={setSelectedPipeline}
-              leadCounts={leadCountData?.counts}
-              valueCounts={leadCountData?.values}
-            />
-          </CardContent>
-        </Card>
+        {/* Pipeline Selector - Only show for relevant views */}
+        {['kanban', 'metrics', 'overview'].includes(viewMode) && (
+          <Card className="border-dashed">
+            <CardContent className="p-4">
+              <CRMPipelineSelector
+                pipelines={pipelines}
+                selectedPipeline={selectedPipeline}
+                onSelect={setSelectedPipeline}
+                leadCounts={leadCountData?.counts}
+                valueCounts={leadCountData?.values}
+              />
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Quick Stats Bar */}
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Activity className="w-4 h-4" />
-            <span><strong>{leads.length}</strong> leads no pipeline</span>
+        {/* Quick Stats Bar - Only show for kanban/metrics */}
+        {['kanban', 'metrics'].includes(viewMode) && (
+          <div className="flex items-center gap-4 text-sm flex-wrap">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Activity className="w-4 h-4" />
+              <span><strong>{leads.length}</strong> leads no pipeline</span>
+            </div>
+            {quickStats.staleCount > 0 && (
+              <Badge variant="outline" className="border-orange-500/50 text-orange-500">
+                {quickStats.staleCount} parados
+              </Badge>
+            )}
+            {quickStats.aiCount > 0 && (
+              <Badge variant="outline" className="border-purple-500/50 text-purple-500">
+                <Sparkles className="w-3 h-3 mr-1" />
+                {quickStats.aiCount} analisados
+              </Badge>
+            )}
+            {quickStats.totalValue > 0 && (
+              <Badge variant="outline" className="border-green-500/50 text-green-500">
+                R$ {(quickStats.totalValue / 1000).toFixed(0)}k em pipeline
+              </Badge>
+            )}
           </div>
-          {quickStats.staleCount > 0 && (
-            <Badge variant="outline" className="border-orange-500/50 text-orange-500">
-              {quickStats.staleCount} parados
-            </Badge>
-          )}
-          {quickStats.aiCount > 0 && (
-            <Badge variant="outline" className="border-purple-500/50 text-purple-500">
-              <Sparkles className="w-3 h-3 mr-1" />
-              {quickStats.aiCount} analisados
-            </Badge>
-          )}
-          {quickStats.totalValue > 0 && (
-            <Badge variant="outline" className="border-green-500/50 text-green-500">
-              R$ {(quickStats.totalValue / 1000).toFixed(0)}k em pipeline
-            </Badge>
-          )}
-        </div>
+        )}
 
-        {/* Filters */}
-        <CRMQuickFilters
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filters={filters}
-          onFiltersChange={setFilters}
-          activeFiltersCount={activeFiltersCount}
-        />
+        {/* Filters - Only for kanban/overview */}
+        {['kanban', 'overview'].includes(viewMode) && (
+          <CRMQuickFilters
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            filters={filters}
+            onFiltersChange={setFilters}
+            activeFiltersCount={activeFiltersCount}
+          />
+        )}
 
-        {/* Stats */}
-        <CRMStats pipelineId={selectedPipeline || undefined} />
+        {/* Stats - Only for kanban */}
+        {viewMode === 'kanban' && (
+          <CRMStats pipelineId={selectedPipeline || undefined} />
+        )}
 
         {/* View Mode Content */}
-        {viewMode === 'overview' ? (
-          /* Overview Dashboard */
-          <CRMOverviewDashboard />
-        ) : viewMode === 'kanban' ? (
-          /* Kanban */
+        {viewMode === 'overview' && (
+          <div className="space-y-6">
+            <CRMOverviewDashboard />
+            <div className="grid lg:grid-cols-2 gap-6">
+              <CRMActivityFeed />
+              <CRMSalesCoachGeneral />
+            </div>
+          </div>
+        )}
+        
+        {viewMode === 'kanban' && (
           <CRMKanban
             pipelineId={selectedPipeline}
             stages={pipelineStages}
             onLeadClick={handleLeadClick}
             onNewLead={handleNewLead}
           />
-        ) : (
-          /* Metrics View */
-          <div className="grid lg:grid-cols-2 gap-6">
-            <CRMPipelineMetrics pipelineId={selectedPipeline} />
-            <CRMStats pipelineId={selectedPipeline || undefined} />
+        )}
+        
+        {viewMode === 'metrics' && (
+          <div className="space-y-6">
+            <CRMSalesMetrics />
+            <div className="grid lg:grid-cols-2 gap-6">
+              <CRMPipelineMetrics pipelineId={selectedPipeline} />
+              <CRMStats pipelineId={selectedPipeline || undefined} />
+            </div>
+          </div>
+        )}
+        
+        {viewMode === 'rfv' && (
+          <CRMRFVIntegration />
+        )}
+        
+        {viewMode === 'campaigns' && (
+          <CRMCampaignIntegration />
+        )}
+        
+        {viewMode === 'protocols' && (
+          <CRMProtocolIntegration />
+        )}
+        
+        {viewMode === 'automations' && (
+          <CRMAutomations />
+        )}
+        
+        {viewMode === 'leaderboard' && (
+          <div className="space-y-6">
+            <CRMLeaderboard />
+            <CRMActivityFeed />
           </div>
         )}
 
