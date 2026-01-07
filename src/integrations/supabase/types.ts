@@ -3100,6 +3100,66 @@ export type Database = {
           },
         ]
       }
+      upload_deletion_logs: {
+        Row: {
+          deleted_at: string
+          deleted_by: string
+          deleted_by_name: string
+          id: string
+          notes: string | null
+          original_date_range_end: string | null
+          original_date_range_start: string | null
+          original_file_name: string | null
+          original_imported_rows: number | null
+          original_total_revenue_paid: number | null
+          original_total_revenue_sold: number | null
+          original_upload_id: string
+          original_upload_type: string | null
+          original_uploaded_at: string | null
+          original_uploaded_by_name: string | null
+          records_deleted_executed: number | null
+          records_deleted_revenue: number | null
+        }
+        Insert: {
+          deleted_at?: string
+          deleted_by: string
+          deleted_by_name: string
+          id?: string
+          notes?: string | null
+          original_date_range_end?: string | null
+          original_date_range_start?: string | null
+          original_file_name?: string | null
+          original_imported_rows?: number | null
+          original_total_revenue_paid?: number | null
+          original_total_revenue_sold?: number | null
+          original_upload_id: string
+          original_upload_type?: string | null
+          original_uploaded_at?: string | null
+          original_uploaded_by_name?: string | null
+          records_deleted_executed?: number | null
+          records_deleted_revenue?: number | null
+        }
+        Update: {
+          deleted_at?: string
+          deleted_by?: string
+          deleted_by_name?: string
+          id?: string
+          notes?: string | null
+          original_date_range_end?: string | null
+          original_date_range_start?: string | null
+          original_file_name?: string | null
+          original_imported_rows?: number | null
+          original_total_revenue_paid?: number | null
+          original_total_revenue_sold?: number | null
+          original_upload_id?: string
+          original_upload_type?: string | null
+          original_uploaded_at?: string | null
+          original_uploaded_by_name?: string | null
+          records_deleted_executed?: number | null
+          records_deleted_revenue?: number | null
+        }
+        Relationships: []
+      }
       user_achievements: {
         Row: {
           achievement_name: string

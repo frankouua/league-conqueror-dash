@@ -170,6 +170,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [existingRecordsCount, setExistingRecordsCount] = useState<number>(0);
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [deletionHistory, setDeletionHistory] = useState<any[]>([]);
+  const [showDeletionHistory, setShowDeletionHistory] = useState(false);
   const LARGE_REPLACE_THRESHOLD = 50;
   
   // Persist state to sessionStorage whenever key data changes
@@ -250,6 +252,17 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     if (!error && data && data.length > 0) {
       setUploadHistory(data as UploadLog[]);
       setLastUpload(data[0] as UploadLog);
+    }
+    
+    // Also fetch deletion history
+    const { data: deletions } = await supabase
+      .from('upload_deletion_logs')
+      .select('*')
+      .order('deleted_at', { ascending: false })
+      .limit(20);
+    
+    if (deletions) {
+      setDeletionHistory(deletions);
     }
   };
 
@@ -1036,6 +1049,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       `📊 ${uploadLog.imported_rows} registros\n` +
       `💰 ${Number(uploadLog.total_revenue_sold).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} vendido\n\n` +
       `Isso irá excluir TODOS os registros de vendas/executado importados neste upload.\n\n` +
+      `Esta ação será registrada na auditoria.\n\n` +
       `Deseja continuar?`
     );
     
@@ -1048,12 +1062,26 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       const dateStart = uploadLog.date_range_start;
       const dateEnd = uploadLog.date_range_end;
       
+      let revenueDeletedCount = 0;
+      let executedDeletedCount = 0;
+      
       if (dateStart && dateEnd) {
         // Delete from revenue_records for that date range
         // We need to match by uploaded time approximately - delete records created around that time
         const uploadTime = new Date(uploadLog.uploaded_at);
         const startWindow = new Date(uploadTime.getTime() - 5 * 60 * 1000); // 5 min before
         const endWindow = new Date(uploadTime.getTime() + 5 * 60 * 1000); // 5 min after
+        
+        // Count before deleting (for audit)
+        const { count: revCount } = await supabase
+          .from('revenue_records')
+          .select('id', { count: 'exact', head: true })
+          .gte('date', dateStart)
+          .lte('date', dateEnd)
+          .gte('created_at', startWindow.toISOString())
+          .lte('created_at', endWindow.toISOString());
+        
+        revenueDeletedCount = revCount || 0;
         
         // Delete revenue_records that match the date range and were created around upload time
         const { error: revenueError } = await supabase
@@ -1068,6 +1096,17 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           console.error('Error deleting revenue records:', revenueError);
         }
         
+        // Count executed before deleting (for audit)
+        const { count: execCount } = await supabase
+          .from('executed_records')
+          .select('id', { count: 'exact', head: true })
+          .gte('date', dateStart)
+          .lte('date', dateEnd)
+          .gte('created_at', startWindow.toISOString())
+          .lte('created_at', endWindow.toISOString());
+        
+        executedDeletedCount = execCount || 0;
+        
         // Also try executed_records
         const { error: executedError } = await supabase
           .from('executed_records')
@@ -1080,6 +1119,30 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         if (executedError) {
           console.error('Error deleting executed records:', executedError);
         }
+      }
+      
+      // Log the deletion for audit
+      const { error: auditError } = await supabase
+        .from('upload_deletion_logs')
+        .insert({
+          original_upload_id: uploadId,
+          deleted_by: user?.id,
+          deleted_by_name: profile?.full_name || user?.email || 'Desconhecido',
+          original_uploaded_by_name: uploadLog.uploaded_by_name,
+          original_uploaded_at: uploadLog.uploaded_at,
+          original_file_name: uploadLog.file_name,
+          original_upload_type: uploadLog.upload_type || 'vendas',
+          original_imported_rows: uploadLog.imported_rows,
+          original_total_revenue_sold: uploadLog.total_revenue_sold,
+          original_total_revenue_paid: uploadLog.total_revenue_paid,
+          original_date_range_start: uploadLog.date_range_start,
+          original_date_range_end: uploadLog.date_range_end,
+          records_deleted_revenue: revenueDeletedCount,
+          records_deleted_executed: executedDeletedCount,
+        });
+      
+      if (auditError) {
+        console.error('Error logging deletion:', auditError);
       }
       
       // Delete the upload log itself
@@ -2048,6 +2111,80 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               </div>
             )}
           </CardContent>
+        </Card>
+      )}
+
+      {/* Deletion History Section */}
+      {showHistory && deletionHistory.length > 0 && (
+        <Card className="border-red-500/30 bg-red-500/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2 text-red-600">
+                  <Trash2 className="w-4 h-4" />
+                  Histórico de Exclusões (Auditoria)
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDeletionHistory(!showDeletionHistory)}
+                  className="text-xs"
+                >
+                  {showDeletionHistory ? "Ocultar" : "Mostrar"}
+                </Button>
+              </div>
+            </CardHeader>
+            {showDeletionHistory && (
+              <CardContent className="pt-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data Exclusão</TableHead>
+                      <TableHead>Excluído por</TableHead>
+                      <TableHead>Upload Original</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Registros</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deletionHistory.map((deletion) => (
+                      <TableRow key={deletion.id} className="bg-red-50/30">
+                        <TableCell className="whitespace-nowrap text-red-600 font-medium">
+                          {format(new Date(deletion.deleted_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="font-medium">{deletion.deleted_by_name}</TableCell>
+                        <TableCell>
+                          <div className="text-xs">
+                            <div>{deletion.original_file_name}</div>
+                            <div className="text-muted-foreground">
+                              por {deletion.original_uploaded_by_name} em {' '}
+                              {deletion.original_uploaded_at && format(new Date(deletion.original_uploaded_at), "dd/MM/yy", { locale: ptBR })}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={deletion.original_upload_type === 'executado' 
+                              ? 'border-green-500 text-green-500' 
+                              : 'border-blue-500 text-blue-500'
+                            }
+                          >
+                            {deletion.original_upload_type === 'executado' ? 'Executado' : 'Vendas'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-red-600">
+                          -{deletion.original_imported_rows || 0}
+                        </TableCell>
+                        <TableCell className="text-right text-red-600">
+                          -{Number(deletion.original_total_revenue_sold || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+            </CardContent>
+          )}
         </Card>
       )}
 
