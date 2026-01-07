@@ -19,6 +19,9 @@ import { CRMLeaderboard } from "@/components/crm/CRMLeaderboard";
 import { CRMSalesCoachGeneral } from "@/components/crm/CRMSalesCoachGeneral";
 import { CRMGoalIntegration } from "@/components/crm/CRMGoalIntegration";
 import { CRMSmartSuggestions } from "@/components/crm/CRMSmartSuggestions";
+import { CRMNotificationsPanel } from "@/components/crm/CRMNotificationsPanel";
+import { CRMAIAssistant } from "@/components/crm/CRMAIAssistant";
+import { CRMPerformanceDashboard } from "@/components/crm/CRMPerformanceDashboard";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -297,10 +300,24 @@ const CRM = () => {
         {/* View Mode Content */}
         {viewMode === 'overview' && (
           <div className="space-y-6">
-            <CRMOverviewDashboard />
+            {/* Smart Suggestions at top */}
+            <CRMSmartSuggestions />
+            
+            <CRMPerformanceDashboard />
+            
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <CRMGoalIntegration />
+              </div>
+              <div className="space-y-6">
+                <CRMNotificationsPanel />
+                <CRMSalesCoachGeneral />
+              </div>
+            </div>
+            
             <div className="grid lg:grid-cols-2 gap-6">
               <CRMActivityFeed />
-              <CRMSalesCoachGeneral />
+              <CRMAIAssistant />
             </div>
           </div>
         )}
