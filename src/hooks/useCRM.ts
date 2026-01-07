@@ -218,6 +218,34 @@ export function useCRMLeads(pipelineId?: string) {
     enabled: !!user,
   });
 
+  // Real-time subscription for leads
+  useEffect(() => {
+    if (!user || !pipelineId) return;
+
+    const channel = supabase
+      .channel(`crm-leads-${pipelineId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'crm_leads',
+          filter: `pipeline_id=eq.${pipelineId}`,
+        },
+        () => {
+          // Invalidate and refetch on any change
+          queryClient.invalidateQueries({ queryKey: ['crm-leads', pipelineId] });
+          queryClient.invalidateQueries({ queryKey: ['crm-stats', pipelineId] });
+          queryClient.invalidateQueries({ queryKey: ['crm-lead-counts'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, pipelineId, queryClient]);
+
   // Create lead mutation
   const createLead = useMutation({
     mutationFn: async (leadData: Partial<CRMLead>) => {

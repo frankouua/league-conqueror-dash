@@ -39,6 +39,7 @@ import { CRMLead, CRMStage, useCRMLeadDetail, useCRM, useCRMLeads } from '@/hook
 import { CRMLeadEditForm } from './CRMLeadEditForm';
 import { CRMBANTDisplay } from './CRMBANTDisplay';
 import { CRMQuickActions } from './CRMQuickActions';
+import { CRMTransferDialog } from './CRMTransferDialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -635,6 +636,13 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    {/* Transfer Dialog */}
+    <CRMTransferDialog
+      lead={lead}
+      open={showTransferDialog}
+      onClose={() => setShowTransferDialog(false)}
+    />
     </>
   );
 }
