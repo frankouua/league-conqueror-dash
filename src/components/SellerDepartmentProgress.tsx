@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DollarSign, Hash, TrendingDown, TrendingUp } from "lucide-react";
-import { CLINIC_GOALS } from "@/constants/clinicGoals";
 
 // Map database department strings to department_goals names
 const DEPARTMENT_MAPPING: Record<string, string> = {
@@ -70,7 +69,24 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
   const currentDay = isCurrentMonth ? now.getDate() : new Date(year, month, 0).getDate();
   const totalDaysInMonth = new Date(year, month, 0).getDate();
 
-  // Fetch department goals (revenue) - use meta3_goal
+  // Fetch seller's individual goal from predefined_goals
+  const { data: sellerGoal } = useQuery({
+    queryKey: ["seller-predefined-goal", userId, month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("predefined_goals")
+        .select("meta3_goal")
+        .eq("matched_user_id", userId)
+        .eq("month", month)
+        .eq("year", year)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.meta3_goal || 0;
+    },
+    enabled: !!userId,
+  });
+
+  // Fetch department goals (revenue) - to get proportions
   const { data: departmentGoals = [] } = useQuery({
     queryKey: ["department-goals", month, year],
     queryFn: async () => {
@@ -98,6 +114,9 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
     },
   });
 
+  // Fetch total quantity goal sum for proportion calculation
+  const totalQuantityGoalSum = quantityGoals.reduce((sum, q) => sum + (q.quantity_goal || 0), 0);
+
   // Fetch user's revenue records
   const { data: revenueRecords = [] } = useQuery({
     queryKey: ["seller-revenue-by-dept", userId, month, year],
@@ -117,9 +136,9 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
     enabled: !!userId,
   });
 
-  // Fetch count of sellers to calculate individual share
+  // Fetch count of sellers to calculate quantity share
   const { data: sellerCount = 1 } = useQuery({
-    queryKey: ["seller-count-for-dept"],
+    queryKey: ["seller-count-for-dept", month, year],
     queryFn: async () => {
       const { count, error } = await supabase
         .from("predefined_goals")
@@ -145,13 +164,17 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
     }
   });
 
-  // Calculate individual share of goals based on META 3
-  const individualShareDivisor = Math.max(sellerCount, 1);
-  const individualMeta3Goal = CLINIC_GOALS.META_3 / individualShareDivisor;
+  // Calculate individual meta3 goal from predefined_goals
+  const individualMeta3Goal = sellerGoal || 0;
 
-  // Build revenue department data using meta3_goal
+  // Calculate total clinic meta3 from department_goals
+  const totalClinicMeta3 = departmentGoals.reduce((sum, dg) => sum + (dg.meta3_goal || 0), 0);
+
+  // Build revenue department data - calculate individual goal based on proportion
   const revenueDepartments: DepartmentData[] = departmentGoals.map((dg) => {
-    const individualGoal = dg.meta3_goal / individualShareDivisor;
+    // Calculate this seller's share of this department based on their total goal proportion
+    const deptProportion = totalClinicMeta3 > 0 ? (dg.meta3_goal / totalClinicMeta3) : 0;
+    const individualGoal = individualMeta3Goal * deptProportion;
     return {
       name: SHORT_NAMES[dg.department_name] || dg.department_name,
       goal: individualGoal,
@@ -159,7 +182,8 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
     };
   }).filter(d => d.goal > 0);
 
-  // Build quantity department data
+  // Build quantity department data - divide by number of sellers
+  const individualShareDivisor = Math.max(sellerCount, 1);
   const quantityDepartments: DepartmentData[] = quantityGoals.map((qg) => {
     const individualGoal = Math.ceil(qg.quantity_goal / individualShareDivisor);
     return {
