@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface CRMWhatsAppTemplatesProps {
-  leadName: string;
+  leadName?: string;
   leadPhone?: string;
   procedures?: string[];
   stage?: string;

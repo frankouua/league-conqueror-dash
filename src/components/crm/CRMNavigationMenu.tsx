@@ -42,7 +42,8 @@ export type CRMViewMode =
   | 'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' 
   | 'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' 
   | 'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
-  | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations';
+  | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
+  | 'surgery' | 'templates' | 'alerts';
 
 interface CRMNavigationMenuProps {
   viewMode: CRMViewMode;
@@ -72,6 +73,8 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { value: 'overview', label: 'Visão Geral', icon: PieChart },
       { value: 'kanban', label: 'Kanban', icon: LayoutGrid },
+      { value: 'surgery', label: 'Cirurgias', icon: Calendar, color: 'text-red-500' },
+      { value: 'alerts', label: 'Alertas', icon: Clock, color: 'text-orange-500' },
       { value: 'postsale', label: 'Pós-Venda', icon: Heart, color: 'text-pink-500' },
     ]
   },
@@ -81,6 +84,7 @@ const MENU_GROUPS: MenuGroup[] = [
     icon: MessageSquare,
     items: [
       { value: 'whatsapp', label: 'WhatsApp IA', icon: Bot, color: 'text-green-500' },
+      { value: 'templates', label: 'Templates', icon: FileText, color: 'text-green-600' },
       { value: 'contacts', label: 'Contatos', icon: Phone },
       { value: 'chat', label: 'Chat Equipe', icon: MessageSquare },
       { value: 'connections', label: 'Conexões', icon: Smartphone, color: 'text-green-600' },
