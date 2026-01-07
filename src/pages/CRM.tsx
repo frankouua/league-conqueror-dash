@@ -8,7 +8,6 @@ import { CRMPipelineSelector } from "@/components/crm/CRMPipelineSelector";
 import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
 import { CRMPipelineMetrics } from "@/components/crm/CRMPipelineMetrics";
 import { CRMExportButton } from "@/components/crm/CRMExportButton";
-import { CRMOverviewDashboard } from "@/components/crm/CRMOverviewDashboard";
 import { CRMRFVIntegration } from "@/components/crm/CRMRFVIntegration";
 import { CRMCampaignIntegration } from "@/components/crm/CRMCampaignIntegration";
 import { CRMProtocolIntegration } from "@/components/crm/CRMProtocolIntegration";
@@ -27,6 +26,9 @@ import { CRMTeamRoutine } from "@/components/crm/CRMTeamRoutine";
 import { CRMGroupChat } from "@/components/crm/CRMGroupChat";
 import { CRMContactPoints } from "@/components/crm/CRMContactPoints";
 import { CRMWhatsAppMonitor } from "@/components/crm/CRMWhatsAppMonitor";
+import { CRMWhatsAppChat } from "@/components/crm/CRMWhatsAppChat";
+import { CRMWhatsAppConnections } from "@/components/crm/CRMWhatsAppConnections";
+import { CRMMarketingAutomations } from "@/components/crm/CRMMarketingAutomations";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +45,6 @@ import {
   PieChart,
   Target,
   Zap,
-  Brain,
   Trophy,
   TrendingUp,
   Package,
@@ -51,7 +52,9 @@ import {
   Clock,
   Phone,
   Heart,
-  Bot
+  Bot,
+  Smartphone,
+  Mail
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -86,11 +89,12 @@ const CRM = () => {
   
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
+  const [chatLead, setChatLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<
     'overview' | 'kanban' | 'metrics' | 'rfv' | 'campaigns' | 'protocols' | 
     'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' | 
-    'contacts' | 'postsale'
+    'contacts' | 'postsale' | 'connections' | 'marketing'
   >('kanban');
   const [filters, setFilters] = useState({
     staleOnly: false,
@@ -167,6 +171,10 @@ const CRM = () => {
 
   const handleLeadClick = (lead: CRMLead) => {
     setSelectedLead(lead);
+    // Also open chat if WhatsApp is available
+    if (lead.whatsapp || lead.phone) {
+      setChatLead(lead);
+    }
   };
 
   // Calculate quick stats for current pipeline
@@ -268,6 +276,14 @@ const CRM = () => {
                 <TabsTrigger value="automations" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Zap className="w-4 h-4" />
                   <span className="hidden md:inline">Automações</span>
+                </TabsTrigger>
+                <TabsTrigger value="marketing" className="gap-1.5 px-3 data-[state=active]:bg-purple-500 data-[state=active]:text-white">
+                  <Mail className="w-4 h-4" />
+                  <span className="hidden md:inline">Marketing</span>
+                </TabsTrigger>
+                <TabsTrigger value="connections" className="gap-1.5 px-3 data-[state=active]:bg-green-600 data-[state=active]:text-white">
+                  <Smartphone className="w-4 h-4" />
+                  <span className="hidden md:inline">Conexões</span>
                 </TabsTrigger>
                 <TabsTrigger value="leaderboard" className="gap-1.5 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Trophy className="w-4 h-4" />
@@ -410,6 +426,14 @@ const CRM = () => {
         {viewMode === 'automations' && (
           <CRMAutomations />
         )}
+
+        {viewMode === 'marketing' && (
+          <CRMMarketingAutomations />
+        )}
+
+        {viewMode === 'connections' && (
+          <CRMWhatsAppConnections />
+        )}
         
         {viewMode === 'leaderboard' && (
           <div className="space-y-6">
@@ -435,6 +459,13 @@ const CRM = () => {
           lead={selectedLead}
           open={!!selectedLead}
           onClose={() => setSelectedLead(null)}
+        />
+
+        {/* WhatsApp Chat Drawer */}
+        <CRMWhatsAppChat
+          lead={chatLead}
+          open={!!chatLead}
+          onClose={() => setChatLead(null)}
         />
       </main>
     </div>
