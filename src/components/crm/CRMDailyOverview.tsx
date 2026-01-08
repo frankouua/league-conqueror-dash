@@ -2,14 +2,14 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Target, Clock, Flame, TrendingUp, CheckCircle2, 
-  AlertTriangle, Phone, Sparkles 
+  AlertTriangle, Phone, Sparkles, DollarSign 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { differenceInHours, startOfDay, format } from 'date-fns';
+import { differenceInHours, startOfDay, format, endOfMonth, eachDayOfInterval, isWeekend, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -23,9 +23,19 @@ interface DailyStats {
   streak: number;
 }
 
+// Helper to get business days remaining in month
+function getBusinessDaysRemaining(year: number, month: number): number {
+  const today = new Date();
+  const lastDay = endOfMonth(new Date(year, month - 1));
+  const days = eachDayOfInterval({ start: today, end: lastDay });
+  return days.filter(d => !isWeekend(d)).length;
+}
+
 export function CRMDailyOverview() {
   const { user } = useAuth();
   const today = startOfDay(new Date());
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
 
   // All hooks MUST be called before any conditional returns
   const greeting = useMemo(() => {
@@ -34,6 +44,64 @@ export function CRMDailyOverview() {
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
   }, []);
+
+  // Fetch individual goal for this user
+  const { data: goalData } = useQuery({
+    queryKey: ['crm-daily-goal', user?.id, currentMonth, currentYear],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data } = await supabase
+        .from('individual_goals')
+        .select('revenue_goal, meta2_goal, meta3_goal')
+        .eq('user_id', user.id)
+        .eq('month', currentMonth)
+        .eq('year', currentYear)
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch today's revenue for this user
+  const { data: todayRevenue } = useQuery({
+    queryKey: ['crm-today-revenue', user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+
+      const todayStr = format(today, 'yyyy-MM-dd');
+      const { data } = await supabase
+        .from('revenue_records')
+        .select('amount')
+        .eq('user_id', user.id)
+        .eq('date', todayStr);
+
+      return data?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch month revenue for this user
+  const { data: monthRevenue } = useQuery({
+    queryKey: ['crm-month-revenue', user?.id, currentMonth, currentYear],
+    queryFn: async () => {
+      if (!user) return 0;
+
+      const startDate = format(startOfMonth(today), 'yyyy-MM-dd');
+      const endDate = format(endOfMonth(today), 'yyyy-MM-dd');
+      
+      const { data } = await supabase
+        .from('revenue_records')
+        .select('amount')
+        .eq('user_id', user.id)
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      return data?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
+    },
+    enabled: !!user,
+  });
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['crm-daily-overview', user?.id],
@@ -92,6 +160,13 @@ export function CRMDailyOverview() {
     ? (stats.tasksDone / stats.tasksToday) * 100 
     : 0;
 
+  // Calculate daily goal
+  const monthlyGoal = goalData?.meta3_goal || goalData?.meta2_goal || goalData?.revenue_goal || 0;
+  const remaining = Math.max(0, monthlyGoal - (monthRevenue || 0));
+  const businessDaysLeft = getBusinessDaysRemaining(currentYear, currentMonth);
+  const dailyGoal = businessDaysLeft > 0 ? remaining / businessDaysLeft : 0;
+  const dailyProgress = dailyGoal > 0 ? Math.min(100, ((todayRevenue || 0) / dailyGoal) * 100) : 0;
+
   if (isLoading || !stats) {
     return (
       <Card className="border-dashed bg-gradient-to-r from-primary/5 to-purple-500/5">
@@ -123,7 +198,30 @@ export function CRMDailyOverview() {
           <div className="hidden lg:block h-12 w-px bg-border" />
 
           {/* Stats Grid */}
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
+            {/* Daily Sales Goal */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <DollarSign className="w-3.5 h-3.5" />
+                Meta do Dia
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "text-xl font-bold",
+                  dailyProgress >= 100 ? "text-green-600" : dailyProgress >= 50 ? "text-primary" : "text-orange-500"
+                )}>
+                  R$ {((todayRevenue || 0) / 1000).toFixed(1)}k
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  / {(dailyGoal / 1000).toFixed(1)}k
+                </span>
+              </div>
+              <Progress 
+                value={dailyProgress} 
+                className="h-1.5" 
+              />
+            </div>
+
             {/* Tasks Progress */}
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
