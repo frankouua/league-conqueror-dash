@@ -1,6 +1,6 @@
 import { useMemo, useState, memo, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Plus, MoreVertical, Clock, User, Phone, Mail, Sparkles, AlertTriangle } from 'lucide-react';
+import { Plus, MoreVertical, Clock, User, Phone, Mail, Sparkles, AlertTriangle, MessageSquare } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -139,11 +139,25 @@ interface LeadCardProps {
   isDragging: boolean;
 }
 
+// Quick action handlers
+const handleQuickCall = (e: React.MouseEvent, phone: string) => {
+  e.stopPropagation();
+  window.open(`tel:${phone}`, '_self');
+};
+
+const handleQuickWhatsApp = (e: React.MouseEvent, phone: string) => {
+  e.stopPropagation();
+  const cleanPhone = phone.replace(/\D/g, '');
+  const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+  window.open(`https://wa.me/${formattedPhone}`, '_blank');
+};
+
 // Memoized LeadCard for performance - prevents re-renders when other leads change
 const LeadCard = memo(function LeadCard({ lead, onClick, isDragging }: LeadCardProps) {
   const hasAI = !!lead.ai_analyzed_at;
   const isStale = lead.is_stale;
   const isPriority = lead.is_priority;
+  const phone = lead.whatsapp || lead.phone;
   
   // Memoize BANT calculation
   const avgBantScore = useMemo(() => {
@@ -159,11 +173,21 @@ const LeadCard = memo(function LeadCard({ lead, onClick, isDragging }: LeadCardP
       : null;
   }, [lead.budget_score, lead.authority_score, lead.need_score, lead.timing_score]);
 
+  // Calculate time in stage
+  const timeInStage = useMemo(() => {
+    const lastActivity = new Date(lead.last_activity_at || lead.created_at);
+    const now = new Date();
+    const hours = Math.floor((now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60));
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+  }, [lead.last_activity_at, lead.created_at]);
+
   return (
     <Card
       onClick={onClick}
       className={cn(
-        "p-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
+        "p-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group",
         isDragging && "shadow-lg rotate-2 scale-105",
         isStale && "border-orange-500/50 bg-orange-500/5",
         isPriority && "border-yellow-500/50 bg-yellow-500/5"
@@ -180,6 +204,18 @@ const LeadCard = memo(function LeadCard({ lead, onClick, isDragging }: LeadCardP
           )}
         </div>
         <div className="flex items-center gap-1">
+          {/* Time indicator */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={cn(
+                "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                isStale ? "bg-orange-500/20 text-orange-600" : "bg-muted text-muted-foreground"
+              )}>
+                {timeInStage}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Tempo desde última atividade</TooltipContent>
+          </Tooltip>
           {isPriority && (
             <Tooltip>
               <TooltipTrigger>
@@ -209,17 +245,51 @@ const LeadCard = memo(function LeadCard({ lead, onClick, isDragging }: LeadCardP
         </div>
       </div>
 
-      {/* Contact Info */}
-      <div className="flex items-center gap-3 mb-2 text-xs text-muted-foreground">
-        {lead.phone && (
-          <div className="flex items-center gap-1">
-            <Phone className="h-3 w-3" />
-            <span className="truncate max-w-[100px]">{lead.phone}</span>
-          </div>
-        )}
-        {lead.email && (
-          <div className="flex items-center gap-1">
-            <Mail className="h-3 w-3" />
+      {/* Contact Info with Quick Actions */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {lead.phone && (
+            <div className="flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              <span className="truncate max-w-[100px]">{lead.phone}</span>
+            </div>
+          )}
+          {lead.email && (
+            <div className="flex items-center gap-1">
+              <Mail className="h-3 w-3" />
+            </div>
+          )}
+        </div>
+        
+        {/* Quick Actions - appear on hover */}
+        {phone && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 bg-green-500/10 hover:bg-green-500/20"
+                  onClick={(e) => handleQuickWhatsApp(e, phone)}
+                >
+                  <MessageSquare className="h-3 w-3 text-green-600" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>WhatsApp</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 bg-blue-500/10 hover:bg-blue-500/20"
+                  onClick={(e) => handleQuickCall(e, phone)}
+                >
+                  <Phone className="h-3 w-3 text-blue-600" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Ligar</TooltipContent>
+            </Tooltip>
           </div>
         )}
       </div>

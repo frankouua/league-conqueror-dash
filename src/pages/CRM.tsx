@@ -47,6 +47,7 @@ import { CRMSmartAlerts } from "@/components/crm/CRMSmartAlerts";
 import { CRMPipelineManager } from "@/components/crm/CRMPipelineManager";
 import { CRMWebhooksManager } from "@/components/crm/CRMWebhooksManager";
 import { CRMNotificationsBell } from "@/components/crm/CRMNotificationsBell";
+import { CRMDailyOverview } from "@/components/crm/CRMDailyOverview";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -278,6 +279,9 @@ const CRM = () => {
             </Button>
           </div>
         </div>
+
+        {/* Daily Overview - Quick stats for the day */}
+        <CRMDailyOverview />
 
         {/* Simplified Navigation Menu */}
         <Card className="border-dashed">
