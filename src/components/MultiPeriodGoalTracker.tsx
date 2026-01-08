@@ -1,19 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Target, TrendingUp, TrendingDown, CheckCircle2, XCircle, 
-  AlertTriangle, Flame, Thermometer, Calendar, Clock
+  AlertTriangle, Flame, Thermometer, Calendar, Clock, Building2, Users
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { CLINIC_GOALS } from '@/constants/clinicGoals';
 import { 
   format, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   eachDayOfInterval, isWeekend, differenceInDays, addDays
 } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 interface PeriodData {
@@ -25,6 +25,15 @@ interface PeriodData {
   status: 'success' | 'warning' | 'danger' | 'neutral';
   daysRemaining: number;
   dailyNeeded: number;
+}
+
+interface SellerData {
+  userId: string;
+  name: string;
+  periods: PeriodData[];
+  meta3: number;
+  projectedMonthly: number;
+  projectionPercent: number;
 }
 
 // Calculate business days in a period
@@ -54,347 +63,374 @@ function getBiweekPeriod(date: Date): { start: Date; end: Date; label: string } 
   }
 }
 
+const formatCurrency = (value: number) => {
+  if (value >= 1000000) return `R$ ${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `R$ ${(value / 1000).toFixed(1)}k`;
+  return `R$ ${value.toFixed(0)}`;
+};
+
+const getStatus = (achieved: number, goal: number): 'success' | 'warning' | 'danger' | 'neutral' => {
+  const progress = goal > 0 ? (achieved / goal) * 100 : 0;
+  if (progress >= 100) return 'success';
+  if (progress >= 70) return 'warning';
+  if (progress >= 40) return 'neutral';
+  return 'danger';
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'success': return <CheckCircle2 className="w-3 h-3 text-green-500" />;
+    case 'warning': return <AlertTriangle className="w-3 h-3 text-yellow-500" />;
+    case 'danger': return <XCircle className="w-3 h-3 text-red-500" />;
+    default: return <Clock className="w-3 h-3 text-muted-foreground" />;
+  }
+};
+
+const getStatusBg = (status: string) => {
+  switch (status) {
+    case 'success': return 'bg-green-500/10 border-green-500/30';
+    case 'warning': return 'bg-yellow-500/10 border-yellow-500/30';
+    case 'danger': return 'bg-red-500/10 border-red-500/30';
+    default: return 'bg-muted/50 border-border';
+  }
+};
+
+function calculatePeriods(
+  meta3: number, 
+  revenueData: { date: string; amount: number }[], 
+  today: Date
+): { periods: PeriodData[]; projectedMonthly: number; projectionPercent: number } {
+  const monthStart = startOfMonth(today);
+  const monthEnd = endOfMonth(today);
+  const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+  const biweek = getBiweekPeriod(today);
+
+  const totalMonthBusinessDays = getBusinessDays(monthStart, monthEnd);
+  const elapsedMonthBusinessDays = getBusinessDays(monthStart, today);
+  
+  const dailyGoal = meta3 / totalMonthBusinessDays;
+  const weeklyGoal = dailyGoal * 5;
+  const biweekBusinessDays = getBusinessDays(biweek.start, biweek.end);
+  const biweeklyGoal = dailyGoal * biweekBusinessDays;
+
+  const todayStr = format(today, 'yyyy-MM-dd');
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+  const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
+  const biweekStartStr = format(biweek.start, 'yyyy-MM-dd');
+  const biweekEndStr = format(biweek.end, 'yyyy-MM-dd');
+
+  const todayRevenue = revenueData.filter(r => r.date === todayStr).reduce((sum, r) => sum + (r.amount || 0), 0);
+  const weekRevenue = revenueData.filter(r => r.date >= weekStartStr && r.date <= weekEndStr).reduce((sum, r) => sum + (r.amount || 0), 0);
+  const biweekRevenue = revenueData.filter(r => r.date >= biweekStartStr && r.date <= biweekEndStr).reduce((sum, r) => sum + (r.amount || 0), 0);
+  const monthRevenue = revenueData.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+  const daysRemainingWeek = Math.max(0, differenceInDays(weekEnd, today));
+  const daysRemainingBiweek = Math.max(0, differenceInDays(biweek.end, today));
+  const daysRemainingMonth = Math.max(0, differenceInDays(monthEnd, today));
+
+  const businessDaysRemainingWeek = getBusinessDays(addDays(today, 1), weekEnd);
+  const businessDaysRemainingBiweek = getBusinessDays(addDays(today, 1), biweek.end);
+  const businessDaysRemainingMonth = getBusinessDays(addDays(today, 1), monthEnd);
+
+  const periods: PeriodData[] = [
+    {
+      label: 'Hoje',
+      icon: Clock,
+      goal: dailyGoal,
+      achieved: todayRevenue,
+      progress: dailyGoal > 0 ? Math.min(100, (todayRevenue / dailyGoal) * 100) : 0,
+      status: getStatus(todayRevenue, dailyGoal),
+      daysRemaining: 0,
+      dailyNeeded: Math.max(0, dailyGoal - todayRevenue),
+    },
+    {
+      label: 'Semana',
+      icon: Calendar,
+      goal: weeklyGoal,
+      achieved: weekRevenue,
+      progress: weeklyGoal > 0 ? Math.min(100, (weekRevenue / weeklyGoal) * 100) : 0,
+      status: getStatus(weekRevenue, weeklyGoal),
+      daysRemaining: daysRemainingWeek,
+      dailyNeeded: businessDaysRemainingWeek > 0 ? Math.max(0, (weeklyGoal - weekRevenue) / businessDaysRemainingWeek) : 0,
+    },
+    {
+      label: biweek.label,
+      icon: Calendar,
+      goal: biweeklyGoal,
+      achieved: biweekRevenue,
+      progress: biweeklyGoal > 0 ? Math.min(100, (biweekRevenue / biweeklyGoal) * 100) : 0,
+      status: getStatus(biweekRevenue, biweeklyGoal),
+      daysRemaining: daysRemainingBiweek,
+      dailyNeeded: businessDaysRemainingBiweek > 0 ? Math.max(0, (biweeklyGoal - biweekRevenue) / businessDaysRemainingBiweek) : 0,
+    },
+    {
+      label: 'Mês',
+      icon: Target,
+      goal: meta3,
+      achieved: monthRevenue,
+      progress: meta3 > 0 ? Math.min(100, (monthRevenue / meta3) * 100) : 0,
+      status: getStatus(monthRevenue, meta3),
+      daysRemaining: daysRemainingMonth,
+      dailyNeeded: businessDaysRemainingMonth > 0 ? Math.max(0, (meta3 - monthRevenue) / businessDaysRemainingMonth) : 0,
+    },
+  ];
+
+  const projectedMonthly = elapsedMonthBusinessDays > 0 
+    ? (monthRevenue / elapsedMonthBusinessDays) * totalMonthBusinessDays 
+    : 0;
+  const projectionPercent = meta3 > 0 ? (projectedMonthly / meta3) * 100 : 0;
+
+  return { periods, projectedMonthly, projectionPercent };
+}
+
+// Period Card Component (compact)
+function PeriodCard({ period }: { period: PeriodData }) {
+  return (
+    <div className={cn("p-2 rounded-lg border", getStatusBg(period.status))}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-medium">{period.label}</span>
+        {getStatusIcon(period.status)}
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className={cn(
+          "text-sm font-bold",
+          period.status === 'success' && "text-green-600",
+          period.status === 'warning' && "text-yellow-600",
+          period.status === 'danger' && "text-red-600"
+        )}>
+          {formatCurrency(period.achieved)}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          / {formatCurrency(period.goal)}
+        </span>
+      </div>
+      <Progress value={period.progress} className="h-1 mt-1" />
+      {period.status === 'success' && (
+        <div className="flex items-center gap-1 mt-1">
+          <Flame className="w-2.5 h-2.5 text-green-500" />
+          <span className="text-[9px] text-green-600">Meta batida!</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MultiPeriodGoalTracker() {
-  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('total');
   const today = startOfDay(new Date());
   const currentMonth = today.getMonth() + 1;
   const currentYear = today.getFullYear();
+  const monthStart = format(startOfMonth(today), 'yyyy-MM-dd');
+  const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd');
 
-  // Fetch meta3_goal
-  const { data: goalData } = useQuery({
-    queryKey: ['period-goals-meta3', user?.id, currentMonth, currentYear],
+  // Fetch all revenue for the month (all sellers)
+  const { data: allRevenueData } = useQuery({
+    queryKey: ['all-period-revenue', currentMonth, currentYear],
     queryFn: async () => {
-      if (!user) return null;
-      
-      const { data } = await supabase
-        .from('individual_goals')
-        .select('meta3_goal, revenue_goal')
-        .eq('user_id', user.id)
-        .eq('month', currentMonth)
-        .eq('year', currentYear)
-        .maybeSingle();
-      
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Fetch all revenue for the month
-  const { data: revenueData } = useQuery({
-    queryKey: ['period-revenue', user?.id, currentMonth, currentYear],
-    queryFn: async () => {
-      if (!user) return [];
-
-      const monthStart = format(startOfMonth(today), 'yyyy-MM-dd');
-      const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd');
-      
       const { data } = await supabase
         .from('revenue_records')
-        .select('date, amount')
-        .eq('user_id', user.id)
+        .select('date, amount, user_id')
         .gte('date', monthStart)
         .lte('date', monthEnd);
-
       return data || [];
     },
-    enabled: !!user,
   });
 
-  const periodsData = useMemo(() => {
-    const meta3 = goalData?.meta3_goal || goalData?.revenue_goal || 0;
-    if (!meta3 || !revenueData) return null;
+  // Fetch all individual goals for the month
+  const { data: allGoalsData } = useQuery({
+    queryKey: ['all-period-goals', currentMonth, currentYear],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('individual_goals')
+        .select('user_id, meta3_goal, revenue_goal')
+        .eq('month', currentMonth)
+        .eq('year', currentYear);
+      return data || [];
+    },
+  });
 
-    const monthStart = startOfMonth(today);
-    const monthEnd = endOfMonth(today);
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-    const biweek = getBiweekPeriod(today);
+  // Fetch profiles for seller names
+  const { data: profilesData } = useQuery({
+    queryKey: ['seller-profiles'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('position', ['comercial_1_captacao', 'comercial_2_closer', 'comercial_3_experiencia', 'comercial_4_farmer', 'sdr']);
+      return data || [];
+    },
+  });
 
-    // Calculate business days
-    const totalMonthBusinessDays = getBusinessDays(monthStart, monthEnd);
-    const elapsedMonthBusinessDays = getBusinessDays(monthStart, today);
+  // Calculate company total data
+  const companyData = useMemo(() => {
+    if (!allRevenueData) return null;
     
-    // Daily goal (monthly goal / business days in month)
-    const dailyGoal = meta3 / totalMonthBusinessDays;
+    const meta3 = CLINIC_GOALS.META_3;
+    const result = calculatePeriods(meta3, allRevenueData, today);
     
-    // Weekly goal (daily goal * 5 business days)
-    const weeklyGoal = dailyGoal * 5;
-    
-    // Biweekly goal (proportional to business days in biweek)
-    const biweekBusinessDays = getBusinessDays(biweek.start, biweek.end);
-    const biweeklyGoal = dailyGoal * biweekBusinessDays;
+    return { ...result, meta3 };
+  }, [allRevenueData, today]);
 
-    // Calculate achieved amounts
-    const todayStr = format(today, 'yyyy-MM-dd');
-    const weekStartStr = format(weekStart, 'yyyy-MM-dd');
-    const biweekStartStr = format(biweek.start, 'yyyy-MM-dd');
-    const biweekEndStr = format(biweek.end, 'yyyy-MM-dd');
+  // Calculate per-seller data
+  const sellersData = useMemo(() => {
+    if (!allRevenueData || !allGoalsData || !profilesData) return [];
 
-    const todayRevenue = revenueData
-      .filter(r => r.date === todayStr)
-      .reduce((sum, r) => sum + (r.amount || 0), 0);
+    const sellers: SellerData[] = [];
 
-    const weekRevenue = revenueData
-      .filter(r => r.date >= weekStartStr && r.date <= format(weekEnd, 'yyyy-MM-dd'))
-      .reduce((sum, r) => sum + (r.amount || 0), 0);
+    allGoalsData.forEach(goal => {
+      const meta3 = goal.meta3_goal || goal.revenue_goal || 0;
+      if (meta3 <= 0) return;
 
-    const biweekRevenue = revenueData
-      .filter(r => r.date >= biweekStartStr && r.date <= biweekEndStr)
-      .reduce((sum, r) => sum + (r.amount || 0), 0);
+      const profile = profilesData.find(p => p.user_id === goal.user_id);
+      if (!profile) return;
 
-    const monthRevenue = revenueData.reduce((sum, r) => sum + (r.amount || 0), 0);
+      const sellerRevenue = allRevenueData
+        .filter(r => r.user_id === goal.user_id)
+        .map(r => ({ date: r.date, amount: r.amount || 0 }));
 
-    // Calculate remaining days
-    const daysRemainingWeek = Math.max(0, differenceInDays(weekEnd, today));
-    const daysRemainingBiweek = Math.max(0, differenceInDays(biweek.end, today));
-    const daysRemainingMonth = Math.max(0, differenceInDays(monthEnd, today));
+      const result = calculatePeriods(meta3, sellerRevenue, today);
 
-    // Calculate daily needed for remaining periods
-    const businessDaysRemainingWeek = getBusinessDays(addDays(today, 1), weekEnd);
-    const businessDaysRemainingBiweek = getBusinessDays(addDays(today, 1), biweek.end);
-    const businessDaysRemainingMonth = getBusinessDays(addDays(today, 1), monthEnd);
+      sellers.push({
+        userId: goal.user_id,
+        name: profile.full_name || 'Vendedor',
+        periods: result.periods,
+        meta3,
+        projectedMonthly: result.projectedMonthly,
+        projectionPercent: result.projectionPercent,
+      });
+    });
 
-    const getStatus = (achieved: number, goal: number): 'success' | 'warning' | 'danger' | 'neutral' => {
-      const progress = goal > 0 ? (achieved / goal) * 100 : 0;
-      if (progress >= 100) return 'success';
-      if (progress >= 70) return 'warning';
-      if (progress >= 40) return 'neutral';
-      return 'danger';
-    };
+    // Sort by projection percent descending
+    return sellers.sort((a, b) => b.projectionPercent - a.projectionPercent);
+  }, [allRevenueData, allGoalsData, profilesData, today]);
 
-    const periods: PeriodData[] = [
-      {
-        label: 'Hoje',
-        icon: Clock,
-        goal: dailyGoal,
-        achieved: todayRevenue,
-        progress: dailyGoal > 0 ? Math.min(100, (todayRevenue / dailyGoal) * 100) : 0,
-        status: getStatus(todayRevenue, dailyGoal),
-        daysRemaining: 0,
-        dailyNeeded: Math.max(0, dailyGoal - todayRevenue),
-      },
-      {
-        label: 'Semana',
-        icon: Calendar,
-        goal: weeklyGoal,
-        achieved: weekRevenue,
-        progress: weeklyGoal > 0 ? Math.min(100, (weekRevenue / weeklyGoal) * 100) : 0,
-        status: getStatus(weekRevenue, weeklyGoal),
-        daysRemaining: daysRemainingWeek,
-        dailyNeeded: businessDaysRemainingWeek > 0 ? Math.max(0, (weeklyGoal - weekRevenue) / businessDaysRemainingWeek) : 0,
-      },
-      {
-        label: biweek.label,
-        icon: Calendar,
-        goal: biweeklyGoal,
-        achieved: biweekRevenue,
-        progress: biweeklyGoal > 0 ? Math.min(100, (biweekRevenue / biweeklyGoal) * 100) : 0,
-        status: getStatus(biweekRevenue, biweeklyGoal),
-        daysRemaining: daysRemainingBiweek,
-        dailyNeeded: businessDaysRemainingBiweek > 0 ? Math.max(0, (biweeklyGoal - biweekRevenue) / businessDaysRemainingBiweek) : 0,
-      },
-      {
-        label: 'Mês',
-        icon: Target,
-        goal: meta3,
-        achieved: monthRevenue,
-        progress: meta3 > 0 ? Math.min(100, (monthRevenue / meta3) * 100) : 0,
-        status: getStatus(monthRevenue, meta3),
-        daysRemaining: daysRemainingMonth,
-        dailyNeeded: businessDaysRemainingMonth > 0 ? Math.max(0, (meta3 - monthRevenue) / businessDaysRemainingMonth) : 0,
-      },
-    ];
+  const getProjectionStatus = (percent: number) => {
+    if (percent >= 100) return { label: '🎯', color: 'text-green-600', bg: 'bg-green-500' };
+    if (percent >= 90) return { label: '🔥', color: 'text-yellow-600', bg: 'bg-yellow-500' };
+    if (percent >= 70) return { label: '⚡', color: 'text-orange-600', bg: 'bg-orange-500' };
+    return { label: '⚠️', color: 'text-red-600', bg: 'bg-red-500' };
+  };
 
-    // Projection calculation
-    const projectedMonthly = elapsedMonthBusinessDays > 0 
-      ? (monthRevenue / elapsedMonthBusinessDays) * totalMonthBusinessDays 
-      : 0;
-    const projectionPercent = meta3 > 0 ? (projectedMonthly / meta3) * 100 : 0;
-
-    return { periods, projectedMonthly, projectionPercent, meta3 };
-  }, [goalData, revenueData, today]);
-
-  if (!periodsData) {
+  if (!companyData) {
     return (
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Target className="w-4 h-4 text-primary" />
-            Acompanhamento de Metas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Configure sua meta mensal (Meta 3) para ver o acompanhamento.
-          </p>
+        <CardContent className="p-4">
+          <p className="text-sm text-muted-foreground text-center">Carregando metas...</p>
         </CardContent>
       </Card>
     );
   }
 
-  const formatCurrency = (value: number) => {
-    if (value >= 1000) {
-      return `R$ ${(value / 1000).toFixed(1)}k`;
-    }
-    return `R$ ${value.toFixed(0)}`;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-      case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      case 'danger': return <XCircle className="w-4 h-4 text-red-500" />;
-      default: return <Clock className="w-4 h-4 text-muted-foreground" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success': return 'bg-green-500';
-      case 'warning': return 'bg-yellow-500';
-      case 'danger': return 'bg-red-500';
-      default: return 'bg-muted-foreground';
-    }
-  };
-
-  const getProjectionStatus = () => {
-    if (periodsData.projectionPercent >= 100) return { label: 'No alvo! 🎯', color: 'text-green-600', bg: 'bg-green-500' };
-    if (periodsData.projectionPercent >= 90) return { label: 'Quase lá! 🔥', color: 'text-yellow-600', bg: 'bg-yellow-500' };
-    if (periodsData.projectionPercent >= 70) return { label: 'Acelere! ⚡', color: 'text-orange-600', bg: 'bg-orange-500' };
-    return { label: 'Atenção! ⚠️', color: 'text-red-600', bg: 'bg-red-500' };
-  };
-
-  const projectionStatus = getProjectionStatus();
+  const companyProjection = getProjectionStatus(companyData.projectionPercent);
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 pt-3 px-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="text-sm flex items-center gap-2">
             <Target className="w-4 h-4 text-primary" />
-            Acompanhamento de Metas (Meta 3)
+            Metas por Período
           </CardTitle>
-          <Badge variant="outline" className={cn("gap-1", projectionStatus.color)}>
-            {periodsData.projectionPercent >= 100 ? (
-              <TrendingUp className="w-3 h-3" />
-            ) : (
-              <TrendingDown className="w-3 h-3" />
-            )}
-            {projectionStatus.label}
-          </Badge>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="h-7">
+              <TabsTrigger value="total" className="text-xs px-2 h-6 gap-1">
+                <Building2 className="w-3 h-3" />
+                Empresa
+              </TabsTrigger>
+              <TabsTrigger value="vendedores" className="text-xs px-2 h-6 gap-1">
+                <Users className="w-3 h-3" />
+                Vendedores
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Thermometer / Projection Gauge */}
-        <div className="p-4 rounded-lg bg-gradient-to-r from-muted/50 to-muted/30 border">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Thermometer className="w-5 h-5 text-primary" />
-              <span className="font-medium">Projeção Mensal</span>
-            </div>
-            <span className={cn("font-bold text-lg", projectionStatus.color)}>
-              {periodsData.projectionPercent.toFixed(0)}%
-            </span>
-          </div>
-          
-          {/* Thermometer visual */}
-          <div className="relative h-6 bg-muted rounded-full overflow-hidden">
-            {/* Background marks */}
-            <div className="absolute inset-0 flex">
-              <div className="w-1/4 border-r border-background/30" />
-              <div className="w-1/4 border-r border-background/30" />
-              <div className="w-1/4 border-r border-background/30" />
-              <div className="w-1/4" />
-            </div>
-            
-            {/* Fill */}
-            <div 
-              className={cn(
-                "absolute inset-y-0 left-0 rounded-full transition-all duration-500",
-                projectionStatus.bg
-              )}
-              style={{ width: `${Math.min(100, periodsData.projectionPercent)}%` }}
-            />
-            
-            {/* 100% marker */}
-            <div className="absolute inset-y-0 left-full -ml-1 w-1 bg-green-600" style={{ left: '100%' }} />
-          </div>
-          
-          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>0%</span>
-            <span>50%</span>
-            <span>100%</span>
-            <span className="text-green-600 font-medium">Meta</span>
-          </div>
-          
-          <div className="flex items-center justify-between mt-3 text-sm">
-            <span className="text-muted-foreground">Projetado:</span>
-            <span className="font-bold">{formatCurrency(periodsData.projectedMonthly)}</span>
-            <span className="text-muted-foreground">Meta:</span>
-            <span className="font-bold text-primary">{formatCurrency(periodsData.meta3)}</span>
-          </div>
-        </div>
-
-        {/* Period Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {periodsData.periods.map((period, index) => {
-            const Icon = period.icon;
-            return (
-              <div 
-                key={index}
-                className={cn(
-                  "p-3 rounded-lg border transition-all",
-                  period.status === 'success' && "bg-green-500/5 border-green-500/30",
-                  period.status === 'warning' && "bg-yellow-500/5 border-yellow-500/30",
-                  period.status === 'danger' && "bg-red-500/5 border-red-500/30",
-                  period.status === 'neutral' && "bg-muted/50"
-                )}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium">{period.label}</span>
-                  </div>
-                  {getStatusIcon(period.status)}
+      <CardContent className="px-3 pb-3">
+        {activeTab === 'total' ? (
+          <div className="space-y-3">
+            {/* Company Thermometer */}
+            <div className="p-3 rounded-lg bg-gradient-to-r from-muted/50 to-muted/30 border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Thermometer className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium">Projeção da Clínica</span>
                 </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-baseline gap-1">
-                    <span className={cn(
-                      "text-lg font-bold",
-                      period.status === 'success' && "text-green-600",
-                      period.status === 'warning' && "text-yellow-600",
-                      period.status === 'danger' && "text-red-600"
-                    )}>
-                      {formatCurrency(period.achieved)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      / {formatCurrency(period.goal)}
-                    </span>
-                  </div>
-                  
-                  <Progress 
-                    value={period.progress} 
-                    className={cn("h-1.5", getStatusColor(period.status))}
-                  />
-                  
-                  {period.daysRemaining > 0 && period.dailyNeeded > 0 && (
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Falta {formatCurrency(period.dailyNeeded)}/dia
-                    </p>
-                  )}
-                  
-                  {period.status === 'success' && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Flame className="w-3 h-3 text-green-500" />
-                      <span className="text-[10px] text-green-600 font-medium">Meta batida!</span>
-                    </div>
-                  )}
-                </div>
+                <Badge variant="outline" className={cn("text-xs gap-1", companyProjection.color)}>
+                  {companyData.projectionPercent >= 100 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {companyData.projectionPercent.toFixed(0)}% {companyProjection.label}
+                </Badge>
               </div>
-            );
-          })}
-        </div>
+              
+              <div className="relative h-4 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className={cn("absolute inset-y-0 left-0 rounded-full transition-all", companyProjection.bg)}
+                  style={{ width: `${Math.min(100, companyData.projectionPercent)}%` }}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between mt-2 text-xs">
+                <span className="text-muted-foreground">Projetado: <strong>{formatCurrency(companyData.projectedMonthly)}</strong></span>
+                <span className="text-muted-foreground">Meta: <strong className="text-primary">{formatCurrency(companyData.meta3)}</strong></span>
+              </div>
+            </div>
+
+            {/* Company Period Cards */}
+            <div className="grid grid-cols-4 gap-2">
+              {companyData.periods.map((period, index) => (
+                <PeriodCard key={index} period={period} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+            {sellersData.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">
+                Nenhum vendedor com metas individuais configuradas.
+              </p>
+            ) : (
+              sellersData.map(seller => {
+                const sellerProjection = getProjectionStatus(seller.projectionPercent);
+                return (
+                  <div key={seller.userId} className="p-2 rounded-lg border bg-card/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium truncate max-w-[120px]">{seller.name.split(' ')[0]}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16">
+                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={cn("h-full rounded-full", sellerProjection.bg)}
+                              style={{ width: `${Math.min(100, seller.projectionPercent)}%` }}
+                            />
+                          </div>
+                        </div>
+                        <span className={cn("text-[10px] font-bold", sellerProjection.color)}>
+                          {seller.projectionPercent.toFixed(0)}% {sellerProjection.label}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1">
+                      {seller.periods.map((period, idx) => (
+                        <div key={idx} className={cn("px-1.5 py-1 rounded text-center", getStatusBg(period.status))}>
+                          <p className="text-[9px] text-muted-foreground">{period.label}</p>
+                          <p className={cn(
+                            "text-[10px] font-bold",
+                            period.status === 'success' && "text-green-600",
+                            period.status === 'warning' && "text-yellow-600",
+                            period.status === 'danger' && "text-red-600"
+                          )}>
+                            {formatCurrency(period.achieved)}
+                          </p>
+                          <p className="text-[8px] text-muted-foreground">/{formatCurrency(period.goal)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
