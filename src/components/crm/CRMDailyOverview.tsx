@@ -44,6 +44,26 @@ export function CRMDailyOverview() {
     return 'Boa noite';
   }, []);
 
+  // Motivational messages that rotate daily
+  const motivationalMessage = useMemo(() => {
+    const messages = [
+      "Hoje é dia de bater meta! 💪",
+      "Cada lead é uma oportunidade de ouro! ✨",
+      "Foco no cliente, resultado garantido! 🎯",
+      "Você está a uma ligação do sucesso! 📞",
+      "Quem persiste, conquista! 🏆",
+      "Transforme objeções em vendas! 🚀",
+      "Seu próximo fechamento está chegando! 💰",
+      "Energia positiva atrai clientes! ⚡",
+      "Hoje você vai surpreender! 🌟",
+      "Venda com paixão, feche com razão! ❤️",
+      "Cada não te aproxima do sim! 👊",
+      "Seja a diferença que o cliente precisa! 🔥",
+    ];
+    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    return messages[dayOfYear % messages.length];
+  }, []);
+
   // Fetch individual goal for this user
   const { data: goalData } = useQuery({
     queryKey: ['crm-daily-goal', user?.id, currentMonth, currentYear],
@@ -177,11 +197,13 @@ export function CRMDailyOverview() {
 
   return (
     <div className="flex flex-wrap items-center gap-3 sm:gap-6 py-2 px-3 bg-gradient-to-r from-primary/5 via-background to-purple-500/5 rounded-lg border border-dashed">
-      {/* Greeting - compact */}
+      {/* Greeting + Motivational */}
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-primary" />
-        <span className="text-sm font-medium">
-          {greeting}, {format(new Date(), "d MMM", { locale: ptBR })}
+        <span className="text-sm">
+          <span className="font-medium">{greeting}</span>
+          <span className="text-muted-foreground"> · {format(new Date(), "d MMM", { locale: ptBR })} · </span>
+          <span className="text-primary">{motivationalMessage}</span>
         </span>
       </div>
 
