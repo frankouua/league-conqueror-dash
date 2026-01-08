@@ -48,10 +48,10 @@ Deno.serve(async (req) => {
 
     if (monthError) throw monthError
 
-    // Fetch monthly goal
+    // Fetch monthly goal (meta1_goal is used as the revenue goal)
     const { data: goals, error: goalsError } = await supabase
       .from('predefined_goals')
-      .select('monthly_goal')
+      .select('meta1_goal')
       .eq('month', currentMonth)
       .eq('year', currentYear)
 
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
 
     const todayTotal = todayRevenue?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0
     const monthTotal = monthRevenue?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0
-    const monthGoal = goals?.reduce((sum, g) => sum + (g.monthly_goal || 0), 0) || 0
+    const monthGoal = goals?.reduce((sum, g) => sum + (g.meta1_goal || 0), 0) || 0
     const progress = monthGoal > 0 ? ((monthTotal / monthGoal) * 100).toFixed(1) : 0
 
     const formatCurrency = (value: number) => {
