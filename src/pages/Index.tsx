@@ -365,6 +365,11 @@ const Index = () => {
               <ExecutiveKPIs month={selectedMonth} year={selectedYear} />
             </Suspense>
 
+            {/* Multi-Period Goal Tracker - Daily/Weekly/Biweekly/Monthly Goals */}
+            <Suspense fallback={<MiniLoader />}>
+              <MultiPeriodGoalTracker />
+            </Suspense>
+
             {/* Team Badges Display */}
             <div className="animate-scale-in">
               <Suspense fallback={<MiniLoader />}>
