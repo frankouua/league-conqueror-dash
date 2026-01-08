@@ -3368,6 +3368,464 @@ export type Database = {
           },
         ]
       }
+      training_material_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          material_id: string
+          progress_percent: number | null
+          started_at: string | null
+          time_spent_seconds: number | null
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          material_id: string
+          progress_percent?: number | null
+          started_at?: string | null
+          time_spent_seconds?: number | null
+          user_id: string
+          xp_earned?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          material_id?: string
+          progress_percent?: number | null
+          started_at?: string | null
+          time_spent_seconds?: number | null
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_material_progress_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "training_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_materials: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty_level: string | null
+          duration_minutes: number | null
+          external_url: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean | null
+          material_type: string
+          order_index: number | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          xp_reward: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          duration_minutes?: number | null
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          material_type: string
+          order_index?: number | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          xp_reward?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          duration_minutes?: number | null
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          material_type?: string
+          order_index?: number | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      training_quiz_attempts: {
+        Row: {
+          answers: Json
+          completed_at: string
+          id: string
+          passed: boolean
+          quiz_id: string
+          score: number
+          time_taken_seconds: number | null
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          answers?: Json
+          completed_at?: string
+          id?: string
+          passed: boolean
+          quiz_id: string
+          score: number
+          time_taken_seconds?: number | null
+          user_id: string
+          xp_earned?: number | null
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string
+          id?: string
+          passed?: boolean
+          quiz_id?: string
+          score?: number
+          time_taken_seconds?: number | null
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_quiz_attempts_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "training_quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_quizzes: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty_level: string | null
+          id: string
+          is_active: boolean | null
+          max_attempts: number | null
+          order_index: number | null
+          passing_score: number | null
+          questions: Json
+          time_limit_minutes: number | null
+          title: string
+          updated_at: string
+          xp_reward: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_attempts?: number | null
+          order_index?: number | null
+          passing_score?: number | null
+          questions?: Json
+          time_limit_minutes?: number | null
+          title: string
+          updated_at?: string
+          xp_reward?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_attempts?: number | null
+          order_index?: number | null
+          passing_score?: number | null
+          questions?: Json
+          time_limit_minutes?: number | null
+          title?: string
+          updated_at?: string
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      training_simulation_attempts: {
+        Row: {
+          ai_feedback: Json | null
+          completed_at: string | null
+          conversation: Json
+          id: string
+          score: number | null
+          simulation_id: string
+          started_at: string
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          ai_feedback?: Json | null
+          completed_at?: string | null
+          conversation?: Json
+          id?: string
+          score?: number | null
+          simulation_id: string
+          started_at?: string
+          user_id: string
+          xp_earned?: number | null
+        }
+        Update: {
+          ai_feedback?: Json | null
+          completed_at?: string | null
+          conversation?: Json
+          id?: string
+          score?: number | null
+          simulation_id?: string
+          started_at?: string
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_simulation_attempts_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "training_simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_simulations: {
+        Row: {
+          context: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty_level: string | null
+          id: string
+          is_active: boolean | null
+          order_index: number | null
+          scenario_type: string
+          title: string
+          updated_at: string
+          xp_reward: number | null
+        }
+        Insert: {
+          context: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          scenario_type: string
+          title: string
+          updated_at?: string
+          xp_reward?: number | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          scenario_type?: string
+          title?: string
+          updated_at?: string
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      training_track_progress: {
+        Row: {
+          certificate_url: string | null
+          completed_at: string | null
+          completed_steps: Json | null
+          created_at: string
+          current_step: number | null
+          id: string
+          started_at: string | null
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          certificate_url?: string | null
+          completed_at?: string | null
+          completed_steps?: Json | null
+          created_at?: string
+          current_step?: number | null
+          id?: string
+          started_at?: string | null
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          certificate_url?: string | null
+          completed_at?: string | null
+          completed_steps?: Json | null
+          created_at?: string
+          current_step?: number | null
+          id?: string
+          started_at?: string | null
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_track_progress_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "training_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_tracks: {
+        Row: {
+          badge_icon: string | null
+          badge_name: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          order_index: number | null
+          steps: Json
+          target_role: string | null
+          title: string
+          total_xp: number | null
+          updated_at: string
+        }
+        Insert: {
+          badge_icon?: string | null
+          badge_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          steps?: Json
+          target_role?: string | null
+          title: string
+          total_xp?: number | null
+          updated_at?: string
+        }
+        Update: {
+          badge_icon?: string | null
+          badge_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          steps?: Json
+          target_role?: string | null
+          title?: string
+          total_xp?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      training_user_stats: {
+        Row: {
+          badges: Json | null
+          best_streak_days: number | null
+          created_at: string
+          current_level: number | null
+          current_streak_days: number | null
+          id: string
+          last_activity_at: string | null
+          materials_completed: number | null
+          quizzes_passed: number | null
+          simulations_completed: number | null
+          total_xp: number | null
+          tracks_completed: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          badges?: Json | null
+          best_streak_days?: number | null
+          created_at?: string
+          current_level?: number | null
+          current_streak_days?: number | null
+          id?: string
+          last_activity_at?: string | null
+          materials_completed?: number | null
+          quizzes_passed?: number | null
+          simulations_completed?: number | null
+          total_xp?: number | null
+          tracks_completed?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          badges?: Json | null
+          best_streak_days?: number | null
+          created_at?: string
+          current_level?: number | null
+          current_streak_days?: number | null
+          id?: string
+          last_activity_at?: string | null
+          materials_completed?: number | null
+          quizzes_passed?: number | null
+          simulations_completed?: number | null
+          total_xp?: number | null
+          tracks_completed?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      training_xp_history: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          source_id: string | null
+          source_type: string
+          user_id: string
+          xp_amount: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          source_id?: string | null
+          source_type: string
+          user_id: string
+          xp_amount: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          source_id?: string | null
+          source_type?: string
+          user_id?: string
+          xp_amount?: number
+        }
+        Relationships: []
+      }
       upload_deletion_logs: {
         Row: {
           deleted_at: string
@@ -3581,6 +4039,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_training_xp: {
+        Args: {
+          p_description?: string
+          p_source_id?: string
+          p_source_type: string
+          p_user_id: string
+          p_xp_amount: number
+        }
+        Returns: number
+      }
       approve_user: { Args: { _user_id: string }; Returns: undefined }
       get_my_team_id: { Args: never; Returns: string }
       get_user_role: {
