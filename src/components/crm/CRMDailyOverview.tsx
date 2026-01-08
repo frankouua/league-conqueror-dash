@@ -27,6 +27,14 @@ export function CRMDailyOverview() {
   const { user } = useAuth();
   const today = startOfDay(new Date());
 
+  // All hooks MUST be called before any conditional returns
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }, []);
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ['crm-daily-overview', user?.id],
     queryFn: async () => {
@@ -80,6 +88,10 @@ export function CRMDailyOverview() {
     refetchInterval: 60000, // Refresh every minute
   });
 
+  const taskProgress = stats?.tasksToday && stats.tasksToday > 0 
+    ? (stats.tasksDone / stats.tasksToday) * 100 
+    : 0;
+
   if (isLoading || !stats) {
     return (
       <Card className="border-dashed bg-gradient-to-r from-primary/5 to-purple-500/5">
@@ -89,17 +101,6 @@ export function CRMDailyOverview() {
       </Card>
     );
   }
-
-  const taskProgress = stats.tasksToday > 0 
-    ? (stats.tasksDone / stats.tasksToday) * 100 
-    : 0;
-
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
-  }, []);
 
   return (
     <Card className="border-dashed bg-gradient-to-r from-primary/5 via-background to-purple-500/5 overflow-hidden">
