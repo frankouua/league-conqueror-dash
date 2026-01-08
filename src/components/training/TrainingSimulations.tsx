@@ -172,8 +172,8 @@ const TrainingSimulations = () => {
       await supabase.from("training_simulation_attempts").insert([{
         user_id: user.id,
         simulation_id: selectedSimulation.id,
-        conversation: messagesToEvaluate as unknown as Record<string, unknown>,
-        ai_feedback: evaluationFeedback as unknown as Record<string, unknown>,
+        conversation: JSON.parse(JSON.stringify(messagesToEvaluate)),
+        ai_feedback: JSON.parse(JSON.stringify(evaluationFeedback)),
         score: evaluationFeedback.score,
         xp_earned: Math.round(selectedSimulation.xp_reward * (evaluationFeedback.score / 100)),
         completed_at: new Date().toISOString(),
