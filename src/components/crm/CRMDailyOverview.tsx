@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Target, Clock, Flame, TrendingUp, CheckCircle2, 
+  Flame, TrendingUp, CheckCircle2, 
   AlertTriangle, Phone, Sparkles, DollarSign 
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
@@ -169,136 +168,80 @@ export function CRMDailyOverview() {
 
   if (isLoading || !stats) {
     return (
-      <Card className="border-dashed bg-gradient-to-r from-primary/5 to-purple-500/5">
-        <CardContent className="p-4">
-          <div className="h-16 animate-pulse bg-muted/50 rounded" />
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-4 py-2 px-3 bg-muted/30 rounded-lg animate-pulse">
+        <div className="h-4 w-32 bg-muted rounded" />
+        <div className="h-4 w-24 bg-muted rounded" />
+      </div>
     );
   }
 
   return (
-    <Card className="border-dashed bg-gradient-to-r from-primary/5 via-background to-purple-500/5 overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          {/* Greeting */}
-          <div className="flex items-center gap-3 lg:min-w-[200px]">
-            <div className="p-2 rounded-full bg-primary/10">
-              <Sparkles className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{greeting}!</p>
-              <p className="font-semibold text-lg">
-                {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-              </p>
-            </div>
-          </div>
+    <div className="flex flex-wrap items-center gap-3 sm:gap-6 py-2 px-3 bg-gradient-to-r from-primary/5 via-background to-purple-500/5 rounded-lg border border-dashed">
+      {/* Greeting - compact */}
+      <div className="flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-primary" />
+        <span className="text-sm font-medium">
+          {greeting}, {format(new Date(), "d MMM", { locale: ptBR })}
+        </span>
+      </div>
 
-          {/* Separator */}
-          <div className="hidden lg:block h-12 w-px bg-border" />
+      <div className="hidden sm:block h-4 w-px bg-border" />
 
-          {/* Stats Grid */}
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
-            {/* Daily Sales Goal */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <DollarSign className="w-3.5 h-3.5" />
-                Meta do Dia
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  "text-xl font-bold",
-                  dailyProgress >= 100 ? "text-green-600" : dailyProgress >= 50 ? "text-primary" : "text-orange-500"
-                )}>
-                  R$ {((todayRevenue || 0) / 1000).toFixed(1)}k
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  / {(dailyGoal / 1000).toFixed(1)}k
-                </span>
-              </div>
-              <Progress 
-                value={dailyProgress} 
-                className="h-1.5" 
-              />
-            </div>
-
-            {/* Tasks Progress */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Tarefas do Dia
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold">
-                  {stats.tasksDone}/{stats.tasksToday}
-                </span>
-                <Progress 
-                  value={taskProgress} 
-                  className="flex-1 h-1.5" 
-                />
-              </div>
-            </div>
-
-            {/* Leads Contacted */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Phone className="w-3.5 h-3.5" />
-                Leads Contatados
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold text-green-600">
-                  {stats.leadsContacted}
-                </span>
-                <span className="text-xs text-muted-foreground">hoje</span>
-              </div>
-            </div>
-
-            {/* Urgent Leads */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Leads Urgentes
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  "text-xl font-bold",
-                  stats.urgentLeads > 0 ? "text-orange-500" : "text-green-600"
-                )}>
-                  {stats.urgentLeads}
-                </span>
-                {stats.urgentLeads === 0 && (
-                  <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">
-                    ✓ Em dia
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Pipeline Value */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <TrendingUp className="w-3.5 h-3.5" />
-                Seu Pipeline
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-bold text-primary">
-                  R$ {(stats.totalPipelineValue / 1000).toFixed(0)}k
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Streak Badge */}
-          {stats.streak >= 3 && (
-            <div className="flex items-center gap-2 lg:min-w-[100px]">
-              <Badge className="gap-1 bg-gradient-to-r from-orange-500 to-red-500 border-0">
-                <Flame className="w-3.5 h-3.5" />
-                {stats.streak} dias
-              </Badge>
-            </div>
-          )}
+      {/* Daily Sales Goal */}
+      <div className="flex items-center gap-2">
+        <DollarSign className="w-4 h-4 text-muted-foreground" />
+        <div className="flex items-center gap-1.5">
+          <span className={cn(
+            "font-bold",
+            dailyProgress >= 100 ? "text-green-600" : dailyProgress >= 50 ? "text-primary" : "text-orange-500"
+          )}>
+            R$ {((todayRevenue || 0) / 1000).toFixed(1)}k
+          </span>
+          <span className="text-xs text-muted-foreground">
+            / {(dailyGoal / 1000).toFixed(1)}k
+          </span>
+          <Progress value={dailyProgress} className="w-12 h-1.5" />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Tasks */}
+      <div className="flex items-center gap-2">
+        <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+        <span className="font-medium">{stats.tasksDone}/{stats.tasksToday}</span>
+        <span className="text-xs text-muted-foreground">tarefas</span>
+      </div>
+
+      {/* Leads Contacted */}
+      <div className="flex items-center gap-2">
+        <Phone className="w-4 h-4 text-muted-foreground" />
+        <span className="font-medium text-green-600">{stats.leadsContacted}</span>
+        <span className="text-xs text-muted-foreground">contatos</span>
+      </div>
+
+      {/* Urgent Leads */}
+      {stats.urgentLeads > 0 && (
+        <Badge variant="outline" className="gap-1 border-orange-500/50 text-orange-500">
+          <AlertTriangle className="w-3 h-3" />
+          {stats.urgentLeads} urgentes
+        </Badge>
+      )}
+
+      {/* Pipeline Value */}
+      <div className="hidden lg:flex items-center gap-2 ml-auto">
+        <TrendingUp className="w-4 h-4 text-muted-foreground" />
+        <span className="font-medium text-primary">
+          R$ {(stats.totalPipelineValue / 1000).toFixed(0)}k
+        </span>
+        <span className="text-xs text-muted-foreground">pipeline</span>
+      </div>
+
+      {/* Streak Badge */}
+      {stats.streak >= 3 && (
+        <Badge className="gap-1 bg-gradient-to-r from-orange-500 to-red-500 border-0">
+          <Flame className="w-3 h-3" />
+          {stats.streak}d
+        </Badge>
+      )}
+    </div>
   );
 }

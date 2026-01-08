@@ -245,98 +245,100 @@ const CRM = () => {
         onOpenChange={setShowGlobalSearch}
       />
       
-      <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
-              CRM Unique
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Gerencie leads, oportunidades e relacionamentos com inteligência
-            </p>
+      <main className="container mx-auto px-4 py-4 space-y-3">
+        {/* Compact Header Bar */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              <h1 className="text-lg font-bold text-foreground">CRM</h1>
+            </div>
+            
+            {/* Quick Pipeline Pills - Only for relevant views */}
+            {['kanban', 'metrics', 'overview'].includes(viewMode) && (
+              <div className="hidden md:flex items-center gap-1">
+                {pipelines.slice(0, 4).map(pipeline => (
+                  <Button
+                    key={pipeline.id}
+                    variant={selectedPipeline === pipeline.id ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-7 px-2 text-xs gap-1"
+                    onClick={() => setSelectedPipeline(pipeline.id)}
+                  >
+                    {pipeline.name}
+                    {leadCountData?.counts?.[pipeline.id] && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                        {leadCountData.counts[pipeline.id]}
+                      </Badge>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <CRMExportButton 
-              leads={filteredLeads} 
-              pipelineName={pipelines.find(p => p.id === selectedPipeline)?.name}
-            />
+          <div className="flex items-center gap-2">
+            <CRMNotificationsBell />
             
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
+              className="h-8 px-2"
               onClick={() => refetch()}
               disabled={isLoading}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Atualizar
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
-            <Button size="sm" className="gap-2" onClick={() => handleNewLead()}>
+            
+            <Button size="sm" className="h-8 gap-1.5" onClick={() => handleNewLead()}>
               <Plus className="w-4 h-4" />
-              Novo Lead
+              <span className="hidden sm:inline">Novo Lead</span>
             </Button>
           </div>
         </div>
 
-        {/* Daily Overview - Quick stats for the day */}
-        <CRMDailyOverview />
-
-        {/* Simplified Navigation Menu */}
-        <Card className="border-dashed">
-          <CardContent className="p-3">
-            <CRMNavigationMenu
-              viewMode={viewMode}
-              onViewChange={setViewMode}
-              staleCount={quickStats.staleCount}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Pipeline Selector - Only show for relevant views */}
-        {['kanban', 'metrics', 'overview'].includes(viewMode) && (
-          <Card className="border-dashed">
-            <CardContent className="p-4">
-              <CRMPipelineSelector
-                pipelines={pipelines}
-                selectedPipeline={selectedPipeline}
-                onSelect={setSelectedPipeline}
-                leadCounts={leadCountData?.counts}
-                valueCounts={leadCountData?.values}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Quick Stats Bar - Only show for kanban/metrics */}
-        {['kanban', 'metrics'].includes(viewMode) && (
-          <div className="flex items-center gap-4 text-sm flex-wrap">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Activity className="w-4 h-4" />
-              <span><strong>{leads.length}</strong> leads no pipeline</span>
+        {/* Unified Navigation Bar */}
+        <div className="flex items-center gap-2 pb-2 border-b overflow-x-auto">
+          <CRMNavigationMenu
+            viewMode={viewMode}
+            onViewChange={setViewMode}
+            staleCount={quickStats.staleCount}
+          />
+          
+          {/* Quick Stats inline - Only for kanban */}
+          {viewMode === 'kanban' && (
+            <div className="hidden lg:flex items-center gap-3 ml-auto text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Activity className="w-3.5 h-3.5" />
+                <strong>{leads.length}</strong> leads
+              </span>
+              {quickStats.totalValue > 0 && (
+                <span className="text-green-600 font-medium">
+                  R$ {Math.round(quickStats.totalValue / 1000).toLocaleString('pt-BR')}k
+                </span>
+              )}
             </div>
-            {quickStats.staleCount > 0 && (
-              <Badge variant="outline" className="border-orange-500/50 text-orange-500">
-                {quickStats.staleCount} parados
-              </Badge>
-            )}
-            {quickStats.aiCount > 0 && (
-              <Badge variant="outline" className="border-purple-500/50 text-purple-500">
-                <Sparkles className="w-3 h-3 mr-1" />
-                {quickStats.aiCount} analisados
-              </Badge>
-            )}
-            {quickStats.totalValue > 0 && (
-              <Badge variant="outline" className="border-green-500/50 text-green-500">
-                R$ {Math.round(quickStats.totalValue / 1000).toLocaleString('pt-BR')}k em pipeline
-              </Badge>
-            )}
+          )}
+        </div>
+
+        {/* Collapsible Daily Overview - smaller and toggleable */}
+        {viewMode === 'kanban' && <CRMDailyOverview />}
+
+        {/* Mobile Pipeline Selector */}
+        {['kanban', 'metrics', 'overview'].includes(viewMode) && (
+          <div className="md:hidden">
+            <CRMPipelineSelector
+              pipelines={pipelines}
+              selectedPipeline={selectedPipeline}
+              onSelect={setSelectedPipeline}
+              leadCounts={leadCountData?.counts}
+              valueCounts={leadCountData?.values}
+            />
           </div>
         )}
 
-        {/* Filters - Only for kanban/overview */}
-        {['kanban', 'overview'].includes(viewMode) && (
+        {/* Compact Filters - Only for kanban */}
+        {viewMode === 'kanban' && (
           <CRMQuickFilters
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -344,11 +346,6 @@ const CRM = () => {
             onFiltersChange={setFilters}
             activeFiltersCount={activeFiltersCount}
           />
-        )}
-
-        {/* Stats - Only for kanban */}
-        {viewMode === 'kanban' && (
-          <CRMStats pipelineId={selectedPipeline || undefined} />
         )}
 
         {/* View Mode Content */}
