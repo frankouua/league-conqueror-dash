@@ -15,28 +15,35 @@ import {
 import {
   Target,
   Trophy,
-  TrendingUp,
   AlertTriangle,
-  CheckCircle2,
-  Lightbulb,
   Medal,
   Award,
-  Star,
-  Calendar,
   Loader2,
 } from "lucide-react";
 import { differenceInDays } from "date-fns";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 interface PersonalGoalsByDepartmentProps {
   month: number;
   year: number;
 }
+
+// Map database department strings to department_goals names
+const DEPARTMENT_MAPPING: Record<string, string> = {
+  "01 - CIRURGIA PLÁSTICA": "Cirurgia Plástica",
+  "02 - CONSULTA CIRURGIA PLÁSTICA": "Consulta Cirurgia Plástica",
+  "03 - PÓS OPERATÓRIO": "Pós Operatório",
+  "04 - SOROTERAPIA / PROTOCOLOS NUTRICIONAIS": "Soroterapia / Protocolos Nutricionais",
+  "05 - RETORNO": "Retorno",
+  "06 - RETOQUE - CIRURGIA PLÁSTICA": "Cirurgia Plástica",
+  "08 - HARMONIZAÇÃO FACIAL E CORPORAL": "Harmonização Facial e Corporal",
+  "09 - SPA E ESTÉTICA": "Spa e Estética",
+  "16 - OUTROS": "Unique Travel Experience",
+  "25 - UNIQUE TRAVEL EXPERIENCE": "Unique Travel Experience",
+  "25 -UNIQUE TRAVEL EXPERIENCE": "Unique Travel Experience",
+  "21 - PRODUTOS LUXSKIN": "Luxskin",
+  "LUXSKIN": "Luxskin",
+  "15 - LUXSKIN": "Luxskin",
+};
 
 interface DepartmentGoalData {
   department: string;
@@ -44,12 +51,10 @@ interface DepartmentGoalData {
   meta2: number;
   meta3: number;
   realized: number;
-  remaining: number;
   percentMeta1: number;
   percentMeta2: number;
   percentMeta3: number;
   achievedLevel: "none" | "meta1" | "meta2" | "meta3";
-  suggestion: string;
 }
 
 export default function PersonalGoalsByDepartment({ month, year }: PersonalGoalsByDepartmentProps) {
@@ -57,30 +62,45 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
   const now = new Date();
   const endOfMonth = new Date(year, month, 0);
   const daysRemaining = differenceInDays(endOfMonth, now);
-  const businessDaysRemaining = Math.ceil(daysRemaining * 0.71); // ~5/7 days are business days
+  const businessDaysRemaining = Math.ceil(daysRemaining * 0.71);
 
-  // Fetch predefined goals for this user
-  const { data: predefinedGoals, isLoading: loadingGoals } = useQuery({
-    queryKey: ["personal-predefined-goals", user?.id, month, year],
+  // Fetch seller's predefined goal (their total meta1, meta2, meta3)
+  const { data: predefinedGoal, isLoading: loadingPredefined } = useQuery({
+    queryKey: ["personal-predefined-goal", user?.id, month, year],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return null;
       const { data, error } = await supabase
         .from("predefined_goals")
-        .select("*")
+        .select("meta1_goal, meta2_goal, meta3_goal")
         .eq("matched_user_id", user.id)
         .eq("month", month)
-        .eq("year", year);
+        .eq("year", year)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
   });
 
+  // Fetch department goals (clinic total metas by department)
+  const { data: departmentGoals = [], isLoading: loadingDeptGoals } = useQuery({
+    queryKey: ["department-goals", month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("department_goals")
+        .select("*")
+        .eq("month", month)
+        .eq("year", year);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch revenue records for this month
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const endDate = `${year}-${String(month).padStart(2, "0")}-31`;
 
-  const { data: revenueRecords, isLoading: loadingRevenue } = useQuery({
+  const { data: revenueRecords = [], isLoading: loadingRevenue } = useQuery({
     queryKey: ["personal-revenue-by-dept", user?.id, month, year],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -100,6 +120,8 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(value);
 
   const formatCompact = (value: number) => {
@@ -108,17 +130,37 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     return formatCurrency(value);
   };
 
-  // Process data
-  const departmentData: DepartmentGoalData[] = predefinedGoals?.map((goal) => {
-    const deptRevenue = revenueRecords?.filter((r) => 
-      r.department === goal.department || 
-      r.department?.toLowerCase().includes(goal.department?.toLowerCase() || "")
-    ) || [];
-    const realized = deptRevenue.reduce((sum, r) => sum + Number(r.amount), 0);
+  // Calculate total clinic metas
+  const totalClinicMeta1 = departmentGoals.reduce((sum, dg) => sum + (dg.meta1_goal || 0), 0);
+  const totalClinicMeta2 = departmentGoals.reduce((sum, dg) => sum + (dg.meta2_goal || 0), 0);
+  const totalClinicMeta3 = departmentGoals.reduce((sum, dg) => sum + (dg.meta3_goal || 0), 0);
 
-    const meta1 = Number(goal.meta1_goal) || 0;
-    const meta2 = Number(goal.meta2_goal) || 0;
-    const meta3 = Number(goal.meta3_goal) || 0;
+  // Seller's total goals
+  const sellerMeta1 = predefinedGoal?.meta1_goal || 0;
+  const sellerMeta2 = predefinedGoal?.meta2_goal || 0;
+  const sellerMeta3 = predefinedGoal?.meta3_goal || 0;
+
+  // Process revenue by department
+  const revenueByDept: Record<string, number> = {};
+  revenueRecords.forEach((r) => {
+    const rawDept = r.department || "";
+    const mappedDept = DEPARTMENT_MAPPING[rawDept] || rawDept;
+    revenueByDept[mappedDept] = (revenueByDept[mappedDept] || 0) + (r.amount || 0);
+  });
+
+  // Build department data with individual metas proportional to clinic goals
+  const departmentData: DepartmentGoalData[] = departmentGoals.map((dg) => {
+    // Calculate proportion for each meta
+    const propMeta1 = totalClinicMeta1 > 0 ? (dg.meta1_goal / totalClinicMeta1) : 0;
+    const propMeta2 = totalClinicMeta2 > 0 ? (dg.meta2_goal / totalClinicMeta2) : 0;
+    const propMeta3 = totalClinicMeta3 > 0 ? (dg.meta3_goal / totalClinicMeta3) : 0;
+
+    // Individual goals for this department
+    const meta1 = Math.round(sellerMeta1 * propMeta1);
+    const meta2 = Math.round(sellerMeta2 * propMeta2);
+    const meta3 = Math.round(sellerMeta3 * propMeta3);
+
+    const realized = revenueByDept[dg.department_name] || 0;
 
     const percentMeta1 = meta1 > 0 ? Math.round((realized / meta1) * 100) : 0;
     const percentMeta2 = meta2 > 0 ? Math.round((realized / meta2) * 100) : 0;
@@ -129,50 +171,18 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     else if (realized >= meta2 && meta2 > 0) achievedLevel = "meta2";
     else if (realized >= meta1 && meta1 > 0) achievedLevel = "meta1";
 
-    // Calculate remaining to next goal
-    let remaining = 0;
-    let targetMeta = meta1;
-    if (achievedLevel === "none") {
-      remaining = meta1 - realized;
-      targetMeta = meta1;
-    } else if (achievedLevel === "meta1") {
-      remaining = meta2 - realized;
-      targetMeta = meta2;
-    } else if (achievedLevel === "meta2") {
-      remaining = meta3 - realized;
-      targetMeta = meta3;
-    }
-
-    // Generate suggestion
-    let suggestion = "";
-    const dailyNeeded = businessDaysRemaining > 0 ? remaining / businessDaysRemaining : remaining;
-    
-    if (achievedLevel === "meta3") {
-      suggestion = "🏆 Parabéns! Você já atingiu a Meta 3! Continue mantendo o ritmo.";
-    } else if (achievedLevel === "meta2") {
-      suggestion = `Para atingir a Meta 3, venda mais ${formatCurrency(remaining)} (${formatCurrency(dailyNeeded)}/dia útil).`;
-    } else if (achievedLevel === "meta1") {
-      suggestion = `Para atingir a Meta 2, venda mais ${formatCurrency(remaining)} (${formatCurrency(dailyNeeded)}/dia útil).`;
-    } else if (meta1 > 0) {
-      suggestion = `Para atingir a Meta 1, venda mais ${formatCurrency(remaining)} (${formatCurrency(dailyNeeded)}/dia útil).`;
-    } else {
-      suggestion = "Sem meta definida para este departamento.";
-    }
-
     return {
-      department: goal.department || "Comercial",
+      department: dg.department_name,
       meta1,
       meta2,
       meta3,
       realized,
-      remaining: Math.max(remaining, 0),
       percentMeta1,
       percentMeta2,
       percentMeta3,
       achievedLevel,
-      suggestion,
     };
-  }) || [];
+  }).filter(d => d.meta3 > 0).sort((a, b) => b.meta3 - a.meta3);
 
   // Calculate totals
   const totals = departmentData.reduce(
@@ -227,14 +237,7 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     }
   };
 
-  const getProgressColor = (percent: number, achieved: boolean) => {
-    if (achieved) return "bg-success";
-    if (percent >= 80) return "bg-amber-500";
-    if (percent >= 50) return "bg-warning";
-    return "bg-destructive/60";
-  };
-
-  if (loadingGoals || loadingRevenue) {
+  if (loadingPredefined || loadingDeptGoals || loadingRevenue) {
     return (
       <Card>
         <CardContent className="p-8 flex items-center justify-center">
@@ -245,7 +248,7 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     );
   }
 
-  if (!predefinedGoals || predefinedGoals.length === 0) {
+  if (!predefinedGoal) {
     return (
       <Card className="border-warning/30 bg-warning/5">
         <CardContent className="p-8 text-center">
@@ -266,7 +269,7 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Target className="w-5 h-5 text-primary" />
-            Metas Pessoais de {profile?.full_name}
+            Metas por Departamento - {profile?.full_name}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {daysRemaining > 0 ? `${daysRemaining} dias restantes • ~${businessDaysRemaining} dias úteis` : "Mês encerrado"}
@@ -364,7 +367,7 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
                       <div className="flex flex-col gap-1">
                         <Progress 
                           value={Math.min(dept.percentMeta3, 100)} 
-                          className={`h-2 ${getProgressColor(dept.percentMeta3, dept.achievedLevel === "meta3")}`}
+                          className="h-2"
                         />
                       </div>
                     </TableCell>
@@ -373,133 +376,40 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
                     </TableCell>
                   </TableRow>
                 ))}
+                {/* Total Row */}
+                <TableRow className="bg-muted/30 font-bold border-t-2">
+                  <TableCell className="font-bold">TOTAL</TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex flex-col items-center">
+                      <span>{formatCompact(totals.meta1)}</span>
+                      <span className="text-xs text-muted-foreground">{totalPercentMeta1}%</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex flex-col items-center">
+                      <span>{formatCompact(totals.meta2)}</span>
+                      <span className="text-xs text-muted-foreground">{totalPercentMeta2}%</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-primary">{formatCompact(totals.meta3)}</span>
+                      <span className="text-xs text-primary">{totalPercentMeta3}%</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="text-success">{formatCompact(totals.realized)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Progress value={Math.min(totalPercentMeta3, 100)} className="h-2" />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {getAchievementBadge(totalAchievedLevel)}
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Sugestões para bater as metas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Lightbulb className="w-5 h-5 text-warning" />
-            Sugestões para Bater suas Metas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Accordion type="single" collapsible className="w-full">
-            {departmentData.map((dept, index) => (
-              <AccordionItem key={dept.department} value={`item-${index}`}>
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-3 w-full">
-                    <span className="capitalize font-medium">{dept.department}</span>
-                    {getAchievementBadge(dept.achievedLevel)}
-                    {dept.achievedLevel !== "meta3" && dept.remaining > 0 && (
-                      <span className="text-xs text-destructive ml-auto mr-4">
-                        Faltam {formatCurrency(dept.remaining)}
-                      </span>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4 pl-2">
-                    {/* Progress bars for each meta */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm w-16">Meta 1:</span>
-                        <Progress value={Math.min(dept.percentMeta1, 100)} className="h-2 flex-1" />
-                        <span className={`text-sm font-medium w-20 text-right ${dept.achievedLevel !== "none" ? "text-success" : ""}`}>
-                          {dept.percentMeta1}% {dept.achievedLevel !== "none" && "✓"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm w-16">Meta 2:</span>
-                        <Progress value={Math.min(dept.percentMeta2, 100)} className="h-2 flex-1" />
-                        <span className={`text-sm font-medium w-20 text-right ${["meta2", "meta3"].includes(dept.achievedLevel) ? "text-success" : ""}`}>
-                          {dept.percentMeta2}% {["meta2", "meta3"].includes(dept.achievedLevel) && "✓"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm w-16 text-primary font-medium">Meta 3:</span>
-                        <Progress value={Math.min(dept.percentMeta3, 100)} className="h-2 flex-1" />
-                        <span className={`text-sm font-medium w-20 text-right ${dept.achievedLevel === "meta3" ? "text-primary" : ""}`}>
-                          {dept.percentMeta3}% {dept.achievedLevel === "meta3" && "🏆"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Suggestion */}
-                    <div className="p-3 rounded-lg bg-muted/50 border border-border">
-                      <div className="flex items-start gap-2">
-                        <Lightbulb className="w-4 h-4 text-warning mt-0.5 shrink-0" />
-                        <p className="text-sm">{dept.suggestion}</p>
-                      </div>
-                    </div>
-
-                    {/* Values breakdown */}
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="p-2 rounded bg-muted/30 text-center">
-                        <p className="text-muted-foreground text-xs">Meta 1</p>
-                        <p className="font-medium">{formatCurrency(dept.meta1)}</p>
-                      </div>
-                      <div className="p-2 rounded bg-muted/30 text-center">
-                        <p className="text-muted-foreground text-xs">Meta 2</p>
-                        <p className="font-medium">{formatCurrency(dept.meta2)}</p>
-                      </div>
-                      <div className="p-2 rounded bg-primary/10 text-center">
-                        <p className="text-primary text-xs">Meta 3</p>
-                        <p className="font-medium text-primary">{formatCurrency(dept.meta3)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-
-          {/* Dica geral */}
-          {daysRemaining > 0 && totalAchievedLevel !== "meta3" && (
-            <div className="mt-4 p-4 rounded-lg bg-warning/10 border border-warning/30">
-              <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-warning">Foco no final do mês!</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {totalAchievedLevel === "none" 
-                      ? `Você precisa vender ${formatCurrency(totals.meta1 - totals.realized)} para atingir a Meta 1.`
-                      : totalAchievedLevel === "meta1"
-                      ? `Você precisa vender mais ${formatCurrency(totals.meta2 - totals.realized)} para atingir a Meta 2.`
-                      : `Você precisa vender mais ${formatCurrency(totals.meta3 - totals.realized)} para atingir a Meta 3.`
-                    }
-                    {" "}Isso representa{" "}
-                    {formatCurrency(
-                      (totalAchievedLevel === "none" 
-                        ? (totals.meta1 - totals.realized)
-                        : totalAchievedLevel === "meta1"
-                        ? (totals.meta2 - totals.realized)
-                        : (totals.meta3 - totals.realized)
-                      ) / Math.max(businessDaysRemaining, 1)
-                    )} por dia útil.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {totalAchievedLevel === "meta3" && (
-            <div className="mt-4 p-4 rounded-lg bg-success/10 border border-success/30">
-              <div className="flex items-start gap-3">
-                <Trophy className="w-5 h-5 text-success shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-success">Parabéns! Você é um campeão! 🏆</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Você atingiu todas as suas metas! Continue mantendo este excelente desempenho.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
