@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, signature, signaturecertchainurl',
 }
 
 Deno.serve(async (req) => {
@@ -11,6 +11,15 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Parse Alexa request body if present
+    let alexaRequest = null
+    try {
+      alexaRequest = await req.json()
+      console.log('Alexa request:', JSON.stringify(alexaRequest))
+    } catch {
+      // Not a JSON request, that's ok for direct API calls
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -57,19 +66,27 @@ Deno.serve(async (req) => {
       return value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
     }
 
-    // Alexa response format
-    const alexaResponse = {
-      version: "1.0",
-      response: {
-        outputSpeech: {
-          type: "PlainText",
-          text: `Hoje foram vendidos ${formatCurrency(todayTotal)} reais. No mês, o total é de ${formatCurrency(monthTotal)} reais, representando ${progress} por cento da meta.`
-        },
-        shouldEndSession: true
+    const speechText = `Hoje foram vendidos ${formatCurrency(todayTotal)} reais. No mês, o total é de ${formatCurrency(monthTotal)} reais, representando ${progress} por cento da meta.`
+
+    // If this is an Alexa request, return Alexa format directly
+    if (alexaRequest && alexaRequest.request) {
+      const alexaResponse = {
+        version: "1.0",
+        response: {
+          outputSpeech: {
+            type: "PlainText",
+            text: speechText
+          },
+          shouldEndSession: true
+        }
       }
+
+      return new Response(JSON.stringify(alexaResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
-    // Also return raw data for other uses
+    // For regular API calls, return raw data
     const rawData = {
       today: {
         date: today,
@@ -82,7 +99,7 @@ Deno.serve(async (req) => {
         progress: parseFloat(progress as string),
         formatted: `R$ ${formatCurrency(monthTotal)}`
       },
-      alexa: alexaResponse
+      speech: speechText
     }
 
     return new Response(JSON.stringify(rawData), {
@@ -103,9 +120,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: errorMessage, alexa: errorResponse }), {
-      status: 500,
+    return new Response(JSON.stringify(errorResponse), {
+      status: 200, // Alexa expects 200 even for errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
