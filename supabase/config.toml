@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.crm-webhook]
 verify_jwt = false
+
+[functions.alexa-results]
+verify_jwt = false
