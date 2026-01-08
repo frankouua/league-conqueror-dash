@@ -49,6 +49,7 @@ const StrategicOverview = lazy(() => import("@/components/StrategicOverview"));
 const OnlineUsersWidget = lazy(() => import("@/components/OnlineUsersWidget"));
 const MonthlyTeamRankingChart = lazy(() => import("@/components/MonthlyTeamRankingChart").then(m => ({ default: m.MonthlyTeamRankingChart })));
 const ConsolidatedTrendsPanel = lazy(() => import("@/components/ConsolidatedTrendsPanel"));
+const MultiPeriodGoalTracker = lazy(() => import("@/components/MultiPeriodGoalTracker").then(m => ({ default: m.MultiPeriodGoalTracker })));
 
 // Mini loading component for lazy loaded content
 const MiniLoader = memo(() => (
@@ -346,7 +347,12 @@ const Index = () => {
           </TabsContent>
 
           {/* MINHAS METAS TAB - Individual Performance */}
-          <TabsContent value="minhas-metas" className="animate-fade-in">
+          <TabsContent value="minhas-metas" className="space-y-6 animate-fade-in">
+            {/* Multi-Period Goal Tracker - NEW */}
+            <Suspense fallback={<MiniLoader />}>
+              <MultiPeriodGoalTracker />
+            </Suspense>
+            
             <Suspense fallback={<MiniLoader />}>
               <MyGoalsDashboard />
             </Suspense>
