@@ -349,72 +349,60 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
         </Card>
       </div>
 
-      {/* Secondary KPIs Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      {/* Secondary KPIs - Compact inline row */}
+      <div className="flex flex-wrap items-center gap-2 px-2 py-2 rounded-lg bg-secondary/30 border border-border/50">
         {/* Tempo de Resposta */}
-        <Card className={metrics.avgResponseTime > 24 ? "border-destructive/30" : metrics.avgResponseTime > 2 ? "border-amber-500/30" : "border-success/30"}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Clock className={`w-4 h-4 ${metrics.avgResponseTime > 24 ? "text-destructive" : metrics.avgResponseTime > 2 ? "text-amber-500" : "text-success"}`} />
-              <div>
-                <p className="text-lg font-bold">{metrics.avgResponseTime.toFixed(1)}h</p>
-                <p className="text-xs text-muted-foreground">Tempo Resposta</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className={cn(
+          "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs",
+          metrics.avgResponseTime > 24 ? "bg-destructive/10 text-destructive" : 
+          metrics.avgResponseTime > 2 ? "bg-amber-500/10 text-amber-600" : "bg-success/10 text-success"
+        )}>
+          <Clock className="w-3 h-3" />
+          <span className="font-semibold">{metrics.avgResponseTime.toFixed(1)}h</span>
+          <span className="text-muted-foreground hidden sm:inline">Resposta</span>
+        </div>
 
-        {/* Ticket Médio */}
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-lg font-bold">{formatCompact(metrics.avgPerSeller)}</p>
-                <p className="text-xs text-muted-foreground">Média/Vendedora</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="h-4 w-px bg-border hidden sm:block" />
 
-        {/* Vendedoras Ativas */}
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-lg font-bold">{metrics.activeSellers}</p>
-                <p className="text-xs text-muted-foreground">Vendedoras</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Média/Vendedora */}
+        <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs bg-primary/10">
+          <Zap className="w-3 h-3 text-primary" />
+          <span className="font-semibold">{formatCompact(metrics.avgPerSeller)}</span>
+          <span className="text-muted-foreground hidden sm:inline">Média/Vend.</span>
+        </div>
+
+        <div className="h-4 w-px bg-border hidden sm:block" />
+
+        {/* Vendedoras */}
+        <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs bg-muted">
+          <Users className="w-3 h-3 text-primary" />
+          <span className="font-semibold">{metrics.activeSellers}</span>
+          <span className="text-muted-foreground hidden sm:inline">Vendedoras</span>
+        </div>
+
+        <div className="h-4 w-px bg-border hidden sm:block" />
 
         {/* Cancelamentos */}
-        <Card className={metrics.totalCancelled > 0 ? "border-destructive/30" : ""}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <TrendingDown className="w-4 h-4 text-destructive" />
-              <div>
-                <p className="text-lg font-bold text-destructive">{formatCompact(metrics.totalCancelled)}</p>
-                <p className="text-xs text-muted-foreground">Cancelamentos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className={cn(
+          "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs",
+          metrics.cancelledCount > 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+        )}>
+          <TrendingDown className="w-3 h-3" />
+          <span className="font-semibold">{metrics.cancelledCount}</span>
+          <span className="hidden sm:inline">Cancelamentos</span>
+        </div>
+
+        <div className="h-4 w-px bg-border hidden sm:block" />
 
         {/* Retidos */}
-        <Card className={metrics.retainedCount > 0 ? "border-success/30" : ""}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-success" />
-              <div>
-                <p className="text-lg font-bold text-success">{metrics.retainedCount}</p>
-                <p className="text-xs text-muted-foreground">Retidos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className={cn(
+          "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs",
+          metrics.retainedCount > 0 ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+        )}>
+          <CheckCircle2 className="w-3 h-3" />
+          <span className="font-semibold">{metrics.retainedCount}</span>
+          <span className="hidden sm:inline">Retidos</span>
+        </div>
       </div>
     </div>
   );
