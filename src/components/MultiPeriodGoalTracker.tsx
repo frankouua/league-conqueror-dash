@@ -27,6 +27,7 @@ interface PeriodData {
   status: 'success' | 'warning' | 'danger' | 'neutral';
   daysRemaining: number;
   dailyNeeded: number;
+  pacePercent: number; // % acima/abaixo do esperado
 }
 
 interface SellerData {
@@ -135,6 +136,19 @@ function calculatePeriods(
   const businessDaysRemainingBiweek = getBusinessDays(addDays(today, 1), biweek.end);
   const businessDaysRemainingMonth = getBusinessDays(addDays(today, 1), monthEnd);
 
+  // Expected values for pace calculation (pro-rata based on elapsed time)
+  const weekBusinessDays = getBusinessDays(weekStart, weekEnd);
+  const elapsedWeekBusinessDays = getBusinessDays(weekStart, today);
+  const elapsedBiweekBusinessDays = getBusinessDays(biweek.start, today);
+
+  const expectedToday = dailyGoal; // Full day goal
+  const expectedWeek = weeklyGoal * (elapsedWeekBusinessDays / weekBusinessDays);
+  const expectedBiweek = biweeklyGoal * (elapsedBiweekBusinessDays / biweekBusinessDays);
+  const expectedMonth = meta3 * (elapsedMonthBusinessDays / totalMonthBusinessDays);
+
+  const calcPacePercent = (achieved: number, expected: number) => 
+    expected > 0 ? ((achieved - expected) / expected) * 100 : 0;
+
   const periods: PeriodData[] = [
     {
       label: 'Hoje',
@@ -146,6 +160,7 @@ function calculatePeriods(
       status: getStatus(todayRevenue, dailyGoal),
       daysRemaining: 0,
       dailyNeeded: Math.max(0, dailyGoal - todayRevenue),
+      pacePercent: calcPacePercent(todayRevenue, expectedToday),
     },
     {
       label: 'Semana',
@@ -157,6 +172,7 @@ function calculatePeriods(
       status: getStatus(weekRevenue, weeklyGoal),
       daysRemaining: daysRemainingWeek,
       dailyNeeded: businessDaysRemainingWeek > 0 ? Math.max(0, (weeklyGoal - weekRevenue) / businessDaysRemainingWeek) : 0,
+      pacePercent: calcPacePercent(weekRevenue, expectedWeek),
     },
     {
       label: biweek.label,
@@ -168,6 +184,7 @@ function calculatePeriods(
       status: getStatus(biweekRevenue, biweeklyGoal),
       daysRemaining: daysRemainingBiweek,
       dailyNeeded: businessDaysRemainingBiweek > 0 ? Math.max(0, (biweeklyGoal - biweekRevenue) / businessDaysRemainingBiweek) : 0,
+      pacePercent: calcPacePercent(biweekRevenue, expectedBiweek),
     },
     {
       label: 'Mês',
@@ -179,6 +196,7 @@ function calculatePeriods(
       status: getStatus(monthRevenue, meta3),
       daysRemaining: daysRemainingMonth,
       dailyNeeded: businessDaysRemainingMonth > 0 ? Math.max(0, (meta3 - monthRevenue) / businessDaysRemainingMonth) : 0,
+      pacePercent: calcPacePercent(monthRevenue, expectedMonth),
     },
   ];
 
@@ -190,8 +208,25 @@ function calculatePeriods(
   return { periods, projectedMonthly, projectionPercent };
 }
 
+// Format pace percentage with sign
+const formatPacePercent = (percent: number) => {
+  const sign = percent >= 0 ? '+' : '';
+  return `${sign}${percent.toFixed(0)}%`;
+};
+
+// Get pace color based on percentage
+const getPaceColor = (percent: number) => {
+  if (percent >= 10) return 'text-emerald-500';
+  if (percent >= 0) return 'text-green-500';
+  if (percent >= -10) return 'text-yellow-500';
+  return 'text-red-500';
+};
+
 // Period Card Component (compact)
 function PeriodCard({ period }: { period: PeriodData }) {
+  const paceColor = getPaceColor(period.pacePercent);
+  const isAbove = period.pacePercent >= 0;
+  
   return (
     <div className={cn("p-2 rounded-lg border", getStatusBg(period.status))}>
       <div className="flex items-center justify-between mb-1">
@@ -199,7 +234,18 @@ function PeriodCard({ period }: { period: PeriodData }) {
           <span className="text-xs font-medium">{period.label}</span>
           <span className="text-[9px] text-muted-foreground">{period.dateRange}</span>
         </div>
-        {getStatusIcon(period.status)}
+        {/* Pace Badge */}
+        <Badge 
+          variant="outline" 
+          className={cn(
+            "text-[9px] px-1.5 py-0.5 h-auto gap-0.5",
+            paceColor,
+            isAbove ? "border-green-500/30" : "border-red-500/30"
+          )}
+        >
+          {isAbove ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+          {formatPacePercent(period.pacePercent)}
+        </Badge>
       </div>
       <div className="flex items-baseline gap-1">
         <span className={cn(
@@ -359,30 +405,61 @@ export function MultiPeriodGoalTracker() {
         {activeTab === 'total' ? (
           <div className="space-y-3">
             {/* Company Thermometer */}
-            <div className="p-3 rounded-lg bg-gradient-to-r from-muted/50 to-muted/30 border">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Thermometer className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium">Projeção da Clínica</span>
+            {(() => {
+              // Calculate days to reach goal at current pace
+              const monthlyPace = companyData.periods[3]; // Month period
+              const elapsedDays = today.getDate();
+              const remainingGoal = companyData.meta3 - monthlyPace.achieved;
+              const dailyAverage = elapsedDays > 0 ? monthlyPace.achieved / elapsedDays : 0;
+              const daysToGoal = dailyAverage > 0 ? Math.ceil(remainingGoal / dailyAverage) : 999;
+              const goalReached = monthlyPace.achieved >= companyData.meta3;
+              const monthEnd = endOfMonth(today);
+              const daysRemainingMonth = differenceInDays(monthEnd, today);
+              const willReachInTime = daysToGoal <= daysRemainingMonth;
+              
+              // Pace message
+              let paceMessage = '';
+              if (goalReached) {
+                paceMessage = '🎯 Meta atingida! Continue assim!';
+              } else if (willReachInTime) {
+                paceMessage = `🚀 Nesse ritmo, bate a meta em ${daysToGoal} dias`;
+              } else {
+                const projectedFinal = dailyAverage * (elapsedDays + daysRemainingMonth);
+                paceMessage = `⚡ Nesse ritmo, chega em ${formatCurrency(projectedFinal)} no final do mês`;
+              }
+              
+              return (
+                <div className="p-3 rounded-lg bg-gradient-to-r from-muted/50 to-muted/30 border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Thermometer className="w-4 h-4 text-primary" />
+                      <span className="text-xs font-medium">Projeção da Clínica</span>
+                    </div>
+                    <Badge variant="outline" className={cn("text-xs gap-1", companyProjection.color)}>
+                      {companyData.projectionPercent >= 100 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {companyData.projectionPercent.toFixed(0)}% {companyProjection.label}
+                    </Badge>
+                  </div>
+                  
+                  <div className="relative h-4 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className={cn("absolute inset-y-0 left-0 rounded-full transition-all", companyProjection.bg)}
+                      style={{ width: `${Math.min(100, companyData.projectionPercent)}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-2 text-xs">
+                    <span className={cn(
+                      "font-medium",
+                      goalReached ? "text-green-600" : willReachInTime ? "text-emerald-600" : "text-orange-600"
+                    )}>
+                      {paceMessage}
+                    </span>
+                    <span className="text-muted-foreground">Meta: <strong className="text-primary">{formatCurrency(companyData.meta3)}</strong></span>
+                  </div>
                 </div>
-                <Badge variant="outline" className={cn("text-xs gap-1", companyProjection.color)}>
-                  {companyData.projectionPercent >= 100 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {companyData.projectionPercent.toFixed(0)}% {companyProjection.label}
-                </Badge>
-              </div>
-              
-              <div className="relative h-4 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className={cn("absolute inset-y-0 left-0 rounded-full transition-all", companyProjection.bg)}
-                  style={{ width: `${Math.min(100, companyData.projectionPercent)}%` }}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between mt-2 text-xs">
-                <span className="text-muted-foreground">Projetado: <strong>{formatCurrency(companyData.projectedMonthly)}</strong></span>
-                <span className="text-muted-foreground">Meta: <strong className="text-primary">{formatCurrency(companyData.meta3)}</strong></span>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Company Period Cards */}
             <div className="grid grid-cols-4 gap-2">
