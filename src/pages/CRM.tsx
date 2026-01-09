@@ -51,6 +51,7 @@ import { CRMWebhooksManager } from "@/components/crm/CRMWebhooksManager";
 import { CRMNotificationsBell } from "@/components/crm/CRMNotificationsBell";
 import { CRMDailyOverview } from "@/components/crm/CRMDailyOverview";
 import { CRMSentimentDashboard } from "@/components/crm/CRMSentimentDashboard";
+import { CRMVendedoresKPIsDashboard } from "@/components/crm/CRMVendedoresKPIsDashboard";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -475,6 +476,10 @@ const CRM = () => {
 
         {viewMode === 'gamification' && (
           <CRMGamificationDashboard />
+        )}
+
+        {viewMode === 'vendedores-kpis' && (
+          <CRMVendedoresKPIsDashboard />
         )}
 
         {viewMode === 'integrations' && (

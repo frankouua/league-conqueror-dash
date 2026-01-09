@@ -46,7 +46,7 @@ export type CRMViewMode =
   | 'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' 
   | 'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
   | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
-  | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager' | 'sentiment';
+  | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager' | 'sentiment' | 'vendedores-kpis';
 
 interface CRMNavigationMenuProps {
   viewMode: CRMViewMode;
@@ -124,6 +124,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Equipe & Metas',
     icon: Users,
     items: [
+      { value: 'vendedores-kpis', label: 'Vendedores', icon: Users, color: 'text-blue-500' },
       { value: 'team-performance', label: 'Performance', icon: UserCheck, color: 'text-amber-500' },
       { value: 'leaderboard', label: 'Ranking', icon: Trophy },
       { value: 'gamification', label: 'Copa League', icon: Gamepad2, color: 'text-yellow-500' },

@@ -4373,6 +4373,25 @@ export type Database = {
         Returns: number
       }
       approve_user: { Args: { _user_id: string }; Returns: undefined }
+      get_all_vendedores_kpis: {
+        Args: { team_id_param?: string }
+        Returns: {
+          atividades_mes: number
+          ciclo_medio_dias: number
+          faturamento_mes: number
+          leads_ativos: number
+          leads_quentes: number
+          ltv: number
+          rank_position: number
+          seller_avatar_url: string
+          seller_name: string
+          seller_position: string
+          taxa_conversao: number
+          ticket_medio: number
+          user_id: string
+          vendas_mes: number
+        }[]
+      }
       get_my_team_id: { Args: never; Returns: string }
       get_sentiment_stats: { Args: never; Returns: Json }
       get_sentiment_stats_by_period: {
@@ -4382,6 +4401,24 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_vendedor_kpis: {
+        Args: { vendedor_id: string }
+        Returns: {
+          atividades_mes: number
+          ciclo_medio_dias: number
+          faturamento_mes: number
+          leads_ativos: number
+          leads_parados: number
+          leads_quentes: number
+          leads_total: number
+          ltv: number
+          perdas_mes: number
+          taxa_conversao: number
+          tempo_medio_resposta_horas: number
+          ticket_medio: number
+          vendas_mes: number
+        }[]
       }
       has_role: {
         Args: {
