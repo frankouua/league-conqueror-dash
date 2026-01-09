@@ -5,7 +5,7 @@ import {
   User, Phone, Mail, MessageSquare, Clock, Calendar, Tag, Star,
   Sparkles, AlertTriangle, CheckCircle2, Circle, Plus, Send,
   ArrowRight, History, ListTodo, FileText, TrendingUp, Brain, Loader2,
-  Edit2, Trash2, X, ClipboardCheck, MessagesSquare
+  Edit2, Trash2, X, ClipboardCheck, MessagesSquare, PhoneCall
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ import { CRMTransferDialog } from './CRMTransferDialog';
 import { CRMLeadChecklist } from './CRMLeadChecklist';
 import { CRMTemperatureBadge, CRMTemperatureSelector } from './CRMTemperatureBadge';
 import { CRMInternalChat } from './CRMInternalChat';
+import { CRMLeadInteractions } from './CRMLeadInteractions';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -255,7 +256,7 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
             ) : (
               /* Content Tabs */
               <Tabs defaultValue="checklist" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="mx-3 sm:mx-6 mt-3 sm:mt-4 grid grid-cols-6 w-auto gap-0.5 sm:gap-1">
+            <TabsList className="mx-3 sm:mx-6 mt-3 sm:mt-4 grid grid-cols-7 w-auto gap-0.5 sm:gap-1">
               <TabsTrigger value="checklist" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
                 <ClipboardCheck className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden xs:inline">Check</span>
@@ -263,6 +264,10 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               <TabsTrigger value="overview" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
                 <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden xs:inline">Resumo</span>
+              </TabsTrigger>
+              <TabsTrigger value="interactions" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                <PhoneCall className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Contatos</span>
               </TabsTrigger>
               <TabsTrigger value="chat" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
                 <MessagesSquare className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -298,6 +303,13 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       // Refresh lead data
                     }}
                   />
+                )}
+              </TabsContent>
+
+              {/* Interactions Tab */}
+              <TabsContent value="interactions" className="m-0">
+                {lead && (
+                  <CRMLeadInteractions leadId={lead.id} leadName={lead.name} />
                 )}
               </TabsContent>
 
