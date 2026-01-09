@@ -1825,6 +1825,7 @@ export type Database = {
           registered_by_admin: boolean
           source_fingerprint: string | null
           team_id: string
+          upload_id: string | null
           user_id: string
         }
         Insert: {
@@ -1849,6 +1850,7 @@ export type Database = {
           registered_by_admin?: boolean
           source_fingerprint?: string | null
           team_id: string
+          upload_id?: string | null
           user_id: string
         }
         Update: {
@@ -1873,6 +1875,7 @@ export type Database = {
           registered_by_admin?: boolean
           source_fingerprint?: string | null
           team_id?: string
+          upload_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1881,6 +1884,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "executed_records_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "sales_upload_logs"
             referencedColumns: ["id"]
           },
         ]
@@ -3297,6 +3307,7 @@ export type Database = {
           registered_by_admin: boolean
           source_fingerprint: string | null
           team_id: string
+          upload_id: string | null
           user_id: string
         }
         Insert: {
@@ -3321,6 +3332,7 @@ export type Database = {
           registered_by_admin?: boolean
           source_fingerprint?: string | null
           team_id: string
+          upload_id?: string | null
           user_id: string
         }
         Update: {
@@ -3345,6 +3357,7 @@ export type Database = {
           registered_by_admin?: boolean
           source_fingerprint?: string | null
           team_id?: string
+          upload_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -3353,6 +3366,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_records_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "sales_upload_logs"
             referencedColumns: ["id"]
           },
         ]
