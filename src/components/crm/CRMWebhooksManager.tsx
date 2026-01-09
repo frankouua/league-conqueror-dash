@@ -53,15 +53,20 @@ interface CRMWebhook {
 }
 
 const FORM_SOURCES = [
-  { value: 'landing_page', label: 'Landing Page' },
-  { value: 'google_forms', label: 'Google Forms' },
-  { value: 'typeform', label: 'Typeform' },
-  { value: 'facebook_lead_ads', label: 'Facebook Lead Ads' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'trafego_pago', label: 'Tráfego Pago' },
-  { value: 'isca_gratuita', label: 'Isca Gratuita' },
-  { value: 'whatsapp', label: 'WhatsApp' },
-  { value: 'other', label: 'Outro' },
+  { value: 'landing_page', label: 'Landing Page', scoreBonus: 15 },
+  { value: 'google_ads', label: 'Google Ads', scoreBonus: 20 },
+  { value: 'google_forms', label: 'Google Forms', scoreBonus: 12 },
+  { value: 'typeform', label: 'Typeform', scoreBonus: 15 },
+  { value: 'facebook_lead_ads', label: 'Facebook Lead Ads', scoreBonus: 15 },
+  { value: 'instagram', label: 'Instagram', scoreBonus: 12 },
+  { value: 'tiktok', label: 'TikTok', scoreBonus: 10 },
+  { value: 'trafego_pago', label: 'Tráfego Pago (Geral)', scoreBonus: 18 },
+  { value: 'isca_gratuita', label: 'Isca Gratuita / Lead Magnet', scoreBonus: 10 },
+  { value: 'whatsapp', label: 'WhatsApp', scoreBonus: 25 },
+  { value: 'indicacao', label: 'Indicação', scoreBonus: 30 },
+  { value: 'organico', label: 'Orgânico', scoreBonus: 12 },
+  { value: 'lovable_form', label: 'Formulário Lovable', scoreBonus: 15 },
+  { value: 'other', label: 'Outro', scoreBonus: 8 },
 ];
 
 export function CRMWebhooksManager() {
@@ -421,8 +426,22 @@ export function CRMWebhooksManager() {
                     </div>
                   </div>
 
-                  <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                    <strong>Campos aceitos:</strong> name, email, phone, whatsapp + campos customizados em JSON
+                  <div className="text-xs text-muted-foreground bg-muted p-3 rounded space-y-2">
+                    <div>
+                      <strong>📋 Campos aceitos:</strong>
+                      <p className="mt-1">name/nome, email, phone/telefone, whatsapp, procedure/procedimento, budget/orcamento, timeline/prazo, tags</p>
+                    </div>
+                    <div>
+                      <strong>📊 UTM Parameters:</strong>
+                      <p className="mt-1">utm_source, utm_medium, utm_campaign, utm_content, utm_term (via query string ou body)</p>
+                    </div>
+                    <div>
+                      <strong>⚡ Lead Score automático:</strong>
+                      <p className="mt-1">
+                        Score calculado com base na origem ({FORM_SOURCES.find(s => s.value === webhook.form_source)?.scoreBonus || 8} pts), 
+                        completude dos dados e indicadores de intenção
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
