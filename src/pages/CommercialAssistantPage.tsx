@@ -182,9 +182,6 @@ Por favor, crie um script de WhatsApp ou ligação adequado para este perfil, co
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
       <div className="container mx-auto px-4 py-6">
         {/* Back Button & Title */}
         <div className="flex items-center gap-4 mb-6">
@@ -783,6 +780,5 @@ Por favor, crie um script de WhatsApp ou ligação adequado para este perfil, co
           </div>
         </div>
       </div>
-    </div>
   );
 }

@@ -24,7 +24,6 @@ import {
   AlertTriangle,
   BarChart3,
 } from "lucide-react";
-import Header from "@/components/Header";
 import { ReferralConversionReport } from "@/components/ReferralConversionReport";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -617,8 +616,6 @@ const ReferralLeads = () => {
 
   if (user && profile && !profile.team_id && role !== "admin") {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
         <main className="container mx-auto px-4 py-10">
           <section className="max-w-2xl mx-auto">
             <Card className="bg-gradient-card border-border">
@@ -637,22 +634,19 @@ const ReferralLeads = () => {
             </Card>
           </section>
         </main>
-      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
+    <>
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -1254,7 +1248,7 @@ const ReferralLeads = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 

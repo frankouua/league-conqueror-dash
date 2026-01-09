@@ -28,7 +28,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
 import RFVActionHistory from "@/components/rfv/RFVActionHistory";
 import * as XLSX from "xlsx";
 import { 
@@ -1957,9 +1956,7 @@ const RFVDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
+    <>
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -3829,7 +3826,7 @@ const RFVDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 
