@@ -24,6 +24,7 @@ const TRAINING_ROLES = [
   { id: "closer", label: "Closer", icon: Handshake, color: "from-green-500 to-emerald-500", description: "Fechamento de vendas" },
   { id: "farmer", label: "Farmer", icon: Sprout, color: "from-lime-500 to-green-500", description: "Relacionamento e recorrência" },
   { id: "cs", label: "Customer Success", icon: Heart, color: "from-purple-500 to-violet-500", description: "Sucesso do cliente" },
+  { id: "coordenador", label: "Coordenador Comercial", icon: Target, color: "from-red-500 to-rose-600", description: "Gestão e liderança comercial" },
   { id: "diferenciais", label: "Diferenciais e Procedimentos", icon: Sparkles, color: "from-amber-500 to-orange-500", description: "Diferenciais Unique e procedimentos" },
 ] as const;
 
