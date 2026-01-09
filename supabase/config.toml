@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.daily-ai-manager]
 verify_jwt = false
+
+[functions.get-script-suggestion]
+verify_jwt = false

@@ -45,6 +45,7 @@ import { CRMTemperatureBadge, CRMTemperatureSelector } from './CRMTemperatureBad
 import { CRMInternalChat } from './CRMInternalChat';
 import { CRMLeadInteractions } from './CRMLeadInteractions';
 import { CRMLeadScriptSuggestions } from './CRMLeadScriptSuggestions';
+import { CRMRealtimeScriptSuggestions } from './CRMRealtimeScriptSuggestions';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -313,9 +314,20 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               </TabsContent>
 
               {/* Interactions Tab */}
-              <TabsContent value="interactions" className="m-0">
+              <TabsContent value="interactions" className="m-0 space-y-4">
                 {lead && (
-                  <CRMLeadInteractions leadId={lead.id} leadName={lead.name} />
+                  <>
+                    {/* Real-time Script Suggestions */}
+                    <CRMRealtimeScriptSuggestions 
+                      leadId={lead.id}
+                      leadName={lead.name}
+                      currentIntention={lead.ai_intent}
+                      stageKey={currentStage?.name?.toLowerCase().replace(/\s+/g, '_')}
+                      temperature={lead.temperature}
+                    />
+                    
+                    <CRMLeadInteractions leadId={lead.id} leadName={lead.name} />
+                  </>
                 )}
               </TabsContent>
 
