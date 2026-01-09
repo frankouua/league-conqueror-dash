@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Save, X, Target, FileText, Briefcase, Thermometer } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Save, X, Target, FileText, Briefcase, Thermometer, Syringe, Package, Route } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,23 +54,24 @@ const SOURCES = [
   { value: 'outro', label: 'Outro' },
 ];
 
-const PROCEDURES = [
-  'Lipoaspiração',
-  'Abdominoplastia',
-  'Mamoplastia',
-  'Rinoplastia',
-  'Bichectomia',
-  'Lifting Facial',
-  'Botox',
-  'Preenchimento',
-  'Harmonização Facial',
-  'Prótese de Silicone',
-  'Lipoescultura',
-  'Blefaroplastia',
-  'Otoplastia',
-  'Gluteoplastia',
-  'Ritidoplastia',
-];
+interface Protocol {
+  id: string;
+  name: string;
+  price: number;
+  promotional_price: number | null;
+  protocol_type: string;
+  is_active: boolean;
+}
+
+const PROTOCOL_TYPE_ICONS: Record<string, any> = {
+  procedimento: Syringe,
+  pacote: Package,
+  jornada: Route,
+};
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
 
 export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps) {
   const { toast } = useToast();
@@ -80,6 +82,22 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
   const [teams, setTeams] = useState<Team[]>([]);
   const [saving, setSaving] = useState(false);
   const [newTag, setNewTag] = useState('');
+
+  // Fetch protocols from database
+  const { data: protocols = [], isLoading: loadingProtocols } = useQuery({
+    queryKey: ['protocols-for-crm'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('protocols')
+        .select('id, name, price, promotional_price, protocol_type, is_active')
+        .eq('is_active', true)
+        .order('protocol_type')
+        .order('name');
+      
+      if (error) throw error;
+      return data as Protocol[];
+    },
+  });
   
   const [formData, setFormData] = useState({
     name: lead?.name || '',
@@ -502,24 +520,77 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
             </div>
           </div>
 
-          {/* Procedures */}
-          <div className="space-y-2 pt-2 border-t">
+          {/* Procedures from Database */}
+          <div className="space-y-3 pt-2 border-t">
             <Label className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Procedimentos de Interesse
+              {loadingProtocols && <Loader2 className="h-3 w-3 animate-spin" />}
             </Label>
-            <div className="flex flex-wrap gap-2">
-              {PROCEDURES.map(proc => (
-                <Badge
-                  key={proc}
-                  variant={formData.interested_procedures.includes(proc) ? "default" : "outline"}
-                  className="cursor-pointer transition-all hover:scale-105"
-                  onClick={() => handleProcedureToggle(proc)}
-                >
-                  {proc}
-                </Badge>
-              ))}
-            </div>
+            
+            {protocols.length === 0 && !loadingProtocols ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum procedimento cadastrado. Cadastre em Admin → Protocolos.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                {/* Group by type */}
+                {['procedimento', 'pacote', 'jornada'].map(type => {
+                  const typeProtocols = protocols.filter(p => p.protocol_type === type);
+                  if (typeProtocols.length === 0) return null;
+                  
+                  const TypeIcon = PROTOCOL_TYPE_ICONS[type] || FileText;
+                  const typeLabel = type === 'procedimento' ? 'Procedimentos' : 
+                                   type === 'pacote' ? 'Pacotes' : 'Jornadas';
+                  
+                  return (
+                    <div key={type} className="space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                        <TypeIcon className="h-3 w-3" />
+                        {typeLabel}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {typeProtocols.map(protocol => {
+                          const isSelected = formData.interested_procedures.includes(protocol.name);
+                          const displayPrice = protocol.promotional_price || protocol.price;
+                          
+                          return (
+                            <Badge
+                              key={protocol.id}
+                              variant={isSelected ? "default" : "outline"}
+                              className="cursor-pointer transition-all hover:scale-105 gap-1.5"
+                              onClick={() => handleProcedureToggle(protocol.name)}
+                            >
+                              <span>{protocol.name}</span>
+                              <span className={cn(
+                                "text-[10px] font-normal",
+                                isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                              )}>
+                                {formatCurrency(displayPrice)}
+                              </span>
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Show selected procedures count */}
+            {formData.interested_procedures.length > 0 && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{formData.interested_procedures.length} selecionado(s)</span>
+                <span className="text-primary font-medium">
+                  Total estimado: {formatCurrency(
+                    protocols
+                      .filter(p => formData.interested_procedures.includes(p.name))
+                      .reduce((sum, p) => sum + (p.promotional_price || p.price), 0)
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Tags */}
