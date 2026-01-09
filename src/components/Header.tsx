@@ -28,7 +28,7 @@ import copaLogo from "@/assets/logo-copa-unique-league.png";
 import uniqueLogo from "@/assets/logo-unique-cpa.png";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
 import AnnouncementsDropdown from "@/components/AnnouncementsDropdown";
-import CampaignsWidget from "@/components/CampaignsWidget";
+
 import ProfileEditDialog from "@/components/ProfileEditDialog";
 import { useGoalNotifications } from "@/hooks/useGoalNotifications";
 import { useUserTeamStats } from "@/hooks/useUserTeamStats";
@@ -76,11 +76,10 @@ const Header = () => {
 
   const currentMonth = MONTH_NAMES[new Date().getMonth()];
 
-  // Main navigation items (simplified - 6 items only)
+  // Main navigation items (simplified - 5 items only)
   const mainNavLinks = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/crm", label: "CRM", icon: Kanban },
-    { path: "/calendario", label: "Meu Calendário", icon: Calendar },
     { path: "/comercial", label: "Comercial", icon: Briefcase },
     { path: "/alavancas", label: "Alavancas", icon: Rocket },
     { path: "/register", label: "Registrar", icon: Plus },
@@ -214,8 +213,20 @@ const Header = () => {
                   </div>
                 )}
 
-                {/* Campaigns */}
-                <CampaignsWidget />
+                {/* Calendar */}
+                <Link to="/calendario">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`relative ${
+                      location.pathname === "/calendario"
+                        ? "text-primary bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Calendar className="w-5 h-5" />
+                  </Button>
+                </Link>
 
                 {/* Announcements */}
                 <AnnouncementsDropdown />
