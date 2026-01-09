@@ -1268,10 +1268,10 @@ const CommercialGuides = () => {
                             <div className="space-y-3">
                               {COORDINATOR_DATA.handoffFlow.map((flow, index) => (
                                 <div key={index} className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                                  <Badge variant="outline" className="font-semibold">{flow.from}</Badge>
+                                  <Badge className="font-semibold bg-purple-600 text-white">{flow.from}</Badge>
                                   <ArrowRight className="h-4 w-4 text-purple-500" />
-                                  <Badge variant="outline" className="font-semibold">{flow.to}</Badge>
-                                  <span className="text-sm text-muted-foreground flex-1">{flow.trigger}</span>
+                                  <Badge className="font-semibold bg-indigo-600 text-white">{flow.to}</Badge>
+                                  <span className="text-sm text-foreground flex-1">{flow.trigger}</span>
                                   <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
                                     {flow.maxTime}
                                   </Badge>
