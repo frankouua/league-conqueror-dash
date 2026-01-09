@@ -270,7 +270,7 @@ const ExecutiveKPIs = ({ month, year }: ExecutiveKPIsProps) => {
             <div className="flex items-center justify-between mt-1">
               <p className="text-xs text-muted-foreground">{metrics.goalProgress.toFixed(0)}% da Meta 3</p>
               <p className={cn("text-xs font-medium", metrics.paceMetrics.textColor)}>
-                Esp: {formatCompact(metrics.paceMetrics.expected)}
+                Esp (01-{String(currentDay).padStart(2, '0')}): {formatCompact(metrics.paceMetrics.expected)}
               </p>
             </div>
           </CardContent>

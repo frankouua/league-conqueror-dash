@@ -490,7 +490,7 @@ export default function SellerDashboard({
                           <div className="flex items-center gap-2">
                             {isCurrentMonth && paceMetrics && (
                               <span className={cn("font-medium", paceMetrics.textColor)}>
-                                Esp: {formatCurrency(paceMetrics.expected)}
+                                Esp (01-{String(currentDay).padStart(2, '0')}): {formatCurrency(paceMetrics.expected)}
                               </span>
                             )}
                             <span>Meta 1: {formatCurrency(seller.meta1Goal)}</span>

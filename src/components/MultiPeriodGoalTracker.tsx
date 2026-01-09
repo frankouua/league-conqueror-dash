@@ -15,9 +15,11 @@ import {
   eachDayOfInterval, isWeekend, differenceInDays, addDays
 } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { ptBR } from 'date-fns/locale';
 
 interface PeriodData {
   label: string;
+  dateRange: string;
   icon: any;
   goal: number;
   achieved: number;
@@ -136,6 +138,7 @@ function calculatePeriods(
   const periods: PeriodData[] = [
     {
       label: 'Hoje',
+      dateRange: `Dia ${format(today, 'dd')}`,
       icon: Clock,
       goal: dailyGoal,
       achieved: todayRevenue,
@@ -146,6 +149,7 @@ function calculatePeriods(
     },
     {
       label: 'Semana',
+      dateRange: `${format(weekStart, 'dd')}-${format(weekEnd, 'dd')} ${format(today, 'MMM', { locale: ptBR })}`,
       icon: Calendar,
       goal: weeklyGoal,
       achieved: weekRevenue,
@@ -156,6 +160,7 @@ function calculatePeriods(
     },
     {
       label: biweek.label,
+      dateRange: `${format(biweek.start, 'dd')}-${format(biweek.end, 'dd')} ${format(today, 'MMM', { locale: ptBR })}`,
       icon: Calendar,
       goal: biweeklyGoal,
       achieved: biweekRevenue,
@@ -166,6 +171,7 @@ function calculatePeriods(
     },
     {
       label: 'Mês',
+      dateRange: `01-${format(monthEnd, 'dd')} ${format(today, 'MMM', { locale: ptBR })}`,
       icon: Target,
       goal: meta3,
       achieved: monthRevenue,
@@ -189,7 +195,10 @@ function PeriodCard({ period }: { period: PeriodData }) {
   return (
     <div className={cn("p-2 rounded-lg border", getStatusBg(period.status))}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium">{period.label}</span>
+        <div className="flex flex-col">
+          <span className="text-xs font-medium">{period.label}</span>
+          <span className="text-[9px] text-muted-foreground">{period.dateRange}</span>
+        </div>
         {getStatusIcon(period.status)}
       </div>
       <div className="flex items-baseline gap-1">
@@ -413,6 +422,7 @@ export function MultiPeriodGoalTracker() {
                       {seller.periods.map((period, idx) => (
                         <div key={idx} className={cn("px-1.5 py-1 rounded text-center", getStatusBg(period.status))}>
                           <p className="text-[9px] text-muted-foreground">{period.label}</p>
+                          <p className="text-[7px] text-muted-foreground/70">{period.dateRange}</p>
                           <p className={cn(
                             "text-[10px] font-bold",
                             period.status === 'success' && "text-green-600",
