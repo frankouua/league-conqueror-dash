@@ -38,16 +38,15 @@ interface CRMLeadInteractionsProps {
 interface Interaction {
   id: string;
   lead_id: string;
-  action_type: string;
-  title: string | null;
+  type: string;
   description: string | null;
+  sentiment: 'positive' | 'neutral' | 'negative' | null;
+  intention: string | null;
+  duration_seconds: number | null;
+  outcome: string | null;
+  next_action: string | null;
   created_at: string;
-  performed_by: string;
-  metadata: {
-    sentiment?: 'positive' | 'neutral' | 'negative';
-    intent?: string;
-    channel?: string;
-  } | null;
+  created_by: string;
 }
 
 const INTERACTION_TYPES = [
@@ -89,15 +88,14 @@ export function CRMLeadInteractions({ leadId, leadName }: CRMLeadInteractionsPro
     intent: '',
   });
 
-  // Fetch interactions from crm_lead_history
+  // Fetch interactions from crm_lead_interactions table
   const { data: interactions = [], isLoading } = useQuery({
     queryKey: ['crm-interactions', leadId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('crm_lead_history')
+        .from('crm_lead_interactions')
         .select('*')
         .eq('lead_id', leadId)
-        .in('action_type', ['whatsapp', 'call', 'email', 'video', 'meeting', 'other', 'note'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -107,32 +105,31 @@ export function CRMLeadInteractions({ leadId, leadName }: CRMLeadInteractionsPro
 
   const createInteraction = useMutation({
     mutationFn: async (interaction: typeof newInteraction) => {
-      const { error } = await supabase.from('crm_lead_history').insert({
+      const { error } = await supabase.from('crm_lead_interactions').insert({
         lead_id: leadId,
-        action_type: interaction.type,
-        title: `${INTERACTION_TYPES.find(t => t.value === interaction.type)?.label || 'Interação'} com ${leadName}`,
+        type: interaction.type,
         description: interaction.content,
-        performed_by: user!.id,
-        metadata: {
-          sentiment: interaction.sentiment,
-          intent: interaction.intent,
-          channel: interaction.type,
-        },
+        sentiment: interaction.sentiment,
+        intention: interaction.intent || null,
+        created_by: user!.id,
       });
       if (error) throw error;
 
       // Update last_activity_at and total_interactions
+      const { count } = await supabase
+        .from('crm_lead_interactions')
+        .select('id', { count: 'exact' })
+        .eq('lead_id', leadId);
+      
       await supabase.from('crm_leads').update({
         last_activity_at: new Date().toISOString(),
-        total_interactions: (await supabase
-          .from('crm_lead_history')
-          .select('id', { count: 'exact' })
-          .eq('lead_id', leadId)).count || 0,
+        total_interactions: count || 0,
       }).eq('id', leadId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-interactions', leadId] });
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['sentiment-stats'] });
       setNewInteraction({ type: 'whatsapp', content: '', sentiment: 'neutral', intent: '' });
       setIsDialogOpen(false);
       toast.success('Interação registrada!');
@@ -282,10 +279,9 @@ export function CRMLeadInteractions({ leadId, leadName }: CRMLeadInteractionsPro
         {interactions.length > 0 ? (
           <div className="space-y-3 pr-4">
             {interactions.map((interaction) => {
-              const typeInfo = getTypeInfo(interaction.action_type);
+              const typeInfo = getTypeInfo(interaction.type);
               const Icon = typeInfo.icon;
-              const metadata = interaction.metadata as any;
-              const sentimentInfo = getSentimentInfo(metadata?.sentiment);
+              const sentimentInfo = getSentimentInfo(interaction.sentiment || undefined);
               const SentimentIcon = sentimentInfo.icon;
 
               return (
@@ -314,16 +310,16 @@ export function CRMLeadInteractions({ leadId, leadName }: CRMLeadInteractionsPro
 
                         {/* Sentiment & Intent Tags */}
                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                          {metadata?.sentiment && (
+                          {interaction.sentiment && (
                             <Badge variant="outline" className={cn("text-xs gap-1", sentimentInfo.color)}>
                               <SentimentIcon className="h-3 w-3" />
                               {sentimentInfo.label}
                             </Badge>
                           )}
-                          {metadata?.intent && (
+                          {interaction.intention && (
                             <Badge variant="outline" className="text-xs gap-1">
                               <TrendingUp className="h-3 w-3" />
-                              {metadata.intent}
+                              {interaction.intention}
                             </Badge>
                           )}
                         </div>

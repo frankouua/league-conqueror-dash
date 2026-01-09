@@ -50,6 +50,7 @@ import { CRMPipelineManager } from "@/components/crm/CRMPipelineManager";
 import { CRMWebhooksManager } from "@/components/crm/CRMWebhooksManager";
 import { CRMNotificationsBell } from "@/components/crm/CRMNotificationsBell";
 import { CRMDailyOverview } from "@/components/crm/CRMDailyOverview";
+import { CRMSentimentDashboard } from "@/components/crm/CRMSentimentDashboard";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -457,6 +458,15 @@ const CRM = () => {
 
         {viewMode === 'funnel' && (
           <CRMConversionFunnel />
+        )}
+
+        {viewMode === 'sentiment' && (
+          <CRMSentimentDashboard 
+            onLeadClick={(leadId) => {
+              const lead = leads.find(l => l.id === leadId);
+              if (lead) setSelectedLead(lead);
+            }} 
+          />
         )}
 
         {viewMode === 'team-performance' && (
