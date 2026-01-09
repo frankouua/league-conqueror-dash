@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   BookOpen, FileText, Video, HelpCircle, MessageSquare, 
   Trophy, Star, TrendingUp, Zap, Target, GraduationCap,
-  CheckCircle2, Lock, Play, Award, Users, Phone, Handshake, Heart
+  CheckCircle2, Lock, Play, Award, Users, Phone, Handshake, Heart, Sparkles
 } from "lucide-react";
 import { useTrainingAcademy, getLevelName, getXpProgress } from "@/hooks/useTrainingAcademy";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,7 @@ const TRAINING_ROLES = [
   { id: "social_selling", label: "Social Selling", icon: Users, color: "from-pink-500 to-rose-500", description: "Prospecção via redes sociais" },
   { id: "closer", label: "Closer", icon: Handshake, color: "from-green-500 to-emerald-500", description: "Fechamento de vendas" },
   { id: "cs", label: "Customer Success", icon: Heart, color: "from-purple-500 to-violet-500", description: "Sucesso do cliente" },
+  { id: "diferenciais", label: "Diferenciais e Procedimentos", icon: Sparkles, color: "from-amber-500 to-orange-500", description: "Diferenciais Unique e procedimentos" },
 ] as const;
 
 type TrainingRole = typeof TRAINING_ROLES[number]["id"];
