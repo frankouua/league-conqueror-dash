@@ -3576,6 +3576,7 @@ export type Database = {
           material_type: string
           order_index: number | null
           sections: Json | null
+          target_role: string | null
           thumbnail_url: string | null
           title: string
           updated_at: string
@@ -3596,6 +3597,7 @@ export type Database = {
           material_type: string
           order_index?: number | null
           sections?: Json | null
+          target_role?: string | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string
@@ -3616,6 +3618,7 @@ export type Database = {
           material_type?: string
           order_index?: number | null
           sections?: Json | null
+          target_role?: string | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
@@ -3680,6 +3683,7 @@ export type Database = {
           order_index: number | null
           passing_score: number | null
           questions: Json
+          target_role: string | null
           time_limit_minutes: number | null
           title: string
           updated_at: string
@@ -3697,6 +3701,7 @@ export type Database = {
           order_index?: number | null
           passing_score?: number | null
           questions?: Json
+          target_role?: string | null
           time_limit_minutes?: number | null
           title: string
           updated_at?: string
@@ -3714,6 +3719,7 @@ export type Database = {
           order_index?: number | null
           passing_score?: number | null
           questions?: Json
+          target_role?: string | null
           time_limit_minutes?: number | null
           title?: string
           updated_at?: string
@@ -3776,6 +3782,7 @@ export type Database = {
           is_active: boolean | null
           order_index: number | null
           scenario_type: string
+          target_role: string | null
           title: string
           updated_at: string
           xp_reward: number | null
@@ -3790,6 +3797,7 @@ export type Database = {
           is_active?: boolean | null
           order_index?: number | null
           scenario_type: string
+          target_role?: string | null
           title: string
           updated_at?: string
           xp_reward?: number | null
@@ -3804,6 +3812,7 @@ export type Database = {
           is_active?: boolean | null
           order_index?: number | null
           scenario_type?: string
+          target_role?: string | null
           title?: string
           updated_at?: string
           xp_reward?: number | null
