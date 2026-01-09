@@ -3563,6 +3563,7 @@ export type Database = {
       training_materials: {
         Row: {
           category: string
+          content: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -3574,6 +3575,7 @@ export type Database = {
           is_active: boolean | null
           material_type: string
           order_index: number | null
+          sections: Json | null
           thumbnail_url: string | null
           title: string
           updated_at: string
@@ -3581,6 +3583,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          content?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -3592,6 +3595,7 @@ export type Database = {
           is_active?: boolean | null
           material_type: string
           order_index?: number | null
+          sections?: Json | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string
@@ -3599,6 +3603,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          content?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -3610,6 +3615,7 @@ export type Database = {
           is_active?: boolean | null
           material_type?: string
           order_index?: number | null
+          sections?: Json | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string

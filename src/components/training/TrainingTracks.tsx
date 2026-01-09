@@ -9,6 +9,7 @@ import {
   Lock, CheckCircle2, Zap, Trophy, ArrowRight, Play
 } from "lucide-react";
 import { useTrainingAcademy, TrainingTrack, TrackStep } from "@/hooks/useTrainingAcademy";
+import TrainingMaterialViewer from "./TrainingMaterialViewer";
 
 const STEP_ICONS: Record<string, typeof BookOpen> = {
   material: BookOpen,
@@ -29,9 +30,14 @@ const TrainingTracks = () => {
     isMaterialCompleted, 
     isQuizPassed, 
     simulationAttempts,
+    quizzes,
+    simulations,
     isLoading 
   } = useTrainingAcademy();
   const [selectedTrack, setSelectedTrack] = useState<TrainingTrack | null>(null);
+  const [viewingMaterialId, setViewingMaterialId] = useState<string | null>(null);
+  const [viewingQuizId, setViewingQuizId] = useState<string | null>(null);
+  const [viewingSimulationId, setViewingSimulationId] = useState<string | null>(null);
 
   // Get track progress
   const getTrackProgress = (track: TrainingTrack) => {
@@ -191,7 +197,7 @@ const TrainingTracks = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="py-4">
+                <div className="py-4">
                 <h4 className="font-medium mb-3">Etapas da Trilha</h4>
                 <div className="space-y-2">
                   {selectedTrack.steps.map((step, idx) => {
@@ -199,15 +205,28 @@ const TrainingTracks = () => {
                     const completed = isStepCompleted(step);
                     const isLocked = idx > 0 && !isStepCompleted(selectedTrack.steps[idx - 1]);
 
+                    const handleStepClick = () => {
+                      if (isLocked) return;
+                      if (step.type === 'material') {
+                        setViewingMaterialId(step.reference_id);
+                      } else if (step.type === 'quiz') {
+                        setViewingQuizId(step.reference_id);
+                      } else if (step.type === 'simulation') {
+                        setViewingSimulationId(step.reference_id);
+                      }
+                    };
+
                     return (
-                      <div 
+                      <button 
                         key={idx}
-                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                        onClick={handleStepClick}
+                        disabled={isLocked}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
                           completed 
-                            ? 'bg-green-500/5 border-green-500/30' 
+                            ? 'bg-green-500/5 border-green-500/30 hover:bg-green-500/10' 
                             : isLocked
-                              ? 'bg-muted/30 border-border opacity-50'
-                              : 'border-border hover:border-primary/30'
+                              ? 'bg-muted/30 border-border opacity-50 cursor-not-allowed'
+                              : 'border-border hover:border-primary/30 hover:bg-primary/5 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center gap-3 flex-1">
@@ -229,16 +248,22 @@ const TrainingTracks = () => {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{step.title}</p>
                             <p className="text-xs text-muted-foreground capitalize">
-                              {step.type === 'material' ? 'Material' :
-                               step.type === 'quiz' ? 'Quiz' : 'Simulação'}
+                              {step.type === 'material' ? '📚 Material' :
+                               step.type === 'quiz' ? '📝 Quiz' : '🎮 Simulação'}
+                              {!isLocked && !completed && ' - Clique para abrir'}
                             </p>
                           </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Zap className="w-3 h-3 text-amber-500" />
-                            <span>{step.xp} XP</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Zap className="w-3 h-3 text-amber-500" />
+                              <span>{step.xp} XP</span>
+                            </div>
+                            {!isLocked && !completed && (
+                              <ArrowRight className="w-4 h-4 text-primary" />
+                            )}
                           </div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -263,6 +288,12 @@ const TrainingTracks = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Material Viewer */}
+      <TrainingMaterialViewer
+        materialId={viewingMaterialId}
+        onClose={() => setViewingMaterialId(null)}
+      />
     </div>
   );
 };
