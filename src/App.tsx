@@ -34,6 +34,9 @@ const CommercialAssistantPage = lazy(() => import("./pages/CommercialAssistantPa
 const CRM = lazy(() => import("./pages/CRM"));
 const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+// New hub pages
+const Comercial = lazy(() => import("./pages/Comercial"));
+const Alavancas = lazy(() => import("./pages/Alavancas"));
 
 // Optimized QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -88,8 +91,13 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
-              <Route path="/onboarding-goals" element={<ProtectedRoute><OnboardingGoals /></ProtectedRoute>} />
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
+              {/* New Hub Pages */}
+              <Route path="/comercial" element={<ProtectedRoute><Comercial /></ProtectedRoute>} />
+              <Route path="/alavancas" element={<ProtectedRoute><Alavancas /></ProtectedRoute>} />
+              {/* Legacy routes - redirect or keep for direct access */}
+              <Route path="/onboarding-goals" element={<ProtectedRoute><OnboardingGoals /></ProtectedRoute>} />
               <Route path="/data-reports" element={<ProtectedRoute><DataReports /></ProtectedRoute>} />
               <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
               <Route path="/referral-leads" element={<ProtectedRoute><ReferralLeads /></ProtectedRoute>} />
@@ -97,7 +105,6 @@ const App = () => (
               <Route path="/guias-comerciais" element={<ProtectedRoute><CommercialGuides /></ProtectedRoute>} />
               <Route path="/cancellations" element={<ProtectedRoute><Cancellations /></ProtectedRoute>} />
               <Route path="/assistente-comercial" element={<ProtectedRoute><CommercialAssistantPage /></ProtectedRoute>} />
-              <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
               <Route path="/rfv" element={<ProtectedRoute><RFVDashboard /></ProtectedRoute>} />
               <Route path="/historical-upload" element={<ProtectedRoute requireAdmin><HistoricalUpload /></ProtectedRoute>} />
               <Route path="/sales-dashboard" element={<ProtectedRoute requireAdmin><SalesDashboard /></ProtectedRoute>} />
