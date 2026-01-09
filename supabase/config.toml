@@ -89,3 +89,9 @@ verify_jwt = false
 
 [functions.check-crm-alerts]
 verify_jwt = false
+
+[functions.predict-churn]
+verify_jwt = false
+
+[functions.check-recurrence]
+verify_jwt = false

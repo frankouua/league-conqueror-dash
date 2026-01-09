@@ -1224,6 +1224,7 @@ export type Database = {
       crm_leads: {
         Row: {
           ai_analyzed_at: string | null
+          ai_churn_probability: number | null
           ai_intent: string | null
           ai_next_action: string | null
           ai_sentiment: string | null
@@ -1231,6 +1232,8 @@ export type Database = {
           assigned_to: string | null
           authority_score: number | null
           budget_score: number | null
+          churn_analyzed_at: string | null
+          churn_risk_level: string | null
           contract_value: number | null
           cpf: string | null
           created_at: string
@@ -1242,6 +1245,8 @@ export type Database = {
           feegow_data: Json | null
           feegow_id: string | null
           first_contact_at: string | null
+          help_score: number | null
+          help_score_updated_at: string | null
           id: string
           interested_procedures: string[] | null
           is_priority: boolean | null
@@ -1280,6 +1285,7 @@ export type Database = {
         }
         Insert: {
           ai_analyzed_at?: string | null
+          ai_churn_probability?: number | null
           ai_intent?: string | null
           ai_next_action?: string | null
           ai_sentiment?: string | null
@@ -1287,6 +1293,8 @@ export type Database = {
           assigned_to?: string | null
           authority_score?: number | null
           budget_score?: number | null
+          churn_analyzed_at?: string | null
+          churn_risk_level?: string | null
           contract_value?: number | null
           cpf?: string | null
           created_at?: string
@@ -1298,6 +1306,8 @@ export type Database = {
           feegow_data?: Json | null
           feegow_id?: string | null
           first_contact_at?: string | null
+          help_score?: number | null
+          help_score_updated_at?: string | null
           id?: string
           interested_procedures?: string[] | null
           is_priority?: boolean | null
@@ -1336,6 +1346,7 @@ export type Database = {
         }
         Update: {
           ai_analyzed_at?: string | null
+          ai_churn_probability?: number | null
           ai_intent?: string | null
           ai_next_action?: string | null
           ai_sentiment?: string | null
@@ -1343,6 +1354,8 @@ export type Database = {
           assigned_to?: string | null
           authority_score?: number | null
           budget_score?: number | null
+          churn_analyzed_at?: string | null
+          churn_risk_level?: string | null
           contract_value?: number | null
           cpf?: string | null
           created_at?: string
@@ -1354,6 +1367,8 @@ export type Database = {
           feegow_data?: Json | null
           feegow_id?: string | null
           first_contact_at?: string | null
+          help_score?: number | null
+          help_score_updated_at?: string | null
           id?: string
           interested_procedures?: string[] | null
           is_priority?: boolean | null
@@ -4551,6 +4566,14 @@ export type Database = {
         Returns: number
       }
       approve_user: { Args: { _user_id: string }; Returns: undefined }
+      batch_calculate_predictive_scores: {
+        Args: never
+        Returns: {
+          avg_help_score: number
+          high_risk_count: number
+          leads_processed: number
+        }[]
+      }
       calculate_cadence_metrics: {
         Args: { p_lead_id: string }
         Returns: {
@@ -4565,6 +4588,11 @@ export type Database = {
           ultima_interacao: string
         }[]
       }
+      calculate_churn_probability: {
+        Args: { p_lead_id: string }
+        Returns: number
+      }
+      calculate_help_score: { Args: { p_lead_id: string }; Returns: number }
       get_all_vendedores_kpis: {
         Args: { team_id_param?: string }
         Returns: {
