@@ -1,8 +1,7 @@
 import { 
-  LogIn, LogOut, User, Plus, Home, Shield, BarChart3, 
-  BookOpen, Users, Target, FileText, Menu, Trophy, Star, TrendingUp,
-  ChevronDown, Settings, AlertCircle, UserPlus, MessageSquareText,
-  ShieldAlert, Flame, Bot, Megaphone, Kanban
+  LogIn, LogOut, User, Plus, Home, Shield,
+  Menu, Trophy, Star, TrendingUp, ChevronDown,
+  Settings, Flame, Kanban, Briefcase, Rocket
 } from "lucide-react";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { Button } from "@/components/ui/button";
@@ -77,35 +76,13 @@ const Header = () => {
 
   const currentMonth = MONTH_NAMES[new Date().getMonth()];
 
-  // Main navigation items (simplified)
+  // Main navigation items (simplified - 5 items only)
   const mainNavLinks = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/crm", label: "CRM", icon: Kanban },
-    { path: "/onboarding-goals", label: "Metas", icon: TrendingUp, showBadge: goalProgress?.isNearGoal || goalProgress?.hasReachedGoal },
-    { path: "/campanhas", label: "Campanhas", icon: Megaphone },
+    { path: "/comercial", label: "Comercial", icon: Briefcase },
+    { path: "/alavancas", label: "Alavancas", icon: Rocket },
     { path: "/register", label: "Registrar", icon: Plus },
-  ];
-
-  // Dropdown: Comercial (RFV, Indicações, Cancelamentos)
-  const comercialLinks = [
-    { path: "/rfv", label: "Clientes RFV", icon: Target },
-    { path: "/referral-leads", label: "Indicações", icon: UserPlus },
-    { path: "/cancellations", label: "Cancelamentos", icon: ShieldAlert },
-  ];
-
-  // Dropdown: Recursos (Relatórios, Guias, Scripts, IA Coach)
-  const recursosLinks = [
-    { path: "/data-reports", label: "Relatórios", icon: FileText },
-    { path: "/guides", label: "Guias do Time", icon: BookOpen },
-    { path: "/guias-comerciais", label: "Scripts Comerciais", icon: MessageSquareText },
-    { path: "/assistente-comercial", label: "IA Coach", icon: Bot },
-  ];
-
-  // For mobile menu - all links flat
-  const allNavLinks = [
-    ...mainNavLinks,
-    ...comercialLinks,
-    ...recursosLinks,
   ];
 
   const NavItem = ({ path, label, icon: Icon, onClick, showBadge }: { path: string; label: string; icon: any; onClick?: () => void; showBadge?: boolean }) => (
@@ -168,104 +145,23 @@ const Header = () => {
           {/* Desktop Navigation */}
           {user && (
             <nav className="hidden lg:flex items-center gap-1">
-              {/* Main Links */}
+              {/* Main Links - Clean and Simple */}
               {mainNavLinks.map((link) => (
-                <Link key={link.path} to={link.path} className="relative">
+                <Link key={link.path} to={link.path}>
                   <Button
                     variant="ghost"
                     size="sm"
                     className={`gap-2 ${
-                      location.pathname === link.path
+                      location.pathname === link.path || location.pathname.startsWith(link.path + "/")
                         ? "text-primary bg-primary/10"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <link.icon className="w-4 h-4" />
                     <span>{link.label}</span>
-                    {link.showBadge && (
-                      <Badge 
-                        variant="default" 
-                        className={`ml-1 text-[10px] px-1.5 py-0 h-5 ${
-                          goalProgress?.hasReachedGoal 
-                            ? "bg-green-500 hover:bg-green-600" 
-                            : "bg-orange-500 hover:bg-orange-600 animate-pulse"
-                        }`}
-                      >
-                        <Flame className="w-3 h-3 mr-0.5" />
-                        {goalProgress?.hasReachedGoal ? "100%" : `${Math.round(goalProgress?.progress || 0)}%`}
-                      </Badge>
-                    )}
                   </Button>
                 </Link>
               ))}
-
-              {/* Comercial Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`gap-1 group ${
-                      comercialLinks.some(l => location.pathname === l.path)
-                        ? "text-primary bg-primary/10"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    <span>Comercial</span>
-                    <ChevronDown className="w-3 h-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48 bg-card border-border">
-                  {comercialLinks.map((link) => (
-                    <DropdownMenuItem key={link.path} asChild>
-                      <Link 
-                        to={link.path} 
-                        className={`flex items-center gap-2 cursor-pointer ${
-                          location.pathname === link.path ? "text-primary bg-primary/10" : ""
-                        }`}
-                      >
-                        <link.icon className="w-4 h-4" />
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Recursos Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`gap-1 group ${
-                      recursosLinks.some(l => location.pathname === l.path)
-                        ? "text-primary bg-primary/10"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    <span>Recursos</span>
-                    <ChevronDown className="w-3 h-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-52 bg-card border-border">
-                  {recursosLinks.map((link) => (
-                    <DropdownMenuItem key={link.path} asChild>
-                      <Link 
-                        to={link.path} 
-                        className={`flex items-center gap-2 cursor-pointer ${
-                          location.pathname === link.path ? "text-primary bg-primary/10" : ""
-                        }`}
-                      >
-                        <link.icon className="w-4 h-4" />
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
 
               {role === "admin" && (
                 <Link to="/admin">
@@ -409,7 +305,7 @@ const Header = () => {
 
                     {/* Navigation */}
                     <div className="p-4 space-y-1">
-                      {allNavLinks.map((link) => (
+                      {mainNavLinks.map((link) => (
                         <NavItem 
                           key={link.path} 
                           {...link} 
