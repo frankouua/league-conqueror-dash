@@ -1973,6 +1973,211 @@ export type Database = {
         }
         Relationships: []
       }
+      form_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_submissions: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          lead_id: string | null
+          max_submissions: number | null
+          patient_cpf: string | null
+          patient_email: string | null
+          patient_name: string | null
+          patient_phone: string | null
+          patient_prontuario: string | null
+          template_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_submissions?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          lead_id?: string | null
+          max_submissions?: number | null
+          patient_cpf?: string | null
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          patient_prontuario?: string | null
+          template_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_submissions?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          lead_id?: string | null
+          max_submissions?: number | null
+          patient_cpf?: string | null
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          patient_prontuario?: string | null
+          template_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_links_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_links_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_responses: {
+        Row: {
+          created_at: string
+          form_source: string
+          form_type: string
+          id: string
+          is_processed: boolean | null
+          lead_id: string | null
+          metadata: Json | null
+          nps_category: string | null
+          nps_score: number | null
+          patient_cpf: string | null
+          patient_data_id: string | null
+          patient_email: string | null
+          patient_name: string | null
+          patient_phone: string | null
+          patient_prontuario: string | null
+          processed_at: string | null
+          responses: Json
+          submitted_at: string
+          task_created_id: string | null
+          template_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          form_source?: string
+          form_type: string
+          id?: string
+          is_processed?: boolean | null
+          lead_id?: string | null
+          metadata?: Json | null
+          nps_category?: string | null
+          nps_score?: number | null
+          patient_cpf?: string | null
+          patient_data_id?: string | null
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          patient_prontuario?: string | null
+          processed_at?: string | null
+          responses?: Json
+          submitted_at?: string
+          task_created_id?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          form_source?: string
+          form_type?: string
+          id?: string
+          is_processed?: boolean | null
+          lead_id?: string | null
+          metadata?: Json | null
+          nps_category?: string | null
+          nps_score?: number | null
+          patient_cpf?: string | null
+          patient_data_id?: string | null
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          patient_prontuario?: string | null
+          processed_at?: string | null
+          responses?: Json
+          submitted_at?: string
+          task_created_id?: string | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_responses_patient_data_id_fkey"
+            columns: ["patient_data_id"]
+            isOneToOne: false
+            referencedRelation: "patient_data"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_responses_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_templates: {
+        Row: {
+          create_task: boolean | null
+          created_at: string
+          description: string | null
+          fields: Json
+          form_type: string
+          id: string
+          is_active: boolean | null
+          name: string
+          notify_team: boolean | null
+          slug: string
+          task_template: Json | null
+          updated_at: string
+        }
+        Insert: {
+          create_task?: boolean | null
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          form_type: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notify_team?: boolean | null
+          slug: string
+          task_template?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          create_task?: boolean | null
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          form_type?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notify_team?: boolean | null
+          slug?: string
+          task_template?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       icp_analysis: {
         Row: {
           age_range: string | null
