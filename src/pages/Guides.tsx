@@ -17,7 +17,6 @@ import copaLogo from "@/assets/logo-copa-unique-league.png";
 import cardsSystem from "@/assets/cards-system.png";
 import { useJourneyChecklist } from "@/hooks/useJourneyChecklist";
 import PrizeRulesAndHistory from "@/components/PrizeRulesAndHistory";
-import TrainingAcademy from "@/components/training/TrainingAcademy";
 
 const journeyStages = [
   {
@@ -237,14 +236,10 @@ const Guides = () => {
           <p className="text-muted-foreground">Regras da competição e jornada do paciente</p>
         </div>
 
-        <Tabs defaultValue="academy" className="space-y-6">
+        <Tabs defaultValue="rules" className="space-y-6">
           {/* Mobile: scrollable horizontal tabs */}
           <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-3xl md:mx-auto md:grid-cols-5 gap-1">
-              <TabsTrigger value="academy" className="gap-2 whitespace-nowrap text-xs sm:text-sm px-3">
-                <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4" />
-                Academia
-              </TabsTrigger>
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:max-w-2xl md:mx-auto md:grid-cols-4 gap-1">
               <TabsTrigger value="rules" className="gap-2 whitespace-nowrap text-xs sm:text-sm px-3">
                 <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                 Regras
@@ -263,11 +258,6 @@ const Guides = () => {
               </TabsTrigger>
             </TabsList>
           </div>
-
-          {/* ACADEMIA COMERCIAL */}
-          <TabsContent value="academy" className="space-y-6">
-            <TrainingAcademy />
-          </TabsContent>
 
           {/* REGRAS */}
           <TabsContent value="rules" className="space-y-6">
