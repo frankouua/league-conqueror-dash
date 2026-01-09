@@ -238,20 +238,39 @@ const TrainingTracks = ({ targetRole }: TrainingTracksProps) => {
 
                     const handleStepClick = () => {
                       if (isLocked) return;
+
+                      // Close the track dialog first to avoid nested Dialog/overlay issues
+                      // (Radix Dialog does not behave well with multiple modals open at once)
+                      setSelectedTrack(null);
+
                       if (step.type === 'material') {
+                        if (!step.reference_id) {
+                          toast.error("Material não encontrado (referência ausente)");
+                          return;
+                        }
                         setViewingMaterialId(step.reference_id);
-                      } else if (step.type === 'quiz') {
+                        return;
+                      }
+
+                      if (step.type === 'quiz') {
                         const quiz = quizzes.find(q => q.id === step.reference_id);
-                        if (quiz) {
-                          setActiveQuiz(quiz);
-                          setQuizStep('info');
+                        if (!quiz) {
+                          toast.error("Quiz não encontrado");
+                          return;
                         }
-                      } else if (step.type === 'simulation') {
+                        setActiveQuiz(quiz);
+                        setQuizStep('info');
+                        return;
+                      }
+
+                      if (step.type === 'simulation') {
                         const sim = simulations.find(s => s.id === step.reference_id);
-                        if (sim) {
-                          setActiveSimulation(sim);
-                          setSimStep('info');
+                        if (!sim) {
+                          toast.error("Simulação não encontrada");
+                          return;
                         }
+                        setActiveSimulation(sim);
+                        setSimStep('info');
                       }
                     };
 
