@@ -31,7 +31,11 @@ const STEP_COLORS: Record<string, string> = {
   simulation: "bg-purple-500/10 text-purple-500",
 };
 
-const TrainingTracks = () => {
+interface TrainingTracksProps {
+  targetRole: string;
+}
+
+const TrainingTracks = ({ targetRole }: TrainingTracksProps) => {
   const { user } = useAuth();
   const { 
     tracks, 
@@ -44,7 +48,7 @@ const TrainingTracks = () => {
     submitQuiz,
     addXp,
     isLoading 
-  } = useTrainingAcademy();
+  } = useTrainingAcademy(targetRole);
   const [selectedTrack, setSelectedTrack] = useState<TrainingTrack | null>(null);
   const [viewingMaterialId, setViewingMaterialId] = useState<string | null>(null);
   

@@ -19,6 +19,7 @@ export interface TrainingMaterial {
   order_index: number;
   is_active: boolean;
   created_at: string;
+  target_role: string | null;
 }
 
 export interface TrainingQuiz {
@@ -34,6 +35,7 @@ export interface TrainingQuiz {
   questions: QuizQuestion[];
   is_active: boolean;
   order_index: number;
+  target_role: string | null;
 }
 
 export interface QuizQuestion {
@@ -53,6 +55,7 @@ export interface TrainingSimulation {
   xp_reward: number;
   is_active: boolean;
   order_index: number;
+  target_role: string | null;
 }
 
 export interface SimulationContext {
@@ -146,19 +149,24 @@ export const getXpProgress = (totalXp: number, currentLevel: number): number => 
   return Math.min(100, (progressXp / neededXp) * 100);
 };
 
-export function useTrainingAcademy() {
+export function useTrainingAcademy(targetRole?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch materials
+  // Fetch materials - filtered by targetRole
   const { data: materials = [], isLoading: materialsLoading } = useQuery({
-    queryKey: ["training-materials"],
+    queryKey: ["training-materials", targetRole],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("training_materials")
         .select("*")
-        .eq("is_active", true)
-        .order("order_index");
+        .eq("is_active", true);
+      
+      if (targetRole) {
+        query = query.eq("target_role", targetRole);
+      }
+      
+      const { data, error } = await query.order("order_index");
       if (error) throw error;
       return data as TrainingMaterial[];
     },
@@ -179,15 +187,20 @@ export function useTrainingAcademy() {
     enabled: !!user?.id,
   });
 
-  // Fetch quizzes
+  // Fetch quizzes - filtered by targetRole
   const { data: quizzes = [], isLoading: quizzesLoading } = useQuery({
-    queryKey: ["training-quizzes"],
+    queryKey: ["training-quizzes", targetRole],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("training_quizzes")
         .select("*")
-        .eq("is_active", true)
-        .order("order_index");
+        .eq("is_active", true);
+      
+      if (targetRole) {
+        query = query.eq("target_role", targetRole);
+      }
+      
+      const { data, error } = await query.order("order_index");
       if (error) throw error;
       return data.map(q => ({
         ...q,
@@ -212,15 +225,20 @@ export function useTrainingAcademy() {
     enabled: !!user?.id,
   });
 
-  // Fetch simulations
+  // Fetch simulations - filtered by targetRole
   const { data: simulations = [], isLoading: simulationsLoading } = useQuery({
-    queryKey: ["training-simulations"],
+    queryKey: ["training-simulations", targetRole],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("training_simulations")
         .select("*")
-        .eq("is_active", true)
-        .order("order_index");
+        .eq("is_active", true);
+      
+      if (targetRole) {
+        query = query.eq("target_role", targetRole);
+      }
+      
+      const { data, error } = await query.order("order_index");
       if (error) throw error;
       return data.map(s => ({
         ...s,
@@ -245,15 +263,20 @@ export function useTrainingAcademy() {
     enabled: !!user?.id,
   });
 
-  // Fetch tracks
+  // Fetch tracks - filtered by targetRole
   const { data: tracks = [], isLoading: tracksLoading } = useQuery({
-    queryKey: ["training-tracks"],
+    queryKey: ["training-tracks", targetRole],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("training_tracks")
         .select("*")
-        .eq("is_active", true)
-        .order("order_index");
+        .eq("is_active", true);
+      
+      if (targetRole) {
+        query = query.eq("target_role", targetRole);
+      }
+      
+      const { data, error } = await query.order("order_index");
       if (error) throw error;
       return data.map(t => ({
         ...t,
