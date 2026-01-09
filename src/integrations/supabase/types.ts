@@ -933,6 +933,7 @@ export type Database = {
       }
       crm_chat_messages: {
         Row: {
+          archived_at: string | null
           content: string
           created_at: string
           id: string
@@ -944,6 +945,7 @@ export type Database = {
           sender_name: string | null
         }
         Insert: {
+          archived_at?: string | null
           content: string
           created_at?: string
           id?: string
@@ -955,6 +957,7 @@ export type Database = {
           sender_name?: string | null
         }
         Update: {
+          archived_at?: string | null
           content?: string
           created_at?: string
           id?: string
