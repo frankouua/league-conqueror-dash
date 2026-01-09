@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.get-script-suggestion]
 verify_jwt = false
+
+[functions.get-procedure-recommendation]
+verify_jwt = false

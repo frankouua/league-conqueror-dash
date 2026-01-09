@@ -46,6 +46,7 @@ import { CRMInternalChat } from './CRMInternalChat';
 import { CRMLeadInteractions } from './CRMLeadInteractions';
 import { CRMLeadScriptSuggestions } from './CRMLeadScriptSuggestions';
 import { CRMRealtimeScriptSuggestions } from './CRMRealtimeScriptSuggestions';
+import { CRMProcedureRecommendations } from './CRMProcedureRecommendations';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -661,6 +662,12 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                         </CardContent>
                       </Card>
                     )}
+
+                    {/* Procedure Recommendations */}
+                    <CRMProcedureRecommendations 
+                      leadId={lead.id} 
+                      leadName={lead.name}
+                    />
                   </>
                 ) : (
                   <div className="text-center py-12">
