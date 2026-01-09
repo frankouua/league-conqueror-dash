@@ -1,4 +1,4 @@
-import { useMemo, useState, memo, useCallback } from 'react';
+import { useMemo, useState, memo, useCallback, forwardRef } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Plus, MoreVertical, Clock, User, Phone, Mail, Sparkles, AlertTriangle, MessageSquare } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -153,7 +153,7 @@ const handleQuickWhatsApp = (e: React.MouseEvent, phone: string) => {
 };
 
 // Memoized LeadCard for performance - prevents re-renders when other leads change
-const LeadCard = memo(function LeadCard({ lead, onClick, isDragging }: LeadCardProps) {
+const LeadCard = memo(forwardRef<HTMLDivElement, LeadCardProps>(function LeadCard({ lead, onClick, isDragging }, ref) {
   const hasAI = !!lead.ai_analyzed_at;
   const isStale = lead.is_stale;
   const isPriority = lead.is_priority;
@@ -405,6 +405,8 @@ const LeadCard = memo(function LeadCard({ lead, onClick, isDragging }: LeadCardP
           💡 {lead.ai_summary}
         </p>
       )}
-    </Card>
+  </Card>
   );
-});
+}));
+
+LeadCard.displayName = 'LeadCard';

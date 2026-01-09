@@ -2260,6 +2260,86 @@ export type Database = {
           },
         ]
       }
+      lead_recurrence_history: {
+        Row: {
+          created_at: string
+          id: string
+          last_procedure_date: string
+          lead_id: string | null
+          next_procedure_date: string | null
+          notes: string | null
+          notification_channel: string | null
+          notification_sent_at: string | null
+          notification_status: string
+          patient_data_id: string | null
+          recurrent_procedure_id: string
+          task_created_id: string | null
+          trigger_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_procedure_date: string
+          lead_id?: string | null
+          next_procedure_date?: string | null
+          notes?: string | null
+          notification_channel?: string | null
+          notification_sent_at?: string | null
+          notification_status?: string
+          patient_data_id?: string | null
+          recurrent_procedure_id: string
+          task_created_id?: string | null
+          trigger_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_procedure_date?: string
+          lead_id?: string | null
+          next_procedure_date?: string | null
+          notes?: string | null
+          notification_channel?: string | null
+          notification_sent_at?: string | null
+          notification_status?: string
+          patient_data_id?: string | null
+          recurrent_procedure_id?: string
+          task_created_id?: string | null
+          trigger_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_recurrence_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recurrence_history_patient_data_id_fkey"
+            columns: ["patient_data_id"]
+            isOneToOne: false
+            referencedRelation: "patient_data"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recurrence_history_recurrent_procedure_id_fkey"
+            columns: ["recurrent_procedure_id"]
+            isOneToOne: false
+            referencedRelation: "recurrent_procedures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recurrence_history_task_created_id_fkey"
+            columns: ["task_created_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -2908,6 +2988,104 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recurrence_notification_logs: {
+        Row: {
+          channel: string
+          delivered_at: string | null
+          error_message: string | null
+          external_id: string | null
+          id: string
+          message_content: string
+          read_at: string | null
+          recurrence_history_id: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          channel: string
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_content: string
+          read_at?: string | null
+          recurrence_history_id: string
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          channel?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_content?: string
+          read_at?: string | null
+          recurrence_history_id?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurrence_notification_logs_recurrence_history_id_fkey"
+            columns: ["recurrence_history_id"]
+            isOneToOne: false
+            referencedRelation: "lead_recurrence_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurrent_procedures: {
+        Row: {
+          benefits: string[] | null
+          created_at: string
+          group_name: string
+          id: string
+          is_active: boolean
+          procedure_name: string
+          procedure_number: number
+          recurrence_days: number
+          script_email_body: string | null
+          script_email_subject: string | null
+          script_sms: string | null
+          script_whatsapp: string | null
+          trigger_days_before: number
+          updated_at: string
+        }
+        Insert: {
+          benefits?: string[] | null
+          created_at?: string
+          group_name: string
+          id?: string
+          is_active?: boolean
+          procedure_name: string
+          procedure_number: number
+          recurrence_days?: number
+          script_email_body?: string | null
+          script_email_subject?: string | null
+          script_sms?: string | null
+          script_whatsapp?: string | null
+          trigger_days_before?: number
+          updated_at?: string
+        }
+        Update: {
+          benefits?: string[] | null
+          created_at?: string
+          group_name?: string
+          id?: string
+          is_active?: boolean
+          procedure_name?: string
+          procedure_number?: number
+          recurrence_days?: number
+          script_email_body?: string | null
+          script_email_subject?: string | null
+          script_sms?: string | null
+          script_whatsapp?: string | null
+          trigger_days_before?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       referral_lead_history: {
         Row: {
@@ -4415,6 +4593,38 @@ export type Database = {
         }[]
       }
       get_my_team_id: { Args: never; Returns: string }
+      get_pending_recurrences: {
+        Args: never
+        Returns: {
+          assigned_to: string
+          benefits: string[]
+          days_until_next: number
+          group_name: string
+          last_procedure_date: string
+          lead_email: string
+          lead_id: string
+          lead_name: string
+          lead_phone: string
+          lead_whatsapp: string
+          next_procedure_date: string
+          procedure_name: string
+          recurrence_id: string
+          script_email_body: string
+          script_email_subject: string
+          script_sms: string
+          script_whatsapp: string
+        }[]
+      }
+      get_recurrence_stats: {
+        Args: never
+        Returns: {
+          top_procedures: Json
+          total_notified_this_month: number
+          total_overdue: number
+          total_pending: number
+          total_this_week: number
+        }[]
+      }
       get_seller_cadence_summary: {
         Args: { p_seller_id: string }
         Returns: {

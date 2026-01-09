@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -123,13 +123,13 @@ const generateMockMessages = (leadName: string): Message[] => [
   }
 ];
 
-export function CRMWhatsAppChat({
+const CRMWhatsAppChatComponent = ({
   lead,
   open,
   onClose,
   onDataExtracted,
   onSuggestAction
-}: CRMWhatsAppChatProps) {
+}: CRMWhatsAppChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [showAIPanel, setShowAIPanel] = useState(true);
@@ -572,4 +572,10 @@ export function CRMWhatsAppChat({
       </SheetContent>
     </Sheet>
   );
-}
+};
+
+export const CRMWhatsAppChat = forwardRef<HTMLDivElement, CRMWhatsAppChatProps>((props, ref) => {
+  return <CRMWhatsAppChatComponent {...props} />;
+});
+
+CRMWhatsAppChat.displayName = 'CRMWhatsAppChat';
