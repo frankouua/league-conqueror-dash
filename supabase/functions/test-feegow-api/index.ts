@@ -49,14 +49,18 @@ serve(async (req) => {
     )
 
     const patientsData = await patientsResponse.json()
+    // Show full patient structure for debugging
+    const firstPatient = Array.isArray(patientsData?.content) && patientsData.content.length > 0 
+      ? patientsData.content[0] 
+      : null
+    
     results.tests.patients = {
       endpoint: "/patient/list",
       status: patientsData.success ? "success" : "error",
       http_status: patientsResponse.status,
       count: Array.isArray(patientsData?.content) ? patientsData.content.length : 0,
-      sample: Array.isArray(patientsData?.content) 
-        ? patientsData.content.slice(0, 1).map((p: any) => ({ id: p.paciente_id, nome: p.nome }))
-        : patientsData,
+      sample_full_structure: firstPatient, // Shows all available fields
+      available_fields: firstPatient ? Object.keys(firstPatient) : [],
     }
 
     // Teste 2: Listar Profissionais

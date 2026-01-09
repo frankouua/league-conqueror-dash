@@ -28,18 +28,26 @@ serve(async (req) => {
   const feegowHeaders = { "x-access-token": FEEGOW_API_TOKEN, "Content-Type": "application/json" }
 
   // Parse request body
-  let body: { batchSize?: number } = {}
+  let body: { startPage?: number; maxPages?: number; batchSize?: number } = {}
   try { body = await req.json() } catch { body = {} }
-  const batchSize = body.batchSize || 100
+  
+  // INCREMENTAL SYNC: Process limited pages per call to avoid timeout
+  const startPage = body.startPage || 0
+  const maxPages = body.maxPages || 10 // Process 10 pages (5000 patients) per call
+  const pageSize = 500
+  const batchSize = body.batchSize || 50
 
   const results = {
-    patients: { fetched: 0, created: 0, updated: 0, errors: 0 },
+    pagesProcessed: 0,
+    patients: { fetched: 0, created: 0, updated: 0, skipped: 0, errors: 0 },
+    nextStartPage: 0,
+    hasMore: false,
     status: 'running',
     errorDetails: [] as string[]
   }
 
   try {
-    console.log("🚀 Starting Feegow sync...")
+    console.log(`🚀 Starting Feegow incremental sync from page ${startPage}...`)
 
     // Get FEEGOW pipeline and first stage
     const { data: feegowPipeline } = await supabase
@@ -64,139 +72,153 @@ serve(async (req) => {
       throw new Error("Estágio inicial não encontrado")
     }
 
-    console.log(`📍 Pipeline FEEGOW: ${feegowPipeline.id}, Stage: ${novoStage.id}`)
+    console.log(`📍 Pipeline: ${feegowPipeline.id}, Stage: ${novoStage.id}`)
 
-    // Get existing leads with feegow_id
-    const { data: existingLeads } = await supabase
-      .from('crm_leads')
-      .select('id, feegow_id')
-      .not('feegow_id', 'is', null)
+    // Process pages incrementally
+    let currentPage = startPage
+    let pagesProcessed = 0
 
-    const existingMap = new Map((existingLeads || []).map(l => [l.feegow_id, l.id]))
-    console.log(`📊 Found ${existingMap.size} existing Feegow leads in CRM`)
-
-    // Fetch ALL patients from Feegow with pagination
-    let allPatients: any[] = []
-    let start = 0
-    const pageSize = 500
-    let hasMore = true
-    let pageCount = 0
-
-    console.log("📥 Fetching patients from Feegow...")
-
-    while (hasMore) {
+    while (pagesProcessed < maxPages) {
+      const start = currentPage * pageSize
       const url = `${FEEGOW_BASE_URL}/patient/list?start=${start}&offset=${pageSize}`
+      
+      console.log(`📥 Fetching page ${currentPage + 1} (start=${start})...`)
+      
       const response = await fetch(url, { method: "GET", headers: feegowHeaders })
       const data = await response.json()
 
       if (!data.success || !Array.isArray(data.content)) {
         console.error("Error fetching page:", data)
+        results.errorDetails.push(`Page ${currentPage + 1}: ${data.message || 'Unknown error'}`)
         break
       }
 
       const patients = data.content
-      console.log(`   Page ${++pageCount}: ${patients.length} patients`)
+      console.log(`   Page ${currentPage + 1}: ${patients.length} patients`)
 
       if (patients.length === 0) {
-        hasMore = false
-      } else {
-        allPatients.push(...patients)
-        start += pageSize
-        if (patients.length < pageSize) hasMore = false
+        console.log("✅ No more patients - sync complete!")
+        results.hasMore = false
+        break
+      }
+
+      results.patients.fetched += patients.length
+
+      // Process this page's patients immediately
+      const toCreate: any[] = []
+      const toUpdate: { id: string; data: any }[] = []
+      
+      // Get existing leads for this batch - use patient_id (correct field name)
+      const feegowIds = patients
+        .filter((p: any) => p.patient_id)
+        .map((p: any) => String(p.patient_id))
+      
+      const { data: existingLeads } = await supabase
+        .from('crm_leads')
+        .select('id, feegow_id')
+        .in('feegow_id', feegowIds)
+      
+      const existingMap = new Map((existingLeads || []).map(l => [l.feegow_id, l.id]))
+
+      for (const p of patients) {
+        // Use patient_id instead of paciente_id
+        if (!p.patient_id) {
+          results.patients.skipped++
+          continue
+        }
+
+        const feegowId = String(p.patient_id)
+        const leadData = {
+          name: p.nome || 'Sem nome',
+          email: p.email || null,
+          phone: p.celular || null,
+          whatsapp: p.celular || null,
+          cpf: null, // CPF not in list endpoint
+          prontuario: feegowId,
+          feegow_id: feegowId,
+          feegow_data: {
+            patient_id: p.patient_id,
+            nascimento: p.nascimento,
+            sexo_id: p.sexo_id,
+            bairro: p.bairro,
+            nome_social: p.nome_social,
+            criado_em: p.criado_em,
+            alterado_em: p.alterado_em,
+          },
+          last_feegow_sync: new Date().toISOString(),
+          source: 'feegow',
+          source_detail: 'Importação Feegow',
+        }
+
+        if (existingMap.has(feegowId)) {
+          toUpdate.push({ id: existingMap.get(feegowId)!, data: leadData })
+        } else {
+          toCreate.push({
+            ...leadData,
+            pipeline_id: feegowPipeline.id,
+            stage_id: novoStage.id,
+            created_by: '00000000-0000-0000-0000-000000000000', // System user
+          })
+        }
+      }
+
+      // Insert new leads in batches
+      for (let i = 0; i < toCreate.length; i += batchSize) {
+        const batch = toCreate.slice(i, i + batchSize)
+        const { error } = await supabase.from('crm_leads').insert(batch)
         
-        // Rate limiting protection
-        await new Promise(r => setTimeout(r, 50))
-      }
-    }
-
-    results.patients.fetched = allPatients.length
-    console.log(`✅ Total fetched: ${allPatients.length} patients`)
-
-    // Process patients in batches
-    const toCreate: any[] = []
-    const toUpdate: { id: string; data: any }[] = []
-
-    for (const p of allPatients) {
-      if (!p.paciente_id) continue
-
-      const feegowId = String(p.paciente_id)
-      const leadData = {
-        name: p.nome || 'Sem nome',
-        email: p.email || null,
-        phone: p.telefone || p.celular || null,
-        whatsapp: p.celular || p.telefone || null,
-        cpf: p.cpf || null,
-        prontuario: p.prontuario || feegowId,
-        feegow_id: feegowId,
-        feegow_data: {
-          paciente_id: p.paciente_id,
-          data_nascimento: p.data_nascimento,
-          sexo: p.sexo,
-          endereco: p.endereco,
-          cidade: p.cidade,
-          estado: p.estado,
-          cep: p.cep,
-        },
-        last_feegow_sync: new Date().toISOString(),
-        source: 'feegow',
-        source_detail: 'Importação Feegow',
+        if (error) {
+          console.error(`❌ Insert batch error:`, error.message)
+          results.patients.errors += batch.length
+          results.errorDetails.push(`Insert: ${error.message}`)
+        } else {
+          results.patients.created += batch.length
+        }
       }
 
-      if (existingMap.has(feegowId)) {
-        toUpdate.push({ id: existingMap.get(feegowId)!, data: leadData })
-      } else {
-        toCreate.push({
-          ...leadData,
-          pipeline_id: feegowPipeline.id,
-          stage_id: novoStage.id,
-        })
-      }
-    }
-
-    console.log(`📝 To create: ${toCreate.length}, To update: ${toUpdate.length}`)
-
-    // Insert new leads in batches
-    for (let i = 0; i < toCreate.length; i += batchSize) {
-      const batch = toCreate.slice(i, i + batchSize)
-      const { error } = await supabase.from('crm_leads').insert(batch)
-      
-      if (error) {
-        console.error(`❌ Batch ${Math.floor(i/batchSize)+1} error:`, error.message)
-        results.patients.errors += batch.length
-        results.errorDetails.push(`Insert batch ${Math.floor(i/batchSize)+1}: ${error.message}`)
-      } else {
-        results.patients.created += batch.length
-        console.log(`✅ Inserted batch ${Math.floor(i/batchSize)+1}: ${batch.length} leads`)
-      }
-    }
-
-    // Update existing leads in batches
-    for (let i = 0; i < toUpdate.length; i += batchSize) {
-      const batch = toUpdate.slice(i, i + batchSize)
-      let batchUpdated = 0
-      
-      for (const { id, data } of batch) {
+      // Update existing leads
+      for (const { id, data } of toUpdate) {
         const { error } = await supabase.from('crm_leads').update(data).eq('id', id)
         if (error) {
           results.patients.errors++
         } else {
-          batchUpdated++
+          results.patients.updated++
         }
       }
-      
-      results.patients.updated += batchUpdated
-      console.log(`✅ Updated batch ${Math.floor(i/batchSize)+1}: ${batchUpdated} leads`)
+
+      console.log(`✅ Page ${currentPage + 1} done: ${toCreate.length} created, ${toUpdate.length} updated`)
+
+      currentPage++
+      pagesProcessed++
+      results.pagesProcessed++
+
+      // Check if more pages exist
+      if (patients.length < pageSize) {
+        results.hasMore = false
+        break
+      } else {
+        results.hasMore = true
+        results.nextStartPage = currentPage
+      }
+
+      // Small delay for rate limiting
+      await new Promise(r => setTimeout(r, 100))
     }
 
     results.status = results.patients.errors > 0 ? 'completed_with_errors' : 'completed'
 
-    console.log(`🎉 Sync completed: ${results.patients.created} created, ${results.patients.updated} updated, ${results.patients.errors} errors`)
+    const message = results.hasMore 
+      ? `Progresso: ${results.patients.created} criados, ${results.patients.updated} atualizados. Continue com startPage=${results.nextStartPage}`
+      : `Sincronização completa: ${results.patients.created} criados, ${results.patients.updated} atualizados`
+
+    console.log(`🎉 ${message}`)
 
     return new Response(
       JSON.stringify({
         success: true,
         summary: results,
-        message: `Sincronização concluída: ${results.patients.created} novos, ${results.patients.updated} atualizados`
+        message,
+        continueWith: results.hasMore ? { startPage: results.nextStartPage, maxPages } : null
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
