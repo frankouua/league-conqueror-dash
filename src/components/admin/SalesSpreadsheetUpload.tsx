@@ -172,6 +172,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [deletionHistory, setDeletionHistory] = useState<any[]>([]);
   const [showDeletionHistory, setShowDeletionHistory] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const LARGE_REPLACE_THRESHOLD = 50;
   
   // Persist state to sessionStorage whenever key data changes
@@ -1210,6 +1212,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
     setIsImporting(true);
     setImportErrors([]); // Clear previous errors
+    setImportProgress({ current: 0, total: validSales.length });
     let success = 0;
     let failed = 0;
     let skipped = 0;
@@ -1398,6 +1401,9 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         const batch = recordsToInsert.slice(i, i + BATCH_SIZE);
         const batchWithoutMeta = batch.map(({ _originalSale, ...rest }) => rest);
         
+        // Update progress
+        setImportProgress({ current: Math.min(i + batch.length, recordsToInsert.length), total: recordsToInsert.length });
+        
         const { error } = await supabase.from(tableName).insert(batchWithoutMeta);
         
         if (error) {
@@ -1449,16 +1455,27 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
       setImportResults({ success, failed, skipped });
       setImportSuccess(true);
+      setImportProgress(null);
+      setShowSuccessModal(true); // Show success modal
       
       // Automatically refresh all dashboard caches
       refreshAllDashboards();
       
+      // Play success sound if available
+      try {
+        const audio = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYNqqssAAAAAAAAAAAAAAAAAAAA//tQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tQZB4P8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV');
+        audio.volume = 0.3;
+        audio.play().catch(() => {});
+      } catch {}
+      
       toast({
         title: uploadType === 'vendas' ? "🎉 Vendas Importadas!" : "✅ Executado Importado!",
         description: `${success} registros de ${uploadType === 'vendas' ? 'vendas' : 'executado'} importados! Dashboards atualizados.`,
+        duration: 10000, // Show for 10 seconds
       });
     } catch (error) {
       console.error('Error importing sales:', error);
+      setImportProgress(null);
       toast({
         title: "Erro na importação",
         description: "Ocorreu um erro durante a importação.",
@@ -3233,6 +3250,101 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           </CardContent>
         </Card>
       )}
+
+      {/* Import Progress Overlay */}
+      {isImporting && importProgress && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-card border rounded-xl p-8 shadow-2xl max-w-md w-full mx-4 animate-in fade-in zoom-in">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full border-4 border-muted animate-pulse" />
+                <Loader2 className="w-10 h-10 text-primary absolute inset-0 m-auto animate-spin" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold">
+                  {uploadType === 'vendas' ? '📊 Importando Vendas...' : '✅ Importando Executado...'}
+                </h3>
+                <p className="text-muted-foreground">
+                  Processando {importProgress.current} de {importProgress.total} registros
+                </p>
+                <div className="w-full bg-muted rounded-full h-3 mt-4">
+                  <div 
+                    className="h-3 rounded-full bg-primary transition-all duration-300"
+                    style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {Math.round((importProgress.current / importProgress.total) * 100)}% concluído
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Por favor, aguarde. Não feche esta página.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-2xl">
+              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-green-500" />
+              </div>
+              Importação Concluída!
+            </DialogTitle>
+            <DialogDescription className="text-left space-y-4 pt-4">
+              {importResults && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Registros importados:</span>
+                    <span className="text-2xl font-bold text-green-600">{importResults.success}</span>
+                  </div>
+                  {importResults.skipped > 0 && (
+                    <div className="flex justify-between items-center border-t border-border pt-2">
+                      <span className="text-muted-foreground">Duplicados ignorados:</span>
+                      <span className="font-medium text-yellow-600">{importResults.skipped}</span>
+                    </div>
+                  )}
+                  {importResults.failed > 0 && (
+                    <div className="flex justify-between items-center border-t border-border pt-2">
+                      <span className="text-muted-foreground">Com erro:</span>
+                      <span className="font-medium text-red-600">{importResults.failed}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground">
+                ✅ Todos os dashboards foram atualizados automaticamente!
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSuccessModal(false);
+                clearUploadSession();
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Limpar e Novo Upload
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSuccessModal(false);
+                navigate('/');
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <LayoutDashboard className="w-4 h-4 mr-2" />
+              Ir para Dashboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
