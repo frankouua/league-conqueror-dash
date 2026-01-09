@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { 
-  BookOpen, FileText, Video, Link as LinkIcon, Download,
-  Search, Filter, Clock, Zap, CheckCircle2, ExternalLink
+  BookOpen, FileText, Video, Link as LinkIcon,
+  Search, Filter, Clock, Zap, CheckCircle2
 } from "lucide-react";
 import { useTrainingAcademy, TrainingMaterial } from "@/hooks/useTrainingAcademy";
+import TrainingMaterialViewer from "./TrainingMaterialViewer";
 
 const CATEGORY_LABELS: Record<string, string> = {
   metodo_cpi: "Método CPI",
@@ -18,6 +16,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   scripts: "Scripts",
   processos: "Processos",
   produtos: "Produtos",
+  sdr: "SDR",
   outros: "Outros",
 };
 
@@ -27,6 +26,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   scripts: "bg-blue-500/10 text-blue-500 border-blue-500/30",
   processos: "bg-green-500/10 text-green-500 border-green-500/30",
   produtos: "bg-pink-500/10 text-pink-500 border-pink-500/30",
+  sdr: "bg-cyan-500/10 text-cyan-500 border-cyan-500/30",
   outros: "bg-gray-500/10 text-gray-500 border-gray-500/30",
 };
 
@@ -42,6 +42,9 @@ const DIFFICULTY_LABELS: Record<string, { label: string; color: string }> = {
   beginner: { label: "Iniciante", color: "bg-green-500/10 text-green-600" },
   intermediate: { label: "Intermediário", color: "bg-yellow-500/10 text-yellow-600" },
   advanced: { label: "Avançado", color: "bg-red-500/10 text-red-600" },
+  iniciante: { label: "Iniciante", color: "bg-green-500/10 text-green-600" },
+  intermediario: { label: "Intermediário", color: "bg-yellow-500/10 text-yellow-600" },
+  avancado: { label: "Avançado", color: "bg-red-500/10 text-red-600" },
 };
 
 const TrainingLibrary = () => {
@@ -65,35 +68,6 @@ const TrainingLibrary = () => {
     acc[category].push(material);
     return acc;
   }, {} as Record<string, TrainingMaterial[]>);
-
-  const handleOpenMaterial = (material: TrainingMaterial) => {
-    setSelectedMaterial(material);
-  };
-
-  const handleCompleteMaterial = () => {
-    if (selectedMaterial && !isMaterialCompleted(selectedMaterial.id)) {
-      completeMaterial({ 
-        materialId: selectedMaterial.id, 
-        xpReward: selectedMaterial.xp_reward 
-      });
-    }
-  };
-
-  const handleAccessMaterial = () => {
-    if (selectedMaterial) {
-      const url = selectedMaterial.external_url || selectedMaterial.file_url;
-      if (url) {
-        window.open(url, '_blank');
-        // Mark as completed after accessing
-        if (!isMaterialCompleted(selectedMaterial.id)) {
-          completeMaterial({ 
-            materialId: selectedMaterial.id, 
-            xpReward: selectedMaterial.xp_reward 
-          });
-        }
-      }
-    }
-  };
 
   if (isLoading) {
     return (
@@ -166,7 +140,7 @@ const TrainingLibrary = () => {
                     className={`cursor-pointer transition-all hover:shadow-md hover:border-primary/30 ${
                       completed ? 'border-green-500/30 bg-green-500/5' : ''
                     }`}
-                    onClick={() => handleOpenMaterial(material)}
+                    onClick={() => setSelectedMaterial(material)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
@@ -212,62 +186,19 @@ const TrainingLibrary = () => {
         ))
       )}
 
-      {/* Material Detail Dialog */}
-      <Dialog open={!!selectedMaterial} onOpenChange={() => setSelectedMaterial(null)}>
-        <DialogContent className="max-w-lg">
-          {selectedMaterial && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className={CATEGORY_COLORS[selectedMaterial.category]}>
-                    {CATEGORY_LABELS[selectedMaterial.category] || selectedMaterial.category}
-                  </Badge>
-                  {isMaterialCompleted(selectedMaterial.id) && (
-                    <Badge className="bg-green-500">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Concluído
-                    </Badge>
-                  )}
-                </div>
-                <DialogTitle>{selectedMaterial.title}</DialogTitle>
-                <DialogDescription>
-                  {selectedMaterial.description}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <Zap className="w-4 h-4 text-amber-500" />
-                    <span className="font-medium">{selectedMaterial.xp_reward} XP</span>
-                  </div>
-                  {selectedMaterial.duration_minutes && (
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      <span>{selectedMaterial.duration_minutes} minutos</span>
-                    </div>
-                  )}
-                  <Badge variant="secondary" className={DIFFICULTY_LABELS[selectedMaterial.difficulty_level]?.color}>
-                    {DIFFICULTY_LABELS[selectedMaterial.difficulty_level]?.label || "Iniciante"}
-                  </Badge>
-                </div>
-              </div>
-
-              <DialogFooter className="gap-2">
-                <Button variant="outline" onClick={() => setSelectedMaterial(null)}>
-                  Fechar
-                </Button>
-                {(selectedMaterial.external_url || selectedMaterial.file_url) && (
-                  <Button onClick={handleAccessMaterial} className="gap-2">
-                    <ExternalLink className="w-4 h-4" />
-                    Acessar Material
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Material Viewer */}
+      <TrainingMaterialViewer
+        materialId={selectedMaterial?.id || null}
+        onClose={() => setSelectedMaterial(null)}
+        onComplete={() => {
+          if (selectedMaterial && !isMaterialCompleted(selectedMaterial.id)) {
+            completeMaterial({ 
+              materialId: selectedMaterial.id, 
+              xpReward: selectedMaterial.xp_reward 
+            });
+          }
+        }}
+      />
     </div>
   );
 };
