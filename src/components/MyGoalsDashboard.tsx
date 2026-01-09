@@ -40,6 +40,7 @@ import { ptBR } from "date-fns/locale";
 import { POSITION_DETAILS } from "@/constants/positionDetails";
 import { useToast } from "@/hooks/use-toast";
 import IndividualDepartmentProgress from "@/components/IndividualDepartmentProgress";
+import { isSeller } from "@/constants/sellerPositions";
 
 const POSITION_LABELS: Record<string, { label: string; description: string; focus: string[] }> = {
   comercial_1_captacao: { 
@@ -358,6 +359,9 @@ const MyGoalsDashboard = () => {
     ? Math.max(0, (revenueGoal - totalRevenue) / daysRemaining)
     : 0;
 
+  // Only show for sellers
+  const userIsSeller = profile?.position ? isSeller(profile.position) : false;
+
   if (!profile) {
     return (
       <Card className="bg-card/50 border-border">
@@ -366,6 +370,56 @@ const MyGoalsDashboard = () => {
           <p className="text-muted-foreground">Carregando perfil...</p>
         </CardContent>
       </Card>
+    );
+  }
+
+  // Don't show individual goals section for non-sellers
+  if (!userIsSeller) {
+    return (
+      <div className="space-y-6">
+        {/* Profile Header Only */}
+        <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+              {/* Avatar */}
+              <div className="relative">
+                <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-primary/30 shadow-lg">
+                  <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name} />
+                  <AvatarFallback className="text-2xl md:text-3xl bg-primary/20 text-primary font-bold">
+                    {profile.full_name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              {/* Info */}
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">{profile.full_name}</h2>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-2">
+                  <Badge className="bg-primary/20 text-primary border-primary/30">
+                    {DEPARTMENT_LABELS[profile.department || ""] || profile.department || "Sem departamento"}
+                  </Badge>
+                </div>
+                {profile.email && (
+                  <p className="text-sm text-muted-foreground mt-2 flex items-center justify-center md:justify-start gap-2">
+                    <Mail className="w-4 h-4" />
+                    {profile.email}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-muted/50">
+          <CardContent className="p-8 text-center">
+            <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+            <p className="text-muted-foreground">
+              Você não possui metas individuais configuradas.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Metas individuais são atribuídas apenas a vendedores.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

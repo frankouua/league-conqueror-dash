@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { isSeller } from '@/constants/sellerPositions';
 import { 
   format, startOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   eachDayOfInterval, isWeekend, differenceInDays, addDays
@@ -54,10 +55,17 @@ function getBiweekPeriod(date: Date): { start: Date; end: Date; label: string } 
 }
 
 export function MyPeriodGoalTracker() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const today = startOfDay(new Date());
   const currentMonth = today.getMonth() + 1;
   const currentYear = today.getFullYear();
+
+  // Only show for sellers
+  const userIsSeller = profile?.position ? isSeller(profile.position) : false;
+
+  if (!userIsSeller) {
+    return null; // Don't render anything for non-sellers
+  }
 
   // Fetch user's individual meta3_goal
   const { data: goalData } = useQuery({
