@@ -230,7 +230,7 @@ export const COMMERCIAL_SCRIPTS: StageScripts[] = [
       {
         action: "Etapa 4: Apresentação de Valores",
         description: "Apresentar valores do Unique Day.",
-        script: "Perfeito, vou te apresentar agora o valor do nosso Unique Day.\n\nOs valores do Unique Day:\n💎 Consulta com o nosso time de cirurgiões plásticos Unique: R$ 750,00\n💎 Consulta com indicação de influenciadora: R$ 600,00\n👑 Com o Dr. André Oliveira (Diretor Unique e criador do Método CPI): R$ 1.270,00\n\nQual opção faz mais sentido para você?"
+        script: "Perfeito, vou te apresentar agora o valor do nosso Unique Day.\n\nOs valores do Unique Day:\n💎 Consulta com o nosso time de cirurgiões plásticos Unique: R$ 750,00\n💎 Consulta com indicação de influenciadora: R$ 600,00\n\nQual opção faz mais sentido para você?"
       },
       {
         action: "Etapa 5: Fechamento do Agendamento",
@@ -528,6 +528,7 @@ export const COMMERCIAL_SCRIPTS: StageScripts[] = [
         tips: [
           "Listar os benefícios antes do preço",
           "Mencionar que o valor é abatido na cirurgia",
+          "Valor unificado: R$ 750,00 para todas as consultas",
           "R$ 600 para indicação de influenciadora",
           "Perguntar se faz sentido - não empurrar"
         ]
