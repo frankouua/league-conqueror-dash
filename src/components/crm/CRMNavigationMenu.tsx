@@ -26,7 +26,8 @@ import {
   Link2,
   TrendingUp,
   Package,
-  Lock
+  Lock,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +47,8 @@ export type CRMViewMode =
   | 'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' 
   | 'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
   | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
-  | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager' | 'sentiment' | 'vendedores-kpis';
+  | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager' | 'sentiment' | 'vendedores-kpis'
+  | 'cadence';
 
 interface CRMNavigationMenuProps {
   viewMode: CRMViewMode;
@@ -112,6 +114,7 @@ const MENU_GROUPS: MenuGroup[] = [
     icon: Brain,
     items: [
       { value: 'metrics', label: 'Métricas', icon: BarChart3 },
+      { value: 'cadence', label: 'Cadência', icon: Timer, color: 'text-teal-500' },
       { value: 'funnel', label: 'Funil', icon: Filter, color: 'text-pink-500' },
       { value: 'sentiment', label: 'Sentimentos', icon: Smile, color: 'text-green-500' },
       { value: 'predictive', label: 'IA Preditiva', icon: Brain, color: 'text-violet-500' },

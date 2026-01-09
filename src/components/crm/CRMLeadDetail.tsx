@@ -47,6 +47,7 @@ import { CRMLeadInteractions } from './CRMLeadInteractions';
 import { CRMLeadScriptSuggestions } from './CRMLeadScriptSuggestions';
 import { CRMRealtimeScriptSuggestions } from './CRMRealtimeScriptSuggestions';
 import { CRMProcedureRecommendations } from './CRMProcedureRecommendations';
+import { CRMCadenceAnalytics } from './CRMCadenceAnalytics';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -366,6 +367,11 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Cadence Analytics */}
+                {lead && (
+                  <CRMCadenceAnalytics leadId={lead.id} compact />
+                )}
 
                 {/* BANT Scores */}
                 {lead && (lead.budget_score || lead.authority_score || lead.need_score || lead.timing_score) && (

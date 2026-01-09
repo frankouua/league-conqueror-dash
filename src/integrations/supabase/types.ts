@@ -4373,6 +4373,20 @@ export type Database = {
         Returns: number
       }
       approve_user: { Args: { _user_id: string }; Returns: undefined }
+      calculate_cadence_metrics: {
+        Args: { p_lead_id: string }
+        Returns: {
+          dias_ativos: number
+          melhor_horario_resposta: number
+          numero_interacoes_dia: number
+          primeira_interacao: string
+          taxa_resposta_24h: number
+          tempo_entre_interacoes_media_horas: number
+          tempo_medio_resposta_minutos: number
+          total_interacoes: number
+          ultima_interacao: string
+        }[]
+      }
       get_all_vendedores_kpis: {
         Args: { team_id_param?: string }
         Returns: {
@@ -4392,7 +4406,28 @@ export type Database = {
           vendas_mes: number
         }[]
       }
+      get_interaction_hour_distribution: {
+        Args: { p_lead_id?: string; p_seller_id?: string }
+        Returns: {
+          hora: number
+          percentual: number
+          total_interacoes: number
+        }[]
+      }
       get_my_team_id: { Args: never; Returns: string }
+      get_seller_cadence_summary: {
+        Args: { p_seller_id: string }
+        Returns: {
+          leads_sem_contato_24h: number
+          leads_sem_contato_48h: number
+          media_interacoes_por_lead: number
+          melhor_horario_geral: number
+          pior_horario_geral: number
+          taxa_resposta_geral: number
+          tempo_medio_resposta_geral: number
+          total_leads_ativos: number
+        }[]
+      }
       get_sentiment_stats: { Args: never; Returns: Json }
       get_sentiment_stats_by_period: {
         Args: { end_date?: string; start_date?: string }

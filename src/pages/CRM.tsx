@@ -47,6 +47,7 @@ import { CRMSurgeryDashboard } from "@/components/crm/CRMSurgeryDashboard";
 import { CRMWhatsAppTemplates } from "@/components/crm/CRMWhatsAppTemplates";
 import { CRMSmartAlerts } from "@/components/crm/CRMSmartAlerts";
 import { CRMAlertsDashboard } from "@/components/crm/CRMAlertsDashboard";
+import { CRMCadenceAnalytics } from "@/components/crm/CRMCadenceAnalytics";
 import { CRMPipelineManager } from "@/components/crm/CRMPipelineManager";
 import { CRMWebhooksManager } from "@/components/crm/CRMWebhooksManager";
 import { CRMNotificationsBell } from "@/components/crm/CRMNotificationsBell";
@@ -520,6 +521,10 @@ const CRM = () => {
               </p>
             </div>
           </Card>
+        )}
+        
+        {viewMode === 'cadence' && (
+          <CRMCadenceAnalytics />
         )}
         
         {viewMode === 'leaderboard' && (
