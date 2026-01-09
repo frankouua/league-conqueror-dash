@@ -129,19 +129,25 @@ const Header = () => {
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logos */}
-          <Link to="/" className="flex items-center gap-3 md:gap-5 hover:opacity-90 transition-opacity shrink-0">
-            <img 
-              src={uniqueLogo} 
-              alt="Unique Cirurgia Plástica Avançada" 
-              className="h-12 md:h-16 w-auto object-contain"
-            />
-            <div className="hidden sm:block h-12 md:h-14 w-px bg-border" />
-            <img 
-              src={copaLogo} 
-              alt="Copa Unique League 2026" 
-              className="h-12 md:h-16 w-auto object-contain"
-            />
-          </Link>
+          <div className="flex items-center gap-3 md:gap-5 shrink-0">
+            <Link to="/" className="flex items-center gap-3 md:gap-5 hover:opacity-90 transition-opacity">
+              <img 
+                src={uniqueLogo} 
+                alt="Unique Cirurgia Plástica Avançada" 
+                className="h-12 md:h-16 w-auto object-contain"
+              />
+              <div className="hidden sm:block h-12 md:h-14 w-px bg-border" />
+              <img 
+                src={copaLogo} 
+                alt="Copa Unique League 2026" 
+                className="h-12 md:h-16 w-auto object-contain"
+              />
+            </Link>
+            <div className="hidden md:block h-10 w-px bg-primary/30" />
+            <span className="hidden md:block text-sm font-medium tracking-wide bg-gradient-to-r from-primary via-yellow-400 to-primary bg-clip-text text-transparent">
+              Gestão Comercial Estratégica
+            </span>
+          </div>
 
           {/* Desktop Navigation */}
           {user && (
