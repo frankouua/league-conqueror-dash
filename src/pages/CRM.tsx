@@ -46,6 +46,7 @@ import { CRMNavigationMenu, CRMViewMode } from "@/components/crm/CRMNavigationMe
 import { CRMSurgeryDashboard } from "@/components/crm/CRMSurgeryDashboard";
 import { CRMWhatsAppTemplates } from "@/components/crm/CRMWhatsAppTemplates";
 import { CRMSmartAlerts } from "@/components/crm/CRMSmartAlerts";
+import { CRMAlertsDashboard } from "@/components/crm/CRMAlertsDashboard";
 import { CRMPipelineManager } from "@/components/crm/CRMPipelineManager";
 import { CRMWebhooksManager } from "@/components/crm/CRMWebhooksManager";
 import { CRMNotificationsBell } from "@/components/crm/CRMNotificationsBell";
@@ -495,10 +496,12 @@ const CRM = () => {
         )}
 
         {viewMode === 'alerts' && (
-          <CRMSmartAlerts onLeadClick={(leadId) => {
-            const lead = leads.find(l => l.id === leadId);
-            if (lead) setSelectedLead(lead);
-          }} />
+          <CRMAlertsDashboard 
+            onLeadClick={(leadId) => {
+              const lead = leads.find(l => l.id === leadId);
+              if (lead) setSelectedLead(lead);
+            }} 
+          />
         )}
 
         {viewMode === 'pipeline-manager' && isAdmin && (

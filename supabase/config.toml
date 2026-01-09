@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.get-procedure-recommendation]
 verify_jwt = false
+
+[functions.check-crm-alerts]
+verify_jwt = false
