@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { isSeller } from '@/constants/sellerPositions';
 import {
   ResponsiveContainer,
   BarChart,
@@ -66,7 +67,7 @@ export function CRMTeamPerformance() {
 
   const { start, end } = getDateRange();
 
-  // Fetch team members
+  // Fetch team members (only sellers)
   const { data: teamMembers } = useQuery({
     queryKey: ['crm-team-members', profile?.team_id],
     queryFn: async () => {
@@ -78,7 +79,8 @@ export function CRMTeamPerformance() {
         .eq('team_id', profile.team_id);
       
       if (error) throw error;
-      return data;
+      // Filter only sellers (not coordinators, managers, etc.)
+      return (data || []).filter(p => isSeller(p.position));
     },
     enabled: !!profile?.team_id,
   });

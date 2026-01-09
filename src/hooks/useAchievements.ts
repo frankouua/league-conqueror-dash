@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSeller } from "@/constants/sellerPositions";
 
 // Achievement definitions
 export const ACHIEVEMENT_DEFINITIONS = {
@@ -324,8 +325,17 @@ export const useAchievements = (userId?: string, month?: number, year?: number) 
     return data as UserAchievement[];
   }, []);
 
-  // Get leaderboard
+  // Get leaderboard (only sellers)
   const getAchievementLeaderboard = useCallback(async (limitCount = 10) => {
+    // Get profiles to filter only sellers
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, position");
+    
+    const sellerUserIds = new Set(
+      (profiles || []).filter(p => isSeller(p.position)).map(p => p.user_id)
+    );
+
     const { data, error } = await supabase
       .from("user_achievements")
       .select("user_id, points_value")
@@ -336,10 +346,12 @@ export const useAchievements = (userId?: string, month?: number, year?: number) 
       return [];
     }
 
-    // Aggregate by user
+    // Aggregate by user - only sellers
     const userPoints: Record<string, number> = {};
     for (const achievement of (data || [])) {
-      userPoints[achievement.user_id] = (userPoints[achievement.user_id] || 0) + (achievement.points_value || 0);
+      if (sellerUserIds.has(achievement.user_id)) {
+        userPoints[achievement.user_id] = (userPoints[achievement.user_id] || 0) + (achievement.points_value || 0);
+      }
     }
 
     return Object.entries(userPoints)

@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { getPositionLabel } from "@/constants/sellerPositions";
 
 // Lazy load the content components
 import { lazy, Suspense } from "react";
@@ -167,7 +168,7 @@ const Comercial = () => {
               <div className="p-4 border-t border-border">
                 <div className="text-xs text-muted-foreground">
                   <p className="font-medium text-foreground truncate">{profile.full_name}</p>
-                  <p className="truncate">{profile.position || "Vendedor"}</p>
+                  <p className="truncate">{getPositionLabel(profile.position)}</p>
                 </div>
               </div>
             )}

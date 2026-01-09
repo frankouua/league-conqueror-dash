@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { isSeller } from "@/constants/sellerPositions";
 
 export interface TrainingMaterial {
   id: string;
@@ -318,12 +319,18 @@ export function useTrainingAcademy() {
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
       
-      return stats.map(s => ({
-        ...s,
-        full_name: profileMap.get(s.user_id)?.full_name || "Usuário",
-        avatar_url: profileMap.get(s.user_id)?.avatar_url || null,
-        position: profileMap.get(s.user_id)?.position || null,
-      })) as LeaderboardEntry[];
+      // Filter only sellers for leaderboard
+      return stats
+        .filter(s => {
+          const profile = profileMap.get(s.user_id);
+          return profile && isSeller(profile.position);
+        })
+        .map(s => ({
+          ...s,
+          full_name: profileMap.get(s.user_id)?.full_name || "Usuário",
+          avatar_url: profileMap.get(s.user_id)?.avatar_url || null,
+          position: profileMap.get(s.user_id)?.position || null,
+        })) as LeaderboardEntry[];
     },
   });
 
