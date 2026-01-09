@@ -2100,6 +2100,72 @@ export type Database = {
           },
         ]
       }
+      knowledge_base: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          atualizado_por: string | null
+          avaliacoes_negativas: number | null
+          avaliacoes_positivas: number | null
+          categoria: string | null
+          conteudo: string
+          conteudo_estruturado: Json | null
+          criado_em: string | null
+          criado_por: string | null
+          departamento: string | null
+          etapa_funil: string | null
+          id: string
+          prioridade: number | null
+          procedimentos_relacionados: string[] | null
+          tags: string[] | null
+          tipo: string
+          titulo: string
+          visualizacoes: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          atualizado_por?: string | null
+          avaliacoes_negativas?: number | null
+          avaliacoes_positivas?: number | null
+          categoria?: string | null
+          conteudo: string
+          conteudo_estruturado?: Json | null
+          criado_em?: string | null
+          criado_por?: string | null
+          departamento?: string | null
+          etapa_funil?: string | null
+          id?: string
+          prioridade?: number | null
+          procedimentos_relacionados?: string[] | null
+          tags?: string[] | null
+          tipo: string
+          titulo: string
+          visualizacoes?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          atualizado_por?: string | null
+          avaliacoes_negativas?: number | null
+          avaliacoes_positivas?: number | null
+          categoria?: string | null
+          conteudo?: string
+          conteudo_estruturado?: Json | null
+          criado_em?: string | null
+          criado_por?: string | null
+          departamento?: string | null
+          etapa_funil?: string | null
+          id?: string
+          prioridade?: number | null
+          procedimentos_relacionados?: string[] | null
+          tags?: string[] | null
+          tipo?: string
+          titulo?: string
+          visualizacoes?: number | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
