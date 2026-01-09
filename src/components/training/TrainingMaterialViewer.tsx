@@ -74,111 +74,185 @@ const TrainingMaterialViewer = ({ materialId, onClose, onComplete }: TrainingMat
   };
 
   const renderMarkdown = (content: string) => {
-    // Simple markdown rendering
-    return content
-      .split('\n')
-      .map((line, idx) => {
-        // Headers
-        if (line.startsWith('# ')) {
-          return <h1 key={idx} className="text-2xl font-bold mt-6 mb-4 text-foreground">{line.slice(2)}</h1>;
+    // Normalize line endings and split
+    const lines = content.replace(/\\n/g, '\n').split('\n');
+    const elements: React.ReactNode[] = [];
+    let inTable = false;
+    let tableRows: string[][] = [];
+    
+    const processInlineFormatting = (text: string): React.ReactNode => {
+      // Handle bold text **text**
+      if (text.includes('**')) {
+        const parts = text.split(/\*\*(.*?)\*\*/g);
+        return parts.map((part, i) => 
+          i % 2 === 1 ? <strong key={i} className="font-semibold text-foreground">{part}</strong> : part
+        );
+      }
+      // Handle italic text *text*
+      if (text.includes('*') && !text.includes('**')) {
+        const parts = text.split(/\*(.*?)\*/g);
+        return parts.map((part, i) => 
+          i % 2 === 1 ? <em key={i}>{part}</em> : part
+        );
+      }
+      return text;
+    };
+
+    const flushTable = () => {
+      if (tableRows.length > 0) {
+        elements.push(
+          <div key={`table-${elements.length}`} className="my-4 overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <tbody>
+                {tableRows.map((row, rowIdx) => (
+                  <tr key={rowIdx} className={rowIdx === 0 ? 'bg-muted/50 font-medium' : 'border-t border-border'}>
+                    {row.map((cell, cellIdx) => (
+                      <td key={cellIdx} className="py-2 px-3">{processInlineFormatting(cell.trim())}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+        tableRows = [];
+      }
+      inTable = false;
+    };
+    
+    lines.forEach((line, idx) => {
+      // Table rows
+      if (line.startsWith('|')) {
+        if (line.includes('---') || line.includes(':-')) {
+          return; // Skip separator
         }
-        if (line.startsWith('## ')) {
-          return <h2 key={idx} className="text-xl font-semibold mt-5 mb-3 text-foreground">{line.slice(3)}</h2>;
-        }
-        if (line.startsWith('### ')) {
-          return <h3 key={idx} className="text-lg font-medium mt-4 mb-2 text-foreground">{line.slice(4)}</h3>;
-        }
-        
-        // Blockquotes
-        if (line.startsWith('> ')) {
-          return (
-            <blockquote key={idx} className="border-l-4 border-primary pl-4 py-2 my-3 bg-primary/5 rounded-r">
-              {line.slice(2)}
-            </blockquote>
-          );
-        }
-        
-        // Code blocks
-        if (line.startsWith('```')) {
-          return null; // Skip code block markers
-        }
-        
-        // List items
-        if (line.startsWith('- ')) {
-          const text = line.slice(2);
-          // Check for bold text
-          const boldMatch = text.match(/\*\*(.*?)\*\*/);
-          if (boldMatch) {
-            const parts = text.split(/\*\*(.*?)\*\*/);
-            return (
-              <li key={idx} className="ml-4 my-1 flex items-start gap-2">
-                <span className="text-primary mt-1.5">•</span>
-                <span>
-                  {parts.map((part, i) => 
-                    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                  )}
-                </span>
-              </li>
-            );
-          }
-          return (
-            <li key={idx} className="ml-4 my-1 flex items-start gap-2">
-              <span className="text-primary mt-1.5">•</span>
-              <span>{text}</span>
-            </li>
-          );
-        }
-        
-        // Numbered lists
-        if (/^\d+\.\s/.test(line)) {
-          const [num, ...rest] = line.split('. ');
-          return (
-            <li key={idx} className="ml-4 my-1 flex items-start gap-2">
-              <span className="text-primary font-medium min-w-[1.5rem]">{num}.</span>
-              <span>{rest.join('. ')}</span>
-            </li>
-          );
-        }
-        
-        // Table rows
-        if (line.startsWith('|')) {
-          if (line.includes('---')) return null; // Skip separator
-          const cells = line.split('|').filter(c => c.trim());
-          return (
-            <tr key={idx} className="border-b border-border">
-              {cells.map((cell, i) => (
-                <td key={i} className="py-2 px-3 text-sm">{cell.trim()}</td>
-              ))}
-            </tr>
-          );
-        }
-        
-        // Horizontal rules
-        if (line === '---') {
-          return <hr key={idx} className="my-4 border-border" />;
-        }
-        
-        // Empty lines
-        if (!line.trim()) {
-          return <div key={idx} className="h-2" />;
-        }
-        
-        // Regular paragraphs with emoji and bold support
-        let text = line;
-        // Bold text
-        if (text.includes('**')) {
-          const parts = text.split(/\*\*(.*?)\*\*/);
-          return (
-            <p key={idx} className="my-2 leading-relaxed">
-              {parts.map((part, i) => 
-                i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-              )}
-            </p>
-          );
-        }
-        
-        return <p key={idx} className="my-2 leading-relaxed">{text}</p>;
-      });
+        inTable = true;
+        const cells = line.split('|').filter(c => c.trim());
+        tableRows.push(cells);
+        return;
+      } else if (inTable) {
+        flushTable();
+      }
+      
+      // Headers
+      if (line.startsWith('# ')) {
+        elements.push(<h1 key={idx} className="text-2xl font-bold mt-6 mb-4 text-foreground">{processInlineFormatting(line.slice(2))}</h1>);
+        return;
+      }
+      if (line.startsWith('## ')) {
+        elements.push(<h2 key={idx} className="text-xl font-semibold mt-5 mb-3 text-foreground border-b border-border pb-2">{processInlineFormatting(line.slice(3))}</h2>);
+        return;
+      }
+      if (line.startsWith('### ')) {
+        elements.push(<h3 key={idx} className="text-lg font-medium mt-4 mb-2 text-foreground">{processInlineFormatting(line.slice(4))}</h3>);
+        return;
+      }
+      if (line.startsWith('#### ')) {
+        elements.push(<h4 key={idx} className="text-base font-medium mt-3 mb-2 text-foreground">{processInlineFormatting(line.slice(5))}</h4>);
+        return;
+      }
+      
+      // Blockquotes
+      if (line.startsWith('> ')) {
+        elements.push(
+          <blockquote key={idx} className="border-l-4 border-primary pl-4 py-2 my-3 bg-primary/5 rounded-r italic">
+            {processInlineFormatting(line.slice(2))}
+          </blockquote>
+        );
+        return;
+      }
+      
+      // Checkboxes
+      if (line.startsWith('- [ ] ') || line.startsWith('- [x] ')) {
+        const checked = line.startsWith('- [x] ');
+        const text = line.slice(6);
+        elements.push(
+          <div key={idx} className="flex items-start gap-2 my-1 ml-4">
+            <span className={`mt-0.5 ${checked ? 'text-green-500' : 'text-muted-foreground'}`}>
+              {checked ? '☑' : '☐'}
+            </span>
+            <span className={checked ? 'line-through text-muted-foreground' : ''}>{processInlineFormatting(text)}</span>
+          </div>
+        );
+        return;
+      }
+      
+      // Emoji checkmarks (✅, ✔, ☑)
+      if (line.startsWith('✅ ') || line.startsWith('✔ ') || line.startsWith('☑ ')) {
+        elements.push(
+          <div key={idx} className="flex items-start gap-2 my-1 ml-4">
+            <span className="text-green-500">{line.charAt(0)}</span>
+            <span>{processInlineFormatting(line.slice(2))}</span>
+          </div>
+        );
+        return;
+      }
+      
+      // List items with dash
+      if (line.startsWith('- ')) {
+        const text = line.slice(2);
+        elements.push(
+          <div key={idx} className="flex items-start gap-2 my-1.5 ml-4">
+            <span className="text-primary mt-0.5">•</span>
+            <span className="flex-1">{processInlineFormatting(text)}</span>
+          </div>
+        );
+        return;
+      }
+      
+      // Numbered lists
+      const numberedMatch = line.match(/^(\d+)\.\s+(.+)/);
+      if (numberedMatch) {
+        elements.push(
+          <div key={idx} className="flex items-start gap-2 my-1.5 ml-4">
+            <span className="text-primary font-medium min-w-[1.5rem]">{numberedMatch[1]}.</span>
+            <span className="flex-1">{processInlineFormatting(numberedMatch[2])}</span>
+          </div>
+        );
+        return;
+      }
+      
+      // Horizontal rules
+      if (line === '---' || line === '***' || line === '___') {
+        elements.push(<hr key={idx} className="my-4 border-border" />);
+        return;
+      }
+      
+      // Code blocks markers (skip)
+      if (line.startsWith('```')) {
+        return;
+      }
+      
+      // Empty lines
+      if (!line.trim()) {
+        elements.push(<div key={idx} className="h-3" />);
+        return;
+      }
+      
+      // Script/dialog lines (quoted text)
+      if (line.startsWith('"') || line.startsWith('"') || line.startsWith("'")) {
+        elements.push(
+          <div key={idx} className="my-2 p-3 bg-muted/50 rounded-lg border-l-4 border-amber-500 italic">
+            {processInlineFormatting(line)}
+          </div>
+        );
+        return;
+      }
+      
+      // Regular paragraphs
+      elements.push(
+        <p key={idx} className="my-2 leading-relaxed text-foreground/90">
+          {processInlineFormatting(line)}
+        </p>
+      );
+    });
+    
+    // Flush any remaining table
+    if (inTable) {
+      flushTable();
+    }
+    
+    return elements;
   };
 
   if (!materialId) return null;
@@ -188,7 +262,10 @@ const TrainingMaterialViewer = ({ materialId, onClose, onComplete }: TrainingMat
 
   return (
     <Dialog open={!!materialId} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0">
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0" aria-describedby={undefined}>
+        <DialogHeader className="sr-only">
+          <DialogTitle>{material?.title || 'Material de Treinamento'}</DialogTitle>
+        </DialogHeader>
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
