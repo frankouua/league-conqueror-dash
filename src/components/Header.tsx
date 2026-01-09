@@ -128,25 +128,25 @@ const Header = () => {
     <header className="sticky top-0 z-50 glass border-b border-border">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
-          {/* Logos */}
-          <div className="flex items-center gap-3 md:gap-5 shrink-0">
-            <Link to="/" className="flex items-center gap-3 md:gap-5 hover:opacity-90 transition-opacity">
+          {/* Text + Logo */}
+          <div className="flex items-center gap-3 md:gap-4 shrink-0">
+            {/* Gestão Comercial Text */}
+            <div className="hidden sm:flex flex-col leading-tight">
+              <span className="text-[10px] md:text-xs font-semibold tracking-widest uppercase bg-gradient-to-r from-primary via-yellow-400 to-primary bg-clip-text text-transparent">
+                Gestão
+              </span>
+              <span className="text-[10px] md:text-xs font-semibold tracking-widest uppercase bg-gradient-to-r from-primary via-yellow-400 to-primary bg-clip-text text-transparent">
+                Comercial
+              </span>
+            </div>
+            <div className="hidden sm:block h-10 w-px bg-primary/30" />
+            <Link to="/" className="flex items-center hover:opacity-90 transition-opacity">
               <img 
                 src={uniqueLogo} 
                 alt="Unique Cirurgia Plástica Avançada" 
-                className="h-12 md:h-16 w-auto object-contain"
-              />
-              <div className="hidden sm:block h-12 md:h-14 w-px bg-border" />
-              <img 
-                src={copaLogo} 
-                alt="Copa Unique League 2026" 
-                className="h-12 md:h-16 w-auto object-contain"
+                className="h-12 md:h-14 w-auto object-contain"
               />
             </Link>
-            <div className="hidden md:block h-10 w-px bg-primary/30" />
-            <span className="hidden md:block text-sm font-medium tracking-wide bg-gradient-to-r from-primary via-yellow-400 to-primary bg-clip-text text-transparent">
-              Gestão Comercial Estratégica
-            </span>
           </div>
 
           {/* Desktop Navigation */}
