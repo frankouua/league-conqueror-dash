@@ -27,6 +27,20 @@ Responda de forma um pouco distante no início, mas aqueça conforme a conversa.
 Teste se o vendedor consegue resgatar seu interesse.`,
 };
 
+// Regras para mensagens curtas e naturais
+const CONVERSATION_RULES = `
+REGRAS DE CONVERSA (OBRIGATÓRIAS):
+1. Escreva mensagens CURTAS como um chat real de WhatsApp/Instagram
+2. Máximo de 1-2 frases por mensagem (nunca parágrafos longos!)
+3. Use linguagem informal e natural de chat
+4. Inclua emojis ocasionalmente mas com moderação
+5. Faça pausas naturais - não despeje toda informação de uma vez
+6. Exemplo de tamanho ideal: "Oi! Vi que vocês fazem lipo, né? Quanto custa mais ou menos?"
+7. PROIBIDO: Textos longos, explicações extensas, múltiplos parágrafos
+8. A conversa deve fluir naturalmente em várias trocas de mensagens
+9. Pergunte UMA coisa por vez, nunca várias perguntas juntas
+10. Seja realista - pacientes reais mandam mensagens curtas e objetivas`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -46,6 +60,8 @@ serve(async (req) => {
       // Generate initial message as the patient
       const systemPrompt = `${scenarioPrompt}
 
+${CONVERSATION_RULES}
+
 CONTEXTO DO CENÁRIO:
 ${simulation.context.situation}
 
@@ -53,8 +69,7 @@ PERFIL DA PACIENTE:
 ${simulation.context.patient_profile}
 
 Inicie a conversa como se você estivesse entrando em contato com a clínica.
-Seja natural, use linguagem informal mas educada.
-Comece com uma saudação e expresse seu interesse inicial.`;
+LEMBRE-SE: Mensagem CURTA, 1-2 frases no máximo! Como um chat real.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -66,7 +81,7 @@ Comece com uma saudação e expresse seu interesse inicial.`;
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: "Inicie a conversa como a paciente." },
+            { role: "user", content: "Inicie a conversa como a paciente. Mensagem CURTA de 1-2 frases apenas." },
           ],
         }),
       });
@@ -88,6 +103,8 @@ Comece com uma saudação e expresse seu interesse inicial.`;
       // Continue the conversation
       const systemPrompt = `${scenarioPrompt}
 
+${CONVERSATION_RULES}
+
 CONTEXTO DO CENÁRIO:
 ${simulation.context.situation}
 
@@ -96,8 +113,9 @@ ${simulation.context.patient_profile}
 
 Continue a conversa como a paciente.
 Responda de forma natural às mensagens do vendedor.
+CRÍTICO: Sua resposta deve ser CURTA (1-2 frases no máximo!)
 Mantenha consistência com suas respostas anteriores.
-Se o vendedor estiver indo bem, demonstre mais interesse.
+Se o vendedor estiver indo bem, demonstre mais interesse gradualmente.
 Se estiver fraco, mantenha suas objeções.`;
 
       const aiMessages = [
@@ -106,7 +124,13 @@ Se estiver fraco, mantenha suas objeções.`;
           role: m.role === "user" ? "user" : "assistant",
           content: m.content,
         })),
+        { role: "user", content: "Responda como a paciente. MÁXIMO 1-2 frases curtas!" },
       ];
+
+      // Remove the duplicate last message if the user just sent one
+      if (aiMessages.length > 2 && aiMessages[aiMessages.length - 2].role === "user") {
+        aiMessages.pop();
+      }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -133,9 +157,11 @@ Se estiver fraco, mantenha suas objeções.`;
       const shouldEnd = 
         messageContent.toLowerCase().includes("vou agendar") ||
         messageContent.toLowerCase().includes("fechado") ||
-        messageContent.toLowerCase().includes("combinado") ||
+        messageContent.toLowerCase().includes("combinado então") ||
         messageContent.toLowerCase().includes("não tenho interesse") ||
         messageContent.toLowerCase().includes("não quero mais") ||
+        messageContent.toLowerCase().includes("pode agendar") ||
+        messageContent.toLowerCase().includes("quero marcar") ||
         messages.length >= 18; // 9 exchanges
 
       return new Response(
