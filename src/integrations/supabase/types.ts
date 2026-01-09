@@ -1189,12 +1189,15 @@ export type Database = {
           days_in_stage: number | null
           email: string | null
           estimated_value: number | null
+          feegow_data: Json | null
+          feegow_id: string | null
           first_contact_at: string | null
           id: string
           interested_procedures: string[] | null
           is_priority: boolean | null
           is_stale: boolean | null
           last_activity_at: string | null
+          last_feegow_sync: string | null
           lead_score: number | null
           lost_at: string | null
           lost_reason: string | null
@@ -1242,12 +1245,15 @@ export type Database = {
           days_in_stage?: number | null
           email?: string | null
           estimated_value?: number | null
+          feegow_data?: Json | null
+          feegow_id?: string | null
           first_contact_at?: string | null
           id?: string
           interested_procedures?: string[] | null
           is_priority?: boolean | null
           is_stale?: boolean | null
           last_activity_at?: string | null
+          last_feegow_sync?: string | null
           lead_score?: number | null
           lost_at?: string | null
           lost_reason?: string | null
@@ -1295,12 +1301,15 @@ export type Database = {
           days_in_stage?: number | null
           email?: string | null
           estimated_value?: number | null
+          feegow_data?: Json | null
+          feegow_id?: string | null
           first_contact_at?: string | null
           id?: string
           interested_procedures?: string[] | null
           is_priority?: boolean | null
           is_stale?: boolean | null
           last_activity_at?: string | null
+          last_feegow_sync?: string | null
           lead_score?: number | null
           lost_at?: string | null
           lost_reason?: string | null
