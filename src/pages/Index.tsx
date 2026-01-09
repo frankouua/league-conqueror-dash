@@ -51,6 +51,7 @@ const MonthlyTeamRankingChart = lazy(() => import("@/components/MonthlyTeamRanki
 const ConsolidatedTrendsPanel = lazy(() => import("@/components/ConsolidatedTrendsPanel"));
 const MultiPeriodGoalTracker = lazy(() => import("@/components/MultiPeriodGoalTracker").then(m => ({ default: m.MultiPeriodGoalTracker })));
 const MyPeriodGoalTracker = lazy(() => import("@/components/MyPeriodGoalTracker").then(m => ({ default: m.MyPeriodGoalTracker })));
+const DashboardQuickActions = lazy(() => import("@/components/DashboardQuickActions"));
 
 // Mini loading component for lazy loaded content
 const MiniLoader = memo(() => (
@@ -264,6 +265,11 @@ const Index = () => {
             </div>
           )}
         </div>
+
+        {/* Quick Actions - Interactive Dashboard Shortcuts */}
+        <Suspense fallback={<MiniLoader />}>
+          <DashboardQuickActions className="mb-6" />
+        </Suspense>
 
         {/* Main Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

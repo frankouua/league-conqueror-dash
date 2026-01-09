@@ -37,6 +37,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 // New hub pages
 const Comercial = lazy(() => import("./pages/Comercial"));
 const Alavancas = lazy(() => import("./pages/Alavancas"));
+const Calendario = lazy(() => import("./pages/Calendario"));
 
 // Optimized QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
               {/* New Hub Pages */}
               <Route path="/comercial" element={<ProtectedRoute><Comercial /></ProtectedRoute>} />
+              <Route path="/calendario" element={<ProtectedRoute><Calendario /></ProtectedRoute>} />
               <Route path="/alavancas" element={<ProtectedRoute><Alavancas /></ProtectedRoute>} />
               {/* Legacy routes - redirect or keep for direct access */}
               <Route path="/onboarding-goals" element={<ProtectedRoute><OnboardingGoals /></ProtectedRoute>} />
