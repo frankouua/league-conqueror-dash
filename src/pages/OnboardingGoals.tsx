@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Target, Trophy, Users, Briefcase } from "lucide-react";
@@ -148,8 +147,6 @@ const OnboardingGoals = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
-      <Header />
       <div className="container mx-auto max-w-5xl py-8 px-4">
         {/* Header */}
         <div className="text-center mb-8 animate-slide-up">
@@ -348,7 +345,6 @@ const OnboardingGoals = () => {
           </Button>
         </div>
       </div>
-    </div>
   );
 };
 

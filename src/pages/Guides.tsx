@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -232,9 +231,6 @@ const Guides = () => {
   const totalProgress = getTotalProgress(journeyStages);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
-      <Header />
-      
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">Guias & Referência</h1>
@@ -766,7 +762,6 @@ const Guides = () => {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
   );
 };
 
