@@ -174,6 +174,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [showDeletionHistory, setShowDeletionHistory] = useState(false);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isResettingSystem, setIsResettingSystem] = useState(false);
+  const [orphanStats, setOrphanStats] = useState<{ revenue: number; executed: number } | null>(null);
   const LARGE_REPLACE_THRESHOLD = 50;
   
   // Persist state to sessionStorage whenever key data changes
@@ -242,7 +244,100 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   // Fetch last upload on mount
   useEffect(() => {
     fetchUploadHistory();
+    fetchOrphanStats();
   }, []);
+
+  // Function to check for orphan records (records without upload_id)
+  const fetchOrphanStats = async () => {
+    const { count: revenueOrphans } = await supabase
+      .from('revenue_records')
+      .select('id', { count: 'exact', head: true })
+      .is('upload_id', null);
+    
+    const { count: executedOrphans } = await supabase
+      .from('executed_records')
+      .select('id', { count: 'exact', head: true })
+      .is('upload_id', null);
+    
+    setOrphanStats({
+      revenue: revenueOrphans || 0,
+      executed: executedOrphans || 0,
+    });
+  };
+
+  // Function to reset all system data (delete ALL records without upload_id)
+  const resetSystemData = async () => {
+    const totalOrphans = (orphanStats?.revenue || 0) + (orphanStats?.executed || 0);
+    
+    const confirmReset = window.confirm(
+      `🚨 ATENÇÃO MÁXIMA! 🚨\n\n` +
+      `Você está prestes a EXCLUIR PERMANENTEMENTE:\n\n` +
+      `📊 ${orphanStats?.revenue?.toLocaleString()} registros de VENDAS\n` +
+      `✅ ${orphanStats?.executed?.toLocaleString()} registros de EXECUTADO\n\n` +
+      `Total: ${totalOrphans.toLocaleString()} registros\n\n` +
+      `⚠️ Esta ação NÃO PODE ser desfeita!\n` +
+      `⚠️ Todos os dashboards serão zerados!\n\n` +
+      `Após a exclusão, você precisará fazer um novo upload de planilhas.\n\n` +
+      `Tem CERTEZA ABSOLUTA que deseja continuar?`
+    );
+    
+    if (!confirmReset) return;
+    
+    // Double confirmation
+    const doubleConfirm = window.confirm(
+      `ÚLTIMA CONFIRMAÇÃO!\n\n` +
+      `Digite "SIM" mentalmente e clique OK para confirmar a exclusão de ${totalOrphans.toLocaleString()} registros.`
+    );
+    
+    if (!doubleConfirm) return;
+    
+    setIsResettingSystem(true);
+    
+    try {
+      // Delete all orphan revenue records
+      const { error: revenueError } = await supabase
+        .from('revenue_records')
+        .delete()
+        .is('upload_id', null);
+      
+      if (revenueError) {
+        console.error('Error deleting revenue records:', revenueError);
+      }
+      
+      // Delete all orphan executed records
+      const { error: executedError } = await supabase
+        .from('executed_records')
+        .delete()
+        .is('upload_id', null);
+      
+      if (executedError) {
+        console.error('Error deleting executed records:', executedError);
+      }
+      
+      // Also delete all upload logs (to fully reset)
+      await supabase.from('sales_upload_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      // Refresh everything
+      await fetchUploadHistory();
+      await fetchOrphanStats();
+      refreshAllDashboards();
+      
+      toast({
+        title: "🗑️ Sistema Zerado!",
+        description: `${totalOrphans.toLocaleString()} registros excluídos. Faça um novo upload para repopular.`,
+        duration: 10000,
+      });
+    } catch (error) {
+      console.error('Error resetting system:', error);
+      toast({
+        title: "Erro ao zerar sistema",
+        description: "Não foi possível excluir todos os registros. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+    
+    setIsResettingSystem(false);
+  };
 
   const fetchUploadHistory = async () => {
     const { data, error } = await supabase
@@ -254,6 +349,9 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     if (!error && data && data.length > 0) {
       setUploadHistory(data as UploadLog[]);
       setLastUpload(data[0] as UploadLog);
+    } else {
+      setUploadHistory([]);
+      setLastUpload(null);
     }
     
     // Also fetch deletion history
@@ -1044,6 +1142,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   };
 
   // Function to delete an upload and its records
+  // Uses ON DELETE CASCADE - deleting the upload log automatically removes all linked records
   const deleteUpload = async (uploadId: string, uploadLog: UploadLog) => {
     const confirmDelete = window.confirm(
       `⚠️ Atenção!\n\nVocê está prestes a excluir a importação de:\n` +
@@ -1060,71 +1159,71 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     setIsDeleting(uploadId);
     
     try {
-      // Determine the date range to delete
-      const dateStart = uploadLog.date_range_start;
-      const dateEnd = uploadLog.date_range_end;
+      // Count records that will be deleted (linked via upload_id)
+      const tableName = uploadLog.upload_type === 'executado' ? 'executed_records' : 'revenue_records';
       
+      const { count: linkedCount } = await supabase
+        .from(tableName)
+        .select('id', { count: 'exact', head: true })
+        .eq('upload_id', uploadId);
+      
+      const recordsToDelete = linkedCount || 0;
+      
+      // If no linked records found, try the old method (for backwards compatibility with old uploads)
       let revenueDeletedCount = 0;
       let executedDeletedCount = 0;
       
-      if (dateStart && dateEnd) {
-        // Delete from revenue_records for that date range
-        // We need to match by uploaded time approximately - delete records created around that time
+      if (recordsToDelete === 0 && uploadLog.date_range_start && uploadLog.date_range_end) {
+        // Fallback: delete by date range and upload time window (legacy method)
         const uploadTime = new Date(uploadLog.uploaded_at);
-        const startWindow = new Date(uploadTime.getTime() - 5 * 60 * 1000); // 5 min before
-        const endWindow = new Date(uploadTime.getTime() + 5 * 60 * 1000); // 5 min after
+        const startWindow = new Date(uploadTime.getTime() - 10 * 60 * 1000); // 10 min before
+        const endWindow = new Date(uploadTime.getTime() + 30 * 60 * 1000); // 30 min after (more generous)
         
-        // Count before deleting (for audit)
+        // Count and delete from revenue_records
         const { count: revCount } = await supabase
           .from('revenue_records')
           .select('id', { count: 'exact', head: true })
-          .gte('date', dateStart)
-          .lte('date', dateEnd)
+          .gte('date', uploadLog.date_range_start)
+          .lte('date', uploadLog.date_range_end)
           .gte('created_at', startWindow.toISOString())
           .lte('created_at', endWindow.toISOString());
         
         revenueDeletedCount = revCount || 0;
         
-        // Delete revenue_records that match the date range and were created around upload time
-        const { error: revenueError } = await supabase
-          .from('revenue_records')
-          .delete()
-          .gte('date', dateStart)
-          .lte('date', dateEnd)
-          .gte('created_at', startWindow.toISOString())
-          .lte('created_at', endWindow.toISOString());
-        
-        if (revenueError) {
-          console.error('Error deleting revenue records:', revenueError);
+        if (revenueDeletedCount > 0) {
+          await supabase
+            .from('revenue_records')
+            .delete()
+            .gte('date', uploadLog.date_range_start)
+            .lte('date', uploadLog.date_range_end)
+            .gte('created_at', startWindow.toISOString())
+            .lte('created_at', endWindow.toISOString());
         }
         
-        // Count executed before deleting (for audit)
+        // Count and delete from executed_records
         const { count: execCount } = await supabase
           .from('executed_records')
           .select('id', { count: 'exact', head: true })
-          .gte('date', dateStart)
-          .lte('date', dateEnd)
+          .gte('date', uploadLog.date_range_start)
+          .lte('date', uploadLog.date_range_end)
           .gte('created_at', startWindow.toISOString())
           .lte('created_at', endWindow.toISOString());
         
         executedDeletedCount = execCount || 0;
         
-        // Also try executed_records
-        const { error: executedError } = await supabase
-          .from('executed_records')
-          .delete()
-          .gte('date', dateStart)
-          .lte('date', dateEnd)
-          .gte('created_at', startWindow.toISOString())
-          .lte('created_at', endWindow.toISOString());
-        
-        if (executedError) {
-          console.error('Error deleting executed records:', executedError);
+        if (executedDeletedCount > 0) {
+          await supabase
+            .from('executed_records')
+            .delete()
+            .gte('date', uploadLog.date_range_start)
+            .lte('date', uploadLog.date_range_end)
+            .gte('created_at', startWindow.toISOString())
+            .lte('created_at', endWindow.toISOString());
         }
       }
       
-      // Log the deletion for audit
-      const { error: auditError } = await supabase
+      // Log the deletion for audit BEFORE deleting the upload log
+      await supabase
         .from('upload_deletion_logs')
         .insert({
           original_upload_id: uploadId,
@@ -1139,15 +1238,11 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           original_total_revenue_paid: uploadLog.total_revenue_paid,
           original_date_range_start: uploadLog.date_range_start,
           original_date_range_end: uploadLog.date_range_end,
-          records_deleted_revenue: revenueDeletedCount,
-          records_deleted_executed: executedDeletedCount,
+          records_deleted_revenue: recordsToDelete > 0 ? (uploadLog.upload_type === 'vendas' ? recordsToDelete : 0) : revenueDeletedCount,
+          records_deleted_executed: recordsToDelete > 0 ? (uploadLog.upload_type === 'executado' ? recordsToDelete : 0) : executedDeletedCount,
         });
       
-      if (auditError) {
-        console.error('Error logging deletion:', auditError);
-      }
-      
-      // Delete the upload log itself
+      // Delete the upload log - CASCADE will automatically delete linked records
       const { error: logError } = await supabase
         .from('sales_upload_logs')
         .delete()
@@ -1163,9 +1258,11 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       // Refresh dashboards
       refreshAllDashboards();
       
+      const totalDeleted = recordsToDelete > 0 ? recordsToDelete : (revenueDeletedCount + executedDeletedCount);
+      
       toast({
         title: "🗑️ Upload Excluído",
-        description: `A importação e seus ${uploadLog.imported_rows} registros foram removidos.`,
+        description: `A importação e ${totalDeleted} registros foram removidos com sucesso.`,
       });
     } catch (error) {
       console.error('Error deleting upload:', error);
@@ -1299,6 +1396,42 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       // Continue with unlocked sales only
       const salesToProcess = unlockedSales;
       
+      // Calculate totals for the upload log
+      const totalRevenueSold = salesToProcess.reduce((sum, s) => sum + s.amountSold, 0);
+      const totalRevenuePaid = salesToProcess.reduce((sum, s) => sum + s.amountPaid, 0);
+      const logDates = salesToProcess.map(s => s.date).filter(Boolean).sort();
+      const logDateStart = logDates[0] || null;
+      const logDateEnd = logDates[logDates.length - 1] || null;
+      
+      // CREATE UPLOAD LOG FIRST to get upload_id for linking records
+      const { data: uploadLogData, error: uploadLogError } = await supabase
+        .from('sales_upload_logs')
+        .insert({
+          uploaded_by: user?.id,
+          uploaded_by_name: profile?.full_name || user?.email || 'Desconhecido',
+          file_name: file?.name || 'Planilha',
+          sheet_name: selectedSheet,
+          total_rows: parsedSales.length,
+          imported_rows: 0, // Will update after import
+          skipped_rows: skipped,
+          error_rows: 0,
+          total_revenue_sold: totalRevenueSold,
+          total_revenue_paid: totalRevenuePaid,
+          date_range_start: logDateStart,
+          date_range_end: logDateEnd,
+          status: 'processing',
+          upload_type: uploadType,
+        })
+        .select('id')
+        .single();
+      
+      if (uploadLogError || !uploadLogData) {
+        console.error('Error creating upload log:', uploadLogError);
+        throw new Error('Não foi possível criar o log de upload');
+      }
+      
+      const uploadId = uploadLogData.id;
+      
       // Batch insert for better performance - prepare records first
       const recordsToInsert: any[] = [];
       const salesToCheck = [...salesToProcess];
@@ -1359,6 +1492,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             attributed_to_user_id: sale.matchedUserId,
             counts_for_individual: true,
             registered_by_admin: !sale.sellerName || sale.status === 'unmatched',
+            upload_id: uploadId, // Link to upload log
             _originalSale: sale,
           });
         }
@@ -1391,6 +1525,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             attributed_to_user_id: sale.matchedUserId,
             counts_for_individual: true,
             registered_by_admin: !sale.sellerName || sale.status === 'unmatched',
+            upload_id: uploadId, // Link to upload log
             _originalSale: sale,
           });
         }
@@ -1424,31 +1559,16 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         await updateRFVCustomers(validSales);
       }
 
-      // Calculate date range for log
-      const logDates = validSales.map(s => s.date).filter(Boolean).sort();
-      const logDateStart = logDates[0] || null;
-      const logDateEnd = logDates[logDates.length - 1] || null;
-
-      // Save upload log
-      const totalRevenueSold = validSales.reduce((sum, s) => sum + s.amountSold, 0);
-      const totalRevenuePaid = validSales.reduce((sum, s) => sum + s.amountPaid, 0);
-
-      await supabase.from('sales_upload_logs').insert({
-        uploaded_by: user?.id,
-        uploaded_by_name: profile?.full_name || user?.email || 'Desconhecido',
-        file_name: file?.name || 'Planilha',
-        sheet_name: selectedSheet,
-        total_rows: parsedSales.length,
-        imported_rows: success,
-        skipped_rows: skipped,
-        error_rows: failed,
-        total_revenue_sold: totalRevenueSold,
-        total_revenue_paid: totalRevenuePaid,
-        date_range_start: logDateStart,
-        date_range_end: logDateEnd,
-        status: 'completed',
-        upload_type: uploadType,
-      });
+      // UPDATE the upload log with final counts
+      await supabase
+        .from('sales_upload_logs')
+        .update({
+          imported_rows: success,
+          skipped_rows: skipped,
+          error_rows: failed,
+          status: 'completed',
+        })
+        .eq('id', uploadId);
 
       // Refresh upload history
       await fetchUploadHistory();
@@ -1478,7 +1598,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       setImportProgress(null);
       toast({
         title: "Erro na importação",
-        description: "Ocorreu um erro durante a importação.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro durante a importação.",
         variant: "destructive",
       });
     }
@@ -1868,6 +1988,28 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                 <LayoutDashboard className="w-4 h-4" />
                 Ver Dashboard
               </Button>
+              {/* Reset System Button - Only show if there are orphan records */}
+              {orphanStats && (orphanStats.revenue > 0 || orphanStats.executed > 0) && (
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={resetSystemData}
+                  disabled={isResettingSystem}
+                  className="gap-1"
+                >
+                  {isResettingSystem ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Zerando...
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-4 h-4" />
+                      Zerar Sistema ({((orphanStats.revenue + orphanStats.executed) / 1000).toFixed(1)}k)
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
           
