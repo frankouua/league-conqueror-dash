@@ -7,12 +7,173 @@ const corsHeaders = {
 };
 
 interface WebhookPayload {
+  // Dados básicos do lead
   name?: string;
+  nome?: string;
+  full_name?: string;
   email?: string;
+  e_mail?: string;
   phone?: string;
+  telefone?: string;
+  celular?: string;
   whatsapp?: string;
-  // Campos de formulário customizados
+  whats?: string;
+  
+  // Dados de interesse
+  procedure?: string;
+  procedimento?: string;
+  interesse?: string;
+  interest?: string;
+  
+  // UTM Parameters (podem vir no body também)
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  
+  // Dados adicionais para scoring
+  budget?: string;
+  orcamento?: string;
+  timeline?: string;
+  prazo?: string;
+  urgency?: string;
+  urgencia?: string;
+  
+  // Campo de origem específica
+  source?: string;
+  origem?: string;
+  form_name?: string;
+  campaign?: string;
+  
+  // Tags
+  tags?: string[] | string;
+  
+  // Campos customizados
   [key: string]: unknown;
+}
+
+// Fontes conhecidas e seus pesos para lead scoring
+const SOURCE_WEIGHTS: Record<string, number> = {
+  'facebook_lead_ads': 15,
+  'google_ads': 20,
+  'instagram': 12,
+  'trafego_pago': 18,
+  'typeform': 15,
+  'landing_page': 15,
+  'isca_gratuita': 10,
+  'whatsapp': 25,
+  'indicacao': 30,
+  'organico': 12,
+  'other': 8,
+};
+
+// Calcula o Lead Score (MQL) baseado em diversos fatores
+function calculateLeadScore(payload: WebhookPayload, source: string): number {
+  let score = 0;
+  
+  // 1. Pontuação pela origem (0-30 pontos)
+  score += SOURCE_WEIGHTS[source] || SOURCE_WEIGHTS['other'];
+  
+  // 2. Completude dos dados (0-25 pontos)
+  const hasEmail = !!(payload.email || payload.e_mail);
+  const hasPhone = !!(payload.phone || payload.telefone || payload.celular);
+  const hasWhatsapp = !!(payload.whatsapp || payload.whats);
+  const hasProcedure = !!(payload.procedure || payload.procedimento || payload.interesse || payload.interest);
+  
+  if (hasEmail) score += 5;
+  if (hasPhone) score += 8;
+  if (hasWhatsapp) score += 7;
+  if (hasProcedure) score += 5;
+  
+  // 3. Indicadores de intenção de compra (0-25 pontos)
+  const budgetKeywords = ['sim', 'yes', 'alto', 'high', 'disponível', 'tenho', 'pronto'];
+  const urgencyKeywords = ['urgente', 'agora', 'imediato', 'hoje', 'essa semana', 'próximo mês'];
+  
+  const budgetValue = String(payload.budget || payload.orcamento || '').toLowerCase();
+  const timelineValue = String(payload.timeline || payload.prazo || payload.urgency || payload.urgencia || '').toLowerCase();
+  
+  if (budgetKeywords.some(kw => budgetValue.includes(kw))) score += 15;
+  if (urgencyKeywords.some(kw => timelineValue.includes(kw))) score += 10;
+  
+  // 4. UTM Campaign indica campanha ativa (0-10 pontos)
+  if (payload.utm_campaign) score += 5;
+  if (payload.utm_source === 'google' || payload.utm_medium === 'cpc') score += 5;
+  
+  // 5. Procedimentos de alto valor (0-10 pontos)
+  const procedureValue = String(payload.procedure || payload.procedimento || payload.interesse || '').toLowerCase();
+  const highValueProcedures = ['cirurgia', 'rinoplastia', 'lipo', 'abdominoplastia', 'mamoplastia', 'facelift', 'blefaroplastia'];
+  
+  if (highValueProcedures.some(p => procedureValue.includes(p))) score += 10;
+  
+  // Garantir que o score está entre 0 e 100
+  return Math.min(Math.max(Math.round(score), 0), 100);
+}
+
+// Determina a temperatura do lead baseado no score
+function getTemperature(score: number): 'hot' | 'warm' | 'cold' {
+  if (score >= 60) return 'hot';
+  if (score >= 35) return 'warm';
+  return 'cold';
+}
+
+// Normaliza o telefone para formato brasileiro
+function normalizePhone(phone: string | undefined): string | null {
+  if (!phone) return null;
+  
+  // Remove tudo que não é número
+  const numbers = phone.replace(/\D/g, '');
+  
+  // Se tem 10 ou 11 dígitos, é um telefone brasileiro válido
+  if (numbers.length >= 10 && numbers.length <= 13) {
+    // Remove o 55 do início se presente
+    const cleaned = numbers.startsWith('55') ? numbers.slice(2) : numbers;
+    return cleaned;
+  }
+  
+  return numbers || null;
+}
+
+// Extrai procedimentos de interesse do payload
+function extractProcedures(payload: WebhookPayload): string[] {
+  const procedures: string[] = [];
+  
+  const rawProcedure = payload.procedure || payload.procedimento || payload.interesse || payload.interest;
+  
+  if (rawProcedure) {
+    if (Array.isArray(rawProcedure)) {
+      procedures.push(...rawProcedure.map(p => String(p)));
+    } else if (typeof rawProcedure === 'string') {
+      // Pode vir separado por vírgula ou ponto e vírgula
+      procedures.push(...rawProcedure.split(/[,;]/).map(p => p.trim()).filter(Boolean));
+    }
+  }
+  
+  return procedures;
+}
+
+// Extrai tags do payload
+function extractTags(payload: WebhookPayload, source: string): string[] {
+  const tags: string[] = [];
+  
+  // Tag da origem
+  tags.push(`origem:${source}`);
+  
+  // Tags customizadas
+  if (payload.tags) {
+    if (Array.isArray(payload.tags)) {
+      tags.push(...payload.tags);
+    } else if (typeof payload.tags === 'string') {
+      tags.push(...payload.tags.split(',').map(t => t.trim()).filter(Boolean));
+    }
+  }
+  
+  // Tag da campanha
+  if (payload.utm_campaign) {
+    tags.push(`campanha:${payload.utm_campaign}`);
+  }
+  
+  return [...new Set(tags)]; // Remove duplicatas
 }
 
 serve(async (req: Request) => {
@@ -55,13 +216,16 @@ serve(async (req: Request) => {
 
     console.log('Webhook found:', webhook.name);
 
-    // Parse payload
+    // Parse payload - suporta múltiplos formatos
     let payload: WebhookPayload;
     const contentType = req.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
       payload = await req.json();
     } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      const formData = await req.formData();
+      payload = Object.fromEntries(formData.entries()) as WebhookPayload;
+    } else if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       payload = Object.fromEntries(formData.entries()) as WebhookPayload;
     } else {
@@ -75,12 +239,12 @@ serve(async (req: Request) => {
 
     console.log('Received payload:', JSON.stringify(payload));
 
-    // Extrair UTM parameters da URL
-    const utmSource = url.searchParams.get('utm_source');
-    const utmMedium = url.searchParams.get('utm_medium');
-    const utmCampaign = url.searchParams.get('utm_campaign');
-    const utmContent = url.searchParams.get('utm_content');
-    const utmTerm = url.searchParams.get('utm_term');
+    // Extrair UTM parameters da URL (prioridade sobre o body)
+    const utmSource = url.searchParams.get('utm_source') || payload.utm_source || null;
+    const utmMedium = url.searchParams.get('utm_medium') || payload.utm_medium || null;
+    const utmCampaign = url.searchParams.get('utm_campaign') || payload.utm_campaign || null;
+    const utmContent = url.searchParams.get('utm_content') || payload.utm_content || null;
+    const utmTerm = url.searchParams.get('utm_term') || payload.utm_term || null;
 
     // Aplicar field mapping se configurado
     const fieldMapping = webhook.field_mapping || {};
@@ -92,11 +256,24 @@ serve(async (req: Request) => {
       }
     }
 
-    // Dados do lead
+    // Dados do lead (com fallbacks múltiplos)
     const leadName = (mappedData.name || payload.name || payload.nome || payload.full_name || 'Lead sem nome') as string;
     const leadEmail = (mappedData.email || payload.email || payload.e_mail) as string;
-    const leadPhone = (mappedData.phone || payload.phone || payload.telefone || payload.celular) as string;
-    const leadWhatsapp = (mappedData.whatsapp || payload.whatsapp || payload.whats || leadPhone) as string;
+    const leadPhone = normalizePhone(mappedData.phone as string || payload.phone || payload.telefone || payload.celular);
+    const leadWhatsapp = normalizePhone(mappedData.whatsapp as string || payload.whatsapp || payload.whats || leadPhone || undefined);
+
+    // Fonte do lead
+    const leadSource = webhook.form_source || payload.source || payload.origem || 'webhook';
+    
+    // Calcular Lead Score (MQL)
+    const leadScore = calculateLeadScore(payload, leadSource);
+    const temperature = getTemperature(leadScore);
+    
+    // Extrair procedimentos e tags
+    const interestedProcedures = extractProcedures(payload);
+    const tags = extractTags(payload, leadSource);
+
+    console.log(`Lead Score: ${leadScore}, Temperature: ${temperature}`);
 
     // Verificar se lead já existe por email ou telefone
     let existingLead = null;
@@ -104,7 +281,7 @@ serve(async (req: Request) => {
     if (leadEmail) {
       const { data } = await supabase
         .from('crm_leads')
-        .select('id')
+        .select('id, lead_score, tags, interested_procedures')
         .eq('email', leadEmail)
         .single();
       existingLead = data;
@@ -113,29 +290,49 @@ serve(async (req: Request) => {
     if (!existingLead && leadPhone) {
       const { data } = await supabase
         .from('crm_leads')
-        .select('id')
+        .select('id, lead_score, tags, interested_procedures')
         .eq('phone', leadPhone)
         .single();
       existingLead = data;
     }
 
     let leadId: string;
+    let isNewLead = false;
 
     if (existingLead) {
-      // Lead já existe - atualizar last_activity
+      // Lead já existe - atualizar com novos dados
       leadId = existingLead.id;
+      
+      // Merge tags existentes com novas
+      const existingTags = existingLead.tags || [];
+      const mergedTags = [...new Set([...existingTags, ...tags])];
+      
+      // Merge procedimentos
+      const existingProcedures = existingLead.interested_procedures || [];
+      const mergedProcedures = [...new Set([...existingProcedures, ...interestedProcedures])];
+      
+      // Manter o maior score
+      const newScore = Math.max(existingLead.lead_score || 0, leadScore);
       
       await supabase
         .from('crm_leads')
         .update({ 
           last_activity_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          lead_score: newScore,
+          temperature: getTemperature(newScore),
+          tags: mergedTags,
+          interested_procedures: mergedProcedures,
+          is_stale: false,
+          stale_since: null,
         })
         .eq('id', leadId);
 
       console.log('Existing lead updated:', leadId);
     } else {
       // Criar novo lead
+      isNewLead = true;
+      
       const { data: newLead, error: leadError } = await supabase
         .from('crm_leads')
         .insert({
@@ -146,11 +343,15 @@ serve(async (req: Request) => {
           pipeline_id: webhook.default_pipeline_id,
           stage_id: webhook.default_stage_id,
           assigned_to: webhook.default_assigned_to || null,
-          source: webhook.form_source || 'webhook',
+          source: leadSource,
           source_detail: webhook.name,
           created_by: webhook.created_by,
-          temperature: 'hot', // Leads de formulário são quentes
+          temperature: temperature,
+          lead_score: leadScore,
+          tags: tags,
+          interested_procedures: interestedProcedures.length > 0 ? interestedProcedures : null,
           first_contact_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString(),
         })
         .select('id')
         .single();
@@ -161,22 +362,22 @@ serve(async (req: Request) => {
       }
 
       leadId = newLead.id;
-      console.log('New lead created:', leadId);
+      console.log('New lead created:', leadId, 'Score:', leadScore);
     }
 
-    // Salvar resposta do formulário
+    // Salvar resposta do formulário com todos os dados
     const { error: responseError } = await supabase
       .from('crm_form_responses')
       .insert({
         lead_id: leadId,
         form_name: webhook.name,
-        form_source: webhook.form_source,
+        form_source: leadSource,
         campaign_name: utmCampaign || payload.campaign || null,
-        utm_source: utmSource || payload.utm_source || null,
-        utm_medium: utmMedium || payload.utm_medium || null,
-        utm_campaign: utmCampaign || payload.utm_campaign || null,
-        utm_content: utmContent || payload.utm_content || null,
-        utm_term: utmTerm || payload.utm_term || null,
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign,
+        utm_content: utmContent,
+        utm_term: utmTerm,
         responses: payload,
         raw_payload: payload,
         ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null,
@@ -211,14 +412,15 @@ serve(async (req: Request) => {
       }
     }
 
-    // Criar notificações
-    const notificationType = existingLead ? 'form_response' : 'new_lead';
-    const notificationTitle = existingLead 
-      ? `Nova resposta de ${leadName}` 
-      : `🔥 Novo lead: ${leadName}`;
-    const notificationMessage = existingLead
-      ? `${leadName} respondeu o formulário "${webhook.name}"`
-      : `${leadName} entrou via "${webhook.name}"${leadPhone ? ` - ${leadPhone}` : ''}`;
+    // Criar notificações com score
+    const scoreEmoji = leadScore >= 60 ? '🔥' : leadScore >= 35 ? '⭐' : '📋';
+    const notificationType = isNewLead ? 'new_lead' : 'form_response';
+    const notificationTitle = isNewLead 
+      ? `${scoreEmoji} Novo lead (Score: ${leadScore}): ${leadName}` 
+      : `Nova resposta de ${leadName}`;
+    const notificationMessage = isNewLead
+      ? `${leadName} entrou via "${webhook.name}"${leadPhone ? ` - ${leadPhone}` : ''} | Score: ${leadScore}/100`
+      : `${leadName} respondeu o formulário "${webhook.name}"`;
 
     for (const target of notificationTargets) {
       await supabase
@@ -232,9 +434,13 @@ serve(async (req: Request) => {
           message: notificationMessage,
           metadata: {
             form_name: webhook.name,
-            source: webhook.form_source,
+            source: leadSource,
+            lead_score: leadScore,
+            temperature: temperature,
             has_phone: !!leadPhone,
             has_email: !!leadEmail,
+            utm_campaign: utmCampaign,
+            procedures: interestedProcedures,
           }
         });
     }
@@ -246,23 +452,48 @@ serve(async (req: Request) => {
       .from('crm_lead_history')
       .insert({
         lead_id: leadId,
-        action_type: existingLead ? 'form_response' : 'created',
-        title: existingLead ? 'Nova resposta de formulário' : 'Lead criado via formulário',
-        description: `Formulário: ${webhook.name}`,
+        action_type: isNewLead ? 'created' : 'form_response',
+        title: isNewLead ? 'Lead criado via formulário' : 'Nova resposta de formulário',
+        description: `Formulário: ${webhook.name} | Score: ${leadScore} | Temperatura: ${temperature}`,
         performed_by: webhook.created_by,
         metadata: {
           form_name: webhook.name,
-          source: webhook.form_source,
+          source: leadSource,
+          lead_score: leadScore,
+          temperature: temperature,
+          utm_source: utmSource,
+          utm_medium: utmMedium,
           utm_campaign: utmCampaign,
+          procedures: interestedProcedures,
         }
       });
+
+    // Se lead é HOT (score >= 60), criar tarefa de follow-up imediato
+    if (isNewLead && leadScore >= 60 && webhook.default_assigned_to) {
+      await supabase
+        .from('crm_tasks')
+        .insert({
+          lead_id: leadId,
+          title: `🔥 Follow-up URGENTE - ${leadName}`,
+          description: `Lead com score ${leadScore}/100 entrou via ${webhook.name}. Contatar imediatamente!`,
+          task_type: 'follow_up',
+          priority: 'urgent',
+          due_date: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 min
+          assigned_to: webhook.default_assigned_to,
+          created_by: webhook.created_by,
+        });
+      
+      console.log('Urgent follow-up task created for hot lead');
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         lead_id: leadId,
-        is_new: !existingLead,
-        message: existingLead ? 'Form response added to existing lead' : 'New lead created'
+        is_new: isNewLead,
+        lead_score: leadScore,
+        temperature: temperature,
+        message: isNewLead ? `New lead created with score ${leadScore}` : 'Form response added to existing lead'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
