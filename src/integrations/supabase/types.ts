@@ -1171,6 +1171,56 @@ export type Database = {
           },
         ]
       }
+      crm_lead_interactions: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          intention: string | null
+          lead_id: string
+          next_action: string | null
+          outcome: string | null
+          sentiment: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          intention?: string | null
+          lead_id: string
+          next_action?: string | null
+          outcome?: string | null
+          sentiment?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          intention?: string | null
+          lead_id?: string
+          next_action?: string | null
+          outcome?: string | null
+          sentiment?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_leads: {
         Row: {
           ai_analyzed_at: string | null
@@ -4324,6 +4374,11 @@ export type Database = {
       }
       approve_user: { Args: { _user_id: string }; Returns: undefined }
       get_my_team_id: { Args: never; Returns: string }
+      get_sentiment_stats: { Args: never; Returns: Json }
+      get_sentiment_stats_by_period: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: Json
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

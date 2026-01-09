@@ -4,6 +4,7 @@ import {
   PieChart, 
   BarChart3, 
   Users,
+  Smile,
   MessageSquare,
   Phone,
   Clock,
@@ -45,7 +46,7 @@ export type CRMViewMode =
   | 'automations' | 'leaderboard' | 'whatsapp' | 'routine' | 'chat' 
   | 'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
   | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
-  | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager';
+  | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager' | 'sentiment';
 
 interface CRMNavigationMenuProps {
   viewMode: CRMViewMode;
@@ -112,6 +113,7 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { value: 'metrics', label: 'Métricas', icon: BarChart3 },
       { value: 'funnel', label: 'Funil', icon: Filter, color: 'text-pink-500' },
+      { value: 'sentiment', label: 'Sentimentos', icon: Smile, color: 'text-green-500' },
       { value: 'predictive', label: 'IA Preditiva', icon: Brain, color: 'text-violet-500' },
       { value: 'rfv', label: 'RFV', icon: Target },
       { value: 'rfv-matrix', label: 'Matriz RFV', icon: LayoutGrid, color: 'text-cyan-500' },
