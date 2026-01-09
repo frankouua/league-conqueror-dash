@@ -345,23 +345,24 @@ export function SellerUnifiedCalendar() {
       });
     });
 
-    // Adicionar eventos de convites aceitos
+    // Adicionar eventos de convites (aceitos e pendentes - todos aparecem na agenda)
     myInvitations
-      .filter(inv => inv.status === 'accepted' && inv.calendar_events)
+      .filter(inv => inv.calendar_events)
       .forEach(inv => {
         const event = inv.calendar_events as any;
         // Evitar duplicatas
-        if (!events.some(e => e.id === `cal-${event.id}`)) {
+        if (!events.some(e => e.id === `cal-${event.id}` || e.id === `inv-${event.id}`)) {
           events.push({
             id: `inv-${event.id}`,
-            title: event.title,
+            title: inv.status === 'pending' ? `⏳ ${event.title}` : event.title,
             type: event.event_type as EventType,
             date: new Date(event.start_date),
             endDate: event.end_date ? new Date(event.end_date) : undefined,
             description: event.description || undefined,
             completed: false,
             location: event.location || undefined,
-            source: 'calendar'
+            source: 'calendar',
+            priority: inv.status === 'pending' ? 'high' : 'medium'
           });
         }
       });
