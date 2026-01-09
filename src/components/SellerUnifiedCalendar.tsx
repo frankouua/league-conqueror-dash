@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -20,8 +20,11 @@ import {
   Megaphone,
   Briefcase,
   Filter,
-  LayoutGrid,
-  List
+  UserPlus,
+  Mail,
+  Check,
+  XCircle,
+  Send
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog,
   DialogContent,
@@ -53,13 +57,14 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 // Tipos de eventos unificados
-type EventType = 'crm_task' | 'crm_followup' | 'campaign' | 'meeting' | 'goal_deadline' | 'call' | 'video' | 'custom';
+type EventType = 'crm_task' | 'crm_followup' | 'campaign' | 'meeting' | 'goal_deadline' | 'call' | 'video' | 'custom' | 'reminder' | 'training';
 
 interface UnifiedEvent {
   id: string;
   title: string;
   type: EventType;
   date: Date;
+  endDate?: Date;
   time?: string;
   duration?: number;
   description?: string;
@@ -68,7 +73,22 @@ interface UnifiedEvent {
   leadId?: string;
   campaignId?: string;
   priority?: 'low' | 'medium' | 'high';
-  source: 'crm' | 'campaign' | 'manual' | 'goal';
+  source: 'crm' | 'campaign' | 'manual' | 'goal' | 'calendar';
+  location?: string;
+  isTeamEvent?: boolean;
+  invitations?: Array<{
+    userId: string;
+    userName: string;
+    status: 'pending' | 'accepted' | 'declined';
+  }>;
+  createdBy?: string;
+}
+
+interface TeamMember {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+  team_id: string;
 }
 
 const EVENT_CONFIG: Record<EventType, { label: string; icon: React.ElementType; color: string; bgColor: string }> = {
@@ -79,7 +99,9 @@ const EVENT_CONFIG: Record<EventType, { label: string; icon: React.ElementType; 
   goal_deadline: { label: 'Prazo Meta', icon: Target, color: 'text-red-500', bgColor: 'bg-red-500' },
   call: { label: 'Ligação', icon: Phone, color: 'text-cyan-500', bgColor: 'bg-cyan-500' },
   video: { label: 'Videochamada', icon: Video, color: 'text-purple-500', bgColor: 'bg-purple-500' },
-  custom: { label: 'Evento', icon: CalendarIcon, color: 'text-gray-500', bgColor: 'bg-gray-500' }
+  custom: { label: 'Evento', icon: CalendarIcon, color: 'text-gray-500', bgColor: 'bg-gray-500' },
+  reminder: { label: 'Lembrete', icon: Bell, color: 'text-orange-500', bgColor: 'bg-orange-500' },
+  training: { label: 'Treinamento', icon: Briefcase, color: 'text-indigo-500', bgColor: 'bg-indigo-500' }
 };
 
 const FILTER_OPTIONS = [
@@ -90,19 +112,90 @@ const FILTER_OPTIONS = [
   { id: 'goal_deadline', label: 'Prazos de Metas' },
   { id: 'call', label: 'Ligações' },
   { id: 'video', label: 'Videochamadas' },
+  { id: 'reminder', label: 'Lembretes' },
+  { id: 'training', label: 'Treinamentos' },
   { id: 'custom', label: 'Outros' }
 ];
 
 export function SellerUnifiedCalendar() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<EventType[]>(Object.keys(EVENT_CONFIG) as EventType[]);
-  const [newEvent, setNewEvent] = useState<Partial<UnifiedEvent>>({
-    type: 'custom',
+  const [selectedInvitees, setSelectedInvitees] = useState<string[]>([]);
+  const [inviteEntireTeam, setInviteEntireTeam] = useState(false);
+  const [newEvent, setNewEvent] = useState<{
+    type: EventType;
+    priority: 'low' | 'medium' | 'high';
+    title?: string;
+    description?: string;
+    time?: string;
+    endTime?: string;
+    location?: string;
+  }>({
+    type: 'meeting',
     priority: 'medium'
+  });
+
+  // Buscar membros do time para convites
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['team-members-for-calendar', profile?.team_id],
+    queryFn: async () => {
+      if (!profile?.team_id) return [];
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, team_id')
+        .eq('team_id', profile.team_id)
+        .neq('id', user?.id);
+      
+      if (error) throw error;
+      return (data || []) as TeamMember[];
+    },
+    enabled: !!profile?.team_id
+  });
+
+  // Buscar eventos do calendário
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendar-events', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          calendar_event_invitations (
+            user_id,
+            status
+          )
+        `)
+        .or(`created_by.eq.${user.id},is_team_event.eq.true`);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id
+  });
+
+  // Buscar convites recebidos
+  const { data: myInvitations = [] } = useQuery({
+    queryKey: ['my-calendar-invitations', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('calendar_event_invitations')
+        .select(`
+          *,
+          calendar_events (*)
+        `)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id
   });
 
   // Buscar tarefas do CRM
@@ -138,9 +231,140 @@ export function SellerUnifiedCalendar() {
     }
   });
 
+  // Mutation para criar evento
+  const createEventMutation = useMutation({
+    mutationFn: async (eventData: {
+      title: string;
+      description?: string;
+      event_type: string;
+      start_date: string;
+      end_date?: string;
+      location?: string;
+      is_team_event: boolean;
+      invitees: string[];
+    }) => {
+      if (!user?.id) throw new Error('Usuário não autenticado');
+
+      // Criar evento
+      const { data: event, error: eventError } = await supabase
+        .from('calendar_events')
+        .insert({
+          title: eventData.title,
+          description: eventData.description,
+          event_type: eventData.event_type,
+          start_date: eventData.start_date,
+          end_date: eventData.end_date,
+          location: eventData.location,
+          is_team_event: eventData.is_team_event,
+          created_by: user.id,
+          team_id: profile?.team_id
+        })
+        .select()
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Criar convites
+      if (eventData.invitees.length > 0) {
+        const invitations = eventData.invitees.map(userId => ({
+          event_id: event.id,
+          user_id: userId,
+          status: 'pending'
+        }));
+
+        const { error: invError } = await supabase
+          .from('calendar_event_invitations')
+          .insert(invitations);
+
+        if (invError) throw invError;
+      }
+
+      return event;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast.success('Evento criado e convites enviados!');
+      setShowNewEvent(false);
+      resetNewEventForm();
+    },
+    onError: (error) => {
+      toast.error('Erro ao criar evento');
+      console.error(error);
+    }
+  });
+
+  // Mutation para responder convite
+  const respondInvitationMutation = useMutation({
+    mutationFn: async ({ invitationId, status }: { invitationId: string; status: 'accepted' | 'declined' }) => {
+      const { error } = await supabase
+        .from('calendar_event_invitations')
+        .update({ 
+          status, 
+          responded_at: new Date().toISOString() 
+        })
+        .eq('id', invitationId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ['my-calendar-invitations'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast.success(status === 'accepted' ? 'Convite aceito!' : 'Convite recusado');
+    }
+  });
+
+  const resetNewEventForm = () => {
+    setNewEvent({ type: 'meeting', priority: 'medium' });
+    setSelectedInvitees([]);
+    setInviteEntireTeam(false);
+  };
+
   // Combinar todos os eventos
   const allEvents = useMemo<UnifiedEvent[]>(() => {
     const events: UnifiedEvent[] = [];
+
+    // Adicionar eventos do calendário
+    calendarEvents.forEach(event => {
+      events.push({
+        id: `cal-${event.id}`,
+        title: event.title,
+        type: event.event_type as EventType,
+        date: new Date(event.start_date),
+        endDate: event.end_date ? new Date(event.end_date) : undefined,
+        description: event.description || undefined,
+        completed: false,
+        location: event.location || undefined,
+        isTeamEvent: event.is_team_event,
+        createdBy: event.created_by,
+        source: 'calendar',
+        invitations: (event.calendar_event_invitations || []).map((inv: any) => ({
+          userId: inv.user_id,
+          userName: teamMembers.find(m => m.id === inv.user_id)?.full_name || 'Usuário',
+          status: inv.status
+        }))
+      });
+    });
+
+    // Adicionar eventos de convites aceitos
+    myInvitations
+      .filter(inv => inv.status === 'accepted' && inv.calendar_events)
+      .forEach(inv => {
+        const event = inv.calendar_events as any;
+        // Evitar duplicatas
+        if (!events.some(e => e.id === `cal-${event.id}`)) {
+          events.push({
+            id: `inv-${event.id}`,
+            title: event.title,
+            type: event.event_type as EventType,
+            date: new Date(event.start_date),
+            endDate: event.end_date ? new Date(event.end_date) : undefined,
+            description: event.description || undefined,
+            completed: false,
+            location: event.location || undefined,
+            source: 'calendar'
+          });
+        }
+      });
 
     // Adicionar tarefas do CRM
     crmTasks.forEach(task => {
@@ -173,7 +397,6 @@ export function SellerUnifiedCalendar() {
         source: 'campaign'
       });
 
-      // Adicionar data de término como evento separado
       if (campaign.end_date !== campaign.start_date) {
         events.push({
           id: `campaign-end-${campaign.id}`,
@@ -190,7 +413,7 @@ export function SellerUnifiedCalendar() {
     });
 
     return events.filter(e => activeFilters.includes(e.type));
-  }, [crmTasks, campaigns, activeFilters]);
+  }, [calendarEvents, myInvitations, crmTasks, campaigns, activeFilters, teamMembers]);
 
   // Calcular datas da semana
   const weekDates = useMemo(() => {
@@ -217,7 +440,9 @@ export function SellerUnifiedCalendar() {
       });
   }, [allEvents, selectedDate]);
 
-  // Eventos por data (para visualização semanal/mensal)
+  // Convites pendentes
+  const pendingInvitations = myInvitations.filter(inv => inv.status === 'pending');
+
   const getEventsForDate = (date: Date) => {
     return allEvents.filter(e => isSameDay(e.date, date));
   };
@@ -230,34 +455,47 @@ export function SellerUnifiedCalendar() {
     );
   };
 
+  const handleInviteeToggle = (userId: string) => {
+    setSelectedInvitees(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleInviteEntireTeam = (checked: boolean) => {
+    setInviteEntireTeam(checked);
+    if (checked) {
+      setSelectedInvitees(teamMembers.map(m => m.id));
+    } else {
+      setSelectedInvitees([]);
+    }
+  };
+
   const handleCreateEvent = async () => {
     if (!newEvent.title) {
       toast.error('Preencha o título do evento');
       return;
     }
 
-    // Para eventos manuais, criar como tarefa CRM se houver um lead
-    if (user?.id && newEvent.type !== 'campaign') {
-      try {
-        const { error } = await supabase.from('crm_tasks').insert({
-          title: newEvent.title,
-          description: newEvent.description,
-          task_type: newEvent.type === 'call' ? 'call' : newEvent.type === 'meeting' ? 'meeting' : newEvent.type === 'crm_followup' ? 'follow_up' : 'task',
-          due_date: format(selectedDate, 'yyyy-MM-dd'),
-          assigned_to: user.id,
-          created_by: user.id,
-          priority: newEvent.priority || 'medium',
-          lead_id: newEvent.leadId || null
-        });
+    const startDateTime = newEvent.time 
+      ? `${format(selectedDate, 'yyyy-MM-dd')}T${newEvent.time}:00`
+      : format(selectedDate, 'yyyy-MM-dd');
 
-        if (error) throw error;
-        toast.success('Evento criado com sucesso!');
-        setShowNewEvent(false);
-        setNewEvent({ type: 'custom', priority: 'medium' });
-      } catch (error) {
-        toast.error('Erro ao criar evento');
-      }
-    }
+    const endDateTime = newEvent.endTime 
+      ? `${format(selectedDate, 'yyyy-MM-dd')}T${newEvent.endTime}:00`
+      : undefined;
+
+    createEventMutation.mutate({
+      title: newEvent.title,
+      description: newEvent.description,
+      event_type: newEvent.type,
+      start_date: startDateTime,
+      end_date: endDateTime,
+      location: newEvent.location,
+      is_team_event: inviteEntireTeam,
+      invitees: selectedInvitees
+    });
   };
 
   const handleToggleComplete = async (event: UnifiedEvent) => {
@@ -272,6 +510,7 @@ export function SellerUnifiedCalendar() {
         .eq('id', taskId);
 
       if (!error) {
+        queryClient.invalidateQueries({ queryKey: ['crm-tasks-calendar'] });
         toast.success(event.completed ? 'Evento reaberto' : 'Evento concluído!');
       }
     }
@@ -314,11 +553,23 @@ export function SellerUnifiedCalendar() {
             {event.priority === 'high' && (
               <Badge variant="destructive" className="text-[10px] h-4">Urgente</Badge>
             )}
+            {event.isTeamEvent && (
+              <Badge variant="secondary" className="text-[10px] h-4">
+                <Users className="w-3 h-3 mr-1" />
+                Time
+              </Badge>
+            )}
           </div>
           {event.leadName && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <User className="w-3 h-3" />
               {event.leadName}
+            </div>
+          )}
+          {event.location && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="w-3 h-3" />
+              {event.location}
             </div>
           )}
           {event.description && (
@@ -334,6 +585,14 @@ export function SellerUnifiedCalendar() {
             )}
             <Badge variant="outline" className="text-[10px]">{config.label}</Badge>
           </div>
+          {event.invitations && event.invitations.length > 0 && (
+            <div className="flex items-center gap-1 mt-2">
+              <UserPlus className="w-3 h-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {event.invitations.filter(i => i.status === 'accepted').length} confirmados
+              </span>
+            </div>
+          )}
         </div>
         {event.source === 'crm' && (
           <Button
@@ -354,6 +613,47 @@ export function SellerUnifiedCalendar() {
 
   return (
     <div className="space-y-4">
+      {/* Pending Invitations Banner */}
+      {pendingInvitations.length > 0 && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-primary" />
+                <span className="font-medium">
+                  {pendingInvitations.length} convite(s) pendente(s)
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {pendingInvitations.slice(0, 2).map(inv => (
+                  <div key={inv.id} className="flex items-center gap-2 bg-background rounded-lg px-3 py-1.5">
+                    <span className="text-sm">
+                      {(inv.calendar_events as any)?.title}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-green-500 hover:text-green-600"
+                      onClick={() => respondInvitationMutation.mutate({ invitationId: inv.id, status: 'accepted' })}
+                    >
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-red-500 hover:text-red-600"
+                      onClick={() => respondInvitationMutation.mutate({ invitationId: inv.id, status: 'declined' })}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header com controles */}
       <Card>
         <CardHeader className="pb-3">
@@ -361,10 +661,10 @@ export function SellerUnifiedCalendar() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-primary" />
-                Calendário Unificado
+                Meu Calendário
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                CRM, campanhas, reuniões e metas em um só lugar
+                CRM, campanhas, reuniões e convites em um só lugar
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -407,7 +707,7 @@ export function SellerUnifiedCalendar() {
               {/* Add Event */}
               <Button size="sm" onClick={() => setShowNewEvent(true)}>
                 <Plus className="w-4 h-4 mr-1" />
-                Novo
+                Novo Evento
               </Button>
             </div>
           </div>
@@ -655,19 +955,25 @@ export function SellerUnifiedCalendar() {
         </CardContent>
       </Card>
 
-      {/* New Event Dialog */}
-      <Dialog open={showNewEvent} onOpenChange={setShowNewEvent}>
-        <DialogContent className="max-w-md">
+      {/* New Event Dialog with Invitations */}
+      <Dialog open={showNewEvent} onOpenChange={(open) => {
+        setShowNewEvent(open);
+        if (!open) resetNewEventForm();
+      }}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Novo Evento</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5 text-primary" />
+              Novo Evento
+            </DialogTitle>
             <DialogDescription>
-              Agende uma atividade no seu calendário
+              Crie um evento e convide membros do seu time
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
-              <Label>Tipo</Label>
+              <Label>Tipo de Evento</Label>
               <Select
                 value={newEvent.type}
                 onValueChange={(v) => setNewEvent(prev => ({ ...prev, type: v as EventType }))}
@@ -676,26 +982,26 @@ export function SellerUnifiedCalendar() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="call">📞 Ligação</SelectItem>
                   <SelectItem value="meeting">👥 Reunião</SelectItem>
+                  <SelectItem value="call">📞 Ligação</SelectItem>
                   <SelectItem value="video">📹 Videochamada</SelectItem>
-                  <SelectItem value="crm_followup">🔔 Follow-up</SelectItem>
-                  <SelectItem value="crm_task">✅ Tarefa</SelectItem>
+                  <SelectItem value="training">📚 Treinamento</SelectItem>
+                  <SelectItem value="reminder">🔔 Lembrete</SelectItem>
                   <SelectItem value="custom">📅 Outro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Título</Label>
+              <Label>Título *</Label>
               <Input
-                placeholder="Ex: Ligação com cliente"
+                placeholder="Ex: Reunião semanal do time"
                 value={newEvent.title || ''}
                 onChange={(e) => setNewEvent(prev => ({ ...prev, title: e.target.value }))}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Data</Label>
                 <Input
@@ -705,30 +1011,30 @@ export function SellerUnifiedCalendar() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Horário</Label>
+                <Label>Início</Label>
                 <Input
                   type="time"
                   value={newEvent.time || ''}
                   onChange={(e) => setNewEvent(prev => ({ ...prev, time: e.target.value }))}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Término</Label>
+                <Input
+                  type="time"
+                  value={newEvent.endTime || ''}
+                  onChange={(e) => setNewEvent(prev => ({ ...prev, endTime: e.target.value }))}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Prioridade</Label>
-              <Select
-                value={newEvent.priority}
-                onValueChange={(v) => setNewEvent(prev => ({ ...prev, priority: v as 'low' | 'medium' | 'high' }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">🟢 Baixa</SelectItem>
-                  <SelectItem value="medium">🟡 Média</SelectItem>
-                  <SelectItem value="high">🔴 Alta</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Local (opcional)</Label>
+              <Input
+                placeholder="Ex: Sala de reuniões, Link do Meet..."
+                value={newEvent.location || ''}
+                onChange={(e) => setNewEvent(prev => ({ ...prev, location: e.target.value }))}
+              />
             </div>
 
             <div className="space-y-2">
@@ -740,14 +1046,86 @@ export function SellerUnifiedCalendar() {
                 rows={2}
               />
             </div>
+
+            {/* Team Invitations */}
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  Convidar Participantes
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="invite-all"
+                    checked={inviteEntireTeam}
+                    onCheckedChange={(checked) => handleInviteEntireTeam(!!checked)}
+                  />
+                  <label htmlFor="invite-all" className="text-sm cursor-pointer">
+                    Convidar time inteiro
+                  </label>
+                </div>
+              </div>
+
+              {teamMembers.length > 0 ? (
+                <ScrollArea className="h-[150px] rounded-md border p-2">
+                  <div className="space-y-2">
+                    {teamMembers.map(member => (
+                      <div 
+                        key={member.id}
+                        className={cn(
+                          "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors",
+                          selectedInvitees.includes(member.id) 
+                            ? "bg-primary/10 border border-primary/30" 
+                            : "hover:bg-muted/50"
+                        )}
+                        onClick={() => handleInviteeToggle(member.id)}
+                      >
+                        <Checkbox
+                          checked={selectedInvitees.includes(member.id)}
+                          onCheckedChange={() => handleInviteeToggle(member.id)}
+                        />
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={member.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {member.full_name?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{member.full_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  Nenhum membro do time disponível para convidar
+                </div>
+              )}
+
+              {selectedInvitees.length > 0 && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Send className="w-4 h-4" />
+                  <span>{selectedInvitees.length} pessoa(s) receberão o convite</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewEvent(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleCreateEvent}>
-              Criar Evento
+            <Button 
+              onClick={handleCreateEvent}
+              disabled={createEventMutation.isPending}
+            >
+              {createEventMutation.isPending ? (
+                'Criando...'
+              ) : (
+                <>
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  Criar Evento
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

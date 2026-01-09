@@ -197,6 +197,100 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_event_invitations: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          id: string
+          responded_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          id?: string
+          responded_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          responded_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_event_invitations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_events: {
+        Row: {
+          all_day: boolean | null
+          color: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          end_date: string | null
+          event_type: string
+          id: string
+          is_team_event: boolean | null
+          location: string | null
+          start_date: string
+          team_id: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          all_day?: boolean | null
+          color?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          end_date?: string | null
+          event_type?: string
+          id?: string
+          is_team_event?: boolean | null
+          location?: string | null
+          start_date: string
+          team_id?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          all_day?: boolean | null
+          color?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          end_date?: string | null
+          event_type?: string
+          id?: string
+          is_team_event?: boolean | null
+          location?: string | null
+          start_date?: string
+          team_id?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_actions: {
         Row: {
           campaign_id: string
