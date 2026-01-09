@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.alexa-results]
 verify_jwt = false
+
+[functions.daily-ai-manager]
+verify_jwt = false
