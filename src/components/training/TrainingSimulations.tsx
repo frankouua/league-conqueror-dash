@@ -319,14 +319,14 @@ const TrainingSimulations = ({ targetRole }: TrainingSimulationsProps) => {
                 <div className="p-4 rounded-lg bg-muted/50">
                   <h4 className="font-medium mb-2">Cenário:</h4>
                   <p className="text-sm text-muted-foreground">
-                    {selectedSimulation.context.situation}
+                    {selectedSimulation.context?.situation || selectedSimulation.description || "Cenário não informado."}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/50">
                   <h4 className="font-medium mb-2">Seu objetivo:</h4>
                   <p className="text-sm text-muted-foreground">
-                    {selectedSimulation.context.goal}
+                    {selectedSimulation.context?.goal || "Conduzir o atendimento com empatia e avançar para o próximo passo."}
                   </p>
                 </div>
 
