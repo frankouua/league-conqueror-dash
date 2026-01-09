@@ -36,6 +36,7 @@ import { CRMKeyboardShortcuts } from "@/components/crm/CRMKeyboardShortcuts";
 import { CRMGlobalSearch } from "@/components/crm/CRMGlobalSearch";
 import { CRMProposalTemplates } from "@/components/crm/CRMProposalTemplates";
 import { CRMCalendarIntegration } from "@/components/crm/CRMCalendarIntegration";
+import { SellerUnifiedCalendar } from "@/components/SellerUnifiedCalendar";
 import { CRMPredictiveAnalytics } from "@/components/crm/CRMPredictiveAnalytics";
 import { CRMConversionFunnel } from "@/components/crm/CRMConversionFunnel";
 import { CRMTeamPerformance } from "@/components/crm/CRMTeamPerformance";
@@ -443,7 +444,7 @@ const CRM = () => {
         )}
 
         {viewMode === 'calendar' && (
-          <CRMCalendarIntegration />
+          <SellerUnifiedCalendar />
         )}
 
         {viewMode === 'proposals' && (
