@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import { DEPARTMENTS, getDepartmentAvgTicket } from "@/constants/departments";
+import { isSeller } from "@/constants/sellerPositions";
 
 interface GoalGapAnalysisProps {
   month: number;
@@ -305,8 +306,9 @@ const GoalGapAnalysis = ({ month, year }: GoalGapAnalysisProps) => {
   const sellersGroupedByPosition = useMemo(() => {
     if (!profiles || !individualGoals || !revenueRecords || !teams) return [];
 
-    // Build seller data with team info
+    // Build seller data with team info - only sellers (not coordinators/managers)
     const sellersData = profiles
+      .filter((profile) => isSeller(profile.position))
       .map((profile) => {
         const goal = individualGoals.find((g) => g.user_id === profile.user_id);
         const goalValue = Number(goal?.revenue_goal) || 0;

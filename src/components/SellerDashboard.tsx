@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { isSeller } from "@/constants/sellerPositions";
 import {
   Dialog,
   DialogContent,
@@ -244,9 +245,10 @@ export default function SellerDashboard({
 
     const teamMap = new Map(teams.map((t) => [t.id, t.name]));
 
-    let filteredProfiles = profiles;
+    // Filter only sellers (not coordinators, managers, etc.)
+    let filteredProfiles = profiles.filter(p => isSeller(p.position));
     
-    // Apply filters
+    // Apply additional filters
     if (filterSeller) {
       filteredProfiles = filteredProfiles.filter(p => p.user_id === filterSeller);
     }

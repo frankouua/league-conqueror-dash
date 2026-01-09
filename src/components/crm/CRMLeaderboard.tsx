@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { isSeller } from '@/constants/sellerPositions';
 
 interface CRMLeaderboardProps {
   period?: 'month' | 'week' | 'all';
@@ -49,10 +50,13 @@ export function CRMLeaderboard({ period = 'month' }: CRMLeaderboardProps) {
         .select('id, assigned_to')
         .gte('created_at', monthStart.toISOString());
 
-      // Get profiles
+      // Get profiles (only sellers)
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, full_name, avatar_url');
+        .select('user_id, full_name, avatar_url, position');
+
+      // Filter only sellers
+      const sellerProfiles = (profiles || []).filter(p => isSeller(p.position));
 
       // Get activity counts
       const { data: activities } = await supabase
@@ -63,8 +67,8 @@ export function CRMLeaderboard({ period = 'month' }: CRMLeaderboardProps) {
       // Aggregate stats per user
       const statsMap = new Map<string, SellerStats>();
 
-      // Initialize from profiles
-      profiles?.forEach(profile => {
+      // Initialize from seller profiles only
+      sellerProfiles.forEach(profile => {
         statsMap.set(profile.user_id, {
           user_id: profile.user_id,
           name: profile.full_name,
