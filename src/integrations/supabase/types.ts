@@ -3290,6 +3290,7 @@ export type Database = {
       }
       seller_department_goals: {
         Row: {
+          average_ticket: number | null
           created_at: string
           department_name: string
           id: string
@@ -3300,11 +3301,13 @@ export type Database = {
           meta3_goal: number | null
           meta3_qty: number | null
           month: number
+          seller_name: string | null
           updated_at: string
           user_id: string
           year: number
         }
         Insert: {
+          average_ticket?: number | null
           created_at?: string
           department_name: string
           id?: string
@@ -3315,11 +3318,13 @@ export type Database = {
           meta3_goal?: number | null
           meta3_qty?: number | null
           month: number
+          seller_name?: string | null
           updated_at?: string
           user_id: string
           year: number
         }
         Update: {
+          average_ticket?: number | null
           created_at?: string
           department_name?: string
           id?: string
@@ -3330,6 +3335,7 @@ export type Database = {
           meta3_goal?: number | null
           meta3_qty?: number | null
           month?: number
+          seller_name?: string | null
           updated_at?: string
           user_id?: string
           year?: number
