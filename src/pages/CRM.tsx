@@ -5,6 +5,7 @@ import { CRMStats } from "@/components/crm/CRMStats";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
 import { CRMLeadDetail } from "@/components/crm/CRMLeadDetail";
 import { CRMPipelineSelector } from "@/components/crm/CRMPipelineSelector";
+import { CRMPipelineJourney } from "@/components/crm/CRMPipelineJourney";
 import { CRMQuickFilters } from "@/components/crm/CRMQuickFilters";
 import { CRMPipelineMetrics } from "@/components/crm/CRMPipelineMetrics";
 import { CRMExportButton } from "@/components/crm/CRMExportButton";
@@ -254,26 +255,11 @@ const CRM = () => {
               <h1 className="text-lg font-bold text-foreground">CRM</h1>
             </div>
             
-            {/* Quick Pipeline Pills - Only for relevant views */}
-            {['kanban', 'metrics', 'overview'].includes(viewMode) && (
-              <div className="hidden md:flex items-center gap-1">
-                {pipelines.slice(0, 4).map(pipeline => (
-                  <Button
-                    key={pipeline.id}
-                    variant={selectedPipeline === pipeline.id ? 'default' : 'ghost'}
-                    size="sm"
-                    className="h-7 px-2 text-xs gap-1"
-                    onClick={() => setSelectedPipeline(pipeline.id)}
-                  >
-                    {pipeline.name}
-                    {leadCountData?.counts?.[pipeline.id] && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
-                        {leadCountData.counts[pipeline.id]}
-                      </Badge>
-                    )}
-                  </Button>
-                ))}
-              </div>
+            {/* Pipeline info badge */}
+            {selectedPipeline && ['kanban', 'metrics'].includes(viewMode) && (
+              <Badge variant="outline" className="hidden md:flex text-xs text-muted-foreground">
+                {pipelines.find(p => p.id === selectedPipeline)?.name || 'Pipeline'}
+              </Badge>
             )}
           </div>
 
@@ -324,8 +310,19 @@ const CRM = () => {
         {/* Collapsible Daily Overview - smaller and toggleable */}
         {viewMode === 'kanban' && <CRMDailyOverview />}
 
-        {/* Mobile Pipeline Selector */}
-        {['kanban', 'metrics', 'overview'].includes(viewMode) && (
+        {/* Pipeline Journey - Highlighted Pipeline Selection */}
+        {['kanban', 'metrics'].includes(viewMode) && (
+          <CRMPipelineJourney
+            pipelines={pipelines}
+            selectedPipeline={selectedPipeline}
+            onSelect={setSelectedPipeline}
+            leadCounts={leadCountData?.counts}
+            valueCounts={leadCountData?.values}
+          />
+        )}
+
+        {/* Mobile Pipeline Selector - fallback */}
+        {['overview'].includes(viewMode) && (
           <div className="md:hidden">
             <CRMPipelineSelector
               pipelines={pipelines}
