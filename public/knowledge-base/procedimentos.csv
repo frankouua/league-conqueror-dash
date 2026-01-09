@@ -1,0 +1,50 @@
+id,nome,categoria,preco,preco_promocional,descricao,destaque
+ededadf7-c8de-4434-a5f0-0b8a234e59bd,2 Sessões Soroterapia Pré-Cirúrgica,pacote,892,,2 Sessões De Soroterapia Pré-Cirúrgica,false
+ebd1baf4-ef0e-486c-b93f-d2150ec24cd3,6 Sessões Soroterapia Pós-Op,pacote,2676,,6 Sessões De Soroterapia Pós-Operatória,true
+a876ccf9-c1d4-4ce7-ba09-38cc2f7fa39d,Pós Cirúrgico CPI - Protocolo 1,pacote,2200,,Pós Cirúrgico CPI - Protocolo 1,false
+fd39b555-f0ab-4991-9982-cd1e6bf93081,Pós Cirúrgico CPI - Protocolo 2,pacote,3590,,Pós Cirúrgico CPI - Protocolo 2,false
+290db8c3-edd7-4486-adac-ecabb38904ec,Pré Cirúrgico CPI - Protocolo 1,pacote,1349,,Pré Cirúrgico CPI - Pronta Para Cirurgia,true
+8d7da778-fe48-418f-b934-b7c62c0d74e0,Pré Cirúrgico CPI - Protocolo 2,pacote,2947,,Pré Cirúrgico CPI - Preparar 1-2 Meses,false
+80adc1fe-6232-49d5-b974-fbd98fbf543b,Pré Cirúrgico CPI - Protocolo 3,pacote,4190,,Pré Cirúrgico CPI - Preparar 3-4 Meses,false
+48fa4015-3957-4233-9940-fe6eaf27923a,Spa Day Amigas Diamante (4 pessoas),pacote,1525,,Spa Day Amigas Diamante (Para Até 4 Pessoas),true
+2a6d1cbb-8e32-42d2-aa54-a09b3478b2f9,Spa Day Casal Romantic,pacote,950,,Spa Day Romantic - Casal,true
+4ed735f7-ee2a-4dd6-bdcc-13c2e584b94d,Spa Day Casal Vinhoterapia,pacote,1525,,Spa Day Vinhoterapia - Casal,false
+389fe061-6de6-4220-b1f9-7ded95e775df,Spa Day Debutante,pacote,980,,Spa Day - Debutante (Para 1 Pessoa),false
+fb5ad47c-dae2-4393-be26-7ae0f4e7923f,Spa Day Noiva de Diamante,pacote,1480,,Spa Day - Noiva De Diamante,true
+8be12139-c415-42e1-95d2-261e82e73615,Spa Day Noiva de Ouro,pacote,1150,,Spa Day - Noiva De Ouro,false
+bbe13b70-e6a6-4a08-a963-413905d57f6c,Spa Day Pré Cirúrgico 1 - Jornada Suave,pacote,250,,Spa Day Pré Cirúrgico 1 - Jornada Suave,true
+4092999d-c59f-43f7-8f5a-c38fc79e365c,Spa Day Pré Cirúrgico 2 - Horizonte Sereno,pacote,300,,Spa Day Pré Cirúrgico 2 - Horizonte Sereno,false
+1e907587-975e-4145-a887-bf614ea979da,Spa Day Pré Cirúrgico 3 - Renovação Suprema,pacote,400,,Spa Day Pré Cirúrgico 3 - Jornada Da Renovação Suprema,false
+5b977862-d96f-42b9-be5b-ce1644efb4c1,Spa Day Princesa,pacote,725,,Spa Day - Dia De Princesa (Para 1 Pessoa),false
+29169757-376f-40de-b959-d2416a63a524,Spa Day Rainha (Individual),pacote,1280,,Spa Day Individual - Experiência Rainha (Para 1 Pessoa),true
+37e659a7-e787-4812-a849-1154a90a157f,Unique Fit (Pré Cirúrgico),pacote,2550,,Unique Fit - Programa Pré Cirúrgico,true
+4e9e87ee-b6ac-488c-b175-e3b129edfb74,Unique Slim Consciente,pacote,4700,,Unique Slim Consciente (Pós Cirúrgico),true
+d829cf11-f709-42df-987d-3ac12d81caab,AG 1.01 - Unique Genetics,procedimento,4900,,Análise Genética - Unique Genetics (Nutrição/Hormonal/Detox/Metabolismo),true
+7115084a-8373-4f8f-8dd6-f6d7bc9a0518,AG 1.04 - Breastcheck,procedimento,4200,,Análise Genética - Breastcheck (Predisposição Câncer),false
+11efd677-ed1b-4450-bbcf-1bbecae94a62,CM Slim,procedimento,380,,CM Slim - Sessão,false
+ebd8a4d3-88cb-414e-8821-c3ca892becc3,Com 101 - Abdominoplastia HD,procedimento,10500,,Abdominoplastia HD Combinada,true
+a1b2c3d4-e5f6-4789-abcd-100000000001,Com 102 - Lipo Ultra HD 360º,procedimento,18780,,Lipoaspiração Ultra HD 360 Graus Combinada,true
+a1b2c3d4-e5f6-4789-abcd-100000000002,Com 103 - Remodelação Glútea BBL,procedimento,6631,,BBL - Brazilian Butt Lift Combinado,true
+a1b2c3d4-e5f6-4789-abcd-100000000003,Com 107 - Mastopexia em L Com Prótese,procedimento,27500,,Mastopexia em L com Prótese Combinada,true
+a1b2c3d4-e5f6-4789-abcd-100000000004,Consulta Dr. André - Cirurgia Plástica,procedimento,750,,Consulta com Dr. André - Cirurgia Plástica,true
+a1b2c3d4-e5f6-4789-abcd-100000000005,Consulta Nutricionista,procedimento,490,,Consulta com Nutricionista,true
+a1b2c3d4-e5f6-4789-abcd-100000000006,End 1.20 - Endolifting Full Face,procedimento,7700,,Endolifting Full Face,true
+a1b2c3d4-e5f6-4789-abcd-100000000007,Exossomos Facial,procedimento,2500,,Tratamento com Exossomos Facial,true
+a1b2c3d4-e5f6-4789-abcd-100000000008,IH 1.0 - Implante Ocitocina,procedimento,1980,,Implante Hormonal de Ocitocina,true
+a1b2c3d4-e5f6-4789-abcd-100000000009,IH 1.12 - Implante Oxandrolona 50mg,procedimento,1890,,Implante Hormonal Oxandrolona 50mg,true
+a1b2c3d4-e5f6-4789-abcd-100000000010,IH 1.19 - Implante Testosterona 200mg,procedimento,1590,,Implante Hormonal Testosterona 200mg,true
+a1b2c3d4-e5f6-4789-abcd-100000000011,Ind 101 - Abdominoplastia HD,procedimento,18400,,Abdominoplastia HD Individual,true
+a1b2c3d4-e5f6-4789-abcd-100000000012,Ind 103 - Remodelação Glútea BBL,procedimento,8700,,BBL - Brazilian Butt Lift Individual,true
+a1b2c3d4-e5f6-4789-abcd-100000000013,Ind 104 - Silhueta Unique (Costela),procedimento,25000,,Silhueta Unique - Remoção de Costela,true
+a1b2c3d4-e5f6-4789-abcd-100000000014,Ind 107 - Mastopexia em L Com Prótese,procedimento,34000,,Mastopexia em L com Prótese Individual,true
+a1b2c3d4-e5f6-4789-abcd-100000000015,Ind 109 - Prótese R24R,procedimento,20700,,Prótese de Silicone R24R,true
+a1b2c3d4-e5f6-4789-abcd-100000000016,Ind 127 - Rinoplastia Estruturada,procedimento,27500,,Rinoplastia Estruturada Individual,true
+a1b2c3d4-e5f6-4789-abcd-100000000017,Laser de Pico Full Face,procedimento,3000,,Laser de Pico Full Face,true
+a1b2c3d4-e5f6-4789-abcd-100000000018,Microagulhamento Robótico Full Face,procedimento,2550,,Microagulhamento Robótico Full Face,true
+a1b2c3d4-e5f6-4789-abcd-100000000019,Microagulhamento Toskani Clareador,procedimento,2200,,Microagulhamento com Toskani Clareador,true
+a1b2c3d4-e5f6-4789-abcd-100000000020,Peeling Ácido Retinoico,procedimento,500,,Peeling com Ácido Retinoico,true
+a1b2c3d4-e5f6-4789-abcd-100000000021,Pos 1.10 - Drenagem Pós-Op (3R),procedimento,170,,Drenagem Linfática Pós-Operatória 3 Regiões,true
+a1b2c3d4-e5f6-4789-abcd-100000000022,Pré-Consulta Unique Vision Dr. André,procedimento,390,,Pré-Consulta Unique Vision com Dr. André,true
+a1b2c3d4-e5f6-4789-abcd-100000000023,Pro 1.10 - Botox Terço Superior,procedimento,1700,,Botox Terço Superior,true
+a1b2c3d4-e5f6-4789-abcd-100000000024,Pro 1.118 - Morpheus Full Face + Papada + Pescoço,procedimento,6380,,Morpheus8 Full Face + Papada + Pescoço,true
+a1b2c3d4-e5f6-4789-abcd-100000000025,Pro 1.140 - Morpheus Corporal 360º,procedimento,16500,,Morpheus8 Corporal 360 Graus,true

@@ -1,0 +1,168 @@
+{
+  "scripts": [
+    {
+      "id": "first_contact_general",
+      "etapa": "Primeiro Contato",
+      "intencao": "Atendimento Inicial",
+      "script": "Olá! 💫 Sou [NOME] da Unique Plástica Avançada! Vi que você tem interesse em conhecer nossos procedimentos. Posso te ajudar! Qual procedimento você gostaria de saber mais?",
+      "dicas": ["Responder em até 5 minutos", "Usar nome da pessoa se disponível", "Ser caloroso mas profissional"]
+    },
+    {
+      "id": "first_contact_botox",
+      "etapa": "Primeiro Contato",
+      "intencao": "Informação sobre Botox",
+      "script": "Oi! Tudo bem? Vi que você tem interesse em Botox. 💉 Na Unique, utilizamos a técnica mais natural do mercado! Você já fez algum procedimento antes ou seria sua primeira experiência?",
+      "dicas": ["Perguntar sobre experiência anterior", "Destacar naturalidade do resultado"]
+    },
+    {
+      "id": "first_contact_cirurgia",
+      "etapa": "Primeiro Contato",
+      "intencao": "Interesse em Cirurgia",
+      "script": "Olá! 🌟 Que bom receber você! Vi que tem interesse em cirurgia plástica. Aqui na Unique trabalhamos com o Método CPI - Cirurgia Plástica Integrativa, que prepara seu corpo antes, durante e depois do procedimento. Qual cirurgia você está considerando?",
+      "dicas": ["Explicar diferencial do Método CPI", "Criar senso de exclusividade"]
+    },
+    {
+      "id": "qualificacao_bant",
+      "etapa": "Qualificação",
+      "intencao": "Entender Perfil",
+      "script": "Para eu te ajudar melhor, posso te fazer algumas perguntas rápidas? 📋\n\n1️⃣ Há quanto tempo você pensa nesse procedimento?\n2️⃣ Você decide sozinha ou precisa consultar alguém?\n3️⃣ Para quando você gostaria de realizar?\n4️⃣ Já pesquisou valores em outras clínicas?",
+      "dicas": ["Fazer uma pergunta por vez se necessário", "Ouvir atentamente", "Anotar respostas"]
+    },
+    {
+      "id": "agendamento_unique_day",
+      "etapa": "Agendamento",
+      "intencao": "Agendar Consulta",
+      "script": "Perfeito! 📅 Vou te agendar para o Unique Day - nossa consulta exclusiva onde você terá uma avaliação completa com nosso cirurgião. O investimento é de R$ 750 e esse valor é abatido do procedimento! Tenho horários disponíveis [DATAS]. Qual fica melhor para você?",
+      "dicas": ["Sempre dar opções de datas", "Destacar que valor é abatido", "Criar urgência com agenda"]
+    },
+    {
+      "id": "objecao_vou_pensar",
+      "etapa": "Quebra de Objeção",
+      "intencao": "Vou pensar",
+      "script": "Claro, respeito seu tempo! 💭 Mas preciso te avisar com carinho: o Unique Day tem agenda rotativa e filas. Posso segurar seu horário por 1 hora sem compromisso? Assim você pensa com calma e não perde a vaga.",
+      "dicas": ["Criar urgência sutil", "Mostrar empatia", "Oferecer alternativa"]
+    },
+    {
+      "id": "objecao_caro",
+      "etapa": "Quebra de Objeção",
+      "intencao": "Está caro",
+      "script": "Entendo que é um investimento significativo! 💰 Mas pense assim: essa é a avaliação mais completa do mercado, com diagnóstico exclusivo pelo Método CPI. E o melhor: o valor da consulta é abatido do procedimento final! É praticamente uma consulta premium gratuita quando você realiza o procedimento.",
+      "dicas": ["Destacar valor agregado", "Mencionar abatimento", "Falar de retorno do investimento"]
+    },
+    {
+      "id": "objecao_pesquisar",
+      "etapa": "Quebra de Objeção",
+      "intencao": "Preciso pesquisar",
+      "script": "Claro, informação é importante! 🔍 Você sabia que muitas pacientes que pesquisam bastante acabam se perdendo em tantas opções? No Unique Day você recebe um diagnóstico claro e honesto - sem compromisso de fazer o procedimento. Que tal viver essa experiência e decidir com mais clareza?",
+      "dicas": ["Validar a pesquisa", "Oferecer clareza", "Sem pressão"]
+    },
+    {
+      "id": "objecao_tempo",
+      "etapa": "Quebra de Objeção",
+      "intencao": "Não tenho tempo",
+      "script": "Totalmente compreensível! ⏰ Por isso oferecemos consultas online também. São apenas 40 minutos que podem mudar sua vida. Qual horário da semana fica mais tranquilo para você? Manhã, tarde ou noite?",
+      "dicas": ["Oferecer flexibilidade", "Minimizar tempo necessário", "Dar opções"]
+    },
+    {
+      "id": "objecao_medo",
+      "etapa": "Quebra de Objeção",
+      "intencao": "Tenho medo de cirurgia",
+      "script": "É completamente normal ter receio! 🤗 Por isso nosso Método CPI é diferente: preparamos seu corpo antes, durante e depois da cirurgia. Nossa taxa de complicações é mínima! Posso te enviar alguns depoimentos de pacientes que tinham o mesmo medo e hoje estão realizadas?",
+      "dicas": ["Validar o medo", "Apresentar diferencial de segurança", "Usar prova social"]
+    },
+    {
+      "id": "objecao_marido",
+      "etapa": "Quebra de Objeção",
+      "intencao": "Meu marido não deixa",
+      "script": "Entendo! 👫 E se ele viesse junto conhecer? Muitos parceiros mudam de ideia quando entendem que é sobre autoestima e saúde, não só estética. Temos horários flexíveis para casais. Quer que eu reserve um horário para vocês dois?",
+      "dicas": ["Incluir o parceiro", "Falar de saúde e autoestima", "Oferecer consulta para casal"]
+    },
+    {
+      "id": "objecao_outro_medico",
+      "etapa": "Quebra de Objeção",
+      "intencao": "Vou fazer com outro médico",
+      "script": "Ótimo que você está decidida a realizar! 👏 Só uma reflexão: você já conheceu o Método CPI? É exclusivo da Unique e faz toda diferença no resultado e recuperação. Vale conhecer antes de decidir. O Unique Day te dá essa clareza para tomar a melhor decisão!",
+      "dicas": ["Não criticar concorrência", "Destacar exclusividade", "Focar em informação"]
+    },
+    {
+      "id": "followup_d1",
+      "etapa": "Follow-up",
+      "intencao": "Dia +1 - Retomada",
+      "script": "Oi [NOME]! 👋 Lembrei de você! Conseguiu pensar sobre o Unique Day? Estou aqui para tirar qualquer dúvida que tenha surgido. 💫",
+      "dicas": ["Ser leve", "Não pressionar", "Mostrar disponibilidade"]
+    },
+    {
+      "id": "followup_d3",
+      "etapa": "Follow-up",
+      "intencao": "Dia +3 - Prova Social",
+      "script": "Oi [NOME]! 🌟 Olha só esse resultado incrível de uma paciente nossa que fez [PROCEDIMENTO]! [ENVIAR ANTES/DEPOIS]. Ela tinha as mesmas dúvidas que você. Quer saber mais sobre a experiência dela?",
+      "dicas": ["Usar caso similar", "Enviar foto antes/depois", "Criar conexão emocional"]
+    },
+    {
+      "id": "followup_d5",
+      "etapa": "Follow-up",
+      "intencao": "Dia +5 - Ligação",
+      "script": "[LIGAR] Oi [NOME], aqui é [SEU NOME] da Unique! Tudo bem? Estou ligando porque vi que você tinha interesse em [PROCEDIMENTO] e queria entender melhor o que está te impedindo de dar esse passo. Posso te ajudar?",
+      "dicas": ["Fazer ligação pessoal", "Ser direto mas empático", "Entender objeção real"]
+    },
+    {
+      "id": "followup_d7",
+      "etapa": "Follow-up",
+      "intencao": "Dia +7 - Última Tentativa",
+      "script": "Oi [NOME]! 💫 Vou arquivar sua ficha por aqui, mas fico à disposição quando você estiver pronta! Se mudar de ideia, é só me chamar. Desejo tudo de bom! 🙏",
+      "dicas": ["Encerrar sem pressão", "Deixar porta aberta", "Ser educado"]
+    },
+    {
+      "id": "reativacao_30dias",
+      "etapa": "Reativação",
+      "intencao": "Lead Inativo 30+ dias",
+      "script": "Oi [NOME]! 🌟 Lembrei de você! Conversamos há um tempo sobre [PROCEDIMENTO]. Temos uma condição especial essa semana para pacientes que estavam em nossa lista. Posso te contar os detalhes?",
+      "dicas": ["Criar exclusividade", "Mencionar condição especial", "Limitar tempo"]
+    },
+    {
+      "id": "reativacao_perdido",
+      "etapa": "Reativação",
+      "intencao": "Lead Perdido",
+      "script": "Oi [NOME]! 👋 Sei que optou por outro caminho na época. Sem problemas! Posso te perguntar sinceramente o que pesou na sua decisão? Queremos sempre melhorar nosso atendimento. 🙏",
+      "dicas": ["Ser humilde", "Pedir feedback genuíno", "Aprender com a perda"]
+    },
+    {
+      "id": "pos_venda_d1",
+      "etapa": "Pós-Venda",
+      "intencao": "Dia +1 após procedimento",
+      "script": "Oi [NOME]! 💫 Passando para saber como você está após o procedimento. Algum desconforto? Está seguindo todas as orientações? Estamos aqui para qualquer dúvida! 🤗",
+      "dicas": ["Mostrar cuidado genuíno", "Verificar orientações", "Estar disponível"]
+    },
+    {
+      "id": "pos_venda_nps",
+      "etapa": "Pós-Venda",
+      "intencao": "Coleta de NPS",
+      "script": "Oi [NOME]! 🌟 Como foi sua experiência na Unique? De 0 a 10, quanto você recomendaria nossos serviços para uma amiga? Seu feedback é muito importante para nós! 💫",
+      "dicas": ["Ser breve", "Facilitar resposta", "Agradecer independente da nota"]
+    },
+    {
+      "id": "indicacao",
+      "etapa": "Farmer",
+      "intencao": "Solicitar Indicação",
+      "script": "Oi [NOME]! 💫 Que bom que você está feliz com seu resultado! Você conhece alguma amiga que também sonha com uma transformação? Temos um programa especial: você ganha [BENEFÍCIO] quando indica uma amiga que realiza procedimento! 🎁",
+      "dicas": ["Só pedir após satisfação confirmada", "Destacar benefício", "Facilitar indicação"]
+    }
+  ],
+  "categorias": [
+    "Primeiro Contato",
+    "Qualificação",
+    "Agendamento",
+    "Quebra de Objeção",
+    "Follow-up",
+    "Reativação",
+    "Pós-Venda",
+    "Farmer"
+  ],
+  "tags": {
+    "urgencia": ["vou_pensar", "agenda_limitada"],
+    "preco": ["caro", "investimento", "abatimento"],
+    "medo": ["seguranca", "metodo_cpi", "depoimentos"],
+    "tempo": ["flexibilidade", "online", "40_minutos"],
+    "decisao": ["marido", "familia", "casal"]
+  }
+}
