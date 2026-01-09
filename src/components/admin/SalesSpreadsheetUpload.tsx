@@ -220,24 +220,19 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     });
   };
 
-  // Function to refresh all dashboard data
+  // Function to refresh all dashboard data - invalidates ALL queries across the system
   const refreshAllDashboards = () => {
-    // Invalidate all relevant queries to force refetch
-    queryClient.invalidateQueries({ queryKey: ["team-scores"] });
-    queryClient.invalidateQueries({ queryKey: ["revenue"] });
-    queryClient.invalidateQueries({ queryKey: ["revenue-by-department"] });
-    queryClient.invalidateQueries({ queryKey: ["department-goals"] });
-    queryClient.invalidateQueries({ queryKey: ["goal-progress"] });
-    queryClient.invalidateQueries({ queryKey: ["predefined-goals"] });
-    queryClient.invalidateQueries({ queryKey: ["individual-goals"] });
-    queryClient.invalidateQueries({ queryKey: ["seller-dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["rfv"] });
-    queryClient.invalidateQueries({ queryKey: ["executed"] });
-    queryClient.invalidateQueries({ queryKey: ["executed-by-department"] });
+    // NUCLEAR OPTION: Invalidate ALL queries in the entire cache
+    // This guarantees no stale data remains after upload/deletion
+    queryClient.invalidateQueries();
+    
+    // Also clear the cache to force fresh fetches
+    queryClient.clear();
     
     toast({
-      title: "✅ Dashboards Atualizados!",
-      description: "Todos os painéis foram atualizados com os novos dados.",
+      title: "✅ Todos os Dashboards Atualizados!",
+      description: "Sistema completamente atualizado com os novos dados.",
+      duration: 5000,
     });
   };
 
