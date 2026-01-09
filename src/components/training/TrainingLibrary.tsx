@@ -47,8 +47,12 @@ const DIFFICULTY_LABELS: Record<string, { label: string; color: string }> = {
   avancado: { label: "Avançado", color: "bg-red-500/10 text-red-600" },
 };
 
-const TrainingLibrary = () => {
-  const { materials, completeMaterial, isMaterialCompleted, isLoading } = useTrainingAcademy();
+interface TrainingLibraryProps {
+  targetRole: string;
+}
+
+const TrainingLibrary = ({ targetRole }: TrainingLibraryProps) => {
+  const { materials, completeMaterial, isMaterialCompleted, isLoading } = useTrainingAcademy(targetRole);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [selectedMaterial, setSelectedMaterial] = useState<TrainingMaterial | null>(null);

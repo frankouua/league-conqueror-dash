@@ -29,9 +29,11 @@ type TrainingRole = typeof TRAINING_ROLES[number]["id"];
 
 const TrainingAcademy = () => {
   const { profile } = useAuth();
-  const { userStats, isLoading } = useTrainingAcademy();
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedRole, setSelectedRole] = useState<TrainingRole | null>(null);
+  
+  // Pass selectedRole to hook to filter data
+  const { userStats, isLoading } = useTrainingAcademy(selectedRole || undefined);
   const xpProgress = userStats ? getXpProgress(userStats.total_xp, userStats.current_level) : 0;
   const levelName = userStats ? getLevelName(userStats.current_level) : "Iniciante 🌱";
 
@@ -285,22 +287,22 @@ const TrainingAcademy = () => {
 
         {/* Library Tab */}
         <TabsContent value="library">
-          <TrainingLibrary />
+          <TrainingLibrary targetRole={selectedRole!} />
         </TabsContent>
 
         {/* Quizzes Tab */}
         <TabsContent value="quizzes">
-          <TrainingQuizzes />
+          <TrainingQuizzes targetRole={selectedRole!} />
         </TabsContent>
 
         {/* Simulations Tab */}
         <TabsContent value="simulations">
-          <TrainingSimulations />
+          <TrainingSimulations targetRole={selectedRole!} />
         </TabsContent>
 
         {/* Tracks Tab */}
         <TabsContent value="tracks">
-          <TrainingTracks />
+          <TrainingTracks targetRole={selectedRole!} />
         </TabsContent>
       </Tabs>
     </div>

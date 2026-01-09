@@ -41,9 +41,13 @@ interface SimulationFeedback {
   detailed_analysis: string;
 }
 
-const TrainingSimulations = () => {
+interface TrainingSimulationsProps {
+  targetRole: string;
+}
+
+const TrainingSimulations = ({ targetRole }: TrainingSimulationsProps) => {
   const { user } = useAuth();
-  const { simulations, simulationAttempts, addXp, isLoading } = useTrainingAcademy();
+  const { simulations, simulationAttempts, addXp, isLoading } = useTrainingAcademy(targetRole);
   const [selectedSimulation, setSelectedSimulation] = useState<TrainingSimulation | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);

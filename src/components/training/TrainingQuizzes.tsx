@@ -18,8 +18,12 @@ const DIFFICULTY_LABELS: Record<string, { label: string; color: string }> = {
   advanced: { label: "Avançado", color: "bg-red-500/10 text-red-600" },
 };
 
-const TrainingQuizzes = () => {
-  const { quizzes, submitQuiz, getBestQuizScore, isQuizPassed, isLoading } = useTrainingAcademy();
+interface TrainingQuizzesProps {
+  targetRole: string;
+}
+
+const TrainingQuizzes = ({ targetRole }: TrainingQuizzesProps) => {
+  const { quizzes, submitQuiz, getBestQuizScore, isQuizPassed, isLoading } = useTrainingAcademy(targetRole);
   const [selectedQuiz, setSelectedQuiz] = useState<TrainingQuiz | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
