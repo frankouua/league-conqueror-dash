@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Target, Trophy, Users, Briefcase } from "lucide-react";
+import { Target, Trophy, Users, Briefcase, Building2 } from "lucide-react";
 import { CLINIC_GOALS } from "@/constants/clinicGoals";
 import {
   Table,
@@ -113,6 +113,31 @@ const OnboardingGoals = () => {
       })) || [];
     },
   });
+
+  // Buscar metas por departamento dos vendedores
+  const { data: sellerDeptGoals } = useQuery({
+    queryKey: ["seller-department-goals-all", currentMonth, currentYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("seller_department_goals")
+        .select("*")
+        .eq("month", currentMonth)
+        .eq("year", currentYear)
+        .order("seller_name", { ascending: true })
+        .order("department_name", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Agrupar metas por departamento por vendedor
+  const sellerDeptGrouped = sellerDeptGoals?.reduce((acc, goal) => {
+    if (!acc[goal.seller_name || '']) {
+      acc[goal.seller_name || ''] = [];
+    }
+    acc[goal.seller_name || ''].push(goal);
+    return acc;
+  }, {} as Record<string, typeof sellerDeptGoals>);
 
   // Agrupar vendedores por área comercial
   const groupedGoals = predefinedGoals?.reduce((acc, goal) => {
@@ -335,6 +360,95 @@ const OnboardingGoals = () => {
           </CardContent>
         </Card>
 
+        {/* Metas por Departamento por Vendedor */}
+        {sellerDeptGrouped && Object.keys(sellerDeptGrouped).length > 0 && (
+          <Card className="mb-8 border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-primary" />
+                Metas por Departamento - Individual
+              </CardTitle>
+              <CardDescription>
+                Metas de cada vendedor(a) divididas por grupo de procedimento
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {Object.entries(sellerDeptGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([sellerName, goals]) => {
+                const isCurrentUser = profile?.full_name?.toLowerCase().startsWith(sellerName.toLowerCase());
+                const totalMeta1 = goals?.reduce((sum, g) => sum + Number(g.meta1_goal), 0) || 0;
+                const totalMeta2 = goals?.reduce((sum, g) => sum + Number(g.meta2_goal), 0) || 0;
+                const totalMeta3 = goals?.reduce((sum, g) => sum + Number(g.meta3_goal), 0) || 0;
+                const totalQty1 = goals?.reduce((sum, g) => sum + Number(g.meta1_qty), 0) || 0;
+                const totalQty2 = goals?.reduce((sum, g) => sum + Number(g.meta2_qty), 0) || 0;
+                const totalQty3 = goals?.reduce((sum, g) => sum + Number(g.meta3_qty), 0) || 0;
+                
+                return (
+                  <div key={sellerName} className={`space-y-2 p-4 rounded-lg ${isCurrentUser ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'}`}>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-lg">{sellerName}</h3>
+                      {isCurrentUser && (
+                        <Badge className="bg-primary text-primary-foreground text-xs">Você</Badge>
+                      )}
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead className="font-bold">Departamento</TableHead>
+                            <TableHead className="text-right font-bold">Ticket Médio</TableHead>
+                            <TableHead className="text-right font-bold text-green-600">Meta 1</TableHead>
+                            <TableHead className="text-center font-bold text-green-600">Qtd</TableHead>
+                            <TableHead className="text-right font-bold text-yellow-600">Meta 2</TableHead>
+                            <TableHead className="text-center font-bold text-yellow-600">Qtd</TableHead>
+                            <TableHead className="text-right font-bold text-primary">Meta 3</TableHead>
+                            <TableHead className="text-center font-bold text-primary">Qtd</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {goals?.map((goal) => (
+                            <TableRow key={goal.id} className="hover:bg-muted/50">
+                              <TableCell className="font-medium">{goal.department_name}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {formatCurrency(Number(goal.average_ticket) || 0)}
+                              </TableCell>
+                              <TableCell className="text-right text-green-600 font-semibold">
+                                {formatCurrency(Number(goal.meta1_goal))}
+                              </TableCell>
+                              <TableCell className="text-center text-green-600">
+                                {goal.meta1_qty}
+                              </TableCell>
+                              <TableCell className="text-right text-yellow-600 font-semibold">
+                                {formatCurrency(Number(goal.meta2_goal))}
+                              </TableCell>
+                              <TableCell className="text-center text-yellow-600">
+                                {goal.meta2_qty}
+                              </TableCell>
+                              <TableCell className="text-right text-primary font-semibold">
+                                {formatCurrency(Number(goal.meta3_goal))}
+                              </TableCell>
+                              <TableCell className="text-center text-primary">
+                                {goal.meta3_qty}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="bg-muted/50 font-bold border-t-2">
+                            <TableCell colSpan={2}>TOTAL {sellerName}</TableCell>
+                            <TableCell className="text-right text-green-600">{formatCurrency(totalMeta1)}</TableCell>
+                            <TableCell className="text-center text-green-600">{totalQty1}</TableCell>
+                            <TableCell className="text-right text-yellow-600">{formatCurrency(totalMeta2)}</TableCell>
+                            <TableCell className="text-center text-yellow-600">{totalQty2}</TableCell>
+                            <TableCell className="text-right text-primary">{formatCurrency(totalMeta3)}</TableCell>
+                            <TableCell className="text-center text-primary">{totalQty3}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
         {/* Botão para ir ao Dashboard */}
         <div className="flex justify-center">
           <Button
