@@ -44,6 +44,7 @@ import { CRMLeadChecklist } from './CRMLeadChecklist';
 import { CRMTemperatureBadge, CRMTemperatureSelector } from './CRMTemperatureBadge';
 import { CRMInternalChat } from './CRMInternalChat';
 import { CRMLeadInteractions } from './CRMLeadInteractions';
+import { CRMLeadScriptSuggestions } from './CRMLeadScriptSuggestions';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -296,13 +297,18 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               {/* Checklist Tab */}
               <TabsContent value="checklist" className="m-0 space-y-3 sm:space-y-4">
                 {lead && (
-                  <CRMLeadChecklist 
-                    lead={lead} 
-                    stage={currentStage || null}
-                    onSurgeryDateChange={() => {
-                      // Refresh lead data
-                    }}
-                  />
+                  <>
+                    {/* Script Suggestions based on stage */}
+                    <CRMLeadScriptSuggestions lead={lead} compact />
+                    
+                    <CRMLeadChecklist 
+                      lead={lead} 
+                      stage={currentStage || null}
+                      onSurgeryDateChange={() => {
+                        // Refresh lead data
+                      }}
+                    />
+                  </>
                 )}
               </TabsContent>
 

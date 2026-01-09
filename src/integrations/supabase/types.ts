@@ -2175,6 +2175,41 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base_reads: {
+        Row: {
+          article_id: string
+          completed: boolean | null
+          id: string
+          read_at: string
+          time_spent_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          completed?: boolean | null
+          id?: string
+          read_at?: string
+          time_spent_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          completed?: boolean | null
+          id?: string
+          read_at?: string
+          time_spent_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_base"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
