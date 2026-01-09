@@ -21,12 +21,23 @@ const SCENARIO_LABELS: Record<string, string> = {
   objection_handling: "Quebra de Objeções",
   closing: "Fechamento",
   follow_up: "Follow-up",
+  consultoria: "Consultoria",
+  partnership: "Parceria",
+  referral: "Indicação",
+  reactivation: "Reativação",
+  upsell: "Upsell",
+  crisis: "Gestão de Crise",
+  retention: "Retenção",
 };
 
 const DIFFICULTY_LABELS: Record<string, { label: string; color: string }> = {
   beginner: { label: "Iniciante", color: "bg-green-500/10 text-green-600" },
+  easy: { label: "Fácil", color: "bg-green-500/10 text-green-600" },
   intermediate: { label: "Intermediário", color: "bg-yellow-500/10 text-yellow-600" },
+  medium: { label: "Médio", color: "bg-yellow-500/10 text-yellow-600" },
   advanced: { label: "Avançado", color: "bg-red-500/10 text-red-600" },
+  hard: { label: "Difícil", color: "bg-red-500/10 text-red-600" },
+  expert: { label: "Expert", color: "bg-purple-500/10 text-purple-600" },
 };
 
 interface ChatMessage {
