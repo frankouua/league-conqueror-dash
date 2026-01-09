@@ -64,36 +64,21 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
   const daysRemaining = differenceInDays(endOfMonth, now);
   const businessDaysRemaining = Math.ceil(daysRemaining * 0.71);
 
-  // Fetch seller's predefined goal (their total meta1, meta2, meta3)
-  const { data: predefinedGoal, isLoading: loadingPredefined } = useQuery({
-    queryKey: ["personal-predefined-goal", user?.id, month, year],
+  // Fetch seller's individual department goals from seller_department_goals table
+  const { data: sellerDeptGoals = [], isLoading: loadingDeptGoals } = useQuery({
+    queryKey: ["seller-department-goals", user?.id, month, year],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) return [];
       const { data, error } = await supabase
-        .from("predefined_goals")
-        .select("meta1_goal, meta2_goal, meta3_goal")
-        .eq("matched_user_id", user.id)
-        .eq("month", month)
-        .eq("year", year)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
-  // Fetch department goals (clinic total metas by department)
-  const { data: departmentGoals = [], isLoading: loadingDeptGoals } = useQuery({
-    queryKey: ["department-goals", month, year],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("department_goals")
+        .from("seller_department_goals")
         .select("*")
+        .eq("user_id", user.id)
         .eq("month", month)
         .eq("year", year);
       if (error) throw error;
       return data;
     },
+    enabled: !!user?.id,
   });
 
   // Fetch revenue records for this month
@@ -130,16 +115,6 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     return formatCurrency(value);
   };
 
-  // Calculate total clinic metas
-  const totalClinicMeta1 = departmentGoals.reduce((sum, dg) => sum + (dg.meta1_goal || 0), 0);
-  const totalClinicMeta2 = departmentGoals.reduce((sum, dg) => sum + (dg.meta2_goal || 0), 0);
-  const totalClinicMeta3 = departmentGoals.reduce((sum, dg) => sum + (dg.meta3_goal || 0), 0);
-
-  // Seller's total goals
-  const sellerMeta1 = predefinedGoal?.meta1_goal || 0;
-  const sellerMeta2 = predefinedGoal?.meta2_goal || 0;
-  const sellerMeta3 = predefinedGoal?.meta3_goal || 0;
-
   // Process revenue by department
   const revenueByDept: Record<string, number> = {};
   revenueRecords.forEach((r) => {
@@ -148,18 +123,11 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     revenueByDept[mappedDept] = (revenueByDept[mappedDept] || 0) + (r.amount || 0);
   });
 
-  // Build department data with individual metas proportional to clinic goals
-  const departmentData: DepartmentGoalData[] = departmentGoals.map((dg) => {
-    // Calculate proportion for each meta
-    const propMeta1 = totalClinicMeta1 > 0 ? (dg.meta1_goal / totalClinicMeta1) : 0;
-    const propMeta2 = totalClinicMeta2 > 0 ? (dg.meta2_goal / totalClinicMeta2) : 0;
-    const propMeta3 = totalClinicMeta3 > 0 ? (dg.meta3_goal / totalClinicMeta3) : 0;
-
-    // Individual goals for this department
-    const meta1 = Math.round(sellerMeta1 * propMeta1);
-    const meta2 = Math.round(sellerMeta2 * propMeta2);
-    const meta3 = Math.round(sellerMeta3 * propMeta3);
-
+  // Build department data from seller's individual goals
+  const departmentData: DepartmentGoalData[] = sellerDeptGoals.map((dg) => {
+    const meta1 = Number(dg.meta1_goal) || 0;
+    const meta2 = Number(dg.meta2_goal) || 0;
+    const meta3 = Number(dg.meta3_goal) || 0;
     const realized = revenueByDept[dg.department_name] || 0;
 
     const percentMeta1 = meta1 > 0 ? Math.round((realized / meta1) * 100) : 0;
@@ -237,7 +205,7 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     }
   };
 
-  if (loadingPredefined || loadingDeptGoals || loadingRevenue) {
+  if (loadingDeptGoals || loadingRevenue) {
     return (
       <Card>
         <CardContent className="p-8 flex items-center justify-center">
@@ -248,7 +216,7 @@ export default function PersonalGoalsByDepartment({ month, year }: PersonalGoals
     );
   }
 
-  if (!predefinedGoal) {
+  if (sellerDeptGoals.length === 0) {
     return (
       <Card className="border-warning/30 bg-warning/5">
         <CardContent className="p-8 text-center">

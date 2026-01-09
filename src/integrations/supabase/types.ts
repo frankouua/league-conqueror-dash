@@ -3288,6 +3288,54 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_department_goals: {
+        Row: {
+          created_at: string
+          department_name: string
+          id: string
+          meta1_goal: number | null
+          meta1_qty: number | null
+          meta2_goal: number | null
+          meta2_qty: number | null
+          meta3_goal: number | null
+          meta3_qty: number | null
+          month: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          department_name: string
+          id?: string
+          meta1_goal?: number | null
+          meta1_qty?: number | null
+          meta2_goal?: number | null
+          meta2_qty?: number | null
+          meta3_goal?: number | null
+          meta3_qty?: number | null
+          month: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          department_name?: string
+          id?: string
+          meta1_goal?: number | null
+          meta1_qty?: number | null
+          meta2_goal?: number | null
+          meta2_qty?: number | null
+          meta3_goal?: number | null
+          meta3_qty?: number | null
+          month?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       special_events: {
         Row: {
           applied_by: string

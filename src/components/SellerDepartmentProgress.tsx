@@ -69,53 +69,21 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
   const currentDay = isCurrentMonth ? now.getDate() : new Date(year, month, 0).getDate();
   const totalDaysInMonth = new Date(year, month, 0).getDate();
 
-  // Fetch seller's individual goal from predefined_goals
-  const { data: sellerGoal } = useQuery({
-    queryKey: ["seller-predefined-goal", userId, month, year],
+  // Fetch seller's individual department goals from seller_department_goals table
+  const { data: sellerDeptGoals = [] } = useQuery({
+    queryKey: ["seller-department-goals", userId, month, year],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("predefined_goals")
-        .select("meta3_goal")
-        .eq("matched_user_id", userId)
+        .from("seller_department_goals")
+        .select("*")
+        .eq("user_id", userId)
         .eq("month", month)
-        .eq("year", year)
-        .maybeSingle();
+        .eq("year", year);
       if (error) throw error;
-      return data?.meta3_goal || 0;
+      return data;
     },
     enabled: !!userId,
   });
-
-  // Fetch department goals (revenue) - to get proportions
-  const { data: departmentGoals = [] } = useQuery({
-    queryKey: ["department-goals", month, year],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("department_goals")
-        .select("*")
-        .eq("month", month)
-        .eq("year", year);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch quantity goals
-  const { data: quantityGoals = [] } = useQuery({
-    queryKey: ["department-quantity-goals", month, year],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("department_quantity_goals")
-        .select("*")
-        .eq("month", month)
-        .eq("year", year);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch total quantity goal sum for proportion calculation
-  const totalQuantityGoalSum = quantityGoals.reduce((sum, q) => sum + (q.quantity_goal || 0), 0);
 
   // Fetch user's revenue records
   const { data: revenueRecords = [] } = useQuery({
@@ -136,60 +104,32 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
     enabled: !!userId,
   });
 
-  // Fetch count of sellers to calculate quantity share
-  const { data: sellerCount = 1 } = useQuery({
-    queryKey: ["seller-count-for-dept", month, year],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("predefined_goals")
-        .select("*", { count: "exact", head: true })
-        .eq("month", month)
-        .eq("year", year)
-        .not("matched_user_id", "is", null);
-      if (error) throw error;
-      return count || 1;
-    },
-  });
-
   // Process revenue data by department
   const revenueByDept: Record<string, number> = {};
   const countByDept: Record<string, number> = {};
   
   revenueRecords.forEach((r) => {
     const rawDept = r.department || "";
-    const mappedDept = DEPARTMENT_MAPPING[rawDept] || null;
-    if (mappedDept) {
-      revenueByDept[mappedDept] = (revenueByDept[mappedDept] || 0) + (r.amount || 0);
-      countByDept[mappedDept] = (countByDept[mappedDept] || 0) + 1;
-    }
+    const mappedDept = DEPARTMENT_MAPPING[rawDept] || rawDept;
+    revenueByDept[mappedDept] = (revenueByDept[mappedDept] || 0) + (r.amount || 0);
+    countByDept[mappedDept] = (countByDept[mappedDept] || 0) + 1;
   });
 
-  // Calculate individual meta3 goal from predefined_goals
-  const individualMeta3Goal = sellerGoal || 0;
-
-  // Calculate total clinic meta3 from department_goals
-  const totalClinicMeta3 = departmentGoals.reduce((sum, dg) => sum + (dg.meta3_goal || 0), 0);
-
-  // Build revenue department data - calculate individual goal based on proportion
-  const revenueDepartments: DepartmentData[] = departmentGoals.map((dg) => {
-    // Calculate this seller's share of this department based on their total goal proportion
-    const deptProportion = totalClinicMeta3 > 0 ? (dg.meta3_goal / totalClinicMeta3) : 0;
-    const individualGoal = individualMeta3Goal * deptProportion;
+  // Build revenue department data from seller's individual goals
+  const revenueDepartments: DepartmentData[] = sellerDeptGoals.map((dg) => {
     return {
       name: SHORT_NAMES[dg.department_name] || dg.department_name,
-      goal: individualGoal,
+      goal: Number(dg.meta3_goal) || 0,
       sold: revenueByDept[dg.department_name] || 0,
     };
   }).filter(d => d.goal > 0);
 
-  // Build quantity department data - divide by number of sellers
-  const individualShareDivisor = Math.max(sellerCount, 1);
-  const quantityDepartments: DepartmentData[] = quantityGoals.map((qg) => {
-    const individualGoal = Math.ceil(qg.quantity_goal / individualShareDivisor);
+  // Build quantity department data from seller's individual goals
+  const quantityDepartments: DepartmentData[] = sellerDeptGoals.map((dg) => {
     return {
-      name: SHORT_NAMES[qg.department_name] || qg.department_name,
-      goal: individualGoal,
-      sold: countByDept[qg.department_name] || 0,
+      name: SHORT_NAMES[dg.department_name] || dg.department_name,
+      goal: dg.meta3_qty || 0,
+      sold: countByDept[dg.department_name] || 0,
     };
   }).filter(d => d.goal > 0);
 
@@ -233,7 +173,7 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
     );
   };
 
-  if (departmentGoals.length === 0 && quantityGoals.length === 0) {
+  if (sellerDeptGoals.length === 0) {
     return null;
   }
 
