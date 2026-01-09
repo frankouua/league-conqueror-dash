@@ -140,21 +140,22 @@ export function SellerUnifiedCalendar() {
     priority: 'medium'
   });
 
-  // Buscar membros do time para convites
+  // Buscar todos os usuários cadastrados para convites
   const { data: teamMembers = [] } = useQuery({
-    queryKey: ['team-members-for-calendar', profile?.team_id],
+    queryKey: ['all-users-for-calendar', user?.id],
     queryFn: async () => {
-      if (!profile?.team_id) return [];
+      if (!user?.id) return [];
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url, team_id')
-        .eq('team_id', profile.team_id)
-        .neq('id', user?.id);
+        .neq('id', user.id)
+        .not('full_name', 'is', null)
+        .order('full_name');
       
       if (error) throw error;
       return (data || []) as TeamMember[];
     },
-    enabled: !!profile?.team_id
+    enabled: !!user?.id
   });
 
   // Buscar eventos do calendário
