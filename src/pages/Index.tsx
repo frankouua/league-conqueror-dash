@@ -268,7 +268,7 @@ const Index = () => {
 
         {/* Quick Actions - Interactive Dashboard Shortcuts */}
         <Suspense fallback={<MiniLoader />}>
-          <DashboardQuickActions className="mb-6" />
+          <DashboardQuickActions className="mb-4" onTabChange={handleTabChange} />
         </Suspense>
 
         {/* Main Tabs Navigation */}
