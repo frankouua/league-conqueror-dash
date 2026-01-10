@@ -34,6 +34,7 @@ const CommercialAssistantPage = lazy(() => import("./pages/wrappers/CommercialAs
 const CRM = lazy(() => import("./pages/CRM"));
 const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const PatientForm = lazy(() => import("./pages/PatientForm"));
 // New hub pages
 const Comercial = lazy(() => import("./pages/Comercial"));
 const Alavancas = lazy(() => import("./pages/Alavancas"));
@@ -113,6 +114,7 @@ const App = () => (
               <Route path="/analyze-persona" element={<ProtectedRoute requireAdmin><AnalyzePersona /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
               <Route path="/tv" element={<TVDisplay />} />
+              <Route path="/form/:token" element={<PatientForm />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
