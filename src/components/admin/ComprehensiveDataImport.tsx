@@ -30,6 +30,12 @@ interface ImportStats {
   errors: number;
 }
 
+interface ImportError {
+  row: number;
+  reason: string;
+  data?: string;
+}
+
 const AVAILABLE_FILES = [
   { name: "Planilha Persona", path: "/uploads/PLANILHA_persona.xlsx", type: "persona" },
   { name: "Análise ICP", path: "/uploads/ANALISEESTRATEGICA-ICP_COMPLETA.xlsx", type: "icp" },
@@ -118,6 +124,8 @@ export default function ComprehensiveDataImport() {
   const [filteredData, setFilteredData] = useState<any[]>([]); // Dados filtrados por ano
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
+  const [importErrors, setImportErrors] = useState<ImportError[]>([]);
+  const [showErrors, setShowErrors] = useState(false);
   const [progress, setProgress] = useState(0);
   const [customFile, setCustomFile] = useState<File | null>(null);
   
@@ -448,8 +456,9 @@ export default function ComprehensiveDataImport() {
   };
 
   // Import transaction data (vendas or executado)
-  const importTransactionData = async () => {
+  const importTransactionData = async (): Promise<{ stats: ImportStats; errors: ImportError[] }> => {
     const stats: ImportStats = { total: 0, new: 0, updated: 0, skipped: 0, errors: 0 };
+    const errors: ImportError[] = [];
     const tableName = fileType === 'vendas' ? 'revenue_records' : 'executed_records';
     
     // Get user/team mappings
@@ -469,20 +478,20 @@ export default function ComprehensiveDataImport() {
       profileByName.set(p.full_name.toLowerCase().trim(), { user_id: p.user_id, team_id: p.team_id });
     });
 
-    const BATCH_SIZE = 500; // Increased for faster imports
+    const BATCH_SIZE = 500;
     const recordsToInsert: any[] = [];
+    const recordRowMap: number[] = []; // Track which row each record came from
     
     // Usa filteredData se houver filtro de ano, senão rawData
     const dataToProcess = filteredData.length > 0 ? filteredData : rawData;
-    const progressInterval = Math.max(1, Math.floor(dataToProcess.length / 20)); // Update progress ~20 times total
+    const progressInterval = Math.max(1, Math.floor(dataToProcess.length / 20));
 
     for (let i = 0; i < dataToProcess.length; i++) {
       const row = dataToProcess[i];
       stats.total++;
       
-      // Update progress less frequently to avoid re-render overhead
       if (i % progressInterval === 0) {
-        setProgress(Math.round((i / dataToProcess.length) * 50)); // 0-50% for processing
+        setProgress(Math.round((i / dataToProcess.length) * 50));
       }
 
       try {
@@ -491,14 +500,22 @@ export default function ComprehensiveDataImport() {
           : "";
         const date = parseDate(row[columnMapping.date]);
         const amount = parseAmount(row[columnMapping.amount]);
+        const patientName = columnMapping.patient_name ? String(row[columnMapping.patient_name] || '').trim() : '';
 
-        // Date is mandatory; seller can be empty in contas a receber exports.
+        // Date is mandatory
         if (!date) {
           stats.skipped++;
+          if (errors.length < 100) { // Limit to first 100 errors for performance
+            errors.push({ 
+              row: i + 2, // +2 for header row and 1-based index
+              reason: 'Data inválida ou não encontrada',
+              data: `Data: "${row[columnMapping.date] || 'vazio'}", Paciente: "${patientName}"`
+            });
+          }
           continue;
         }
 
-        // Find user/team: prefer explicit seller mapping; otherwise fall back to the importing user.
+        // Find user/team
         let matchedUserId = sellerName ? mappingByName.get(sellerName.toLowerCase()) : undefined;
         let matchedTeamId: string | null = null;
 
@@ -511,7 +528,6 @@ export default function ComprehensiveDataImport() {
           }
         }
 
-        // Fallback: attribute to the admin/importing user so we don't lose rows.
         if (!matchedUserId && user?.id) {
           matchedUserId = user.id;
           const me = profiles?.find((p) => p.user_id === user.id);
@@ -520,6 +536,13 @@ export default function ComprehensiveDataImport() {
 
         if (!matchedUserId) {
           stats.skipped++;
+          if (errors.length < 100) {
+            errors.push({ 
+              row: i + 2,
+              reason: 'Usuário não encontrado',
+              data: `Vendedor: "${sellerName}", Paciente: "${patientName}"`
+            });
+          }
           continue;
         }
 
@@ -530,6 +553,13 @@ export default function ComprehensiveDataImport() {
 
         if (!matchedTeamId) {
           stats.skipped++;
+          if (errors.length < 100) {
+            errors.push({ 
+              row: i + 2,
+              reason: 'Equipe não encontrada para o usuário',
+              data: `Vendedor: "${sellerName}", Paciente: "${patientName}"`
+            });
+          }
           continue;
         }
 
@@ -542,7 +572,7 @@ export default function ComprehensiveDataImport() {
           procedure_name: columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : null,
           patient_prontuario: columnMapping.prontuario ? String(row[columnMapping.prontuario] || '').trim() : null,
           patient_cpf: normalizeCpf(row[columnMapping.cpf]) || null,
-          patient_name: columnMapping.patient_name ? String(row[columnMapping.patient_name] || '').trim() : null,
+          patient_name: patientName || null,
           patient_email: columnMapping.email ? String(row[columnMapping.email] || '').trim() : null,
           patient_phone: columnMapping.phone ? String(row[columnMapping.phone] || '').trim() : null,
           origin: columnMapping.origin ? String(row[columnMapping.origin] || '').trim() : null,
@@ -556,10 +586,18 @@ export default function ComprehensiveDataImport() {
         };
 
         recordsToInsert.push(record);
+        recordRowMap.push(i + 2);
         stats.new++;
       } catch (err) {
         console.error("Error processing row:", err);
         stats.errors++;
+        if (errors.length < 100) {
+          errors.push({ 
+            row: i + 2,
+            reason: `Erro ao processar: ${err instanceof Error ? err.message : 'Erro desconhecido'}`,
+            data: JSON.stringify(row).substring(0, 100)
+          });
+        }
       }
     }
 
@@ -567,18 +605,26 @@ export default function ComprehensiveDataImport() {
     const totalBatches = Math.ceil(recordsToInsert.length / BATCH_SIZE);
     for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
       const batch = recordsToInsert.slice(i, i + BATCH_SIZE);
+      const batchRowNumbers = recordRowMap.slice(i, i + BATCH_SIZE);
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-      setProgress(50 + Math.round((batchNum / totalBatches) * 50)); // 50-100% for inserting
+      setProgress(50 + Math.round((batchNum / totalBatches) * 50));
       
       const { error } = await supabase.from(tableName).insert(batch);
       if (error) {
         console.error("Batch insert error:", error);
         stats.errors += batch.length;
         stats.new -= batch.length;
+        if (errors.length < 100) {
+          errors.push({ 
+            row: batchRowNumbers[0],
+            reason: `Erro no banco de dados: ${error.message}`,
+            data: `Lote de ${batch.length} registros (linhas ${batchRowNumbers[0]}-${batchRowNumbers[batchRowNumbers.length - 1]})`
+          });
+        }
       }
     }
 
-    return stats;
+    return { stats, errors };
   };
 
   // Auto-calculate RFV and check for missing data
@@ -697,14 +743,19 @@ export default function ComprehensiveDataImport() {
 
     setImporting(true);
     setProgress(0);
+    setImportErrors([]);
+    setShowErrors(false);
 
     try {
       let stats: ImportStats;
+      let errors: ImportError[] = [];
 
       if (fileType === 'persona' || fileType === 'cadastros' || fileType === 'formulario') {
         stats = await importPersonaData();
       } else if (fileType === 'vendas' || fileType === 'executado') {
-        stats = await importTransactionData();
+        const result = await importTransactionData();
+        stats = result.stats;
+        errors = result.errors;
         
         // Auto-calculate RFV after sales/executed imports
         setProgress(95);
@@ -716,6 +767,12 @@ export default function ComprehensiveDataImport() {
       }
 
       setImportStats(stats);
+      setImportErrors(errors);
+      
+      if (errors.length > 0) {
+        setShowErrors(true);
+      }
+      
       toast({
         title: "Importação concluída!",
         description: `${stats.new} novos, ${stats.updated} atualizados, ${stats.skipped} ignorados, ${stats.errors} erros`,
@@ -994,7 +1051,56 @@ export default function ComprehensiveDataImport() {
               {importStats.errors > 0 && (
                 <Badge variant="destructive">{importStats.errors} erros</Badge>
               )}
+              {importErrors.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowErrors(!showErrors)}
+                  className="ml-auto"
+                >
+                  {showErrors ? 'Ocultar' : 'Ver'} Detalhes ({importErrors.length})
+                </Button>
+              )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error Details Panel */}
+      {showErrors && importErrors.length > 0 && (
+        <Card className="border-red-500/50 bg-red-500/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              Detalhes dos Erros/Ignorados (primeiros {importErrors.length})
+            </CardTitle>
+            <CardDescription>
+              Esses registros não foram importados. Verifique e corrija na planilha original.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">Linha</TableHead>
+                    <TableHead>Motivo</TableHead>
+                    <TableHead>Dados</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {importErrors.map((err, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-mono font-bold">{err.row}</TableCell>
+                      <TableCell className="text-red-600">{err.reason}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[300px] truncate">
+                        {err.data}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
           </CardContent>
         </Card>
       )}
