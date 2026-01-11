@@ -297,21 +297,23 @@ async function importTransactionData(supabase: any, data: any[], fileType: strin
       const dateValue = findColumn(row, ["Data", "Data de Venda", "Data Pagamento", "Data Competência", "Data da Venda"]);
       const date = parseDate(dateValue);
       
-      // CRITICAL: Use "Valor Pago" first (actual paid amount), then fall back to "Valor"
-      // "Valor Pago" = actually paid, "Valor" = contracted value which may not be paid yet
+      // CRITICAL: Use "Valor" (total contracted value) as primary, not "Valor Pago"
+      // User requested: "Valor" = total value for both vendas and executado analysis
+      const valorNormal = findColumn(row, ["Valor", "Valor Vendido", "Valor Total", "Valor Contrato"]);
       const valorPago = findColumn(row, ["Valor Pago"]);
-      const valorNormal = findColumn(row, ["Valor", "Valor Vendido", "Valor Total"]);
       
-      // Prefer "Valor Pago" - skip rows with "-" or empty "Valor Pago" (not yet paid)
+      // Priority: "Valor" first (contracted value), "Valor Pago" as fallback
       let amount = 0;
-      if (valorPago !== null && valorPago !== "" && valorPago !== "-") {
-        amount = parseAmount(valorPago);
-      } else if (valorNormal !== null && valorNormal !== "" && valorNormal !== "-") {
-        // Only use "Valor" if no "Valor Pago" column exists in the spreadsheet
+      if (valorNormal !== null && valorNormal !== "" && valorNormal !== "-") {
         amount = parseAmount(valorNormal);
-      } else {
-        // Skip rows with no paid value (Em aberto status)
-        console.log(`[SKIP] Row ${stats.total}: No paid value (Valor Pago = "${valorPago}")`);
+      } else if (valorPago !== null && valorPago !== "" && valorPago !== "-") {
+        // Fallback to "Valor Pago" only if "Valor" column doesn't exist
+        amount = parseAmount(valorPago);
+      }
+      
+      // Accept zero values - only skip if completely empty/invalid
+      if (amount === 0 && !valorNormal && !valorPago) {
+        console.log(`[SKIP] Row ${stats.total}: No value found`);
         stats.skipped++;
         continue;
       }
