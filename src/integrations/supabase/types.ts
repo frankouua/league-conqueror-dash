@@ -1736,6 +1736,140 @@ export type Database = {
           },
         ]
       }
+      data_import_backups: {
+        Row: {
+          backup_data: Json
+          backup_date: string | null
+          backup_name: string
+          backup_type: string
+          created_at: string | null
+          created_by: string | null
+          executed_records_count: number | null
+          expires_at: string | null
+          id: string
+          restored_at: string | null
+          revenue_records_count: number | null
+          rfv_customers_count: number | null
+          status: string | null
+          tables_backed_up: string[] | null
+        }
+        Insert: {
+          backup_data?: Json
+          backup_date?: string | null
+          backup_name: string
+          backup_type: string
+          created_at?: string | null
+          created_by?: string | null
+          executed_records_count?: number | null
+          expires_at?: string | null
+          id?: string
+          restored_at?: string | null
+          revenue_records_count?: number | null
+          rfv_customers_count?: number | null
+          status?: string | null
+          tables_backed_up?: string[] | null
+        }
+        Update: {
+          backup_data?: Json
+          backup_date?: string | null
+          backup_name?: string
+          backup_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          executed_records_count?: number | null
+          expires_at?: string | null
+          id?: string
+          restored_at?: string | null
+          revenue_records_count?: number | null
+          rfv_customers_count?: number | null
+          status?: string | null
+          tables_backed_up?: string[] | null
+        }
+        Relationships: []
+      }
+      data_import_logs: {
+        Row: {
+          backup_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          duplicate_rows: number | null
+          duplicates_removed: Json | null
+          duration_seconds: number | null
+          error_rows: number | null
+          errors: Json | null
+          file_name: string | null
+          file_type: string
+          id: string
+          import_id: string | null
+          imported_rows: number | null
+          period_end: string | null
+          period_start: string | null
+          rfv_recalculated: boolean | null
+          skipped_rows: number | null
+          status: string | null
+          total_rows: number | null
+          updated_rows: number | null
+          validation_warnings: Json | null
+        }
+        Insert: {
+          backup_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duplicate_rows?: number | null
+          duplicates_removed?: Json | null
+          duration_seconds?: number | null
+          error_rows?: number | null
+          errors?: Json | null
+          file_name?: string | null
+          file_type: string
+          id?: string
+          import_id?: string | null
+          imported_rows?: number | null
+          period_end?: string | null
+          period_start?: string | null
+          rfv_recalculated?: boolean | null
+          skipped_rows?: number | null
+          status?: string | null
+          total_rows?: number | null
+          updated_rows?: number | null
+          validation_warnings?: Json | null
+        }
+        Update: {
+          backup_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duplicate_rows?: number | null
+          duplicates_removed?: Json | null
+          duration_seconds?: number | null
+          error_rows?: number | null
+          errors?: Json | null
+          file_name?: string | null
+          file_type?: string
+          id?: string
+          import_id?: string | null
+          imported_rows?: number | null
+          period_end?: string | null
+          period_start?: string | null
+          rfv_recalculated?: boolean | null
+          skipped_rows?: number | null
+          status?: string | null
+          total_rows?: number | null
+          updated_rows?: number | null
+          validation_warnings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_import_logs_backup_id_fkey"
+            columns: ["backup_id"]
+            isOneToOne: false
+            referencedRelation: "data_import_backups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_goals: {
         Row: {
           created_at: string
