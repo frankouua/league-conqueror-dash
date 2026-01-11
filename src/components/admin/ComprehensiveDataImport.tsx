@@ -35,7 +35,9 @@ interface ImportSummary {
   uniquePatients: number;
   recordsByYear: Record<string, number>;
   valueByYear: Record<string, number>;
-  recordsByDepartment: Record<string, { count: number; value: number }>;
+  recordsByDepartment: Record<string, { count: number; value: number; inactiveCount?: number; inactiveValue?: number }>;
+  inactiveSellerCount?: number;
+  inactiveSellerValue?: number;
 }
 
 interface ImportError {
@@ -533,6 +535,8 @@ export default function ComprehensiveDataImport() {
 
         let matchedUserId = sellerName ? mappingByName.get(sellerName.toLowerCase()) : undefined;
         let matchedTeamId: string | null = null;
+        let isInactiveSeller = false;
+        const originalSellerName = sellerName;
 
         if (!matchedUserId && sellerName) {
           const firstName = sellerName.split(" ")[0].toLowerCase().trim();
@@ -543,10 +547,22 @@ export default function ComprehensiveDataImport() {
           }
         }
 
+        // Se não encontrou o vendedor, marca como vendedor inativo e usa o admin como fallback
         if (!matchedUserId && user?.id) {
           matchedUserId = user.id;
           const me = profiles?.find((p) => p.user_id === user.id);
           matchedTeamId = (me?.team_id as string) || null;
+          
+          // Marcar como vendedor inativo apenas se tinha um nome de vendedor
+          if (sellerName && sellerName.trim() !== '') {
+            isInactiveSeller = true;
+          }
+        }
+
+        // Se ainda não tem userId, ainda assim tentar importar com o admin
+        if (!matchedUserId && user?.id) {
+          matchedUserId = user.id;
+          isInactiveSeller = true;
         }
 
         if (!matchedUserId) {
@@ -554,7 +570,7 @@ export default function ComprehensiveDataImport() {
           if (errors.length < 100) {
             errors.push({ 
               row: i + 2,
-              reason: 'Usuário não encontrado',
+              reason: 'Usuário administrador não disponível',
               data: `Vendedor: "${sellerName}", Paciente: "${patientName}"`
             });
           }
@@ -566,12 +582,26 @@ export default function ComprehensiveDataImport() {
           matchedTeamId = (profile?.team_id as string) || null;
         }
 
+        // Se ainda não tem team, usar a primeira equipe disponível
+        if (!matchedTeamId) {
+          const { data: firstTeam } = await supabase
+            .from('teams')
+            .select('id')
+            .limit(1)
+            .single();
+          
+          if (firstTeam) {
+            matchedTeamId = firstTeam.id;
+          }
+        }
+
+        // Se mesmo assim não tem team, pular
         if (!matchedTeamId) {
           stats.skipped++;
           if (errors.length < 100) {
             errors.push({ 
               row: i + 2,
-              reason: 'Equipe não encontrada para o usuário',
+              reason: 'Nenhuma equipe disponível no sistema',
               data: `Vendedor: "${sellerName}", Paciente: "${patientName}"`
             });
           }
@@ -590,12 +620,20 @@ export default function ComprehensiveDataImport() {
         
         const deptKey = department || 'Sem Departamento';
         if (!summary.recordsByDepartment[deptKey]) {
-          summary.recordsByDepartment[deptKey] = { count: 0, value: 0 };
+          summary.recordsByDepartment[deptKey] = { count: 0, value: 0, inactiveCount: 0, inactiveValue: 0 };
         }
         summary.recordsByDepartment[deptKey].count++;
         summary.recordsByDepartment[deptKey].value += amount;
+        
+        // Track inactive sellers
+        if (isInactiveSeller) {
+          summary.recordsByDepartment[deptKey].inactiveCount = (summary.recordsByDepartment[deptKey].inactiveCount || 0) + 1;
+          summary.recordsByDepartment[deptKey].inactiveValue = (summary.recordsByDepartment[deptKey].inactiveValue || 0) + amount;
+          summary.inactiveSellerCount = (summary.inactiveSellerCount || 0) + 1;
+          summary.inactiveSellerValue = (summary.inactiveSellerValue || 0) + amount;
+        }
 
-        const registeredByAdmin = !sellerName || matchedUserId === user?.id;
+        const registeredByAdmin = !sellerName || matchedUserId === user?.id || isInactiveSeller;
 
         const record = {
           date,
@@ -609,12 +647,13 @@ export default function ComprehensiveDataImport() {
           patient_phone: columnMapping.phone ? String(row[columnMapping.phone] || '').trim() : null,
           origin: columnMapping.origin ? String(row[columnMapping.origin] || '').trim() : null,
           referral_name: columnMapping.referral_name ? String(row[columnMapping.referral_name] || '').trim() : null,
-          executor_name: columnMapping.executor ? String(row[columnMapping.executor] || '').trim() : null,
+          executor_name: isInactiveSeller ? `[INATIVO] ${originalSellerName}` : (columnMapping.executor ? String(row[columnMapping.executor] || '').trim() : null),
           user_id: matchedUserId,
           team_id: matchedTeamId,
           attributed_to_user_id: matchedUserId,
-          counts_for_individual: true,
+          counts_for_individual: !isInactiveSeller, // Vendedor inativo não conta para metas individuais
           registered_by_admin: registeredByAdmin,
+          notes: isInactiveSeller ? `Vendedor original: ${originalSellerName} (inativo)` : null,
         };
 
         recordsToInsert.push(record);
@@ -1155,7 +1194,7 @@ export default function ComprehensiveDataImport() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Main Totals */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-background rounded-lg p-4 border">
                 <div className="text-sm text-muted-foreground">Valor Total Importado</div>
                 <div className="text-2xl font-bold text-primary">
@@ -1177,6 +1216,17 @@ export default function ComprehensiveDataImport() {
                   ))}
                 </div>
               </div>
+              {(importSummary.inactiveSellerCount ?? 0) > 0 && (
+                <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/50">
+                  <div className="text-sm text-amber-600 dark:text-amber-400">Vendedores Inativos</div>
+                  <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                    {(importSummary.inactiveSellerCount ?? 0).toLocaleString('pt-BR')} registros
+                  </div>
+                  <div className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(importSummary.inactiveSellerValue ?? 0)}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Value by Year */}
@@ -1206,6 +1256,8 @@ export default function ComprehensiveDataImport() {
                       <TableHead>Departamento</TableHead>
                       <TableHead className="text-right">Qtd</TableHead>
                       <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead className="text-right text-amber-600">Inativos</TableHead>
+                      <TableHead className="text-right text-amber-600">Valor Inativos</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1217,6 +1269,14 @@ export default function ComprehensiveDataImport() {
                           <TableCell className="text-right">{data.count.toLocaleString('pt-BR')}</TableCell>
                           <TableCell className="text-right font-bold">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.value)}
+                          </TableCell>
+                          <TableCell className="text-right text-amber-600">
+                            {(data.inactiveCount ?? 0) > 0 ? (data.inactiveCount ?? 0).toLocaleString('pt-BR') : '-'}
+                          </TableCell>
+                          <TableCell className="text-right text-amber-600">
+                            {(data.inactiveValue ?? 0) > 0 
+                              ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.inactiveValue ?? 0) 
+                              : '-'}
                           </TableCell>
                         </TableRow>
                       ))}
