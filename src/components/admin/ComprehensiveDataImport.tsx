@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -140,6 +141,8 @@ export default function ComprehensiveDataImport() {
   const [showErrors, setShowErrors] = useState(false);
   const [progress, setProgress] = useState(0);
   const [customFile, setCustomFile] = useState<File | null>(null);
+  const [clearBeforeImport, setClearBeforeImport] = useState(false);
+  const [existingFingerprints, setExistingFingerprints] = useState<Set<string>>(new Set());
   
   // Anos disponíveis para filtro
   const currentYear = new Date().getFullYear();
@@ -467,7 +470,64 @@ export default function ComprehensiveDataImport() {
     return stats;
   };
 
-  // Import transaction data (vendas or executado) - OPTIMIZED VERSION
+  // Generate fingerprint for deduplication
+  const generateFingerprint = (date: string, patientName: string, amount: number, procedure: string, department: string): string => {
+    const normalized = `${date}|${(patientName || '').toLowerCase().trim()}|${amount}|${(procedure || '').toLowerCase().trim()}|${(department || '').toLowerCase().trim()}`;
+    return normalized;
+  };
+
+  // Load existing fingerprints for deduplication
+  const loadExistingFingerprints = async (tableName: 'revenue_records' | 'executed_records', yearFilter?: string): Promise<Set<string>> => {
+    const fingerprints = new Set<string>();
+    const PAGE_SIZE = 1000;
+    
+    for (let from = 0; ; from += PAGE_SIZE) {
+      let query = supabase
+        .from(tableName)
+        .select('date, patient_name, amount, procedure_name, department')
+        .range(from, from + PAGE_SIZE - 1);
+      
+      if (yearFilter && yearFilter !== 'todos') {
+        query = query.gte('date', `${yearFilter}-01-01`).lte('date', `${yearFilter}-12-31`);
+      }
+      
+      const { data } = await query;
+      if (!data || data.length === 0) break;
+      
+      data.forEach(record => {
+        const fp = generateFingerprint(
+          record.date, 
+          record.patient_name || '', 
+          record.amount, 
+          record.procedure_name || '', 
+          record.department || ''
+        );
+        fingerprints.add(fp);
+      });
+      
+      if (data.length < PAGE_SIZE) break;
+    }
+    
+    return fingerprints;
+  };
+
+  // Clear records for a specific year
+  const clearYearRecords = async (tableName: 'revenue_records' | 'executed_records', year: string) => {
+    const { error, count } = await supabase
+      .from(tableName)
+      .delete({ count: 'exact' })
+      .gte('date', `${year}-01-01`)
+      .lte('date', `${year}-12-31`);
+    
+    if (error) {
+      console.error('Error clearing records:', error);
+      throw error;
+    }
+    
+    return count || 0;
+  };
+
+  // Import transaction data (vendas or executado) - OPTIMIZED VERSION WITH DEDUPLICATION
   const importTransactionData = async (): Promise<{ stats: ImportStats; errors: ImportError[]; summary: ImportSummary }> => {
     const stats: ImportStats = { total: 0, new: 0, updated: 0, skipped: 0, errors: 0 };
     const errors: ImportError[] = [];
@@ -477,12 +537,27 @@ export default function ComprehensiveDataImport() {
       recordsByYear: {},
       valueByYear: {},
       recordsByDepartment: {},
-      skippedReasons: {}, // NEW: Track why records are being skipped
+      skippedReasons: {}, // Track why records are being skipped
     };
     const uniquePatientSet = new Set<string>();
-    const tableName = fileType === 'vendas' ? 'revenue_records' : 'executed_records';
+    const tableName: 'revenue_records' | 'executed_records' = fileType === 'vendas' ? 'revenue_records' : 'executed_records';
     
-    // Get user/team mappings + default team in SINGLE parallel call
+    // Step 1: Clear existing records if requested
+    if (clearBeforeImport && selectedYear && selectedYear !== 'todos') {
+      setProgress(5);
+      toast({ title: "Limpando registros existentes...", description: `Removendo dados de ${selectedYear}` });
+      const deletedCount = await clearYearRecords(tableName, selectedYear);
+      console.log(`Deleted ${deletedCount} existing records for ${selectedYear}`);
+    }
+    
+    // Step 2: Load existing fingerprints for deduplication
+    setProgress(10);
+    toast({ title: "Verificando duplicatas...", description: "Carregando registros existentes" });
+    const existingFps = clearBeforeImport ? new Set<string>() : await loadExistingFingerprints(tableName, selectedYear);
+    console.log(`Loaded ${existingFps.size} existing fingerprints`);
+    
+    // Step 3: Get user/team mappings + default team in SINGLE parallel call
+    setProgress(15);
     const [{ data: mappings }, { data: profiles }, { data: teams }, { data: firstTeam }] = await Promise.all([
       supabase.from('feegow_user_mapping').select('feegow_name, user_id'),
       supabase.from('profiles').select('user_id, full_name, team_id').not('team_id', 'is', null),
@@ -548,6 +623,20 @@ export default function ComprehensiveDataImport() {
           }
           continue;
         }
+
+        // Check for duplicates using fingerprint
+        const procedure = columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : '';
+        const fingerprint = generateFingerprint(date, patientName, amount, procedure, department);
+        
+        if (existingFps.has(fingerprint)) {
+          stats.skipped++;
+          stats.updated++; // Count as "would be updated" for stats
+          trackSkip('Duplicado (já existe)');
+          continue;
+        }
+        
+        // Add to existing fingerprints to avoid duplicates within the same import
+        existingFps.add(fingerprint);
 
         let matchedUserId = sellerName ? mappingByName.get(sellerName.toLowerCase()) : undefined;
         let matchedTeamId: string | null = null;
@@ -976,19 +1065,39 @@ export default function ComprehensiveDataImport() {
 
               {/* Filtro de Ano para Vendas/Executado */}
               {(fileType === 'vendas' || fileType === 'executado') && (
-                <div className="space-y-2">
-                  <Label>Filtrar por Ano</Label>
-                  <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o ano..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos os anos</SelectItem>
-                      {availableYears.map((year) => (
-                        <SelectItem key={year} value={year}>{year}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Filtrar por Ano</Label>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o ano..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos os anos</SelectItem>
+                        {availableYears.map((year) => (
+                          <SelectItem key={year} value={year}>{year}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedYear && selectedYear !== 'todos' && (
+                    <div className="flex items-center space-x-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                      <Checkbox 
+                        id="clearBeforeImport" 
+                        checked={clearBeforeImport}
+                        onCheckedChange={(checked) => setClearBeforeImport(checked === true)}
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor="clearBeforeImport" className="text-sm font-medium cursor-pointer">
+                          Limpar dados de {selectedYear} antes de importar
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Remove todos os registros existentes de {selectedYear} antes da importação. Use para reimportação completa.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
