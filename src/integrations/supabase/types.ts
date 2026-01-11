@@ -14,6 +14,266 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_batches: {
+        Row: {
+          action_type: string
+          channel: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          failed_count: number | null
+          filter_criteria: Json | null
+          id: string
+          name: string | null
+          response_count: number | null
+          sent_count: number | null
+          started_at: string | null
+          status: string | null
+          template_id: string | null
+          total_leads: number | null
+          total_points_generated: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          channel: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          failed_count?: number | null
+          filter_criteria?: Json | null
+          id?: string
+          name?: string | null
+          response_count?: number | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          total_leads?: number | null
+          total_points_generated?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          channel?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          failed_count?: number | null
+          filter_criteria?: Json | null
+          id?: string
+          name?: string | null
+          response_count?: number | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          total_leads?: number | null
+          total_points_generated?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_batches_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "action_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_dispatches: {
+        Row: {
+          action_type: string
+          batch_id: string | null
+          bonus_earned: number | null
+          channel: string
+          created_at: string | null
+          id: string
+          lead_id: string
+          message_content: string | null
+          points_earned: number | null
+          response_at: string | null
+          response_content: string | null
+          response_received: boolean | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string | null
+          template_id: string | null
+          updated_at: string | null
+          variables_used: Json | null
+        }
+        Insert: {
+          action_type: string
+          batch_id?: string | null
+          bonus_earned?: number | null
+          channel?: string
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          message_content?: string | null
+          points_earned?: number | null
+          response_at?: string | null
+          response_content?: string | null
+          response_received?: boolean | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          variables_used?: Json | null
+        }
+        Update: {
+          action_type?: string
+          batch_id?: string | null
+          bonus_earned?: number | null
+          channel?: string
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          message_content?: string | null
+          points_earned?: number | null
+          response_at?: string | null
+          response_content?: string | null
+          response_received?: boolean | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          variables_used?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_dispatches_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_dispatches_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "action_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_responses: {
+        Row: {
+          bonus_earned: number | null
+          bonus_reason: string | null
+          created_at: string | null
+          dispatch_id: string | null
+          id: string
+          lead_id: string
+          nps_score: number | null
+          points_earned: number | null
+          response_data: Json | null
+          response_type: string
+        }
+        Insert: {
+          bonus_earned?: number | null
+          bonus_reason?: string | null
+          created_at?: string | null
+          dispatch_id?: string | null
+          id?: string
+          lead_id: string
+          nps_score?: number | null
+          points_earned?: number | null
+          response_data?: Json | null
+          response_type: string
+        }
+        Update: {
+          bonus_earned?: number | null
+          bonus_reason?: string | null
+          created_at?: string | null
+          dispatch_id?: string | null
+          id?: string
+          lead_id?: string
+          nps_score?: number | null
+          points_earned?: number | null
+          response_data?: Json | null
+          response_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_responses_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "action_dispatches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_templates: {
+        Row: {
+          bonus_condition: string | null
+          bonus_points: number | null
+          category: string
+          channel: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          form_fields: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          points_value: number | null
+          template_text: string
+          type: string
+          updated_at: string | null
+          usage_count: number | null
+          variables: Json | null
+        }
+        Insert: {
+          bonus_condition?: string | null
+          bonus_points?: number | null
+          category?: string
+          channel?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          form_fields?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          points_value?: number | null
+          template_text: string
+          type: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Update: {
+          bonus_condition?: string | null
+          bonus_points?: number | null
+          category?: string
+          channel?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          form_fields?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          points_value?: number | null
+          template_text?: string
+          type?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           created_at: string
@@ -2623,6 +2883,77 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "knowledge_base"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_action_stats: {
+        Row: {
+          created_at: string | null
+          engagement_score: number | null
+          id: string
+          last_action_at: string | null
+          last_nps_date: string | null
+          last_nps_score: number | null
+          last_response_at: string | null
+          lead_id: string
+          nps_average: number | null
+          response_rate: number | null
+          total_actions_received: number | null
+          total_bonus: number | null
+          total_points: number | null
+          total_purchases_from_actions: number | null
+          total_referrals: number | null
+          total_responses: number | null
+          total_revenue_from_actions: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          engagement_score?: number | null
+          id?: string
+          last_action_at?: string | null
+          last_nps_date?: string | null
+          last_nps_score?: number | null
+          last_response_at?: string | null
+          lead_id: string
+          nps_average?: number | null
+          response_rate?: number | null
+          total_actions_received?: number | null
+          total_bonus?: number | null
+          total_points?: number | null
+          total_purchases_from_actions?: number | null
+          total_referrals?: number | null
+          total_responses?: number | null
+          total_revenue_from_actions?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          engagement_score?: number | null
+          id?: string
+          last_action_at?: string | null
+          last_nps_date?: string | null
+          last_nps_score?: number | null
+          last_response_at?: string | null
+          lead_id?: string
+          nps_average?: number | null
+          response_rate?: number | null
+          total_actions_received?: number | null
+          total_bonus?: number | null
+          total_points?: number | null
+          total_purchases_from_actions?: number | null
+          total_referrals?: number | null
+          total_responses?: number | null
+          total_revenue_from_actions?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_action_stats_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
         ]
