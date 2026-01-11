@@ -30,6 +30,14 @@ interface ImportStats {
   errors: number;
 }
 
+interface ImportSummary {
+  totalValue: number;
+  uniquePatients: number;
+  recordsByYear: Record<string, number>;
+  valueByYear: Record<string, number>;
+  recordsByDepartment: Record<string, { count: number; value: number }>;
+}
+
 interface ImportError {
   row: number;
   reason: string;
@@ -124,6 +132,7 @@ export default function ComprehensiveDataImport() {
   const [filteredData, setFilteredData] = useState<any[]>([]); // Dados filtrados por ano
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
+  const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -456,9 +465,17 @@ export default function ComprehensiveDataImport() {
   };
 
   // Import transaction data (vendas or executado)
-  const importTransactionData = async (): Promise<{ stats: ImportStats; errors: ImportError[] }> => {
+  const importTransactionData = async (): Promise<{ stats: ImportStats; errors: ImportError[]; summary: ImportSummary }> => {
     const stats: ImportStats = { total: 0, new: 0, updated: 0, skipped: 0, errors: 0 };
     const errors: ImportError[] = [];
+    const summary: ImportSummary = {
+      totalValue: 0,
+      uniquePatients: 0,
+      recordsByYear: {},
+      valueByYear: {},
+      recordsByDepartment: {},
+    };
+    const uniquePatientSet = new Set<string>();
     const tableName = fileType === 'vendas' ? 'revenue_records' : 'executed_records';
     
     // Get user/team mappings
@@ -480,9 +497,8 @@ export default function ComprehensiveDataImport() {
 
     const BATCH_SIZE = 500;
     const recordsToInsert: any[] = [];
-    const recordRowMap: number[] = []; // Track which row each record came from
+    const recordRowMap: number[] = [];
     
-    // Usa filteredData se houver filtro de ano, senão rawData
     const dataToProcess = filteredData.length > 0 ? filteredData : rawData;
     const progressInterval = Math.max(1, Math.floor(dataToProcess.length / 20));
 
@@ -501,13 +517,13 @@ export default function ComprehensiveDataImport() {
         const date = parseDate(row[columnMapping.date]);
         const amount = parseAmount(row[columnMapping.amount]);
         const patientName = columnMapping.patient_name ? String(row[columnMapping.patient_name] || '').trim() : '';
+        const department = columnMapping.department ? String(row[columnMapping.department] || '').trim() : 'Sem Departamento';
 
-        // Date is mandatory
         if (!date) {
           stats.skipped++;
-          if (errors.length < 100) { // Limit to first 100 errors for performance
+          if (errors.length < 100) {
             errors.push({ 
-              row: i + 2, // +2 for header row and 1-based index
+              row: i + 2,
               reason: 'Data inválida ou não encontrada',
               data: `Data: "${row[columnMapping.date] || 'vazio'}", Paciente: "${patientName}"`
             });
@@ -515,7 +531,6 @@ export default function ComprehensiveDataImport() {
           continue;
         }
 
-        // Find user/team
         let matchedUserId = sellerName ? mappingByName.get(sellerName.toLowerCase()) : undefined;
         let matchedTeamId: string | null = null;
 
@@ -563,12 +578,29 @@ export default function ComprehensiveDataImport() {
           continue;
         }
 
+        // Track summary stats
+        const year = date.substring(0, 4);
+        summary.totalValue += amount;
+        summary.recordsByYear[year] = (summary.recordsByYear[year] || 0) + 1;
+        summary.valueByYear[year] = (summary.valueByYear[year] || 0) + amount;
+        
+        if (patientName) {
+          uniquePatientSet.add(patientName.toLowerCase());
+        }
+        
+        const deptKey = department || 'Sem Departamento';
+        if (!summary.recordsByDepartment[deptKey]) {
+          summary.recordsByDepartment[deptKey] = { count: 0, value: 0 };
+        }
+        summary.recordsByDepartment[deptKey].count++;
+        summary.recordsByDepartment[deptKey].value += amount;
+
         const registeredByAdmin = !sellerName || matchedUserId === user?.id;
 
         const record = {
           date,
           amount,
-          department: columnMapping.department ? String(row[columnMapping.department] || '').trim() : null,
+          department: department || null,
           procedure_name: columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : null,
           patient_prontuario: columnMapping.prontuario ? String(row[columnMapping.prontuario] || '').trim() : null,
           patient_cpf: normalizeCpf(row[columnMapping.cpf]) || null,
@@ -601,6 +633,8 @@ export default function ComprehensiveDataImport() {
       }
     }
 
+    summary.uniquePatients = uniquePatientSet.size;
+
     // Batch insert with progress updates
     const totalBatches = Math.ceil(recordsToInsert.length / BATCH_SIZE);
     for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
@@ -624,7 +658,7 @@ export default function ComprehensiveDataImport() {
       }
     }
 
-    return { stats, errors };
+    return { stats, errors, summary };
   };
 
   // Auto-calculate RFV and check for missing data
@@ -744,6 +778,7 @@ export default function ComprehensiveDataImport() {
     setImporting(true);
     setProgress(0);
     setImportErrors([]);
+    setImportSummary(null);
     setShowErrors(false);
 
     try {
@@ -756,6 +791,7 @@ export default function ComprehensiveDataImport() {
         const result = await importTransactionData();
         stats = result.stats;
         errors = result.errors;
+        setImportSummary(result.summary);
         
         // Auto-calculate RFV after sales/executed imports
         setProgress(95);
@@ -1101,6 +1137,93 @@ export default function ComprehensiveDataImport() {
                 </TableBody>
               </Table>
             </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Import Summary - Values Verification */}
+      {importSummary && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+              Resumo da Importação - Verifique os Totais
+            </CardTitle>
+            <CardDescription>
+              Compare esses valores com sua planilha para confirmar que a importação está correta
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Main Totals */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-background rounded-lg p-4 border">
+                <div className="text-sm text-muted-foreground">Valor Total Importado</div>
+                <div className="text-2xl font-bold text-primary">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(importSummary.totalValue)}
+                </div>
+              </div>
+              <div className="bg-background rounded-lg p-4 border">
+                <div className="text-sm text-muted-foreground">Pacientes Únicos</div>
+                <div className="text-2xl font-bold">{importSummary.uniquePatients.toLocaleString('pt-BR')}</div>
+              </div>
+              <div className="bg-background rounded-lg p-4 border">
+                <div className="text-sm text-muted-foreground">Registros por Ano</div>
+                <div className="text-lg font-medium">
+                  {Object.entries(importSummary.recordsByYear).map(([year, count]) => (
+                    <div key={year} className="flex justify-between">
+                      <span>{year}:</span>
+                      <span className="font-bold">{count.toLocaleString('pt-BR')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Value by Year */}
+            <div>
+              <h4 className="font-semibold mb-2">Valor por Ano</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {Object.entries(importSummary.valueByYear)
+                  .sort(([a], [b]) => b.localeCompare(a))
+                  .map(([year, value]) => (
+                    <div key={year} className="flex justify-between items-center bg-background rounded p-3 border">
+                      <span className="font-medium">{year}</span>
+                      <span className="font-bold text-primary">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* By Department */}
+            <div>
+              <h4 className="font-semibold mb-2">Por Departamento</h4>
+              <ScrollArea className="h-[200px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Departamento</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(importSummary.recordsByDepartment)
+                      .sort(([, a], [, b]) => b.value - a.value)
+                      .map(([dept, data]) => (
+                        <TableRow key={dept}>
+                          <TableCell className="font-medium">{dept}</TableCell>
+                          <TableCell className="text-right">{data.count.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell className="text-right font-bold">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.value)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </div>
           </CardContent>
         </Card>
       )}
