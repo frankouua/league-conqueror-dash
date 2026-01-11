@@ -466,7 +466,7 @@ export default function ComprehensiveDataImport() {
     return stats;
   };
 
-  // Import transaction data (vendas or executado)
+  // Import transaction data (vendas or executado) - OPTIMIZED VERSION
   const importTransactionData = async (): Promise<{ stats: ImportStats; errors: ImportError[]; summary: ImportSummary }> => {
     const stats: ImportStats = { total: 0, new: 0, updated: 0, skipped: 0, errors: 0 };
     const errors: ImportError[] = [];
@@ -480,12 +480,15 @@ export default function ComprehensiveDataImport() {
     const uniquePatientSet = new Set<string>();
     const tableName = fileType === 'vendas' ? 'revenue_records' : 'executed_records';
     
-    // Get user/team mappings
-    const [{ data: mappings }, { data: profiles }, { data: teams }] = await Promise.all([
+    // Get user/team mappings + default team in SINGLE parallel call
+    const [{ data: mappings }, { data: profiles }, { data: teams }, { data: firstTeam }] = await Promise.all([
       supabase.from('feegow_user_mapping').select('feegow_name, user_id'),
       supabase.from('profiles').select('user_id, full_name, team_id').not('team_id', 'is', null),
       supabase.from('teams').select('id, name'),
+      supabase.from('teams').select('id').limit(1).single(), // Pre-fetch default team
     ]);
+
+    const defaultTeamId = firstTeam?.id || null;
 
     const mappingByName = new Map<string, string>();
     mappings?.forEach(m => mappingByName.set(m.feegow_name.toLowerCase().trim(), m.user_id));
@@ -582,17 +585,9 @@ export default function ComprehensiveDataImport() {
           matchedTeamId = (profile?.team_id as string) || null;
         }
 
-        // Se ainda não tem team, usar a primeira equipe disponível
+        // Se ainda não tem team, usar a equipe padrão pré-carregada (sem query)
         if (!matchedTeamId) {
-          const { data: firstTeam } = await supabase
-            .from('teams')
-            .select('id')
-            .limit(1)
-            .single();
-          
-          if (firstTeam) {
-            matchedTeamId = firstTeam.id;
-          }
+          matchedTeamId = defaultTeamId;
         }
 
         // Se mesmo assim não tem team, pular
