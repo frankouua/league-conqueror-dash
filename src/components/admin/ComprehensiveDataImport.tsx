@@ -107,6 +107,7 @@ export default function ComprehensiveDataImport() {
   const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<string>("");
   const [fileType, setFileType] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>(""); // Filtro de ano
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
@@ -114,10 +115,15 @@ export default function ComprehensiveDataImport() {
   const [selectedSheet, setSelectedSheet] = useState<string>("");
   const [columns, setColumns] = useState<string[]>([]);
   const [rawData, setRawData] = useState<any[]>([]);
+  const [filteredData, setFilteredData] = useState<any[]>([]); // Dados filtrados por ano
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
   const [progress, setProgress] = useState(0);
   const [customFile, setCustomFile] = useState<File | null>(null);
+  
+  // Anos disponíveis para filtro
+  const currentYear = new Date().getFullYear();
+  const availableYears = [currentYear - 2, currentYear - 1, currentYear].map(String);
 
   // Load file from path
   const loadFile = async (filePath: string) => {
@@ -224,7 +230,7 @@ export default function ComprehensiveDataImport() {
     }
   }, [selectedSheet, workbook]);
 
-  // Parse value helpers
+  // Parse value helpers - MOVED BEFORE useEffect that uses them
   const parseAmount = (value: any): number => {
     if (typeof value === 'number') return value;
     if (!value) return 0;
@@ -247,6 +253,27 @@ export default function ComprehensiveDataImport() {
     }
     return null;
   };
+  
+  // Filtrar dados por ano quando necessário
+  useEffect(() => {
+    if (!rawData.length) {
+      setFilteredData([]);
+      return;
+    }
+    
+    // Só aplica filtro de ano para vendas/executado
+    if ((fileType === 'vendas' || fileType === 'executado') && selectedYear && selectedYear !== 'todos' && columnMapping.date) {
+      const dateColumn = columnMapping.date;
+      const filtered = rawData.filter(row => {
+        const date = parseDate(row[dateColumn]);
+        if (!date) return false;
+        return date.startsWith(selectedYear);
+      });
+      setFilteredData(filtered);
+    } else {
+      setFilteredData(rawData);
+    }
+  }, [rawData, selectedYear, fileType, columnMapping.date]);
 
   const normalizeCpf = (cpf: any): string => {
     if (!cpf) return '';
@@ -444,15 +471,18 @@ export default function ComprehensiveDataImport() {
 
     const BATCH_SIZE = 500; // Increased for faster imports
     const recordsToInsert: any[] = [];
-    const progressInterval = Math.max(1, Math.floor(rawData.length / 20)); // Update progress ~20 times total
+    
+    // Usa filteredData se houver filtro de ano, senão rawData
+    const dataToProcess = filteredData.length > 0 ? filteredData : rawData;
+    const progressInterval = Math.max(1, Math.floor(dataToProcess.length / 20)); // Update progress ~20 times total
 
-    for (let i = 0; i < rawData.length; i++) {
-      const row = rawData[i];
+    for (let i = 0; i < dataToProcess.length; i++) {
+      const row = dataToProcess[i];
       stats.total++;
       
       // Update progress less frequently to avoid re-render overhead
       if (i % progressInterval === 0) {
-        setProgress(Math.round((i / rawData.length) * 50)); // 0-50% for processing
+        setProgress(Math.round((i / dataToProcess.length) * 50)); // 0-50% for processing
       }
 
       try {
@@ -659,7 +689,8 @@ export default function ComprehensiveDataImport() {
 
   // Main import function
   const handleImport = async () => {
-    if (!rawData.length) {
+    const dataToImport = filteredData.length > 0 ? filteredData : rawData;
+    if (!dataToImport.length) {
       toast({ title: "Nenhum dado para importar", variant: "destructive" });
       return;
     }
@@ -801,6 +832,24 @@ export default function ComprehensiveDataImport() {
                 </Select>
               </div>
 
+              {/* Filtro de Ano para Vendas/Executado */}
+              {(fileType === 'vendas' || fileType === 'executado') && (
+                <div className="space-y-2">
+                  <Label>Filtrar por Ano</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o ano..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os anos</SelectItem>
+                      {availableYears.map((year) => (
+                        <SelectItem key={year} value={year}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Arquivo Excel</Label>
                 <Input type="file" accept=".xlsx,.xls" onChange={handleCustomFile} />
@@ -877,7 +926,12 @@ export default function ComprehensiveDataImport() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              Preview ({rawData.length} registros)
+              Preview ({filteredData.length > 0 ? filteredData.length : rawData.length} registros)
+              {selectedYear && selectedYear !== 'todos' && filteredData.length !== rawData.length && (
+                <Badge variant="secondary" className="ml-2">
+                  Filtrado: {selectedYear} ({filteredData.length} de {rawData.length})
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -892,7 +946,7 @@ export default function ComprehensiveDataImport() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rawData.slice(0, 20).map((row, rowIdx) => (
+                  {(filteredData.length > 0 ? filteredData : rawData).slice(0, 20).map((row, rowIdx) => (
                     <TableRow key={rowIdx}>
                       <TableCell className="font-medium">{rowIdx + 1}</TableCell>
                       {columns.slice(0, 8).map((col, colIdx) => (
@@ -958,7 +1012,7 @@ export default function ComprehensiveDataImport() {
             ) : (
               <Database className="w-4 h-4" />
             )}
-            Importar {rawData.length} Registros
+            Importar {filteredData.length > 0 ? filteredData.length : rawData.length} Registros
           </Button>
           
           <Button
@@ -1092,3 +1146,4 @@ export default function ComprehensiveDataImport() {
     </div>
   );
 }
+
