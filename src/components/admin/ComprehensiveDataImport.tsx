@@ -38,6 +38,7 @@ interface ImportSummary {
   recordsByDepartment: Record<string, { count: number; value: number; inactiveCount?: number; inactiveValue?: number }>;
   inactiveSellerCount?: number;
   inactiveSellerValue?: number;
+  skippedReasons?: Record<string, { count: number; value: number }>; // Track skip reasons
 }
 
 interface ImportError {
@@ -476,6 +477,7 @@ export default function ComprehensiveDataImport() {
       recordsByYear: {},
       valueByYear: {},
       recordsByDepartment: {},
+      skippedReasons: {}, // NEW: Track why records are being skipped
     };
     const uniquePatientSet = new Set<string>();
     const tableName = fileType === 'vendas' ? 'revenue_records' : 'executed_records';
@@ -524,13 +526,24 @@ export default function ComprehensiveDataImport() {
         const patientName = columnMapping.patient_name ? String(row[columnMapping.patient_name] || '').trim() : '';
         const department = columnMapping.department ? String(row[columnMapping.department] || '').trim() : 'Sem Departamento';
 
+        // Helper para rastrear motivos de skip com valores
+        const trackSkip = (reason: string) => {
+          if (!summary.skippedReasons) summary.skippedReasons = {};
+          if (!summary.skippedReasons[reason]) {
+            summary.skippedReasons[reason] = { count: 0, value: 0 };
+          }
+          summary.skippedReasons[reason].count++;
+          summary.skippedReasons[reason].value += amount;
+        };
+
         if (!date) {
           stats.skipped++;
+          trackSkip('Data inválida');
           if (errors.length < 100) {
             errors.push({ 
               row: i + 2,
               reason: 'Data inválida ou não encontrada',
-              data: `Data: "${row[columnMapping.date] || 'vazio'}", Paciente: "${patientName}"`
+              data: `Data: "${row[columnMapping.date] || 'vazio'}", Paciente: "${patientName}", Valor: R$ ${amount.toLocaleString('pt-BR')}`
             });
           }
           continue;
@@ -570,11 +583,12 @@ export default function ComprehensiveDataImport() {
 
         if (!matchedUserId) {
           stats.skipped++;
+          trackSkip('Admin não disponível');
           if (errors.length < 100) {
             errors.push({ 
               row: i + 2,
               reason: 'Usuário administrador não disponível',
-              data: `Vendedor: "${sellerName}", Paciente: "${patientName}"`
+              data: `Vendedor: "${sellerName}", Paciente: "${patientName}", Valor: R$ ${amount.toLocaleString('pt-BR')}`
             });
           }
           continue;
@@ -593,11 +607,12 @@ export default function ComprehensiveDataImport() {
         // Se mesmo assim não tem team, pular
         if (!matchedTeamId) {
           stats.skipped++;
+          trackSkip('Sem equipe disponível');
           if (errors.length < 100) {
             errors.push({ 
               row: i + 2,
               reason: 'Nenhuma equipe disponível no sistema',
-              data: `Vendedor: "${sellerName}", Paciente: "${patientName}"`
+              data: `Vendedor: "${sellerName}", Paciente: "${patientName}", Valor: R$ ${amount.toLocaleString('pt-BR')}`
             });
           }
           continue;
@@ -1279,6 +1294,60 @@ export default function ComprehensiveDataImport() {
                 </Table>
               </ScrollArea>
             </div>
+
+            {/* Skipped Records Analysis - NEW */}
+            {importSummary.skippedReasons && Object.keys(importSummary.skippedReasons).length > 0 && (
+              <div className="bg-red-500/10 rounded-lg p-4 border border-red-500/50">
+                <h4 className="font-semibold mb-2 text-red-600 dark:text-red-400 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Registros NÃO Importados (Valores Perdidos)
+                </h4>
+                <div className="text-sm text-muted-foreground mb-3">
+                  Esses valores estão na planilha mas NÃO foram importados:
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Motivo</TableHead>
+                      <TableHead className="text-right">Quantidade</TableHead>
+                      <TableHead className="text-right">Valor Perdido</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(importSummary.skippedReasons)
+                      .sort(([, a], [, b]) => b.value - a.value)
+                      .map(([reason, data]) => (
+                        <TableRow key={reason}>
+                          <TableCell className="font-medium text-red-600">{reason}</TableCell>
+                          <TableCell className="text-right">{data.count.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell className="text-right font-bold text-red-600">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.value)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    <TableRow className="bg-red-500/20">
+                      <TableCell className="font-bold">TOTAL NÃO IMPORTADO</TableCell>
+                      <TableCell className="text-right font-bold">
+                        {Object.values(importSummary.skippedReasons).reduce((acc, d) => acc + d.count, 0).toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-red-600">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                          Object.values(importSummary.skippedReasons).reduce((acc, d) => acc + d.value, 0)
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                <div className="mt-3 text-sm bg-background rounded p-2 border">
+                  <strong>Valor Total da Planilha (estimado):</strong>{' '}
+                  <span className="font-bold text-lg">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      importSummary.totalValue + Object.values(importSummary.skippedReasons).reduce((acc, d) => acc + d.value, 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
