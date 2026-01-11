@@ -82,6 +82,7 @@ const PERSONA_FIELDS = {
   expectations: "Expectativas",
 };
 
+// IMPORTANT: "Valor" (contracted value) is the priority, not "Valor Pago" (paid value)
 const TRANSACTION_FIELDS = {
   date: ["Data", "Data de Venda", "Data Pagamento", "Data Competência", "Data Execução"],
   prontuario: ["Prontuário", "Prontuario", "Cod Paciente"],
@@ -94,7 +95,8 @@ const TRANSACTION_FIELDS = {
   procedure: ["Procedimento", "Procedimentos", "Nome Procedimento"],
   seller: ["Vendedor", "Responsável", "Consultor", "Usuário"],
   executor: ["Executante", "Executor", "Profissional", "Médico", "Cirurgião"],
-  amount: ["Valor", "Valor Vendido", "Valor Total"],
+  // Priority: "Valor" first (contracted/total value), NOT "Valor Pago"
+  amount: ["Valor", "Valor Total", "Valor Vendido", "Valor Contrato"],
   amount_paid: ["Valor Pago", "Valor Recebido", "Total Pago", "Pago"],
   origin: ["Origem", "Como nos conheceu", "Canal"],
   referral_name: ["Indicação", "Indicado por", "Nome Indicação"],

@@ -137,13 +137,15 @@ const HistoricalDataImport = () => {
 
         const rows: ParsedRow[] = jsonData.map((row: any) => {
           // Map columns based on file type
+          // IMPORTANT: Always use "Valor" (total contracted value) first, not "Valor Pago"
           if (type === "vendas") {
             return {
               date: findColumn(row, ["Data", "DATA", "data"]),
               client_name: findColumn(row, ["Cliente", "CLIENTE", "cliente", "Nome", "NOME"]),
               procedure_name: findColumn(row, ["Procedimento", "PROCEDIMENTO", "procedimento"]),
               department: findColumn(row, ["Departamento", "DEPARTAMENTO", "departamento", "Grupo"]),
-              value_sold: parseAmount(findColumn(row, ["Valor Vendido", "VALOR VENDIDO", "Valor", "VALOR", "Valor Pago"])),
+              // Priority: "Valor" first (contracted value), then fallbacks
+              value_sold: parseAmount(findColumn(row, ["Valor", "VALOR", "Valor Vendido", "VALOR VENDIDO", "Valor Total", "Valor Contrato"])),
               seller_name: findColumn(row, ["Vendedor", "VENDEDOR", "vendedor"]),
               status: findColumn(row, ["Status", "STATUS", "status"]),
               notes: findColumn(row, ["Observações", "OBSERVAÇÕES", "observacoes", "Obs"])
@@ -156,8 +158,9 @@ const HistoricalDataImport = () => {
               email: findColumn(row, ["Email", "EMAIL", "E-mail", "e-mail"]),
               procedure_name: findColumn(row, ["Procedimento", "PROCEDIMENTO", "procedimento"]),
               department: findColumn(row, ["Departamento", "DEPARTAMENTO", "departamento", "Grupo"]),
-              value_sold: parseAmount(findColumn(row, ["Valor Vendido", "VALOR VENDIDO"])),
-              value_received: parseAmount(findColumn(row, ["Valor Recebido", "VALOR RECEBIDO", "Valor Pago", "VALOR PAGO"])),
+              // Priority: "Valor" first (contracted value), then fallbacks
+              value_sold: parseAmount(findColumn(row, ["Valor", "VALOR", "Valor Vendido", "VALOR VENDIDO", "Valor Total"])),
+              value_received: parseAmount(findColumn(row, ["Valor", "VALOR", "Valor Recebido", "VALOR RECEBIDO", "Valor Total"])),
               professional_name: findColumn(row, ["Profissional Executante", "PROFISSIONAL", "Profissional", "Executante"]),
               origin: findColumn(row, ["Origem", "ORIGEM", "origem"]),
               referred_by: findColumn(row, ["Indicado Por", "INDICADO POR", "Indicador", "Indicação"]),
