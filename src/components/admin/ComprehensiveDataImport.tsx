@@ -42,6 +42,22 @@ interface ImportSummary {
   skippedReasons?: Record<string, { count: number; value: number }>; // Track skip reasons
 }
 
+// Pre-import diagnostics data
+interface PreImportDiagnostics {
+  totalRows: number;
+  bruteTotal: number; // Raw sum from spreadsheet
+  parsedTotal: number; // After parseAmount
+  zeroValueRows: number; // Rows where brute value exists but parsed to 0
+  problemRows: Array<{
+    row: number;
+    bruteValue: string;
+    parsedValue: number;
+    date: string;
+    patient: string;
+    procedure: string;
+  }>;
+}
+
 interface ImportError {
   row: number;
   reason: string;
@@ -143,6 +159,8 @@ export default function ComprehensiveDataImport() {
   const [customFile, setCustomFile] = useState<File | null>(null);
   const [clearBeforeImport, setClearBeforeImport] = useState(false);
   const [existingFingerprints, setExistingFingerprints] = useState<Set<string>>(new Set());
+  const [diagnostics, setDiagnostics] = useState<PreImportDiagnostics | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   
   // Anos disponíveis para filtro
   const currentYear = new Date().getFullYear();
@@ -253,12 +271,75 @@ export default function ComprehensiveDataImport() {
     }
   }, [selectedSheet, workbook]);
 
-  // Parse value helpers - MOVED BEFORE useEffect that uses them
+  // ENHANCED: Robust parseAmount for Brazilian/US formats
   const parseAmount = (value: any): number => {
+    // Already a number
     if (typeof value === 'number') return value;
-    if (!value) return 0;
-    const str = String(value).replace(/[R$\s.]/g, '').replace(',', '.');
-    return parseFloat(str) || 0;
+    if (value === null || value === undefined || value === '') return 0;
+    
+    let str = String(value).trim();
+    
+    // Remove currency symbols, spaces, NBSP
+    str = str.replace(/[R$€\$\s\u00A0]/g, '');
+    
+    // Empty after cleanup
+    if (!str) return 0;
+    
+    // Detect format by analyzing separators
+    const lastComma = str.lastIndexOf(',');
+    const lastDot = str.lastIndexOf('.');
+    
+    let normalized: string;
+    
+    if (lastComma > lastDot) {
+      // Brazilian format: 1.234.567,89 or 1234567,89
+      // Comma is decimal separator
+      normalized = str.replace(/\./g, '').replace(',', '.');
+    } else if (lastDot > lastComma) {
+      // US format: 1,234,567.89 or 1234567.89
+      // Dot is decimal separator
+      normalized = str.replace(/,/g, '');
+    } else if (lastComma !== -1 && lastDot === -1) {
+      // Only comma: could be "1234,89" (Brazilian decimal)
+      // Check if comma has 2-3 digits after (likely decimal)
+      const afterComma = str.split(',')[1];
+      if (afterComma && afterComma.length <= 3) {
+        normalized = str.replace(',', '.');
+      } else {
+        // Thousand separator only
+        normalized = str.replace(/,/g, '');
+      }
+    } else if (lastDot !== -1 && lastComma === -1) {
+      // Only dot: could be "1234.89" (US decimal) or "1.234.567" (Brazilian thousands)
+      const parts = str.split('.');
+      if (parts.length === 2 && parts[1].length <= 3) {
+        // Likely decimal
+        normalized = str;
+      } else if (parts.length > 2) {
+        // Multiple dots = thousand separators (Brazilian)
+        normalized = str.replace(/\./g, '');
+      } else {
+        normalized = str;
+      }
+    } else {
+      // No separators
+      normalized = str;
+    }
+    
+    // Remove any remaining non-numeric chars except dot and minus
+    normalized = normalized.replace(/[^\d.\-]/g, '');
+    
+    const result = parseFloat(normalized);
+    return isNaN(result) ? 0 : result;
+  };
+  
+  // Check if raw value looks like it should have a value (for validation)
+  const hasRawValue = (value: any): boolean => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'number' && value !== 0) return true;
+    const str = String(value).trim();
+    // Check if it has digits
+    return /\d/.test(str);
   };
 
   const parseDate = (value: any): string | null => {
@@ -470,11 +551,94 @@ export default function ComprehensiveDataImport() {
     return stats;
   };
 
-  // Generate fingerprint for deduplication
+  // ENHANCED: Generate fingerprint for deduplication with better normalization
   const generateFingerprint = (date: string, patientName: string, amount: number, procedure: string, department: string): string => {
-    const normalized = `${date}|${(patientName || '').toLowerCase().trim()}|${amount}|${(procedure || '').toLowerCase().trim()}|${(department || '').toLowerCase().trim()}`;
-    return normalized;
+    // Normalize strings: trim, lowercase, collapse multiple spaces, remove accents
+    const normalize = (s: string) => (s || '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, ' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''); // Remove accents
+    
+    // Quantize amount to 2 decimal places
+    const normalizedAmount = Math.round(amount * 100) / 100;
+    
+    return `${date}|${normalize(patientName)}|${normalizedAmount.toFixed(2)}|${normalize(procedure)}|${normalize(department)}`;
   };
+  
+  // Calculate pre-import diagnostics
+  const calculateDiagnostics = () => {
+    if (!rawData.length || !columnMapping.amount) {
+      setDiagnostics(null);
+      return;
+    }
+    
+    const dataToAnalyze = filteredData.length > 0 ? filteredData : rawData;
+    const amountCol = columnMapping.amount;
+    const amountPaidCol = columnMapping.amount_paid;
+    const dateCol = columnMapping.date;
+    const patientCol = columnMapping.patient_name;
+    const procedureCol = columnMapping.procedure;
+    
+    let bruteTotal = 0;
+    let parsedTotal = 0;
+    let zeroValueRows = 0;
+    const problemRows: PreImportDiagnostics['problemRows'] = [];
+    
+    for (let i = 0; i < dataToAnalyze.length; i++) {
+      const row = dataToAnalyze[i];
+      const bruteValue = row[amountCol];
+      let parsed = parseAmount(bruteValue);
+      
+      // Fallback to amount_paid if main amount is 0 but amount_paid exists
+      if (parsed === 0 && amountPaidCol && row[amountPaidCol]) {
+        parsed = parseAmount(row[amountPaidCol]);
+      }
+      
+      // Try to calculate brute total (best effort)
+      if (typeof bruteValue === 'number') {
+        bruteTotal += bruteValue;
+      } else if (bruteValue) {
+        const bruteParsed = parseAmount(bruteValue);
+        bruteTotal += bruteParsed > 0 ? bruteParsed : 0;
+      }
+      
+      parsedTotal += parsed;
+      
+      // Check for problematic rows: has raw value but parsed to 0
+      if (hasRawValue(bruteValue) && parsed === 0) {
+        zeroValueRows++;
+        if (problemRows.length < 20) {
+          problemRows.push({
+            row: i + 2, // Excel row number
+            bruteValue: String(bruteValue || '').substring(0, 50),
+            parsedValue: parsed,
+            date: String(row[dateCol] || '').substring(0, 20),
+            patient: String(row[patientCol] || '').substring(0, 30),
+            procedure: String(row[procedureCol] || '').substring(0, 30),
+          });
+        }
+      }
+    }
+    
+    setDiagnostics({
+      totalRows: dataToAnalyze.length,
+      bruteTotal,
+      parsedTotal,
+      zeroValueRows,
+      problemRows,
+    });
+  };
+  
+  // Recalculate diagnostics when data or mapping changes
+  useEffect(() => {
+    if ((fileType === 'vendas' || fileType === 'executado') && rawData.length > 0) {
+      calculateDiagnostics();
+    } else {
+      setDiagnostics(null);
+    }
+  }, [rawData, filteredData, columnMapping.amount, columnMapping.amount_paid, fileType]);
 
   // Load existing fingerprints for deduplication
   const loadExistingFingerprints = async (tableName: 'revenue_records' | 'executed_records', yearFilter?: string): Promise<Set<string>> => {
@@ -597,23 +761,37 @@ export default function ComprehensiveDataImport() {
           ? String(row[columnMapping.seller] || "").trim()
           : "";
         const date = parseDate(row[columnMapping.date]);
-        const amount = parseAmount(row[columnMapping.amount]);
         const patientName = columnMapping.patient_name ? String(row[columnMapping.patient_name] || '').trim() : '';
         const department = columnMapping.department ? String(row[columnMapping.department] || '').trim() : 'Sem Departamento';
-
+        const procedure = columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : '';
+        
+        // ENHANCED: Parse amount with fallback to amount_paid
+        const rawAmount = row[columnMapping.amount];
+        let amount = parseAmount(rawAmount);
+        let usedFallback = false;
+        
+        // If main amount is 0 but we have amount_paid column, try that as fallback
+        if (amount === 0 && columnMapping.amount_paid && row[columnMapping.amount_paid]) {
+          const fallbackAmount = parseAmount(row[columnMapping.amount_paid]);
+          if (fallbackAmount > 0) {
+            amount = fallbackAmount;
+            usedFallback = true;
+          }
+        }
+        
         // Helper para rastrear motivos de skip com valores
-        const trackSkip = (reason: string) => {
+        const trackSkip = (reason: string, skipValue: number = 0) => {
           if (!summary.skippedReasons) summary.skippedReasons = {};
           if (!summary.skippedReasons[reason]) {
             summary.skippedReasons[reason] = { count: 0, value: 0 };
           }
           summary.skippedReasons[reason].count++;
-          summary.skippedReasons[reason].value += amount;
+          summary.skippedReasons[reason].value += skipValue;
         };
 
         if (!date) {
           stats.skipped++;
-          trackSkip('Data inválida');
+          trackSkip('Data inválida', amount);
           if (errors.length < 100) {
             errors.push({ 
               row: i + 2,
@@ -623,15 +801,28 @@ export default function ComprehensiveDataImport() {
           }
           continue;
         }
+        
+        // VALIDATION: Block rows with raw value but parsed to 0 (parsing error)
+        if (hasRawValue(rawAmount) && amount === 0) {
+          stats.skipped++;
+          trackSkip('Valor não reconhecido (parsing)', 0);
+          if (errors.length < 100) {
+            errors.push({ 
+              row: i + 2,
+              reason: `Valor não reconhecido: "${String(rawAmount).substring(0, 30)}"`,
+              data: `Data: ${date}, Paciente: "${patientName}", Procedimento: "${procedure}"`
+            });
+          }
+          continue;
+        }
 
         // Check for duplicates using fingerprint
-        const procedure = columnMapping.procedure ? String(row[columnMapping.procedure] || '').trim() : '';
         const fingerprint = generateFingerprint(date, patientName, amount, procedure, department);
         
         if (existingFps.has(fingerprint)) {
           stats.skipped++;
           stats.updated++; // Count as "would be updated" for stats
-          trackSkip('Duplicado (já existe)');
+          trackSkip('Duplicado (já existe)', amount);
           continue;
         }
         
@@ -1171,6 +1362,121 @@ export default function ComprehensiveDataImport() {
         </Card>
       )}
 
+      {/* Pre-Import Diagnostics Panel */}
+      {diagnostics && (fileType === 'vendas' || fileType === 'executado') && !loading && (
+        <Card className={diagnostics.zeroValueRows > 0 ? "border-red-500/50 bg-red-500/5" : "border-green-500/50 bg-green-500/5"}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {diagnostics.zeroValueRows > 0 ? (
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+              )}
+              Diagnóstico Pré-Importação
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+              >
+                {showDiagnostics ? 'Ocultar' : 'Detalhes'}
+              </Button>
+            </CardTitle>
+            <CardDescription>
+              Verifique esses valores ANTES de importar para garantir que a planilha será processada corretamente
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-background rounded-lg p-4 border">
+                <div className="text-sm text-muted-foreground">Total de Linhas</div>
+                <div className="text-2xl font-bold">{diagnostics.totalRows.toLocaleString('pt-BR')}</div>
+              </div>
+              <div className="bg-background rounded-lg p-4 border">
+                <div className="text-sm text-muted-foreground">Total Parseado</div>
+                <div className="text-2xl font-bold text-primary">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(diagnostics.parsedTotal)}
+                </div>
+              </div>
+              <div className={`rounded-lg p-4 border ${diagnostics.zeroValueRows > 0 ? 'bg-red-500/10 border-red-500/50' : 'bg-background'}`}>
+                <div className="text-sm text-muted-foreground">Linhas com Valor → Zero</div>
+                <div className={`text-2xl font-bold ${diagnostics.zeroValueRows > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {diagnostics.zeroValueRows}
+                </div>
+              </div>
+              <div className="bg-background rounded-lg p-4 border">
+                <div className="text-sm text-muted-foreground">Coluna de Valor</div>
+                <div className="text-sm font-medium truncate" title={columnMapping.amount}>
+                  {columnMapping.amount || 'Não mapeada'}
+                </div>
+                {columnMapping.amount_paid && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Fallback: {columnMapping.amount_paid}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {diagnostics.zeroValueRows > 0 && (
+              <div className="bg-red-500/10 rounded-lg p-4 border border-red-500/50">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-red-600">
+                      ⚠️ {diagnostics.zeroValueRows} linhas têm valor na planilha mas serão importadas com R$ 0,00
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Isso pode indicar que a coluna de valor está mapeada incorretamente ou que o formato do número não é reconhecido.
+                      {columnMapping.amount_paid && ' O sistema tentará usar "Valor Pago" como fallback.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {showDiagnostics && diagnostics.problemRows.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold mb-2 text-red-600">Amostras de Linhas Problemáticas (primeiras {diagnostics.problemRows.length})</h4>
+                <ScrollArea className="h-[200px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Linha</TableHead>
+                        <TableHead>Valor Bruto</TableHead>
+                        <TableHead>Parseado</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Paciente</TableHead>
+                        <TableHead>Procedimento</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {diagnostics.problemRows.map((row, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono font-bold">{row.row}</TableCell>
+                          <TableCell className="font-mono text-red-600 text-xs">{row.bruteValue}</TableCell>
+                          <TableCell className="font-mono text-red-600">R$ {row.parsedValue.toFixed(2)}</TableCell>
+                          <TableCell className="text-xs">{row.date}</TableCell>
+                          <TableCell className="text-xs max-w-[150px] truncate">{row.patient}</TableCell>
+                          <TableCell className="text-xs max-w-[150px] truncate">{row.procedure}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+            )}
+            
+            {diagnostics.zeroValueRows === 0 && (
+              <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/50">
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="font-medium">✓ Todos os valores foram parseados corretamente!</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Data Preview */}
       {rawData.length > 0 && !loading && (
         <Card>
@@ -1595,12 +1901,15 @@ export default function ComprehensiveDataImport() {
         <CardContent className="py-4">
           <div className="flex items-start gap-3">
             <Brain className="w-5 h-5 text-primary mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium">Deduplicação Inteligente</p>
-              <p className="text-muted-foreground">
-                O sistema usa CPF e Prontuário para identificar pacientes duplicados.
-                Registros existentes são atualizados, novos são criados automaticamente.
-              </p>
+            <div className="text-sm space-y-2">
+              <p className="font-medium">Importação Inteligente</p>
+              <ul className="text-muted-foreground list-disc list-inside space-y-1">
+                <li><strong>Deduplicação:</strong> Usa fingerprint (data + paciente + valor + procedimento + departamento) para evitar duplicatas</li>
+                <li><strong>Parsing Robusto:</strong> Reconhece formatos brasileiros (R$ 1.234,56) e americanos (1,234.56)</li>
+                <li><strong>Fallback de Valor:</strong> Se "Valor" estiver vazio, usa "Valor Pago" automaticamente</li>
+                <li><strong>Validação:</strong> Bloqueia linhas onde o valor não foi reconhecido corretamente</li>
+                <li><strong>Diagnóstico:</strong> Mostra prévia dos totais ANTES de importar para você validar</li>
+              </ul>
             </div>
           </div>
         </CardContent>
