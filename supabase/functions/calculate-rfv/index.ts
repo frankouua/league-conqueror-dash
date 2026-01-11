@@ -25,9 +25,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("Starting RFV calculation (revenue_records only - no duplicates)...");
+    console.log("Starting RFV calculation (6 segments - simplified methodology)...");
 
-    // Fetch all revenue records with pagination
+    // Fetch all revenue records with pagination (ONLY revenue_records, not executed)
     const revenueRecords: any[] = [];
     const PAGE_SIZE = 1000;
 
@@ -128,14 +128,14 @@ serve(async (req) => {
       if (!customer.email && record.patient_email) customer.email = record.patient_email;
       if (!customer.phone && record.patient_phone) customer.phone = record.patient_phone;
       
-      // Add purchase - incluir TODOS os valores (positivos, zero e negativos)
-      // Valores zero = cortesias, retornos, serviços inclusos
-      // Valores negativos = cancelamentos, estornos
+      // Add purchase - only positive values for RFV (sales value)
       const amount = parseFloat(record.amount) || 0;
-      customer.purchases.push({
-        date: record.date,
-        amount,
-      });
+      if (amount > 0) {
+        customer.purchases.push({
+          date: record.date,
+          amount,
+        });
+      }
     }
 
     console.log(`Found ${customerMap.size} unique customers`);
@@ -143,11 +143,6 @@ serve(async (req) => {
     // Calculate RFV metrics
     const today = new Date();
     const customers: any[] = [];
-
-    // First pass: calculate raw values for percentile scoring
-    const allRecencies: number[] = [];
-    const allFrequencies: number[] = [];
-    const allValues: number[] = [];
 
     customerMap.forEach((customer) => {
       if (customer.purchases.length === 0) return;
@@ -162,10 +157,6 @@ serve(async (req) => {
       const totalValue = customer.purchases.reduce((sum, p) => sum + p.amount, 0);
       const frequency = customer.purchases.length;
 
-      allRecencies.push(daysSinceLastPurchase);
-      allFrequencies.push(frequency);
-      allValues.push(totalValue);
-
       customers.push({
         ...customer,
         lastPurchaseDate: sortedPurchases[0].date,
@@ -177,57 +168,80 @@ serve(async (req) => {
       });
     });
 
-    // Calculate percentiles for scoring
-    const getPercentile = (arr: number[], value: number): number => {
-      const sorted = [...arr].sort((a, b) => a - b);
-      const index = sorted.findIndex(v => v >= value);
-      return (index / sorted.length) * 100;
-    };
-
-    // Score customers (1-5 scale)
+    // ===========================================
+    // SCORING SYSTEM (1-5 scale) based on PDF methodology
+    // ===========================================
+    
+    // Recency Score (R) - Based on days since last purchase
+    // Score 5: 0-30 days (Muito recente)
+    // Score 4: 31-60 days (Recente)
+    // Score 3: 61-120 days (Médio)
+    // Score 2: 121-180 days (Antigo)
+    // Score 1: >180 days (Muito antigo)
     const scoreRecency = (days: number): number => {
-      const percentile = getPercentile(allRecencies, days);
-      if (percentile <= 20) return 5;
-      if (percentile <= 40) return 4;
-      if (percentile <= 60) return 3;
-      if (percentile <= 80) return 2;
+      if (days <= 30) return 5;
+      if (days <= 60) return 4;
+      if (days <= 120) return 3;
+      if (days <= 180) return 2;
       return 1;
     };
 
+    // Frequency Score (F) - Based on number of purchases
+    // Score 5: 15+ compras (Muito frequente)
+    // Score 4: 10-14 compras (Frequente)
+    // Score 3: 6-9 compras (Médio)
+    // Score 2: 3-5 compras (Baixo)
+    // Score 1: 1-2 compras (Muito baixo)
     const scoreFrequency = (freq: number): number => {
-      const percentile = getPercentile(allFrequencies, freq);
-      if (percentile >= 80) return 5;
-      if (percentile >= 60) return 4;
-      if (percentile >= 40) return 3;
-      if (percentile >= 20) return 2;
+      if (freq >= 15) return 5;
+      if (freq >= 10) return 4;
+      if (freq >= 6) return 3;
+      if (freq >= 3) return 2;
       return 1;
     };
 
+    // Value Score (V) - Based on total value spent
+    // Score 5: R$ 50.000+ (Muito alto)
+    // Score 4: R$ 20.000 - R$ 49.999 (Alto)
+    // Score 3: R$ 10.000 - R$ 19.999 (Médio)
+    // Score 2: R$ 5.000 - R$ 9.999 (Baixo)
+    // Score 1: < R$ 5.000 (Muito baixo)
     const scoreValue = (value: number): number => {
-      const percentile = getPercentile(allValues, value);
-      if (percentile >= 80) return 5;
-      if (percentile >= 60) return 4;
-      if (percentile >= 40) return 3;
-      if (percentile >= 20) return 2;
+      if (value >= 50000) return 5;
+      if (value >= 20000) return 4;
+      if (value >= 10000) return 3;
+      if (value >= 5000) return 2;
       return 1;
     };
 
-    // Determine segment based on RFV scores
+    // ===========================================
+    // SEGMENTATION (6 simplified segments from PDF)
+    // ===========================================
+    // 1. CAMPEÕES 🏆: R≥4 AND F≥4 AND V≥4
+    // 2. FIÉIS 💎: F≥4 AND V≤3 AND R≥3
+    // 3. POTENCIAIS ⭐: R≥4 AND V≥4 AND F≤3
+    // 4. EM RISCO ⚠️: R≤2 AND F≥3 AND V≥3
+    // 5. NOVATOS 🌱: R≥4 AND F≤2 AND V≤2
+    // 6. INATIVOS 😴: todos os outros casos
+    
     const getSegment = (r: number, f: number, v: number): string => {
-      const avg = (r + f + v) / 3;
-      
+      // CAMPEÕES 🏆 - Alto em tudo: clientes de alto valor que compram frequentemente e recentemente
       if (r >= 4 && f >= 4 && v >= 4) return "Campeões";
-      if (r >= 3 && f >= 3 && v >= 3) return "Leais";
-      if (r >= 4 && f <= 2 && v >= 3) return "Potenciais Leais";
-      if (r >= 4 && f <= 2) return "Novos";
-      if (r >= 3 && (f >= 2 || v >= 2)) return "Promissores";
-      if (r <= 2 && f >= 3 && v >= 3) return "Precisam Atenção";
-      if (r <= 2 && f >= 2 && v >= 2) return "Em Risco";
-      if (r <= 2 && v >= 4) return "Não Podem Perder";
-      if (avg <= 2) return "Hibernando";
-      if (r <= 2 && avg <= 3) return "Quase Dormindo";
       
-      return "Outros";
+      // FIÉIS 💎 - Clientes leais com boa frequência, mas valor médio
+      if (f >= 4 && v <= 3 && r >= 3) return "Fiéis";
+      
+      // POTENCIAIS ⭐ - Comprou recentemente com alto valor, mas baixa frequência
+      if (r >= 4 && v >= 4 && f <= 3) return "Potenciais";
+      
+      // EM RISCO ⚠️ - Clientes valiosos que estão se afastando (não compra há tempo mas era bom cliente)
+      if (r <= 2 && f >= 3 && v >= 3) return "Em Risco";
+      
+      // NOVATOS 🌱 - Clientes recentes que precisam ser desenvolvidos
+      if (r >= 4 && f <= 2 && v <= 2) return "Novatos";
+      
+      // INATIVOS 😴 - Clientes que não compram há muito tempo (todos os outros casos)
+      return "Inativos";
     };
 
     // Build final RFV records (dedupe by CPF first, then by name)
@@ -261,37 +275,13 @@ serve(async (req) => {
 
       // Use CPF as primary deduplication key if available
       if (customer.cpf) {
-        const existing = rfvByCpf.get(customer.cpf);
-        if (existing) {
-          // Merge: should not happen with proper grouping, but just in case
-          existing.total_value += rfvRecord.total_value;
-          existing.total_purchases += rfvRecord.total_purchases;
-          existing.average_ticket = existing.total_value / existing.total_purchases;
-          if (rfvRecord.last_purchase_date > existing.last_purchase_date) {
-            existing.last_purchase_date = rfvRecord.last_purchase_date;
-            existing.days_since_last_purchase = rfvRecord.days_since_last_purchase;
-          }
-          existing.segment = getSegment(
-            Math.max(existing.recency_score, r),
-            Math.max(existing.frequency_score, f),
-            Math.max(existing.value_score, v)
-          );
-        } else {
+        if (!rfvByCpf.has(customer.cpf)) {
           rfvByCpf.set(customer.cpf, rfvRecord);
         }
       } else {
         // No CPF: dedupe by normalized name
         const normalizedName = customer.name.toLowerCase().trim();
-        const existing = rfvByName.get(normalizedName);
-        if (existing) {
-          existing.total_value += rfvRecord.total_value;
-          existing.total_purchases += rfvRecord.total_purchases;
-          existing.average_ticket = existing.total_value / existing.total_purchases;
-          if (rfvRecord.last_purchase_date > existing.last_purchase_date) {
-            existing.last_purchase_date = rfvRecord.last_purchase_date;
-            existing.days_since_last_purchase = rfvRecord.days_since_last_purchase;
-          }
-        } else {
+        if (!rfvByName.has(normalizedName)) {
           rfvByName.set(normalizedName, rfvRecord);
         }
       }
@@ -344,7 +334,8 @@ serve(async (req) => {
     const missingPhone = rfvRecords.filter(r => !r.phone).length;
     const missingCpf = rfvRecords.filter(r => !r.cpf).length;
 
-    console.log("RFV calculation complete!");
+    console.log("RFV calculation complete with 6 simplified segments!");
+    console.log("Segments:", segmentSummary);
 
     return new Response(
       JSON.stringify({
