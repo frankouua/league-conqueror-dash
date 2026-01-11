@@ -6,44 +6,69 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `Você é um analista de business intelligence ESTRATÉGICO e VISUAL especializado em clínicas de cirurgia plástica e estética.
-Você tem acesso aos dados reais da clínica Unique Plástica Avançada.
+const SYSTEM_PROMPT = `Você é um ANALISTA DE BUSINESS INTELLIGENCE ESTRATÉGICO para gestores da Clínica UNIQUE Plástica Avançada.
 
-🎯 FORMATO DAS SUAS RESPOSTAS (OBRIGATÓRIO):
+🎯 VOCÊ É UM ESPECIALISTA EM:
+1. Análise de dados históricos (2023-2025) - Vendas e Execuções
+2. Comparações entre períodos (ano vs ano, mês vs mês)
+3. Performance de vendedores e profissionais executantes
+4. Análise de curva ABC de clientes
+5. Análise preditiva e tendências
+6. Segmentação RFV de clientes
+7. Análise de procedimentos e departamentos
 
-1. **SEMPRE** comece com um emoji relevante e um título impactante
-2. **USE TABELAS** sempre que listar rankings, comparações ou múltiplos dados
-3. **DESTAQUE números importantes** com **negrito** e emojis (💰 💎 🏆 📈 ⚡ 🎯)
-4. **ORGANIZE em seções** com títulos claros usando ##
-5. **INCLUA insights estratégicos** ao final com 💡
-6. **SUGIRA ações práticas** baseadas nos dados
-7. **SEJA VISUAL** - use separadores, bullets e formatação rica
+🧠 COMO VOCÊ DEVE RESPONDER:
 
-📊 EXEMPLO DE RESPOSTA IDEAL:
+1. **ENTENDA A PERGUNTA**:
+   - Identifique o tipo: histórico, comparação, performance, ABC, preditiva
+   - Identifique o período: ano específico, mês, trimestre
+   - Identifique filtros: vendedor, procedimento, departamento, cliente
 
-## 🏆 TOP VENDEDORES DO MÊS
+2. **BUSQUE NOS DADOS**:
+   - Use os dados fornecidos no contexto
+   - Faça cálculos quando necessário
+   - Identifique tendências
 
-| Pos | Vendedor | Vendas | Valor | Ticket |
-|-----|----------|--------|-------|--------|
-| 🥇 | Maria | 45 | R$ 890.000 | R$ 19.777 |
-| 🥈 | João | 38 | R$ 720.000 | R$ 18.947 |
+3. **RESPONDA COM VISUAL RICO**:
+   - Use tabelas para rankings e comparações
+   - Destaque números com **negrito** e emojis
+   - Organize em seções com ## títulos
+   - Inclua insights acionáveis
 
-**💰 Destaque:** Maria superou a meta em 23%!
+📊 FORMATO OBRIGATÓRIO DAS RESPOSTAS:
+
+## 🏆 [TÍTULO IMPACTANTE]
+
+| Coluna 1 | Coluna 2 | Coluna 3 |
+|----------|----------|----------|
+| Dados    | Dados    | Dados    |
+
+**💰 Destaque:** [Insight principal]
 
 ---
 
 ## 💡 INSIGHTS ESTRATÉGICOS
-
-- ⚡ **Oportunidade:** Aumentar cross-sell de soroterapia
-- 🎯 **Ação:** Focar captação em SP capital
+- ⚡ **Oportunidade:** [O que pode melhorar]
+- 🎯 **Ação:** [O que fazer]
 
 ---
 
-SOBRE A CLÍNICA UNIQUE:
-A Unique trabalha com o Método CPI 360° - Cirurgia Plástica Integrativa de Alta Performance.
-7 pilares: Composição Corporal, Funcional, Nutrição, Hormonal, Genética, Emocional, Recuperação.
+📈 EXEMPLOS DE PERGUNTAS E RESPOSTAS:
 
-DEPARTAMENTOS:
+**P:** "Quantos botox executei em 2023?"
+**R:** "Em 2023, você executou 156 procedimentos de Botox, gerando R$ 124.800. Isso representou 12% do total."
+
+**P:** "Qual foi o crescimento de 2023 para 2024?"
+**R:** "Crescimento de 34%! De R$ 450.000 para R$ 603.000. Impulsionado por Lipoaspiração (+45%)."
+
+**P:** "Quais são meus clientes VIP?"
+**R:** "Você tem 12 clientes VIP (curva A) que representam 80% da receita."
+
+🏥 SOBRE A CLÍNICA UNIQUE:
+- Método CPI 360° - Cirurgia Plástica Integrativa
+- 7 pilares: Composição Corporal, Funcional, Nutrição, Hormonal, Genética, Emocional, Recuperação
+
+📋 DEPARTAMENTOS:
 - 01 - CIRURGIA PLÁSTICA (ticket ~R$ 60.789)
 - 02 - CONSULTA CIRURGIA PLÁSTICA (ticket ~R$ 743)
 - 03 - PÓS OPERATÓRIO (ticket ~R$ 2.285)
@@ -51,24 +76,12 @@ DEPARTAMENTOS:
 - 08 - HARMONIZAÇÃO FACIAL E CORPORAL (ticket ~R$ 4.502)
 - 09 - SPA E ESTÉTICA (ticket ~R$ 136)
 
-SUAS CAPACIDADES ESTRATÉGICAS:
-- Analisar vendas, receitas e tickets médios
-- Performance por EXECUTANTE (médico/profissional que realizou o procedimento)
-- Performance por VENDEDOR (quem vendeu)
-- Identificar oportunidades de cross-sell e upsell
-- Sugerir protocolos e campanhas baseadas em dados
-- Analisar LTV (Lifetime Value) de clientes
-- Identificar padrões geográficos e demográficos
-- Recomendar estratégias de captação e retenção
-
-REGRAS DE FORMATAÇÃO:
-- SEMPRE use tabelas para listas e rankings
-- SEMPRE destaque valores em reais com R$
-- SEMPRE inclua emojis relevantes
+⚠️ REGRAS IMPORTANTES:
+- SEMPRE cite a fonte dos dados
+- SEMPRE use formatação visual rica (tabelas, emojis)
 - SEMPRE termine com insights acionáveis
-- NUNCA seja monótono ou apenas textual
-- Ao falar de executantes, refere-se como "Dr./Dra." ou "profissional"`;
-
+- NUNCA invente dados - use apenas o contexto fornecido
+- Ao falar de executantes, use "Dr./Dra." ou "profissional"`;
 
 interface QueryParams {
   message: string;
@@ -101,15 +114,17 @@ serve(async (req) => {
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
     
-    // Fetch data from 3 years ago to cover historical analysis
-    const threeYearsAgo = new Date(currentYear - 3, 0, 1).toISOString().split("T")[0];
+    // Fetch data from 2023 onwards to cover historical analysis
+    const startDate = "2023-01-01";
 
     // Fetch all data in parallel with multiple batches for large tables
     const [
       revenueBatch1,
       revenueBatch2,
+      revenueBatch3,
       executedBatch1,
       executedBatch2,
+      executedBatch3,
       goalsResult,
       profilesResult,
       teamsResult,
@@ -122,35 +137,49 @@ serve(async (req) => {
       supabase
         .from("revenue_records")
         .select("*")
-        .gte("date", threeYearsAgo)
+        .gte("date", startDate)
         .range(0, 4999),
       
       // Revenue records - batch 2 (5000-9999)
       supabase
         .from("revenue_records")
         .select("*")
-        .gte("date", threeYearsAgo)
+        .gte("date", startDate)
         .range(5000, 9999),
+      
+      // Revenue records - batch 3 (10000-14999)
+      supabase
+        .from("revenue_records")
+        .select("*")
+        .gte("date", startDate)
+        .range(10000, 14999),
       
       // Executed records - batch 1 (0-5999)
       supabase
         .from("executed_records")
         .select("*")
-        .gte("date", threeYearsAgo)
+        .gte("date", startDate)
         .range(0, 5999),
       
       // Executed records - batch 2 (6000-11999)
       supabase
         .from("executed_records")
         .select("*")
-        .gte("date", threeYearsAgo)
+        .gte("date", startDate)
         .range(6000, 11999),
       
-      // Goals for current and previous years
+      // Executed records - batch 3 (12000-17999)
+      supabase
+        .from("executed_records")
+        .select("*")
+        .gte("date", startDate)
+        .range(12000, 17999),
+      
+      // Goals for all years
       supabase
         .from("predefined_goals")
         .select("*")
-        .gte("year", currentYear - 2),
+        .gte("year", 2023),
       
       // All profiles
       supabase.from("profiles").select("*"),
@@ -158,32 +187,40 @@ serve(async (req) => {
       // All teams
       supabase.from("teams").select("*"),
       
-      // RFV customers
-      supabase.from("rfv_customers").select("*"),
+      // RFV customers - all
+      supabase.from("rfv_customers").select("*").limit(5000),
       
       // Referral records
       supabase
         .from("referral_records")
         .select("*")
-        .gte("date", threeYearsAgo),
+        .gte("date", startDate),
       
       // NPS records
       supabase
         .from("nps_records")
         .select("*")
-        .gte("date", threeYearsAgo),
+        .gte("date", startDate),
       
-      // Patient data
+      // Patient data - top by value
       supabase
         .from("patient_data")
         .select("*")
         .order("total_value_sold", { ascending: false })
-        .limit(2000),
+        .limit(3000),
     ]);
 
     // Combine batched results
-    const revenueRecords = [...(revenueBatch1.data || []), ...(revenueBatch2.data || [])];
-    const executedRecords = [...(executedBatch1.data || []), ...(executedBatch2.data || [])];
+    const revenueRecords = [
+      ...(revenueBatch1.data || []), 
+      ...(revenueBatch2.data || []),
+      ...(revenueBatch3.data || [])
+    ];
+    const executedRecords = [
+      ...(executedBatch1.data || []), 
+      ...(executedBatch2.data || []),
+      ...(executedBatch3.data || [])
+    ];
 
     console.log(`Fetched ${revenueRecords.length} revenue records`);
     console.log(`Fetched ${executedRecords.length} executed records`);
@@ -197,472 +234,501 @@ serve(async (req) => {
     const npsRecords = npsResult.data || [];
     const patientData = patientDataResult.data || [];
 
-    // Calculate aggregated metrics
-    const monthlyRevenue: Record<string, { total: number; count: number; byDepartment: Record<string, { total: number; count: number }> }> = {};
-    
-    revenueRecords.forEach((record: any) => {
-      const date = new Date(record.date);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const dept = record.department || "Não especificado";
-      
-      if (!monthlyRevenue[key]) {
-        monthlyRevenue[key] = { total: 0, count: 0, byDepartment: {} };
-      }
-      monthlyRevenue[key].total += record.amount;
-      monthlyRevenue[key].count += 1;
-      
-      if (!monthlyRevenue[key].byDepartment[dept]) {
-        monthlyRevenue[key].byDepartment[dept] = { total: 0, count: 0 };
-      }
-      monthlyRevenue[key].byDepartment[dept].total += record.amount;
-      monthlyRevenue[key].byDepartment[dept].count += 1;
+    // ============================================
+    // YEARLY SUMMARY (2023, 2024, 2025, 2026)
+    // ============================================
+    const yearlySummary: Record<number, { 
+      revenue: number; 
+      revenueCount: number; 
+      executed: number; 
+      executedCount: number;
+      avgTicketRevenue: number;
+      avgTicketExecuted: number;
+    }> = {};
+
+    [2023, 2024, 2025, 2026].forEach(year => {
+      yearlySummary[year] = { revenue: 0, revenueCount: 0, executed: 0, executedCount: 0, avgTicketRevenue: 0, avgTicketExecuted: 0 };
     });
 
-    // Monthly executed with procedure details
-    const monthlyExecuted: Record<string, { total: number; count: number; byDepartment: Record<string, { total: number; count: number }>; byProcedure: Record<string, { total: number; count: number }> }> = {};
+    revenueRecords.forEach((record: any) => {
+      const year = new Date(record.date).getFullYear();
+      if (yearlySummary[year]) {
+        yearlySummary[year].revenue += record.amount || 0;
+        yearlySummary[year].revenueCount += 1;
+      }
+    });
+
+    executedRecords.forEach((record: any) => {
+      const year = new Date(record.date).getFullYear();
+      if (yearlySummary[year]) {
+        yearlySummary[year].executed += record.amount || 0;
+        yearlySummary[year].executedCount += 1;
+      }
+    });
+
+    // Calculate averages
+    Object.keys(yearlySummary).forEach(y => {
+      const year = Number(y);
+      if (yearlySummary[year].revenueCount > 0) {
+        yearlySummary[year].avgTicketRevenue = yearlySummary[year].revenue / yearlySummary[year].revenueCount;
+      }
+      if (yearlySummary[year].executedCount > 0) {
+        yearlySummary[year].avgTicketExecuted = yearlySummary[year].executed / yearlySummary[year].executedCount;
+      }
+    });
+
+    // ============================================
+    // YEAR OVER YEAR GROWTH
+    // ============================================
+    const yearGrowth: Record<string, { revenueGrowth: number; executedGrowth: number; countGrowth: number }> = {};
     
-    // ANNUAL procedure totals for quick lookups
-    const yearlyProcedures: Record<number, Record<string, { count: number; total: number }>> = {};
+    const years = [2023, 2024, 2025];
+    years.forEach((year, idx) => {
+      if (idx > 0) {
+        const prevYear = years[idx - 1];
+        const prev = yearlySummary[prevYear];
+        const curr = yearlySummary[year];
+        
+        yearGrowth[`${prevYear}-${year}`] = {
+          revenueGrowth: prev.revenue > 0 ? ((curr.revenue - prev.revenue) / prev.revenue) * 100 : 0,
+          executedGrowth: prev.executed > 0 ? ((curr.executed - prev.executed) / prev.executed) * 100 : 0,
+          countGrowth: prev.revenueCount > 0 ? ((curr.revenueCount - prev.revenueCount) / prev.revenueCount) * 100 : 0,
+        };
+      }
+    });
+
+    // ============================================
+    // MONTHLY DATA BY YEAR
+    // ============================================
+    const monthlyByYear: Record<number, Record<number, { revenue: number; executed: number; revenueCount: number; executedCount: number }>> = {};
     
+    [2023, 2024, 2025, 2026].forEach(year => {
+      monthlyByYear[year] = {};
+      for (let m = 1; m <= 12; m++) {
+        monthlyByYear[year][m] = { revenue: 0, executed: 0, revenueCount: 0, executedCount: 0 };
+      }
+    });
+
+    revenueRecords.forEach((record: any) => {
+      const date = new Date(record.date);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      if (monthlyByYear[year] && monthlyByYear[year][month]) {
+        monthlyByYear[year][month].revenue += record.amount || 0;
+        monthlyByYear[year][month].revenueCount += 1;
+      }
+    });
+
     executedRecords.forEach((record: any) => {
       const date = new Date(record.date);
       const year = date.getFullYear();
-      const key = `${year}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const dept = record.department || "Não especificado";
+      const month = date.getMonth() + 1;
+      if (monthlyByYear[year] && monthlyByYear[year][month]) {
+        monthlyByYear[year][month].executed += record.amount || 0;
+        monthlyByYear[year][month].executedCount += 1;
+      }
+    });
+
+    // ============================================
+    // PROCEDURES BY YEAR (TOP 50 each)
+    // ============================================
+    const proceduresByYear: Record<number, Record<string, { count: number; total: number; avgValue: number }>> = {};
+    
+    executedRecords.forEach((record: any) => {
+      const year = new Date(record.date).getFullYear();
       const proc = record.procedure_name || "Não especificado";
       
-      if (!monthlyExecuted[key]) {
-        monthlyExecuted[key] = { total: 0, count: 0, byDepartment: {}, byProcedure: {} };
-      }
-      monthlyExecuted[key].total += record.amount;
-      monthlyExecuted[key].count += 1;
+      if (!proceduresByYear[year]) proceduresByYear[year] = {};
+      if (!proceduresByYear[year][proc]) proceduresByYear[year][proc] = { count: 0, total: 0, avgValue: 0 };
       
-      if (!monthlyExecuted[key].byDepartment[dept]) {
-        monthlyExecuted[key].byDepartment[dept] = { total: 0, count: 0 };
-      }
-      monthlyExecuted[key].byDepartment[dept].total += record.amount;
-      monthlyExecuted[key].byDepartment[dept].count += 1;
-      
-      // Track by procedure name
-      if (!monthlyExecuted[key].byProcedure[proc]) {
-        monthlyExecuted[key].byProcedure[proc] = { total: 0, count: 0 };
-      }
-      monthlyExecuted[key].byProcedure[proc].total += record.amount;
-      monthlyExecuted[key].byProcedure[proc].count += 1;
-      
-      // ANNUAL totals by procedure name
-      if (!yearlyProcedures[year]) {
-        yearlyProcedures[year] = {};
-      }
-      if (!yearlyProcedures[year][proc]) {
-        yearlyProcedures[year][proc] = { count: 0, total: 0 };
-      }
-      yearlyProcedures[year][proc].count += 1;
-      yearlyProcedures[year][proc].total += record.amount;
+      proceduresByYear[year][proc].count += 1;
+      proceduresByYear[year][proc].total += record.amount || 0;
     });
 
-    // EXECUTOR (professional who performed the procedure) analysis
-    const executorPerformance: Record<string, { name: string; procedures: number; revenue: number; byYear: Record<number, { procedures: number; revenue: number }> }> = {};
-    const executorByYear: Record<number, Record<string, { name: string; procedures: number; revenue: number }>> = {};
-    
-    executedRecords.forEach((record: any) => {
-      const executor = record.executor_name?.trim() || "Não especificado";
-      if (executor === "Não especificado" || executor === "") return;
-      
-      const date = new Date(record.date);
-      const year = date.getFullYear();
-      
-      // Overall executor performance
-      if (!executorPerformance[executor]) {
-        executorPerformance[executor] = { name: executor, procedures: 0, revenue: 0, byYear: {} };
-      }
-      executorPerformance[executor].procedures += 1;
-      executorPerformance[executor].revenue += record.amount || 0;
-      
-      // By year
-      if (!executorPerformance[executor].byYear[year]) {
-        executorPerformance[executor].byYear[year] = { procedures: 0, revenue: 0 };
-      }
-      executorPerformance[executor].byYear[year].procedures += 1;
-      executorPerformance[executor].byYear[year].revenue += record.amount || 0;
-      
-      // Yearly breakdown
-      if (!executorByYear[year]) {
-        executorByYear[year] = {};
-      }
-      if (!executorByYear[year][executor]) {
-        executorByYear[year][executor] = { name: executor, procedures: 0, revenue: 0 };
-      }
-      executorByYear[year][executor].procedures += 1;
-      executorByYear[year][executor].revenue += record.amount || 0;
+    // Calculate averages
+    Object.keys(proceduresByYear).forEach(y => {
+      Object.keys(proceduresByYear[Number(y)]).forEach(proc => {
+        const p = proceduresByYear[Number(y)][proc];
+        p.avgValue = p.count > 0 ? p.total / p.count : 0;
+      });
     });
 
-    // Seller performance - overall
-    const sellerPerformance: Record<string, { name: string; revenue: number; count: number; team: string }> = {};
-    
-    // Seller performance - by month
-    const sellerMonthlyPerformance: Record<string, Record<string, { name: string; revenue: number; count: number; team: string }>> = {};
+    // ============================================
+    // SELLER PERFORMANCE BY YEAR
+    // ============================================
+    const sellersByYear: Record<number, Record<string, { name: string; revenue: number; count: number; team: string }>> = {};
     
     revenueRecords.forEach((record: any) => {
+      const year = new Date(record.date).getFullYear();
       const userId = record.attributed_to_user_id || record.user_id;
-      const date = new Date(record.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       const profile = profiles.find((p: any) => p.user_id === userId);
       const team = teams.find((t: any) => t.id === profile?.team_id);
       const sellerName = profile?.full_name || "Desconhecido";
       const teamName = team?.name || "Sem equipe";
       
-      // Overall performance
-      if (!sellerPerformance[userId]) {
-        sellerPerformance[userId] = {
-          name: sellerName,
-          revenue: 0,
-          count: 0,
-          team: teamName,
-        };
+      if (!sellersByYear[year]) sellersByYear[year] = {};
+      if (!sellersByYear[year][userId]) {
+        sellersByYear[year][userId] = { name: sellerName, revenue: 0, count: 0, team: teamName };
       }
-      sellerPerformance[userId].revenue += record.amount;
-      sellerPerformance[userId].count += 1;
       
-      // Monthly performance
-      if (!sellerMonthlyPerformance[monthKey]) {
-        sellerMonthlyPerformance[monthKey] = {};
-      }
-      if (!sellerMonthlyPerformance[monthKey][userId]) {
-        sellerMonthlyPerformance[monthKey][userId] = {
-          name: sellerName,
-          revenue: 0,
-          count: 0,
-          team: teamName,
-        };
-      }
-      sellerMonthlyPerformance[monthKey][userId].revenue += record.amount;
-      sellerMonthlyPerformance[monthKey][userId].count += 1;
+      sellersByYear[year][userId].revenue += record.amount || 0;
+      sellersByYear[year][userId].count += 1;
     });
 
-    // RFV segment summary
-    const rfvSegments: Record<string, number> = {};
-    rfvCustomers.forEach((customer: any) => {
-      rfvSegments[customer.segment] = (rfvSegments[customer.segment] || 0) + 1;
-    });
-
-    // Patient data analytics - Origin analysis
-    const originStats: Record<string, { count: number; totalValue: number }> = {};
-    const cityStats: Record<string, { count: number; totalValue: number }> = {};
-    const stateStats: Record<string, { count: number; totalValue: number }> = {};
-    const professionStats: Record<string, number> = {};
-    const objectiveStats: Record<string, number> = {};
-    const referralStats: Record<string, { count: number; totalValue: number }> = {};
-    const influencerStats: Record<string, { count: number; totalValue: number }> = {};
+    // ============================================
+    // EXECUTOR (PROFESSIONAL) PERFORMANCE BY YEAR
+    // ============================================
+    const executorsByYear: Record<number, Record<string, { name: string; procedures: number; revenue: number }>> = {};
     
-    patientData.forEach((patient: any) => {
-      const value = patient.total_value_sold || 0;
-      
-      // Origin analysis
-      if (patient.origin) {
-        const origin = patient.origin.trim();
-        if (!originStats[origin]) originStats[origin] = { count: 0, totalValue: 0 };
-        originStats[origin].count += 1;
-        originStats[origin].totalValue += value;
-      }
-      
-      // City analysis
-      if (patient.city) {
-        const city = patient.city.trim();
-        if (!cityStats[city]) cityStats[city] = { count: 0, totalValue: 0 };
-        cityStats[city].count += 1;
-        cityStats[city].totalValue += value;
-      }
-      
-      // State analysis
-      if (patient.state) {
-        const state = patient.state.trim();
-        if (!stateStats[state]) stateStats[state] = { count: 0, totalValue: 0 };
-        stateStats[state].count += 1;
-        stateStats[state].totalValue += value;
-      }
-      
-      // Profession analysis
-      if (patient.profession) {
-        const profession = patient.profession.trim();
-        professionStats[profession] = (professionStats[profession] || 0) + 1;
-      }
-      
-      // Objective analysis
-      if (patient.main_objective) {
-        const objective = patient.main_objective.trim().substring(0, 50);
-        objectiveStats[objective] = (objectiveStats[objective] || 0) + 1;
-      }
-      
-      // Referral name analysis
-      if (patient.referral_name && patient.referral_name.toLowerCase() !== 'google' && patient.referral_name.toLowerCase() !== 'instagram') {
-        const referrer = patient.referral_name.trim();
-        if (!referralStats[referrer]) referralStats[referrer] = { count: 0, totalValue: 0 };
-        referralStats[referrer].count += 1;
-        referralStats[referrer].totalValue += value;
-      }
-      
-      // Influencer analysis
-      if (patient.influencer_name) {
-        const influencer = patient.influencer_name.trim();
-        if (!influencerStats[influencer]) influencerStats[influencer] = { count: 0, totalValue: 0 };
-        influencerStats[influencer].count += 1;
-        influencerStats[influencer].totalValue += value;
-      }
-    });
-
-    // Origin analysis from revenue/executed records
-    const revenueOriginStats: Record<string, { count: number; totalValue: number }> = {};
-    revenueRecords.forEach((record: any) => {
-      if (record.origin) {
-        const origin = record.origin.trim();
-        if (!revenueOriginStats[origin]) revenueOriginStats[origin] = { count: 0, totalValue: 0 };
-        revenueOriginStats[origin].count += 1;
-        revenueOriginStats[origin].totalValue += record.amount || 0;
-      }
-    });
-
-    const executedOriginStats: Record<string, { count: number; totalValue: number }> = {};
     executedRecords.forEach((record: any) => {
-      if (record.origin) {
-        const origin = record.origin.trim();
-        if (!executedOriginStats[origin]) executedOriginStats[origin] = { count: 0, totalValue: 0 };
-        executedOriginStats[origin].count += 1;
-        executedOriginStats[origin].totalValue += record.amount || 0;
+      const year = new Date(record.date).getFullYear();
+      const executor = record.executor_name?.trim() || "Não especificado";
+      if (executor === "Não especificado" || executor === "") return;
+      
+      if (!executorsByYear[year]) executorsByYear[year] = {};
+      if (!executorsByYear[year][executor]) {
+        executorsByYear[year][executor] = { name: executor, procedures: 0, revenue: 0 };
+      }
+      
+      executorsByYear[year][executor].procedures += 1;
+      executorsByYear[year][executor].revenue += record.amount || 0;
+    });
+
+    // ============================================
+    // DEPARTMENT PERFORMANCE BY YEAR
+    // ============================================
+    const departmentsByYear: Record<number, Record<string, { revenue: number; executed: number; revenueCount: number; executedCount: number }>> = {};
+    
+    revenueRecords.forEach((record: any) => {
+      const year = new Date(record.date).getFullYear();
+      const dept = record.department || "Não especificado";
+      
+      if (!departmentsByYear[year]) departmentsByYear[year] = {};
+      if (!departmentsByYear[year][dept]) {
+        departmentsByYear[year][dept] = { revenue: 0, executed: 0, revenueCount: 0, executedCount: 0 };
+      }
+      
+      departmentsByYear[year][dept].revenue += record.amount || 0;
+      departmentsByYear[year][dept].revenueCount += 1;
+    });
+
+    executedRecords.forEach((record: any) => {
+      const year = new Date(record.date).getFullYear();
+      const dept = record.department || "Não especificado";
+      
+      if (!departmentsByYear[year]) departmentsByYear[year] = {};
+      if (!departmentsByYear[year][dept]) {
+        departmentsByYear[year][dept] = { revenue: 0, executed: 0, revenueCount: 0, executedCount: 0 };
+      }
+      
+      departmentsByYear[year][dept].executed += record.amount || 0;
+      departmentsByYear[year][dept].executedCount += 1;
+    });
+
+    // ============================================
+    // ABC CURVE ANALYSIS (by patient)
+    // ============================================
+    const patientTotals: Record<string, { name: string; total: number; count: number }> = {};
+    
+    executedRecords.forEach((record: any) => {
+      const patientName = record.patient_name?.trim() || "Desconhecido";
+      if (patientName === "Desconhecido") return;
+      
+      if (!patientTotals[patientName]) {
+        patientTotals[patientName] = { name: patientName, total: 0, count: 0 };
+      }
+      patientTotals[patientName].total += record.amount || 0;
+      patientTotals[patientName].count += 1;
+    });
+
+    // Sort by total descending
+    const sortedPatients = Object.values(patientTotals).sort((a, b) => b.total - a.total);
+    const totalPatientRevenue = sortedPatients.reduce((acc, p) => acc + p.total, 0);
+    
+    // Calculate ABC curves
+    let cumulativeA = 0;
+    let cumulativeB = 0;
+    const curveA: typeof sortedPatients = [];
+    const curveB: typeof sortedPatients = [];
+    const curveC: typeof sortedPatients = [];
+    
+    sortedPatients.forEach(patient => {
+      const pct = (cumulativeA / totalPatientRevenue) * 100;
+      if (pct < 80) {
+        curveA.push(patient);
+        cumulativeA += patient.total;
+      } else if (pct < 95) {
+        curveB.push(patient);
+        cumulativeB += patient.total;
+      } else {
+        curveC.push(patient);
       }
     });
 
-    // Build data context for AI
-    const dataContext = `
-## DADOS DISPONÍVEIS (${new Date().toLocaleDateString("pt-BR")})
+    // ============================================
+    // RFV SEGMENT SUMMARY
+    // ============================================
+    const rfvSegments: Record<string, { count: number; totalValue: number }> = {};
+    rfvCustomers.forEach((customer: any) => {
+      const segment = customer.segment || "Não classificado";
+      if (!rfvSegments[segment]) rfvSegments[segment] = { count: 0, totalValue: 0 };
+      rfvSegments[segment].count += 1;
+      rfvSegments[segment].totalValue += customer.total_value || 0;
+    });
 
-### RESUMO DE VENDAS (últimos 12 meses)
-${Object.entries(monthlyRevenue)
-  .sort((a, b) => b[0].localeCompare(a[0]))
-  .slice(0, 12)
-  .map(([month, data]) => {
-    const avgTicket = data.count > 0 ? data.total / data.count : 0;
-    return `- ${month}: R$ ${data.total.toLocaleString("pt-BR")} (${data.count} vendas, ticket médio R$ ${avgTicket.toLocaleString("pt-BR", { maximumFractionDigits: 0 })})`;
-  })
+    // ============================================
+    // ORIGIN ANALYSIS
+    // ============================================
+    const originStats: Record<string, { count: number; totalValue: number }> = {};
+    
+    executedRecords.forEach((record: any) => {
+      const origin = record.origin?.trim() || "Não especificado";
+      if (origin === "Não especificado") return;
+      
+      if (!originStats[origin]) originStats[origin] = { count: 0, totalValue: 0 };
+      originStats[origin].count += 1;
+      originStats[origin].totalValue += record.amount || 0;
+    });
+
+    // ============================================
+    // REFERRAL/INFLUENCER ANALYSIS
+    // ============================================
+    const referralNames: Record<string, { count: number; totalValue: number }> = {};
+    const influencerNames: Record<string, { count: number; totalValue: number }> = {};
+    
+    executedRecords.forEach((record: any) => {
+      if (record.referral_name) {
+        const name = record.referral_name.trim();
+        if (!referralNames[name]) referralNames[name] = { count: 0, totalValue: 0 };
+        referralNames[name].count += 1;
+        referralNames[name].totalValue += record.amount || 0;
+      }
+      
+      if (record.influencer_name) {
+        const name = record.influencer_name.trim();
+        if (!influencerNames[name]) influencerNames[name] = { count: 0, totalValue: 0 };
+        influencerNames[name].count += 1;
+        influencerNames[name].totalValue += record.amount || 0;
+      }
+    });
+
+    // ============================================
+    // PREDICTIVE ANALYSIS (simple linear trend)
+    // ============================================
+    const predictedRevenue2026 = yearlySummary[2025].revenue > 0 && yearlySummary[2024].revenue > 0
+      ? yearlySummary[2025].revenue * (1 + (yearGrowth["2024-2025"]?.revenueGrowth || 0) / 100)
+      : 0;
+
+    const avgGrowthRate = Object.values(yearGrowth).reduce((acc, g) => acc + g.revenueGrowth, 0) / Object.keys(yearGrowth).length;
+
+    // ============================================
+    // BUILD DATA CONTEXT
+    // ============================================
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    
+    const dataContext = `
+## 📊 DADOS COMPLETOS DA UNIQUE (${new Date().toLocaleDateString("pt-BR")})
+
+---
+
+### 📈 RESUMO ANUAL CONSOLIDADO
+
+| Ano | Vendas (R$) | Qtd Vendas | Ticket Médio | Executado (R$) | Qtd Exec | Ticket Exec |
+|-----|-------------|------------|--------------|----------------|----------|-------------|
+${Object.entries(yearlySummary)
+  .sort((a, b) => Number(b[0]) - Number(a[0]))
+  .map(([year, data]) => `| ${year} | R$ ${data.revenue.toLocaleString("pt-BR")} | ${data.revenueCount} | R$ ${data.avgTicketRevenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} | R$ ${data.executed.toLocaleString("pt-BR")} | ${data.executedCount} | R$ ${data.avgTicketExecuted.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} |`)
   .join("\n")}
 
-### VENDAS POR DEPARTAMENTO/PROCEDIMENTO (últimos 12 meses)
-${Object.entries(monthlyRevenue)
-  .sort((a, b) => b[0].localeCompare(a[0]))
-  .slice(0, 6)
-  .map(([month, data]) => {
-    const depts = Object.entries(data.byDepartment)
-      .sort((a, b) => b[1].total - a[1].total)
-      .slice(0, 5)
-      .map(([dept, info]) => `  • ${dept}: R$ ${info.total.toLocaleString("pt-BR")} (${info.count} vendas, ticket R$ ${(info.total / info.count).toLocaleString("pt-BR", { maximumFractionDigits: 0 })})`)
-      .join("\n");
-    return `${month}:\n${depts}`;
+---
+
+### 📊 CRESCIMENTO ANO A ANO
+
+${Object.entries(yearGrowth)
+  .map(([period, data]) => `- **${period}**: Vendas ${data.revenueGrowth >= 0 ? "+" : ""}${data.revenueGrowth.toFixed(1)}% | Executado ${data.executedGrowth >= 0 ? "+" : ""}${data.executedGrowth.toFixed(1)}% | Qtd ${data.countGrowth >= 0 ? "+" : ""}${data.countGrowth.toFixed(1)}%`)
+  .join("\n")}
+
+---
+
+### 📅 DADOS MENSAIS POR ANO
+
+${Object.entries(monthlyByYear)
+  .sort((a, b) => Number(b[0]) - Number(a[0]))
+  .map(([year, months]) => {
+    return `**${year}:**
+| Mês | Vendas (R$) | Qtd | Executado (R$) | Qtd |
+|-----|-------------|-----|----------------|-----|
+${Object.entries(months)
+  .filter(([_, data]) => data.revenueCount > 0 || data.executedCount > 0)
+  .map(([m, data]) => `| ${monthNames[Number(m) - 1]} | R$ ${data.revenue.toLocaleString("pt-BR")} | ${data.revenueCount} | R$ ${data.executed.toLocaleString("pt-BR")} | ${data.executedCount} |`)
+  .join("\n")}`;
   })
   .join("\n\n")}
 
-### PROCEDIMENTOS EXECUTADOS POR ANO (TOTAIS ANUAIS - TOP 50)
-${Object.entries(yearlyProcedures)
+---
+
+### 🏆 TOP PROCEDIMENTOS POR ANO
+
+${Object.entries(proceduresByYear)
   .sort((a, b) => Number(b[0]) - Number(a[0]))
   .map(([year, procs]) => {
     const topProcs = Object.entries(procs)
       .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 50)
-      .map(([proc, info]) => `  • ${proc}: ${info.count} execuções (R$ ${info.total.toLocaleString("pt-BR")})`)
+      .slice(0, 30)
+      .map(([proc, data], idx) => `${idx + 1}. ${proc}: ${data.count} exec (R$ ${data.total.toLocaleString("pt-BR")}) | Ticket: R$ ${data.avgValue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`)
       .join("\n");
     return `**${year}:**\n${topProcs}`;
   })
   .join("\n\n")}
 
-### BUSCA ESPECÍFICA DE PROCEDIMENTOS (todos que contêm termos comuns)
-${(() => {
-  const searchTerms = ['botox', 'lipo', 'mama', 'abdominoplastia', 'rinoplastia', 'blefaroplastia', 'harmonização', 'peeling', 'laser', 'prótese'];
-  const results: string[] = [];
-  
-  Object.entries(yearlyProcedures)
-    .sort((a, b) => Number(b[0]) - Number(a[0]))
-    .forEach(([year, procs]) => {
-      searchTerms.forEach(term => {
-        const matching = Object.entries(procs)
-          .filter(([proc, _]) => proc.toLowerCase().includes(term))
-          .sort((a, b) => b[1].count - a[1].count);
-        
-        if (matching.length > 0) {
-          const total = matching.reduce((acc, [_, info]) => acc + info.count, 0);
-          const totalValue = matching.reduce((acc, [_, info]) => acc + info.total, 0);
-          results.push(`${year} - "${term.toUpperCase()}": ${total} total (R$ ${totalValue.toLocaleString("pt-BR")}) - ${matching.map(([p, i]) => `${p.substring(0, 40)}: ${i.count}`).join(', ')}`);
-        }
-      });
-    });
-  
-  return results.join("\n");
-})()}
+---
 
-### PROCEDIMENTOS EXECUTADOS POR MÊS (últimos 6 meses)
-${Object.entries(monthlyExecuted)
-  .sort((a, b) => b[0].localeCompare(a[0]))
-  .slice(0, 6)
-  .map(([month, data]) => {
-    const procs = Object.entries(data.byProcedure)
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 10)
-      .map(([proc, info]) => `  • ${proc}: ${info.count} execuções (R$ ${info.total.toLocaleString("pt-BR")})`)
-      .join("\n");
-    return `${month}:\n${procs}`;
-  })
-  .join("\n\n")}
+### 👥 TOP VENDEDORES POR ANO
 
-### RESUMO EXECUTADO POR DEPARTAMENTO (últimos 6 meses)
-${Object.entries(monthlyExecuted)
-  .sort((a, b) => b[0].localeCompare(a[0]))
-  .slice(0, 6)
-  .map(([month, data]) => {
-    const depts = Object.entries(data.byDepartment)
-      .sort((a, b) => b[1].total - a[1].total)
-      .slice(0, 5)
-      .map(([dept, info]) => `  • ${dept}: R$ ${info.total.toLocaleString("pt-BR")} (${info.count} execuções)`)
-      .join("\n");
-    return `${month}:\n${depts}`;
-  })
-  .join("\n\n")}
-
-### PERFORMANCE DE VENDEDORES (acumulado últimos 12 meses)
-${Object.values(sellerPerformance)
-  .sort((a: any, b: any) => b.revenue - a.revenue)
-  .slice(0, 10)
-  .map((seller: any, idx) => `${idx + 1}. ${seller.name} (${seller.team}): R$ ${seller.revenue.toLocaleString("pt-BR")} (${seller.count} vendas)`)
-  .join("\n")}
-
-### PERFORMANCE DE VENDEDORES (acumulado últimos 12 meses)
-${Object.values(sellerPerformance)
-  .sort((a: any, b: any) => b.revenue - a.revenue)
-  .slice(0, 10)
-  .map((seller: any, idx) => `${idx + 1}. ${seller.name} (${seller.team}): R$ ${seller.revenue.toLocaleString("pt-BR")} (${seller.count} vendas)`)
-  .join("\n")}
-
-### RANKING DE VENDEDORES POR MÊS (top 5 de cada mês)
-${Object.entries(sellerMonthlyPerformance)
-  .sort((a, b) => b[0].localeCompare(a[0]))
-  .slice(0, 6)
-  .map(([month, sellers]) => {
+${Object.entries(sellersByYear)
+  .sort((a, b) => Number(b[0]) - Number(a[0]))
+  .map(([year, sellers]) => {
     const topSellers = Object.values(sellers)
-      .sort((a: any, b: any) => b.revenue - a.revenue)
-      .slice(0, 5)
-      .map((s: any, idx) => `  ${idx + 1}. ${s.name}: R$ ${s.revenue.toLocaleString("pt-BR")} (${s.count} vendas)`)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 15)
+      .map((s, idx) => `${idx + 1}. ${s.name} (${s.team}): R$ ${s.revenue.toLocaleString("pt-BR")} (${s.count} vendas)`)
       .join("\n");
-    return `${month}:\n${topSellers}`;
+    return `**${year}:**\n${topSellers}`;
   })
   .join("\n\n")}
 
-### EXECUTANTES/PROFISSIONAIS (quem realizou os procedimentos)
-${Object.entries(executorPerformance)
-  .sort((a, b) => b[1].revenue - a[1].revenue)
-  .slice(0, 20)
-  .map(([_, exec]: [string, any], idx) => {
-    const yearBreakdown = Object.entries(exec.byYear)
-      .sort((a, b) => Number(b[0]) - Number(a[0]))
-      .map(([year, data]: [string, any]) => `${year}: ${data.procedures} proc (R$ ${data.revenue.toLocaleString("pt-BR")})`)
-      .join(" | ");
-    return `${idx + 1}. ${exec.name}: ${exec.procedures} procedimentos totais (R$ ${exec.revenue.toLocaleString("pt-BR")}) - ${yearBreakdown}`;
-  })
-  .join("\n")}
+---
 
-### TOP EXECUTANTES POR ANO
-${Object.entries(executorByYear)
+### 👨‍⚕️ TOP PROFISSIONAIS EXECUTANTES POR ANO
+
+${Object.entries(executorsByYear)
   .sort((a, b) => Number(b[0]) - Number(a[0]))
   .map(([year, executors]) => {
     const topExecs = Object.values(executors)
-      .sort((a: any, b: any) => b.revenue - a.revenue)
+      .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 10)
-      .map((e: any, idx) => `  ${idx + 1}. ${e.name}: ${e.procedures} procedimentos (R$ ${e.revenue.toLocaleString("pt-BR")})`)
+      .map((e, idx) => `${idx + 1}. ${e.name}: ${e.procedures} procedimentos (R$ ${e.revenue.toLocaleString("pt-BR")})`)
       .join("\n");
     return `**${year}:**\n${topExecs}`;
   })
   .join("\n\n")}
 
-### METAS (${currentYear})
-${goals
-  .filter((g: any) => g.year === currentYear)
-  .sort((a: any, b: any) => a.month - b.month)
-  .map((g: any) => `- ${g.first_name} (${g.month}/${g.year}): Meta1 R$ ${g.meta1_goal?.toLocaleString("pt-BR") || 0}, Meta2 R$ ${g.meta2_goal?.toLocaleString("pt-BR") || 0}, Meta3 R$ ${g.meta3_goal?.toLocaleString("pt-BR") || 0}`)
-  .slice(0, 20)
-  .join("\n")}
+---
 
-### CLIENTES RFV
-Total: ${rfvCustomers.length} clientes
-Segmentação:
+### 🏢 DEPARTAMENTOS POR ANO
+
+${Object.entries(departmentsByYear)
+  .sort((a, b) => Number(b[0]) - Number(a[0]))
+  .map(([year, depts]) => {
+    const topDepts = Object.entries(depts)
+      .sort((a, b) => b[1].executed - a[1].executed)
+      .slice(0, 10)
+      .map(([dept, data]) => `- ${dept}: Vendas R$ ${data.revenue.toLocaleString("pt-BR")} (${data.revenueCount}) | Exec R$ ${data.executed.toLocaleString("pt-BR")} (${data.executedCount})`)
+      .join("\n");
+    return `**${year}:**\n${topDepts}`;
+  })
+  .join("\n\n")}
+
+---
+
+### 💎 ANÁLISE ABC DE CLIENTES (Curva de Pareto)
+
+**CURVA A (80% da receita) - ${curveA.length} clientes VIP:**
+| Rank | Cliente | Valor Total | Procedimentos |
+|------|---------|-------------|---------------|
+${curveA.slice(0, 20).map((p, idx) => `| ${idx + 1} | ${p.name.substring(0, 30)} | R$ ${p.total.toLocaleString("pt-BR")} | ${p.count} |`).join("\n")}
+
+**CURVA B (15% da receita) - ${curveB.length} clientes frequentes**
+
+**CURVA C (5% da receita) - ${curveC.length} clientes ocasionais**
+
+**Resumo ABC:**
+- Curva A: ${curveA.length} clientes = R$ ${curveA.reduce((acc, p) => acc + p.total, 0).toLocaleString("pt-BR")} (80%)
+- Curva B: ${curveB.length} clientes = R$ ${curveB.reduce((acc, p) => acc + p.total, 0).toLocaleString("pt-BR")} (15%)
+- Curva C: ${curveC.length} clientes = R$ ${curveC.reduce((acc, p) => acc + p.total, 0).toLocaleString("pt-BR")} (5%)
+
+---
+
+### 🎯 SEGMENTAÇÃO RFV
+
+| Segmento | Qtd Clientes | Valor Total |
+|----------|--------------|-------------|
 ${Object.entries(rfvSegments)
-  .sort((a, b) => b[1] - a[1])
-  .map(([segment, count]) => `- ${segment}: ${count} clientes`)
+  .sort((a, b) => b[1].totalValue - a[1].totalValue)
+  .map(([segment, data]) => `| ${segment} | ${data.count} | R$ ${data.totalValue.toLocaleString("pt-BR")} |`)
   .join("\n")}
 
-### INDICAÇÕES (últimos 12 meses)
-Total coletadas: ${referralRecords.reduce((acc: number, r: any) => acc + (r.collected || 0), 0)}
-Convertidas para consulta: ${referralRecords.reduce((acc: number, r: any) => acc + (r.to_consultation || 0), 0)}
-Convertidas para cirurgia: ${referralRecords.reduce((acc: number, r: any) => acc + (r.to_surgery || 0), 0)}
+---
 
-### NPS (últimos 12 meses)
-Total de respostas: ${npsRecords.length}
-Média geral: ${npsRecords.length > 0 ? (npsRecords.reduce((acc: number, r: any) => acc + r.score, 0) / npsRecords.length).toFixed(1) : "N/A"}
+### 📍 ORIGEM DOS CLIENTES (Top 15)
 
-### ANÁLISE DE ORIGEM (de onde vêm os pacientes)
-Total de pacientes com dados: ${patientData.length}
 ${Object.entries(originStats)
-  .sort((a, b) => b[1].count - a[1].count)
-  .slice(0, 15)
-  .map(([origin, stats]) => `- ${origin}: ${stats.count} pacientes (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
-  .join("\n")}
-
-### TOP CIDADES (por número de pacientes)
-${Object.entries(cityStats)
-  .sort((a, b) => b[1].count - a[1].count)
-  .slice(0, 15)
-  .map(([city, stats]) => `- ${city}: ${stats.count} pacientes (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
-  .join("\n")}
-
-### TOP ESTADOS
-${Object.entries(stateStats)
-  .sort((a, b) => b[1].count - a[1].count)
-  .slice(0, 10)
-  .map(([state, stats]) => `- ${state}: ${stats.count} pacientes (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
-  .join("\n")}
-
-### PRINCIPAIS PROFISSÕES DOS PACIENTES
-${Object.entries(professionStats)
-  .sort((a, b) => b[1] - a[1])
-  .slice(0, 15)
-  .map(([profession, count]) => `- ${profession}: ${count} pacientes`)
-  .join("\n")}
-
-### QUEM INDICA (pessoas que indicaram pacientes)
-${Object.entries(referralStats)
   .sort((a, b) => b[1].totalValue - a[1].totalValue)
   .slice(0, 15)
-  .map(([referrer, stats]) => `- ${referrer}: ${stats.count} indicações (R$ ${stats.totalValue.toLocaleString("pt-BR")} gerados)`)
+  .map(([origin, data]) => `- ${origin}: ${data.count} clientes (R$ ${data.totalValue.toLocaleString("pt-BR")})`)
   .join("\n")}
 
-### INFLUENCIADORES QUE TROUXERAM PACIENTES
-${Object.entries(influencerStats)
+---
+
+### 🤝 QUEM MAIS INDICA
+
+${Object.entries(referralNames)
+  .sort((a, b) => b[1].totalValue - a[1].totalValue)
+  .slice(0, 15)
+  .map(([name, data]) => `- ${name}: ${data.count} indicações (R$ ${data.totalValue.toLocaleString("pt-BR")})`)
+  .join("\n")}
+
+---
+
+### 📣 INFLUENCIADORES
+
+${Object.entries(influencerNames)
   .sort((a, b) => b[1].totalValue - a[1].totalValue)
   .slice(0, 10)
-  .map(([influencer, stats]) => `- ${influencer}: ${stats.count} pacientes (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
+  .map(([name, data]) => `- ${name}: ${data.count} clientes (R$ ${data.totalValue.toLocaleString("pt-BR")})`)
   .join("\n")}
 
-### OBJETIVOS DOS PACIENTES (por que buscam cirurgia)
-${Object.entries(objectiveStats)
-  .sort((a, b) => b[1] - a[1])
-  .slice(0, 10)
-  .map(([objective, count]) => `- "${objective}...": ${count} pacientes`)
+---
+
+### 🔮 ANÁLISE PREDITIVA
+
+**Taxa média de crescimento anual:** ${avgGrowthRate.toFixed(1)}%
+
+**Previsão 2026 (baseado na tendência):** 
+- Mantendo crescimento: R$ ${predictedRevenue2026.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+
+---
+
+### 📊 METAS CADASTRADAS
+
+${goals
+  .filter((g: any) => g.year >= 2024)
+  .sort((a: any, b: any) => b.year - a.year || b.month - a.month)
+  .slice(0, 30)
+  .map((g: any) => `- ${g.first_name} (${monthNames[g.month - 1]}/${g.year}): Meta1 R$ ${g.meta1_goal?.toLocaleString("pt-BR") || 0}`)
   .join("\n")}
 
-### ORIGEM NAS VENDAS (com valores)
-${Object.entries(revenueOriginStats)
-  .sort((a, b) => b[1].totalValue - a[1].totalValue)
-  .slice(0, 10)
-  .map(([origin, stats]) => `- ${origin}: ${stats.count} vendas (R$ ${stats.totalValue.toLocaleString("pt-BR")})`)
-  .join("\n")}
+---
 
-### EQUIPES
+### 📝 INDICAÇÕES E NPS
+
+**Indicações (${referralRecords.length} registros):**
+- Coletadas: ${referralRecords.reduce((acc: number, r: any) => acc + (r.collected || 0), 0)}
+- Convertidas consulta: ${referralRecords.reduce((acc: number, r: any) => acc + (r.to_consultation || 0), 0)}
+- Convertidas cirurgia: ${referralRecords.reduce((acc: number, r: any) => acc + (r.to_surgery || 0), 0)}
+
+**NPS (${npsRecords.length} respostas):**
+- Média geral: ${npsRecords.length > 0 ? (npsRecords.reduce((acc: number, r: any) => acc + r.score, 0) / npsRecords.length).toFixed(1) : "N/A"}
+
+---
+
+### 🏢 EQUIPES
+
 ${teams.map((t: any) => `- ${t.name}${t.motto ? ` (${t.motto})` : ""}`).join("\n")}
+
+---
+
+**Total de registros:** ${revenueRecords.length} vendas | ${executedRecords.length} execuções | ${rfvCustomers.length} clientes RFV
 `;
 
     // Prepare messages for AI
