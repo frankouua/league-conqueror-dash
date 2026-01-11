@@ -95,3 +95,9 @@ verify_jwt = false
 
 [functions.check-recurrence]
 verify_jwt = false
+
+[functions.import-historical-data]
+verify_jwt = false
+
+[functions.rollback-import]
+verify_jwt = false

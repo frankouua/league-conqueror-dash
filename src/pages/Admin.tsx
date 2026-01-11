@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell, History } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,7 @@ import { CommercialAssistantReport } from "@/components/admin/CommercialAssistan
 import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
 import AlertsManager from "@/components/admin/AlertsManager";
 import { FeegowEnrichment } from "@/components/admin/FeegowEnrichment";
+import HistoricalDataImport from "@/components/admin/HistoricalDataImport";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -191,6 +192,13 @@ const Admin = () => {
                 <Bell className="w-4 h-4" />
                 <span className="text-xs font-medium">Alertas</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="historical-import"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-yellow-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
+              >
+                <History className="w-4 h-4" />
+                <span className="text-xs font-medium">Histórico</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -255,6 +263,10 @@ const Admin = () => {
 
           <TabsContent value="alerts" className="animate-scale-in">
             <AlertsManager />
+          </TabsContent>
+
+          <TabsContent value="historical-import" className="animate-scale-in">
+            <HistoricalDataImport />
           </TabsContent>
         </Tabs>
 
