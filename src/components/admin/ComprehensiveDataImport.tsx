@@ -758,11 +758,15 @@ export default function ComprehensiveDataImport() {
       console.log(`Deleted ${deletedCount} existing records for ${selectedYear}`);
     }
     
-    // Step 2: Load existing fingerprints for deduplication
+    // Step 2: Load existing fingerprints for deduplication (DB-level only)
     setProgress(10);
     toast({ title: "Verificando duplicatas...", description: "Carregando registros existentes" });
-    const existingFps = clearBeforeImport ? new Set<string>() : await loadExistingFingerprints(tableName, selectedYear);
-    console.log(`Loaded ${existingFps.size} existing fingerprints`);
+    const dbFingerprints = clearBeforeImport ? new Set<string>() : await loadExistingFingerprints(tableName, selectedYear);
+    console.log(`Loaded ${dbFingerprints.size} existing fingerprints (DB)`);
+    
+    // IMPORTANT: We do NOT deduplicate identical rows within the same spreadsheet import.
+    // Some spreadsheets contain multiple legitimate entries with the same date/patient/value.
+    const seenInThisImport = new Set<string>();
     
     // Step 3: Get user/team mappings + default team in SINGLE parallel call
     setProgress(15);
@@ -860,18 +864,23 @@ export default function ComprehensiveDataImport() {
           continue;
         }
 
-        // Check for duplicates using fingerprint
+        // Check for duplicates using fingerprint (DB-level)
         const fingerprint = generateFingerprint(date, patientName, amount, procedure, department);
         
-        if (existingFps.has(fingerprint)) {
+        // 1) If it's already in the database, skip
+        if (dbFingerprints.has(fingerprint)) {
           stats.skipped++;
-          stats.updated++; // Count as "would be updated" for stats
-          trackSkip('Duplicado (já existe)', amount);
+          stats.updated++; // Count as "already existed" for stats
+          trackSkip('Duplicado (já existe no banco)', amount);
           continue;
         }
-        
-        // Add to existing fingerprints to avoid duplicates within the same import
-        existingFps.add(fingerprint);
+
+        // 2) If it's duplicated inside the SAME spreadsheet, we will NOT skip (to match spreadsheet totals)
+        if (seenInThisImport.has(fingerprint)) {
+          // Keep importing, but track for transparency
+          trackSkip('Duplicado dentro da planilha (importado mesmo assim)', 0);
+        }
+        seenInThisImport.add(fingerprint);
 
         let matchedUserId = sellerName ? mappingByName.get(sellerName.toLowerCase()) : undefined;
         let matchedTeamId: string | null = null;
