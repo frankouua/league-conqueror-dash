@@ -98,7 +98,8 @@ export const useTeamProgressData = (month: number, year: number) => {
       // Build goal maps
       const goalsByDept: Record<string, number> = {};
       departmentGoals?.forEach((dg) => {
-        goalsByDept[dg.department_name] = dg.meta1_goal;
+        // Sempre usar Meta 3 (meta principal)
+        goalsByDept[dg.department_name] = dg.meta3_goal;
       });
 
       const qtyGoalsByDept: Record<string, number> = {};
