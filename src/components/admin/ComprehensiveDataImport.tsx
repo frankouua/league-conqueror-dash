@@ -237,8 +237,48 @@ export default function ComprehensiveDataImport() {
     // Try to auto-map based on file type
     const fieldsToMap = fileType === 'persona' ? PERSONA_FIELDS : TRANSACTION_FIELDS;
     
+    // CRITICAL: For 'amount' field, we need special handling to prioritize "Valor" over "Valor Pago"
+    // First pass: exact or near-exact matches only
     Object.entries(fieldsToMap).forEach(([field, possibleNames]) => {
       const names = Array.isArray(possibleNames) ? possibleNames : [possibleNames];
+      
+      // For 'amount' field, prioritize columns that are exactly "Valor" (not "Valor Pago")
+      if (field === 'amount') {
+        // First try exact match for "Valor"
+        const exactIdx = lowerCols.findIndex(c => c === 'valor');
+        if (exactIdx >= 0) {
+          mapping[field] = cols[exactIdx];
+          return; // Found exact match, skip further processing
+        }
+        
+        // Then try other matches but EXCLUDE "valor pago" variants
+        for (const name of names) {
+          const idx = lowerCols.findIndex(c => {
+            const isMatch = c.includes(name.toLowerCase()) || name.toLowerCase().includes(c);
+            // Exclude "valor pago" variants for the 'amount' field
+            const isValorPago = c.includes('pago') || c.includes('recebido');
+            return isMatch && !isValorPago;
+          });
+          if (idx >= 0 && !mapping[field]) {
+            mapping[field] = cols[idx];
+            break;
+          }
+        }
+        return;
+      }
+      
+      // For 'amount_paid' field, look specifically for "Valor Pago"
+      if (field === 'amount_paid') {
+        const valorPagoIdx = lowerCols.findIndex(c => 
+          c.includes('pago') || c.includes('recebido')
+        );
+        if (valorPagoIdx >= 0) {
+          mapping[field] = cols[valorPagoIdx];
+        }
+        return;
+      }
+      
+      // Standard matching for other fields
       for (const name of names) {
         const idx = lowerCols.findIndex(c => 
           c.includes(name.toLowerCase()) || name.toLowerCase().includes(c)
@@ -249,6 +289,10 @@ export default function ComprehensiveDataImport() {
         }
       }
     });
+    
+    console.log('[AUTO-MAP] Column mapping result:', mapping);
+    console.log('[AUTO-MAP] Amount column:', mapping.amount);
+    console.log('[AUTO-MAP] Amount Paid column:', mapping.amount_paid);
     
     setColumnMapping(mapping);
   };
