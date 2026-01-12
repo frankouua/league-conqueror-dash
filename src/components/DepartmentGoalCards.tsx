@@ -211,7 +211,7 @@ export function DepartmentGoalCards({ month, year, filterDepartment }: Departmen
         };
       })
       .filter(card => !filterDepartment || card.name === filterDepartment)
-      .sort((a, b) => b.valueGoal - a.valueGoal);
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')); // Ordem alfabética
 
     // Calculate totals
     const totalQtyGoal = cards.reduce((sum, c) => sum + c.qtyGoal, 0);
