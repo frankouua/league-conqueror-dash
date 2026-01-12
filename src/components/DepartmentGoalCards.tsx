@@ -292,9 +292,9 @@ export function DepartmentGoalCards({ month, year, filterDepartment }: Departmen
                 <span className="text-sm text-muted-foreground">procedimentos</span>
               </div>
               <Progress value={totals.qtyPercent} className="h-2" />
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between items-center text-xs">
                 <span className="text-muted-foreground">{totals.qtyPercent}% da Meta 3</span>
-                <span className="text-primary font-medium">
+                <span className="text-primary font-bold text-sm bg-primary/10 px-2 py-0.5 rounded">
                   Esp (01-{String(currentDay).padStart(2, '0')}): {totals.qtyExpected}
                 </span>
               </div>
@@ -307,9 +307,9 @@ export function DepartmentGoalCards({ month, year, filterDepartment }: Departmen
                 <span className="text-lg text-muted-foreground">/ {formatCurrency(totals.valueGoal)}</span>
               </div>
               <Progress value={totals.valuePercent} className="h-2" />
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between items-center text-xs">
                 <span className="text-muted-foreground">{totals.valuePercent}% da Meta 3</span>
-                <span className="text-primary font-medium">
+                <span className="text-primary font-bold text-sm bg-primary/10 px-2 py-0.5 rounded">
                   Esp (01-{String(currentDay).padStart(2, '0')}): {formatCurrency(totals.valueExpected)}
                 </span>
               </div>
@@ -360,9 +360,11 @@ export function DepartmentGoalCards({ month, year, filterDepartment }: Departmen
                   <span className="text-lg text-muted-foreground">/ {card.qtyGoal}</span>
                 </div>
                 <Progress value={card.qtyPercent} className="h-2 mb-2" />
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between items-center text-xs">
                   <span className="text-muted-foreground">{card.qtyPercent}% da Meta</span>
-                  <span className="text-primary font-medium">Esp (01-{String(currentDay).padStart(2, '0')}): {card.qtyExpected}</span>
+                  <span className="text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">
+                    Esp (01-{String(currentDay).padStart(2, '0')}): {card.qtyExpected}
+                  </span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Falta: {card.qtyRemaining}</div>
               </div>
@@ -375,9 +377,11 @@ export function DepartmentGoalCards({ month, year, filterDepartment }: Departmen
                   <span className="text-sm text-muted-foreground">/ {formatCurrency(card.valueGoal)}</span>
                 </div>
                 <Progress value={card.valuePercent} className="h-2 mb-2" />
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between items-center text-xs">
                   <span className="text-muted-foreground">{card.valuePercent}% da Meta</span>
-                  <span className="text-primary font-medium">Esp (01-{String(currentDay).padStart(2, '0')}): {formatCurrency(card.valueExpected)}</span>
+                  <span className="text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">
+                    Esp (01-{String(currentDay).padStart(2, '0')}): {formatCurrency(card.valueExpected)}
+                  </span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Falta: {formatCurrency(card.valueRemaining)}</div>
               </div>
