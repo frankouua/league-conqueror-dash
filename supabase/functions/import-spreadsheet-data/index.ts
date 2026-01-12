@@ -95,12 +95,51 @@ function parseDate(value: any): string | null {
   return null;
 }
 
-function findColumn(row: Record<string, any>, possibleNames: string[]): any {
+function findColumn(row: Record<string, any>, possibleNames: string[], excludePatterns?: string[]): any {
   const keys = Object.keys(row);
   for (const name of possibleNames) {
+    const found = keys.find(k => {
+      const keyLower = k.toLowerCase();
+      const isMatch = keyLower.includes(name.toLowerCase());
+      
+      // Check exclusions
+      if (excludePatterns && isMatch) {
+        for (const pattern of excludePatterns) {
+          if (keyLower.includes(pattern.toLowerCase())) {
+            return false; // Exclude this match
+          }
+        }
+      }
+      
+      return isMatch;
+    });
+    if (found) return row[found];
+  }
+  return null;
+}
+
+// CRITICAL: Find "Valor" column but EXCLUDE "Valor Pago" variants
+function findValorColumn(row: Record<string, any>): any {
+  const keys = Object.keys(row);
+  
+  // First: try exact match for "Valor"
+  const exactMatch = keys.find(k => k.toLowerCase().trim() === 'valor');
+  if (exactMatch) return row[exactMatch];
+  
+  // Second: try "Valor Total", "Valor Vendido", "Valor Contrato" - but NOT "Valor Pago"
+  const priorityNames = ["Valor Total", "Valor Vendido", "Valor Contrato"];
+  for (const name of priorityNames) {
     const found = keys.find(k => k.toLowerCase().includes(name.toLowerCase()));
     if (found) return row[found];
   }
+  
+  // Third: try any column with "Valor" but EXCLUDE "Pago", "Recebido"
+  const valorMatch = keys.find(k => {
+    const keyLower = k.toLowerCase();
+    return keyLower.includes('valor') && !keyLower.includes('pago') && !keyLower.includes('recebido');
+  });
+  if (valorMatch) return row[valorMatch];
+  
   return null;
 }
 
@@ -297,18 +336,20 @@ async function importTransactionData(supabase: any, data: any[], fileType: strin
       const dateValue = findColumn(row, ["Data", "Data de Venda", "Data Pagamento", "Data Competência", "Data da Venda"]);
       const date = parseDate(dateValue);
       
-      // CRITICAL: Use "Valor" (total contracted value) as primary, not "Valor Pago"
-      // User requested: "Valor" = total value for both vendas and executado analysis
-      const valorNormal = findColumn(row, ["Valor", "Valor Vendido", "Valor Total", "Valor Contrato"]);
-      const valorPago = findColumn(row, ["Valor Pago"]);
+      // CRITICAL: Use findValorColumn which prioritizes "Valor" over "Valor Pago"
+      // User requirement: Use "Valor" (total contracted value), NOT "Valor Pago"
+      const valorNormal = findValorColumn(row);
+      const valorPago = findColumn(row, ["Valor Pago", "Pago", "Recebido"]);
       
-      // Priority: "Valor" first (contracted value), "Valor Pago" as fallback
+      // Priority: "Valor" first (contracted value), "Valor Pago" as fallback only if "Valor" doesn't exist
       let amount = 0;
       if (valorNormal !== null && valorNormal !== "" && valorNormal !== "-") {
         amount = parseAmount(valorNormal);
+        console.log(`[ROW ${stats.total}] Using "Valor": ${valorNormal} -> ${amount}`);
       } else if (valorPago !== null && valorPago !== "" && valorPago !== "-") {
         // Fallback to "Valor Pago" only if "Valor" column doesn't exist
         amount = parseAmount(valorPago);
+        console.log(`[ROW ${stats.total}] Fallback to "Valor Pago": ${valorPago} -> ${amount}`);
       }
       
       // Accept zero values - only skip if completely empty/invalid
