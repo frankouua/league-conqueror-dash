@@ -22,8 +22,8 @@ interface ParsedHistoricalData {
   year: number;
   sellerName: string;
   department: string;
-  amountSold: number;
-  amountPaid: number;
+  totalValue: number; // Valor total da venda (valor cheio)
+  amountPaid: number; // Valor pago/recebido
   quantity: number;
   clientName: string;
   clientCpf: string;
@@ -56,8 +56,8 @@ const HistoricalUpload = () => {
     date: '',
     sellerName: '',
     department: '',
-    amountSold: '',
-    amountPaid: '',
+    totalValue: '', // Valor total da venda
+    amountPaid: '', // Valor pago
     clientName: '',
     clientCpf: '',
     clientEmail: '',
@@ -126,10 +126,10 @@ const HistoricalUpload = () => {
         if (colLower === 'procedimento' || colLower.includes('servico') || colLower.includes('serviço')) {
           if (!autoMapping.procedure) autoMapping.procedure = col;
         }
-        if (colLower.includes('valor vendido') || colLower === 'vendido') {
-          autoMapping.amountSold = col;
-        } else if (!autoMapping.amountSold && colLower.includes('valor') && !colLower.includes('pago') && !colLower.includes('recebido')) {
-          autoMapping.amountSold = col;
+        if (colLower.includes('valor total') || colLower === 'valor' || colLower === 'total') {
+          autoMapping.totalValue = col;
+        } else if (!autoMapping.totalValue && colLower.includes('valor') && !colLower.includes('pago') && !colLower.includes('recebido')) {
+          autoMapping.totalValue = col;
         }
         if (colLower.includes('valor pago') || colLower === 'pago' || colLower.includes('valor recebido') || colLower === 'recebido') {
           autoMapping.amountPaid = col;
@@ -231,10 +231,10 @@ const HistoricalUpload = () => {
   };
 
   const processData = async () => {
-    if (!columnMapping.date || !columnMapping.amountSold) {
+    if (!columnMapping.date || !columnMapping.totalValue) {
       toast({
         title: "Mapeamento incompleto",
-        description: "Selecione pelo menos as colunas de Data e Valor Vendido.",
+        description: "Selecione pelo menos as colunas de Data e Valor Total.",
         variant: "destructive",
       });
       return;
@@ -257,7 +257,7 @@ const HistoricalUpload = () => {
         year: dateInfo.year,
         sellerName: columnMapping.sellerName ? String(row[columnMapping.sellerName] || '').trim() : '',
         department: columnMapping.department ? String(row[columnMapping.department] || '').trim() : '',
-        amountSold: parseAmount(row[columnMapping.amountSold]),
+        totalValue: parseAmount(row[columnMapping.totalValue]),
         amountPaid: columnMapping.amountPaid ? parseAmount(row[columnMapping.amountPaid]) : 0,
         quantity: 1, // Each row is one transaction
         clientName: columnMapping.clientName ? String(row[columnMapping.clientName] || '').trim() : '',
@@ -333,7 +333,8 @@ const HistoricalUpload = () => {
           
           return {
             date: item.date,
-            amount: item.amountSold,
+            amount: item.amountPaid || item.totalValue, // Valor pago (ou total se não tiver pago)
+            total_value: item.totalValue, // Valor total da venda
             department: item.department || null,
             notes: `Histórico ${item.year} - ${item.procedure || 'N/A'}`,
             user_id: user?.id,
@@ -364,7 +365,7 @@ const HistoricalUpload = () => {
         imported_rows: successCount,
         error_rows: errorCount,
         skipped_rows: 0,
-        total_revenue_sold: parsedData.reduce((sum, r) => sum + r.amountSold, 0),
+        total_revenue_sold: parsedData.reduce((sum, r) => sum + r.totalValue, 0),
         total_revenue_paid: parsedData.reduce((sum, r) => sum + r.amountPaid, 0),
         notes: `Upload histórico ${selectedYear}`,
       });
@@ -515,8 +516,8 @@ const HistoricalUpload = () => {
                       </div>
                       
                       <div className="space-y-1">
-                        <Label className="text-xs">Valor Vendido *</Label>
-                        <Select value={columnMapping.amountSold} onValueChange={(v) => setColumnMapping(prev => ({ ...prev, amountSold: v }))}>
+                        <Label className="text-xs">Valor Total *</Label>
+                        <Select value={columnMapping.totalValue} onValueChange={(v) => setColumnMapping(prev => ({ ...prev, totalValue: v }))}>
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
@@ -686,10 +687,10 @@ const HistoricalUpload = () => {
                       <h4 className="font-medium">Preview ({parsedData.length} registros)</h4>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">
-                          Total Vendido: R$ {parsedData.reduce((s, r) => s + r.amountSold, 0).toLocaleString('pt-BR')}
+                          Valor Total: R$ {parsedData.reduce((s, r) => s + r.totalValue, 0).toLocaleString('pt-BR')}
                         </Badge>
                         <Badge variant="outline">
-                          Total Pago: R$ {parsedData.reduce((s, r) => s + r.amountPaid, 0).toLocaleString('pt-BR')}
+                          Valor Pago: R$ {parsedData.reduce((s, r) => s + r.amountPaid, 0).toLocaleString('pt-BR')}
                         </Badge>
                       </div>
                     </div>
@@ -698,7 +699,7 @@ const HistoricalUpload = () => {
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                       {MONTHS.map((month, idx) => {
                         const monthData = parsedData.filter(r => r.month === idx + 1);
-                        const total = monthData.reduce((s, r) => s + r.amountSold, 0);
+                        const total = monthData.reduce((s, r) => s + r.totalValue, 0);
                         return (
                           <div key={month} className="p-2 rounded-lg bg-muted/50 text-center">
                             <p className="text-xs text-muted-foreground">{month.slice(0, 3)}</p>
