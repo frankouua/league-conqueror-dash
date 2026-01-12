@@ -89,19 +89,19 @@ export function CRMKanban({ pipelineId, stages, onLeadClick, onNewLead, filtered
                 </div>
               </div>
 
-              {/* Stage Cards */}
+              {/* Stage Cards - with internal scroll */}
               <Droppable droppableId={stage.id}>
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={cn(
-                      "min-h-[calc(100vh-320px)] sm:min-h-[calc(100vh-280px)] rounded-b-lg p-1.5 sm:p-2 transition-colors",
-                      "bg-muted/30 border border-t-0 border-border/50",
+                      "h-[calc(100vh-320px)] sm:h-[calc(100vh-280px)] rounded-b-lg p-1.5 sm:p-2 transition-colors overflow-y-auto overflow-x-hidden",
+                      "bg-muted/30 border border-t-0 border-border/50 kanban-column-scroll",
                       snapshot.isDraggingOver && "bg-primary/5 border-primary/30"
                     )}
                   >
-                    <div className="space-y-2">
+                    <div className="space-y-2 pb-2">
                       {(leadsByStage[stage.id] || []).map((lead, leadIndex) => (
                         <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
                           {(provided, snapshot) => (
@@ -109,6 +109,13 @@ export function CRMKanban({ pipelineId, stages, onLeadClick, onNewLead, filtered
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
+                              style={{
+                                ...provided.draggableProps.style,
+                                // Prevent dragging issues when near scroll edges
+                                transform: snapshot.isDragging 
+                                  ? provided.draggableProps.style?.transform 
+                                  : 'none',
+                              }}
                             >
                               <LeadCard
                                 lead={lead}
