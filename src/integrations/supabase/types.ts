@@ -3977,6 +3977,7 @@ export type Database = {
           registered_by_admin: boolean
           source_fingerprint: string | null
           team_id: string
+          total_value: number | null
           upload_id: string | null
           user_id: string
         }
@@ -4002,6 +4003,7 @@ export type Database = {
           registered_by_admin?: boolean
           source_fingerprint?: string | null
           team_id: string
+          total_value?: number | null
           upload_id?: string | null
           user_id: string
         }
@@ -4027,6 +4029,7 @@ export type Database = {
           registered_by_admin?: boolean
           source_fingerprint?: string | null
           team_id?: string
+          total_value?: number | null
           upload_id?: string | null
           user_id?: string
         }
