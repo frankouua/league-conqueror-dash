@@ -572,10 +572,6 @@ const Index = () => {
             </Suspense>
             
             <Suspense fallback={<MiniLoader />}>
-              <ProceduresGoalTracker month={selectedMonth} year={selectedYear} />
-            </Suspense>
-            
-            <Suspense fallback={<MiniLoader />}>
               <GoalTrackingDashboard month={selectedMonth} year={selectedYear} />
             </Suspense>
           </TabsContent>
