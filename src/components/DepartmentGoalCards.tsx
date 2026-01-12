@@ -149,7 +149,7 @@ export function DepartmentGoalCards({ month, year, filterDepartment }: Departmen
       if (!deptData[vg.department_name]) {
         deptData[vg.department_name] = { qtyGoal: 0, valueGoal: 0, qtySold: 0, valueSold: 0, teamBreakdown: {} };
       }
-      deptData[vg.department_name].valueGoal = vg.meta1_goal; // Using meta1 (main goal)
+      deptData[vg.department_name].valueGoal = vg.meta3_goal; // Using meta3 (main goal)
     });
 
     // Aggregate sales
