@@ -37,8 +37,7 @@ const ExecutiveKPIs = lazy(() => import("@/components/ExecutiveKPIs"));
 const DailyGoalsPanel = lazy(() => import("@/components/DailyGoalsPanel"));
 const LeadResponseMetrics = lazy(() => import("@/components/LeadResponseMetrics"));
 const AchievementsBadgesDisplay = lazy(() => import("@/components/AchievementsBadgesDisplay"));
-const SmartDailyGoals = lazy(() => import("@/components/SmartDailyGoals"));
-const SalesForecastPanel = lazy(() => import("@/components/SalesForecastPanel"));
+const DepartmentGoalCards = lazy(() => import("@/components/DepartmentGoalCards").then(m => ({ default: m.DepartmentGoalCards })));
 const TeamMembersOverview = lazy(() => import("@/components/TeamMembersOverview"));
 const ProceduresGoalTracker = lazy(() => import("@/components/ProceduresGoalTracker"));
 const HistoricalComparison = lazy(() => import("@/components/HistoricalComparison"));
@@ -562,24 +561,18 @@ const Index = () => {
             </Collapsible>
           </TabsContent>
 
-          {/* O QUE FALTA TAB - OPTIMIZED: Removed duplicate ExecutiveKPIs */}
+          {/* O QUE FALTA TAB - Department Goal Cards with Pace Analysis */}
           <TabsContent value="o-que-falta" className="space-y-6 animate-fade-in">
             <Suspense fallback={<MiniLoader />}>
+              <DepartmentGoalCards 
+                month={selectedMonth} 
+                year={selectedYear} 
+                filterDepartment={filterDepartment}
+              />
+            </Suspense>
+            
+            <Suspense fallback={<MiniLoader />}>
               <ProceduresGoalTracker month={selectedMonth} year={selectedYear} />
-            </Suspense>
-            
-            <Suspense fallback={<MiniLoader />}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <SmartDailyGoals month={selectedMonth} year={selectedYear} />
-                <SalesForecastPanel month={selectedMonth} year={selectedYear} />
-              </div>
-            </Suspense>
-            
-            <Suspense fallback={<MiniLoader />}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DailyGoalsPanel month={selectedMonth} year={selectedYear} />
-                <LeadResponseMetrics month={selectedMonth} year={selectedYear} />
-              </div>
             </Suspense>
             
             <Suspense fallback={<MiniLoader />}>
