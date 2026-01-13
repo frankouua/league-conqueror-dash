@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,8 @@ import {
   Plus, Phone, MessageSquare, Stethoscope, Scissors, 
   Heart, Clock, ArrowRight, Search, Trash2, Edit2, 
   Save, X, Package, User, Zap, ChevronRight, Sparkles,
-  Users, Activity
+  Users, Activity, Image, Video, FileText, RefreshCw,
+  AlertCircle, CheckCircle, Target, Star
 } from "lucide-react";
 
 // Configuração das etapas da jornada
@@ -84,6 +86,13 @@ const JOURNEY_STAGES = [
     color: "bg-teal-500",
     description: "Acima de 1 ano - manutenção e recorrência"
   },
+  { 
+    id: "extras", 
+    label: "Extras", 
+    icon: Star, 
+    color: "bg-orange-500",
+    description: "Protocolos avulsos - não relacionados à jornada cirúrgica"
+  },
 ];
 
 const RESPONSIBLE_ROLES = [
@@ -92,6 +101,7 @@ const RESPONSIBLE_ROLES = [
   { id: "closer", label: "Closer" },
   { id: "cs", label: "Customer Success" },
   { id: "farmer", label: "Farmer" },
+  { id: "todos", label: "Todos" },
 ];
 
 interface Protocol {
@@ -107,6 +117,15 @@ interface Protocol {
   sales_script: string | null;
   referral_script: string | null;
   is_active: boolean;
+  image_url?: string | null;
+  video_url?: string | null;
+  followup_script?: string | null;
+  followup_script_2?: string | null;
+  followup_script_3?: string | null;
+  objection_scripts?: Record<string, string> | null;
+  closing_script?: string | null;
+  reactivation_script?: string | null;
+  materials_urls?: string[] | null;
 }
 
 interface Procedure {
@@ -133,6 +152,7 @@ const ProtocolsJourneyManager = () => {
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProtocol, setEditingProtocol] = useState<Protocol | null>(null);
+  const [activeTab, setActiveTab] = useState("info");
   
   // Form state
   const [formData, setFormData] = useState({
@@ -146,6 +166,19 @@ const ProtocolsJourneyManager = () => {
     sales_script: "",
     referral_script: "",
     procedure_ids: [] as string[],
+    image_url: "",
+    video_url: "",
+    followup_script: "",
+    followup_script_2: "",
+    followup_script_3: "",
+    objection_preco: "",
+    objection_tempo: "",
+    objection_concorrencia: "",
+    objection_duvida: "",
+    closing_script: "",
+    reactivation_script: "",
+    materials_urls: [] as string[],
+    new_material_url: "",
   });
 
   // Fetch protocols
@@ -181,6 +214,12 @@ const ProtocolsJourneyManager = () => {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData & { id?: string }) => {
+      const objectionScripts: Record<string, string> = {};
+      if (data.objection_preco) objectionScripts.preco = data.objection_preco;
+      if (data.objection_tempo) objectionScripts.tempo = data.objection_tempo;
+      if (data.objection_concorrencia) objectionScripts.concorrencia = data.objection_concorrencia;
+      if (data.objection_duvida) objectionScripts.duvida = data.objection_duvida;
+
       const payload = {
         name: data.name,
         description: data.description || null,
@@ -194,6 +233,15 @@ const ProtocolsJourneyManager = () => {
         procedure_ids: data.procedure_ids,
         protocol_type: "pacote",
         is_active: true,
+        image_url: data.image_url || null,
+        video_url: data.video_url || null,
+        followup_script: data.followup_script || null,
+        followup_script_2: data.followup_script_2 || null,
+        followup_script_3: data.followup_script_3 || null,
+        objection_scripts: Object.keys(objectionScripts).length > 0 ? objectionScripts : null,
+        closing_script: data.closing_script || null,
+        reactivation_script: data.reactivation_script || null,
+        materials_urls: data.materials_urls.length > 0 ? data.materials_urls : null,
       };
 
       if (data.id) {
@@ -250,12 +298,27 @@ const ProtocolsJourneyManager = () => {
       sales_script: "",
       referral_script: "",
       procedure_ids: [],
+      image_url: "",
+      video_url: "",
+      followup_script: "",
+      followup_script_2: "",
+      followup_script_3: "",
+      objection_preco: "",
+      objection_tempo: "",
+      objection_concorrencia: "",
+      objection_duvida: "",
+      closing_script: "",
+      reactivation_script: "",
+      materials_urls: [],
+      new_material_url: "",
     });
+    setActiveTab("info");
     setDialogOpen(true);
   };
 
   const handleEdit = (protocol: Protocol) => {
     setEditingProtocol(protocol);
+    const objections = protocol.objection_scripts || {};
     setFormData({
       name: protocol.name,
       description: protocol.description || "",
@@ -267,7 +330,21 @@ const ProtocolsJourneyManager = () => {
       sales_script: protocol.sales_script || "",
       referral_script: protocol.referral_script || "",
       procedure_ids: protocol.procedure_ids || [],
+      image_url: protocol.image_url || "",
+      video_url: protocol.video_url || "",
+      followup_script: protocol.followup_script || "",
+      followup_script_2: protocol.followup_script_2 || "",
+      followup_script_3: protocol.followup_script_3 || "",
+      objection_preco: (objections as any).preco || "",
+      objection_tempo: (objections as any).tempo || "",
+      objection_concorrencia: (objections as any).concorrencia || "",
+      objection_duvida: (objections as any).duvida || "",
+      closing_script: protocol.closing_script || "",
+      reactivation_script: protocol.reactivation_script || "",
+      materials_urls: protocol.materials_urls || [],
+      new_material_url: "",
     });
+    setActiveTab("info");
     setDialogOpen(true);
   };
 
@@ -293,6 +370,23 @@ const ProtocolsJourneyManager = () => {
       procedure_ids: prev.procedure_ids.includes(procId)
         ? prev.procedure_ids.filter(id => id !== procId)
         : [...prev.procedure_ids, procId],
+    }));
+  };
+
+  const addMaterialUrl = () => {
+    if (formData.new_material_url.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        materials_urls: [...prev.materials_urls, prev.new_material_url.trim()],
+        new_material_url: "",
+      }));
+    }
+  };
+
+  const removeMaterialUrl = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      materials_urls: prev.materials_urls.filter((_, i) => i !== index),
     }));
   };
 
@@ -489,7 +583,7 @@ const ProtocolsJourneyManager = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editingProtocol ? "Editar Protocolo" : "Novo Protocolo"}
@@ -499,157 +593,402 @@ const ProtocolsJourneyManager = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 pr-4 -mr-4">
-            <div className="space-y-4 p-1">
-              {/* Basic Info */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Nome do Protocolo *</Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ex: Protocolo Pós-Op Lipo 30 dias"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Etapa da Jornada</Label>
-                  <Select
-                    value={formData.journey_stage}
-                    onValueChange={(v) => setFormData({ ...formData, journey_stage: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {JOURNEY_STAGES.map(stage => (
-                        <SelectItem key={stage.id} value={stage.id}>
-                          {stage.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="grid grid-cols-5 mb-4">
+              <TabsTrigger value="info" className="gap-1.5">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Info</span>
+              </TabsTrigger>
+              <TabsTrigger value="procedures" className="gap-1.5">
+                <Package className="h-4 w-4" />
+                <span className="hidden sm:inline">Procedimentos</span>
+              </TabsTrigger>
+              <TabsTrigger value="scripts" className="gap-1.5">
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">Scripts</span>
+              </TabsTrigger>
+              <TabsTrigger value="followup" className="gap-1.5">
+                <RefreshCw className="h-4 w-4" />
+                <span className="hidden sm:inline">Follow-up</span>
+              </TabsTrigger>
+              <TabsTrigger value="materials" className="gap-1.5">
+                <Image className="h-4 w-4" />
+                <span className="hidden sm:inline">Materiais</span>
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Descrição do protocolo..."
-                  rows={2}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label>Preço (R$)</Label>
-                  <Input
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Preço Promocional</Label>
-                  <Input
-                    type="number"
-                    value={formData.promotional_price}
-                    onChange={(e) => setFormData({ ...formData, promotional_price: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Responsável</Label>
-                  <Select
-                    value={formData.responsible_role}
-                    onValueChange={(v) => setFormData({ ...formData, responsible_role: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Quem oferece?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {RESPONSIBLE_ROLES.map(role => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Gatilho para Ofertar</Label>
-                <Input
-                  value={formData.offer_trigger}
-                  onChange={(e) => setFormData({ ...formData, offer_trigger: e.target.value })}
-                  placeholder="Ex: 7 dias após cirurgia, cliente demonstrou interesse em..."
-                />
-              </div>
-
-              <Separator />
-
-              {/* Procedures Selection */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Procedimentos Inclusos</Label>
-                  <Badge variant="outline">
-                    {formData.procedure_ids.length} selecionado(s) • Total: {formatCurrency(selectedProceduresTotal)}
-                  </Badge>
-                </div>
-                <ScrollArea className="h-40 border rounded-lg p-3">
+            <ScrollArea className="flex-1 pr-4 -mr-4">
+              {/* Tab: Info */}
+              <TabsContent value="info" className="m-0 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    {procedures.map(proc => (
-                      <div key={proc.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={proc.id}
-                          checked={formData.procedure_ids.includes(proc.id)}
-                          onCheckedChange={() => toggleProcedure(proc.id)}
-                        />
-                        <label htmlFor={proc.id} className="flex-1 text-sm cursor-pointer">
-                          {proc.name}
-                        </label>
-                        <span className="text-xs text-muted-foreground">
-                          {formatCurrency(proc.price)}
-                        </span>
-                      </div>
-                    ))}
+                    <Label>Nome do Protocolo *</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Ex: Protocolo Pós-Op Lipo 30 dias"
+                    />
                   </div>
-                </ScrollArea>
-              </div>
+                  <div className="space-y-2">
+                    <Label>Etapa da Jornada</Label>
+                    <Select
+                      value={formData.journey_stage}
+                      onValueChange={(v) => setFormData({ ...formData, journey_stage: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {JOURNEY_STAGES.map(stage => (
+                          <SelectItem key={stage.id} value={stage.id}>
+                            {stage.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-              <Separator />
+                <div className="space-y-2">
+                  <Label>Descrição</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Descrição do protocolo..."
+                    rows={2}
+                  />
+                </div>
 
-              {/* Scripts */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Script de Venda
-                </Label>
-                <Textarea
-                  value={formData.sales_script}
-                  onChange={(e) => setFormData({ ...formData, sales_script: e.target.value })}
-                  placeholder="Como ofertar este protocolo..."
-                  rows={4}
-                />
-              </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label>Preço DE (R$)</Label>
+                    <Input
+                      type="number"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      placeholder="Preço original"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Preço POR (R$)</Label>
+                    <Input
+                      type="number"
+                      value={formData.promotional_price}
+                      onChange={(e) => setFormData({ ...formData, promotional_price: e.target.value })}
+                      placeholder="Preço promocional"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Responsável</Label>
+                    <Select
+                      value={formData.responsible_role}
+                      onValueChange={(v) => setFormData({ ...formData, responsible_role: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Quem oferece?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RESPONSIBLE_ROLES.map(role => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Script de Indicação
-                </Label>
-                <Textarea
-                  value={formData.referral_script}
-                  onChange={(e) => setFormData({ ...formData, referral_script: e.target.value })}
-                  placeholder="Como pedir indicação após venda..."
-                  rows={3}
-                />
-              </div>
-            </div>
-          </ScrollArea>
+                <div className="space-y-2">
+                  <Label>Gatilho para Ofertar</Label>
+                  <Input
+                    value={formData.offer_trigger}
+                    onChange={(e) => setFormData({ ...formData, offer_trigger: e.target.value })}
+                    placeholder="Ex: 7 dias após cirurgia, cliente demonstrou interesse em..."
+                  />
+                </div>
+              </TabsContent>
+
+              {/* Tab: Procedures */}
+              <TabsContent value="procedures" className="m-0 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Procedimentos Inclusos</Label>
+                    <Badge variant="outline">
+                      {formData.procedure_ids.length} selecionado(s) • Total: {formatCurrency(selectedProceduresTotal)}
+                    </Badge>
+                  </div>
+                  <ScrollArea className="h-80 border rounded-lg p-3">
+                    <div className="space-y-2">
+                      {procedures.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhum procedimento cadastrado. Adicione procedimentos na aba "Procedimentos".
+                        </p>
+                      ) : (
+                        procedures.map(proc => (
+                          <div key={proc.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50">
+                            <Checkbox
+                              id={proc.id}
+                              checked={formData.procedure_ids.includes(proc.id)}
+                              onCheckedChange={() => toggleProcedure(proc.id)}
+                            />
+                            <label htmlFor={proc.id} className="flex-1 text-sm cursor-pointer">
+                              {proc.name}
+                              {proc.category && (
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {proc.category}
+                                </Badge>
+                              )}
+                            </label>
+                            <span className="text-sm font-medium">
+                              {formatCurrency(proc.price)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </TabsContent>
+
+              {/* Tab: Scripts */}
+              <TabsContent value="scripts" className="m-0 space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-green-500" />
+                    Script de Venda (Primeiro Contato)
+                  </Label>
+                  <Textarea
+                    value={formData.sales_script}
+                    onChange={(e) => setFormData({ ...formData, sales_script: e.target.value })}
+                    placeholder="Como ofertar este protocolo pela primeira vez..."
+                    rows={4}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-500" />
+                    Contorno de Objeções
+                  </Label>
+                  
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">💰 "Está caro..."</Label>
+                      <Textarea
+                        value={formData.objection_preco}
+                        onChange={(e) => setFormData({ ...formData, objection_preco: e.target.value })}
+                        placeholder="Resposta para objeção de preço..."
+                        rows={3}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">⏰ "Não tenho tempo..."</Label>
+                      <Textarea
+                        value={formData.objection_tempo}
+                        onChange={(e) => setFormData({ ...formData, objection_tempo: e.target.value })}
+                        placeholder="Resposta para objeção de tempo..."
+                        rows={3}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">🏢 "Vou pesquisar em outro lugar..."</Label>
+                      <Textarea
+                        value={formData.objection_concorrencia}
+                        onChange={(e) => setFormData({ ...formData, objection_concorrencia: e.target.value })}
+                        placeholder="Resposta para objeção de concorrência..."
+                        rows={3}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">🤔 "Preciso pensar..."</Label>
+                      <Textarea
+                        value={formData.objection_duvida}
+                        onChange={(e) => setFormData({ ...formData, objection_duvida: e.target.value })}
+                        placeholder="Resposta para dúvida/indecisão..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    Script de Fechamento
+                  </Label>
+                  <Textarea
+                    value={formData.closing_script}
+                    onChange={(e) => setFormData({ ...formData, closing_script: e.target.value })}
+                    placeholder="Como fechar a venda..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-purple-500" />
+                    Script de Indicação (pós-venda)
+                  </Label>
+                  <Textarea
+                    value={formData.referral_script}
+                    onChange={(e) => setFormData({ ...formData, referral_script: e.target.value })}
+                    placeholder="Como pedir indicação após venda..."
+                    rows={3}
+                  />
+                </div>
+              </TabsContent>
+
+              {/* Tab: Follow-up */}
+              <TabsContent value="followup" className="m-0 space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-blue-500" />
+                    Follow-up 1 (Após primeiro contato)
+                  </Label>
+                  <Textarea
+                    value={formData.followup_script}
+                    onChange={(e) => setFormData({ ...formData, followup_script: e.target.value })}
+                    placeholder="Ex: Olá {nome}! Tudo bem? Estou passando para saber se você teve a oportunidade de pensar sobre..."
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-amber-500" />
+                    Follow-up 2 (Segunda tentativa)
+                  </Label>
+                  <Textarea
+                    value={formData.followup_script_2}
+                    onChange={(e) => setFormData({ ...formData, followup_script_2: e.target.value })}
+                    placeholder="Script para segunda tentativa de contato..."
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-red-500" />
+                    Follow-up 3 (Última tentativa)
+                  </Label>
+                  <Textarea
+                    value={formData.followup_script_3}
+                    onChange={(e) => setFormData({ ...formData, followup_script_3: e.target.value })}
+                    placeholder="Script de urgência/última tentativa..."
+                    rows={4}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-orange-500" />
+                    Script de Reativação (Cliente inativo)
+                  </Label>
+                  <Textarea
+                    value={formData.reactivation_script}
+                    onChange={(e) => setFormData({ ...formData, reactivation_script: e.target.value })}
+                    placeholder="Script para reativar clientes que não respondem há muito tempo..."
+                    rows={4}
+                  />
+                </div>
+              </TabsContent>
+
+              {/* Tab: Materials */}
+              <TabsContent value="materials" className="m-0 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Image className="h-4 w-4" />
+                      URL da Imagem Principal
+                    </Label>
+                    <Input
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                    {formData.image_url && (
+                      <div className="mt-2 rounded-lg overflow-hidden border">
+                        <img 
+                          src={formData.image_url} 
+                          alt="Preview" 
+                          className="w-full h-32 object-cover"
+                          onError={(e) => (e.currentTarget.src = '/placeholder.svg')}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Video className="h-4 w-4" />
+                      URL do Vídeo
+                    </Label>
+                    <Input
+                      value={formData.video_url}
+                      onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+                      placeholder="https://youtube.com/... ou https://vimeo.com/..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Cole o link do YouTube, Vimeo ou outro serviço de vídeo
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Materiais Adicionais (PDFs, imagens, apresentações)
+                  </Label>
+                  
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.new_material_url}
+                      onChange={(e) => setFormData({ ...formData, new_material_url: e.target.value })}
+                      placeholder="Cole a URL do material..."
+                      onKeyDown={(e) => e.key === 'Enter' && addMaterialUrl()}
+                    />
+                    <Button type="button" variant="outline" onClick={addMaterialUrl}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {formData.materials_urls.length > 0 && (
+                    <div className="space-y-2">
+                      {formData.materials_urls.map((url, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <a 
+                            href={url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline truncate flex-1"
+                          >
+                            {url}
+                          </a>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => removeMaterialUrl(idx)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </ScrollArea>
+          </Tabs>
 
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={handleCloseDialog}>
@@ -688,7 +1027,24 @@ const ProtocolCard = ({
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-base">{protocol.name}</CardTitle>
+          <div className="flex items-start gap-3">
+            {protocol.image_url && (
+              <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border">
+                <img 
+                  src={protocol.image_url} 
+                  alt={protocol.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+              </div>
+            )}
+            <div>
+              <CardTitle className="text-base">{protocol.name}</CardTitle>
+              {protocol.description && (
+                <CardDescription className="text-xs mt-1">{protocol.description}</CardDescription>
+              )}
+            </div>
+          </div>
           <div className="flex gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
               <Edit2 className="h-4 w-4" />
@@ -705,9 +1061,6 @@ const ProtocolCard = ({
             )}
           </div>
         </div>
-        {protocol.description && (
-          <CardDescription className="text-xs">{protocol.description}</CardDescription>
-        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Price */}
@@ -722,13 +1075,27 @@ const ProtocolCard = ({
           )}
         </div>
 
-        {/* Responsible */}
-        {role && (
-          <Badge variant="outline" className="gap-1">
-            <User className="h-3 w-3" />
-            {role.label}
-          </Badge>
-        )}
+        {/* Badges */}
+        <div className="flex flex-wrap gap-1">
+          {role && (
+            <Badge variant="outline" className="gap-1">
+              <User className="h-3 w-3" />
+              {role.label}
+            </Badge>
+          )}
+          {protocol.video_url && (
+            <Badge variant="secondary" className="gap-1">
+              <Video className="h-3 w-3" />
+              Vídeo
+            </Badge>
+          )}
+          {protocol.sales_script && (
+            <Badge variant="secondary" className="gap-1">
+              <MessageSquare className="h-3 w-3" />
+              Script
+            </Badge>
+          )}
+        </div>
 
         {/* Procedures */}
         {includedProcedures.length > 0 && (
