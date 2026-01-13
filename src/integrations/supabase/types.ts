@@ -3867,24 +3867,33 @@ export type Database = {
         Row: {
           benefits: string[] | null
           campaign_id: string | null
+          closing_script: string | null
           created_at: string
           created_by: string
           cross_sell_protocols: string[] | null
           description: string | null
           duration_days: number | null
+          followup_script: string | null
+          followup_script_2: string | null
+          followup_script_3: string | null
           id: string
+          image_url: string | null
           included_items: string[] | null
           is_active: boolean | null
           is_featured: boolean | null
           journey_stage: string | null
           loyalty_points: number | null
+          material_descriptions: Json | null
           materials: Json | null
+          materials_urls: string[] | null
           name: string
+          objection_scripts: Json | null
           offer_trigger: string | null
           price: number | null
           procedure_ids: string[] | null
           promotional_price: number | null
           protocol_type: string
+          reactivation_script: string | null
           recurrence_days: number | null
           recurrence_script: string | null
           recurrence_type: string | null
@@ -3896,29 +3905,39 @@ export type Database = {
           target_segments: string[] | null
           updated_at: string
           upsell_protocols: string[] | null
+          video_url: string | null
           whatsapp_scripts: Json | null
         }
         Insert: {
           benefits?: string[] | null
           campaign_id?: string | null
+          closing_script?: string | null
           created_at?: string
           created_by: string
           cross_sell_protocols?: string[] | null
           description?: string | null
           duration_days?: number | null
+          followup_script?: string | null
+          followup_script_2?: string | null
+          followup_script_3?: string | null
           id?: string
+          image_url?: string | null
           included_items?: string[] | null
           is_active?: boolean | null
           is_featured?: boolean | null
           journey_stage?: string | null
           loyalty_points?: number | null
+          material_descriptions?: Json | null
           materials?: Json | null
+          materials_urls?: string[] | null
           name: string
+          objection_scripts?: Json | null
           offer_trigger?: string | null
           price?: number | null
           procedure_ids?: string[] | null
           promotional_price?: number | null
           protocol_type: string
+          reactivation_script?: string | null
           recurrence_days?: number | null
           recurrence_script?: string | null
           recurrence_type?: string | null
@@ -3930,29 +3949,39 @@ export type Database = {
           target_segments?: string[] | null
           updated_at?: string
           upsell_protocols?: string[] | null
+          video_url?: string | null
           whatsapp_scripts?: Json | null
         }
         Update: {
           benefits?: string[] | null
           campaign_id?: string | null
+          closing_script?: string | null
           created_at?: string
           created_by?: string
           cross_sell_protocols?: string[] | null
           description?: string | null
           duration_days?: number | null
+          followup_script?: string | null
+          followup_script_2?: string | null
+          followup_script_3?: string | null
           id?: string
+          image_url?: string | null
           included_items?: string[] | null
           is_active?: boolean | null
           is_featured?: boolean | null
           journey_stage?: string | null
           loyalty_points?: number | null
+          material_descriptions?: Json | null
           materials?: Json | null
+          materials_urls?: string[] | null
           name?: string
+          objection_scripts?: Json | null
           offer_trigger?: string | null
           price?: number | null
           procedure_ids?: string[] | null
           promotional_price?: number | null
           protocol_type?: string
+          reactivation_script?: string | null
           recurrence_days?: number | null
           recurrence_script?: string | null
           recurrence_type?: string | null
@@ -3964,6 +3993,7 @@ export type Database = {
           target_segments?: string[] | null
           updated_at?: string
           upsell_protocols?: string[] | null
+          video_url?: string | null
           whatsapp_scripts?: Json | null
         }
         Relationships: [
