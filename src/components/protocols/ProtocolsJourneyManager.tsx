@@ -1138,12 +1138,17 @@ const ProtocolCard = ({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Description */}
+        {/* Description - Separated and improved */}
         {protocol.description && (
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {protocol.description}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Sobre o Protocolo
             </p>
+            <div className="p-3 bg-gradient-to-br from-muted/60 to-muted/30 rounded-lg border border-border/50">
+              <p className="text-sm text-foreground leading-relaxed">
+                {protocol.description.split('. ').slice(0, 2).join('. ')}.
+              </p>
+            </div>
           </div>
         )}
 
@@ -1203,24 +1208,27 @@ const ProtocolCard = ({
           )}
         </div>
 
-        {/* Procedures Included */}
+        {/* Procedures Included - Improved with better separation */}
         {includedProcedures.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              O que inclui ({includedProcedures.length})
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Package className="h-3.5 w-3.5" />
+              O que inclui ({includedProcedures.length} procedimentos)
             </p>
-            <div className="grid gap-1">
-              {includedProcedures.map(proc => (
-                <div key={proc.id} className="flex items-center gap-2 text-sm p-2 bg-muted/30 rounded">
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                  <span className="flex-1 truncate">{proc.name}</span>
-                  {proc.price && (
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {formatCurrency(proc.price)}
-                    </span>
-                  )}
-                </div>
-              ))}
+            <div className="p-3 bg-green-50/50 dark:bg-green-950/20 rounded-lg border border-green-200/50 dark:border-green-800/30">
+              <ul className="space-y-1.5">
+                {includedProcedures.map(proc => (
+                  <li key={proc.id} className="flex items-center gap-2 text-sm">
+                    <span className="text-green-600 dark:text-green-400">✓</span>
+                    <span className="flex-1">{proc.name}</span>
+                    {proc.price && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatCurrency(proc.price)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         )}
@@ -1236,140 +1244,17 @@ const ProtocolCard = ({
           </div>
         )}
 
-        {/* View Details Button */}
-        <Button
-          variant="default"
-          className="w-full gap-2"
-          onClick={onView}
-        >
-          <Eye className="h-4 w-4" />
-          Ver Detalhes e Scripts
-        </Button>
-      </CardContent>
-    </Card>
-  );
-};
-
-export default ProtocolsJourneyManager;
-
-        {/* Expanded Scripts Section */}
-        {expanded && hasScripts && (
-          <div className="space-y-4 pt-2 border-t animate-in fade-in-50 slide-in-from-top-2">
-            <Tabs value={activeScriptTab} onValueChange={setActiveScriptTab}>
-              <TabsList className="w-full grid grid-cols-4 h-auto p-1">
-                <TabsTrigger value="oferta" className="text-xs py-1.5">
-                  Oferta
-                </TabsTrigger>
-                <TabsTrigger value="objecoes" className="text-xs py-1.5">
-                  Objeções
-                </TabsTrigger>
-                <TabsTrigger value="followup" className="text-xs py-1.5">
-                  Follow-up
-                </TabsTrigger>
-                <TabsTrigger value="outros" className="text-xs py-1.5">
-                  Outros
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="oferta" className="space-y-3 mt-3">
-                <ScriptBlock
-                  label="Script de Oferta"
-                  text={protocol.sales_script}
-                  icon={Target}
-                  color="text-green-500"
-                />
-                <ScriptBlock
-                  label="Script de Fechamento"
-                  text={protocol.closing_script}
-                  icon={CheckCircle}
-                  color="text-primary"
-                />
-              </TabsContent>
-
-              <TabsContent value="objecoes" className="space-y-3 mt-3">
-                {protocol.objection_scripts && (
-                  <>
-                    <ScriptBlock
-                      label='💰 "Está caro..."'
-                      text={(protocol.objection_scripts as any).preco}
-                      icon={AlertCircle}
-                      color="text-amber-500"
-                    />
-                    <ScriptBlock
-                      label='⏰ "Não tenho tempo..."'
-                      text={(protocol.objection_scripts as any).tempo}
-                      icon={Clock}
-                      color="text-amber-500"
-                    />
-                    <ScriptBlock
-                      label='🏢 "Vou pesquisar em outro lugar..."'
-                      text={(protocol.objection_scripts as any).concorrencia}
-                      icon={AlertCircle}
-                      color="text-amber-500"
-                    />
-                    <ScriptBlock
-                      label='🤔 "Preciso pensar..."'
-                      text={(protocol.objection_scripts as any).duvida}
-                      icon={AlertCircle}
-                      color="text-amber-500"
-                    />
-                  </>
-                )}
-                {(!protocol.objection_scripts || Object.keys(protocol.objection_scripts).length === 0) && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhum script de objeção cadastrado
-                  </p>
-                )}
-              </TabsContent>
-
-              <TabsContent value="followup" className="space-y-3 mt-3">
-                <ScriptBlock
-                  label="Follow-up 1"
-                  text={protocol.followup_script}
-                  icon={RefreshCw}
-                  color="text-blue-500"
-                />
-                <ScriptBlock
-                  label="Follow-up 2"
-                  text={protocol.followup_script_2}
-                  icon={RefreshCw}
-                  color="text-amber-500"
-                />
-                <ScriptBlock
-                  label="Follow-up 3 (Última tentativa)"
-                  text={protocol.followup_script_3}
-                  icon={RefreshCw}
-                  color="text-red-500"
-                />
-                {!protocol.followup_script && !protocol.followup_script_2 && !protocol.followup_script_3 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhum script de follow-up cadastrado
-                  </p>
-                )}
-              </TabsContent>
-
-              <TabsContent value="outros" className="space-y-3 mt-3">
-                <ScriptBlock
-                  label="Script de Indicação"
-                  text={protocol.referral_script}
-                  icon={Users}
-                  color="text-purple-500"
-                />
-                <ScriptBlock
-                  label="Script de Reativação"
-                  text={protocol.reactivation_script}
-                  icon={Sparkles}
-                  color="text-orange-500"
-                />
-                {!protocol.referral_script && !protocol.reactivation_script && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhum script adicional cadastrado
-                  </p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
+        {/* View Details Button - More prominent */}
+        <div className="pt-2">
+          <Button
+            variant="default"
+            className="w-full gap-2 h-11"
+            onClick={onView}
+          >
+            <MessageSquare className="h-4 w-4" />
+            Ver Scripts e Mais Informações
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
