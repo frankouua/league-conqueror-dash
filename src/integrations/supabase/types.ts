@@ -4849,6 +4849,7 @@ export type Database = {
           counts_for_individual: boolean
           created_at: string
           date: string
+          evidence_url: string | null
           id: string
           link: string | null
           patient_name: string | null
@@ -4862,6 +4863,7 @@ export type Database = {
           counts_for_individual?: boolean
           created_at?: string
           date: string
+          evidence_url?: string | null
           id?: string
           link?: string | null
           patient_name?: string | null
@@ -4875,6 +4877,7 @@ export type Database = {
           counts_for_individual?: boolean
           created_at?: string
           date?: string
+          evidence_url?: string | null
           id?: string
           link?: string | null
           patient_name?: string | null
