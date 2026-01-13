@@ -316,38 +316,60 @@ export function ClientListDashboard() {
   const { data: clients = [], isLoading: loadingClients, refetch } = useQuery({
     queryKey: ['crm-clients-list', selectedTeam, selectedSegment, selectedPipeline],
     queryFn: async (): Promise<CRMClient[]> => {
-      let query = supabase
-        .from('crm_leads')
-        .select(`
-          id, name, phone, whatsapp, email, cpf, prontuario, feegow_id,
-          team_id, assigned_to, estimated_value, contract_value,
-          pipeline_id, stage_id, temperature, is_priority,
-          ai_intent, ai_next_action, ai_summary, ai_analyzed_at,
-          is_recurrence_lead, recurrence_due_date, recurrence_days_overdue, recurrence_group,
-          created_at, last_activity_at, source, tags,
-          teams:team_id (name),
-          pipelines:pipeline_id (name),
-          stages:stage_id (name),
-          rfv_customer:rfv_customer_id (
-            segment, recency_score, frequency_score, value_score,
-            total_value, total_purchases, days_since_last_purchase, last_purchase_date
-          )
-        `)
-        .order('estimated_value', { ascending: false, nullsFirst: false })
-        .limit(10000);
+      // Função para buscar todos os registros com paginação
+      const fetchAllPages = async () => {
+        const allData: any[] = [];
+        const pageSize = 1000;
+        let from = 0;
+        let hasMore = true;
 
-      // Apply team filter at query level for performance
-      if (selectedTeam !== 'all') {
-        query = query.eq('team_id', selectedTeam);
-      }
+        while (hasMore) {
+          let query = supabase
+            .from('crm_leads')
+            .select(`
+              id, name, phone, whatsapp, email, cpf, prontuario, feegow_id,
+              team_id, assigned_to, estimated_value, contract_value,
+              pipeline_id, stage_id, temperature, is_priority,
+              ai_intent, ai_next_action, ai_summary, ai_analyzed_at,
+              is_recurrence_lead, recurrence_due_date, recurrence_days_overdue, recurrence_group,
+              created_at, last_activity_at, source, tags,
+              teams:team_id (name),
+              pipelines:pipeline_id (name),
+              stages:stage_id (name),
+              rfv_customer:rfv_customer_id (
+                segment, recency_score, frequency_score, value_score,
+                total_value, total_purchases, days_since_last_purchase, last_purchase_date
+              )
+            `)
+            .order('estimated_value', { ascending: false, nullsFirst: false })
+            .range(from, from + pageSize - 1);
 
-      // Apply pipeline filter
-      if (selectedPipeline !== 'all') {
-        query = query.eq('pipeline_id', selectedPipeline);
-      }
+          // Apply team filter at query level for performance
+          if (selectedTeam !== 'all') {
+            query = query.eq('team_id', selectedTeam);
+          }
 
-      const { data, error } = await query;
-      if (error) throw error;
+          // Apply pipeline filter
+          if (selectedPipeline !== 'all') {
+            query = query.eq('pipeline_id', selectedPipeline);
+          }
+
+          const { data, error } = await query;
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            allData.push(...data);
+            from += pageSize;
+            hasMore = data.length === pageSize;
+          } else {
+            hasMore = false;
+          }
+        }
+
+        return allData;
+      };
+
+      const data = await fetchAllPages();
 
       // Transform to flat structure
       return (data || []).map((lead: any): CRMClient => {
