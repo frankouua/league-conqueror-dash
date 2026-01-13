@@ -328,7 +328,6 @@ export function ClientListDashboard() {
           teams:team_id (name),
           pipelines:pipeline_id (name),
           stages:stage_id (name),
-          users:assigned_to (full_name),
           rfv_customer:rfv_customer_id (
             segment, recency_score, frequency_score, value_score,
             total_value, total_purchases, days_since_last_purchase, last_purchase_date
@@ -365,7 +364,7 @@ export function ClientListDashboard() {
           team_id: lead.team_id,
           team_name: lead.teams?.name || null,
           assigned_to: lead.assigned_to,
-          assigned_name: lead.users?.full_name || null,
+          assigned_name: null, // assigned_to doesn't have FK to users
           estimated_value: lead.estimated_value || rfv?.total_value || 0,
           contract_value: lead.contract_value,
           rfv_segment: rfv?.segment || null,
