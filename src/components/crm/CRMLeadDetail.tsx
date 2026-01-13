@@ -49,6 +49,7 @@ import { CRMRealtimeScriptSuggestions } from './CRMRealtimeScriptSuggestions';
 import { CRMProcedureRecommendations } from './CRMProcedureRecommendations';
 import { CRMCadenceAnalytics } from './CRMCadenceAnalytics';
 import { CRMLeadPersonalData } from './CRMLeadPersonalData';
+import { CRMJourneyProtocolSuggestions } from './CRMJourneyProtocolSuggestions';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -319,6 +320,13 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               <TabsContent value="checklist" className="m-0 space-y-3 sm:space-y-4">
                 {lead && (
                   <>
+                    {/* Journey Protocol Suggestions */}
+                    <CRMJourneyProtocolSuggestions 
+                      lead={lead} 
+                      stageName={currentStage?.name}
+                      compact
+                    />
+                    
                     {/* Script Suggestions based on stage */}
                     <CRMLeadScriptSuggestions lead={lead} compact />
                     
