@@ -278,7 +278,7 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
         };
       }
 
-      // Handle CRM source - fetch from crm_leads with joined data
+      // Handle CRM source - fetch from crm_leads with joined data + patient_data
       if (clientSource === 'crm') {
         const { data: lead, error: leadError } = await supabase
           .from('crm_leads')
@@ -298,60 +298,71 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
         const rfv = lead.rfv_customer;
         const feegowData = lead.feegow_data as any || {};
 
+        // IMPORTANT: Also fetch patient_data if CPF is available for complete profile
+        let patientData: any = null;
+        if (lead.cpf) {
+          const { data: pd } = await supabase
+            .from('patient_data')
+            .select('*')
+            .eq('cpf', lead.cpf)
+            .single();
+          patientData = pd;
+        }
+
         return {
           id: lead.id,
-          name: lead.name,
-          phone: lead.phone,
-          whatsapp: lead.whatsapp,
-          email: lead.email,
-          cpf: lead.cpf,
-          prontuario: lead.prontuario || lead.feegow_id,
-          rg: null,
-          foto_url: null,
-          birth_date: feegowData?.nascimento || null,
-          age: null,
-          gender: feegowData?.sexo_id === 1 ? 'Masculino' : feegowData?.sexo_id === 2 ? 'Feminino' : null,
-          nationality: null,
-          marital_status: null,
-          profession: null,
-          has_children: null,
-          children_count: null,
-          country: null,
-          state: null,
-          city: null,
-          neighborhood: feegowData?.bairro || null,
-          address: null,
-          cep: null,
-          height_cm: null,
-          weight_kg: null,
-          origin: lead.source,
-          origin_detail: lead.source_detail,
-          referral_name: null,
-          influencer_name: null,
-          instagram_handle: null,
-          main_objective: null,
-          why_not_done_yet: null,
-          dreams: null,
-          desires: null,
-          fears: null,
-          expectations: null,
-          preferred_procedures: lead.interested_procedures?.join(', ') || null,
-          total_value_sold: lead.estimated_value,
-          total_value_executed: lead.contract_value,
-          total_procedures: rfv?.total_purchases,
-          first_contact_date: lead.first_contact_at,
-          last_contact_date: lead.last_activity_at,
-          first_purchase_date: rfv?.first_purchase_date,
-          last_purchase_date: rfv?.last_purchase_date || lead.last_procedure_date,
-          observacoes_feegow: lead.notes,
-          total_agendamentos: null,
-          no_show_count: null,
+          name: lead.name || patientData?.name,
+          phone: lead.phone || patientData?.phone,
+          whatsapp: lead.whatsapp || patientData?.whatsapp,
+          email: lead.email || patientData?.email,
+          cpf: lead.cpf || patientData?.cpf,
+          prontuario: lead.prontuario || lead.feegow_id || patientData?.prontuario,
+          rg: patientData?.rg || null,
+          foto_url: patientData?.foto_url || null,
+          birth_date: patientData?.birth_date || feegowData?.nascimento || null,
+          age: patientData?.age || null,
+          gender: patientData?.gender || (feegowData?.sexo_id === 1 ? 'Masculino' : feegowData?.sexo_id === 2 ? 'Feminino' : null),
+          nationality: patientData?.nationality || null,
+          marital_status: patientData?.marital_status || null,
+          profession: patientData?.profession || null,
+          has_children: patientData?.has_children || null,
+          children_count: patientData?.children_count || null,
+          country: patientData?.country || null,
+          state: patientData?.state || null,
+          city: patientData?.city || null,
+          neighborhood: patientData?.neighborhood || feegowData?.bairro || null,
+          address: patientData?.address || null,
+          cep: patientData?.cep || null,
+          height_cm: patientData?.height_cm || null,
+          weight_kg: patientData?.weight_kg || null,
+          origin: lead.source || patientData?.origin,
+          origin_detail: lead.source_detail || patientData?.origin_detail,
+          referral_name: patientData?.referral_name || null,
+          influencer_name: patientData?.influencer_name || null,
+          instagram_handle: patientData?.instagram_handle || null,
+          main_objective: patientData?.main_objective || null,
+          why_not_done_yet: patientData?.why_not_done_yet || null,
+          dreams: patientData?.dreams || null,
+          desires: patientData?.desires || null,
+          fears: patientData?.fears || null,
+          expectations: patientData?.expectations || null,
+          preferred_procedures: lead.interested_procedures?.join(', ') || patientData?.preferred_procedures || null,
+          total_value_sold: patientData?.total_value_sold || lead.estimated_value,
+          total_value_executed: patientData?.total_value_executed || lead.contract_value,
+          total_procedures: patientData?.total_procedures || rfv?.total_purchases,
+          first_contact_date: patientData?.first_contact_date || lead.first_contact_at,
+          last_contact_date: patientData?.last_contact_date || lead.last_activity_at,
+          first_purchase_date: patientData?.first_purchase_date || rfv?.first_purchase_date,
+          last_purchase_date: patientData?.last_purchase_date || rfv?.last_purchase_date || lead.last_procedure_date,
+          observacoes_feegow: patientData?.observacoes_feegow || lead.notes,
+          total_agendamentos: patientData?.total_agendamentos || null,
+          no_show_count: patientData?.no_show_count || null,
           rfv_segment: rfv?.segment,
           rfv_score_r: rfv?.recency_score,
           rfv_score_f: rfv?.frequency_score,
           rfv_score_v: rfv?.value_score,
-          total_value: rfv?.total_value || lead.estimated_value,
-          total_purchases: rfv?.total_purchases,
+          total_value: rfv?.total_value || patientData?.total_value_sold || lead.estimated_value,
+          total_purchases: rfv?.total_purchases || patientData?.total_procedures,
           average_ticket: rfv?.average_ticket,
           days_since_last_purchase: rfv?.days_since_last_purchase,
         };
