@@ -1003,7 +1003,6 @@ const ProtocolsJourneyManager = () => {
     </div>
   );
 };
-
 // Protocol Card Component
 const ProtocolCard = ({
   protocol,
@@ -1018,34 +1017,89 @@ const ProtocolCard = ({
   onDelete: () => void;
   canDelete: boolean;
 }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [activeScriptTab, setActiveScriptTab] = useState("oferta");
+  const [copiedScript, setCopiedScript] = useState<string | null>(null);
+
   const includedProcedures = procedures.filter(p => 
     protocol.procedure_ids?.includes(p.id)
   );
   const role = RESPONSIBLE_ROLES.find(r => r.id === protocol.responsible_role);
+  const stage = JOURNEY_STAGES.find(s => s.id === protocol.journey_stage);
+  const StageIcon = stage?.icon || Package;
+
+  const hasScripts = protocol.sales_script || protocol.closing_script || 
+    protocol.followup_script || protocol.followup_script_2 || 
+    protocol.followup_script_3 || protocol.referral_script || 
+    protocol.reactivation_script || (protocol.objection_scripts && Object.keys(protocol.objection_scripts).length > 0);
+
+  const copyScript = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedScript(label);
+    toast.success(`Script "${label}" copiado!`);
+    setTimeout(() => setCopiedScript(null), 2000);
+  };
+
+  const ScriptBlock = ({ label, text, icon: Icon, color }: { label: string; text: string | null | undefined; icon: any; color: string }) => {
+    if (!text) return null;
+    return (
+      <div className="space-y-2 p-3 bg-muted/30 rounded-lg border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon className={`h-4 w-4 ${color}`} />
+            <span className="text-sm font-medium">{label}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 gap-1"
+            onClick={() => copyScript(text, label)}
+          >
+            {copiedScript === label ? (
+              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+            ) : (
+              <MessageSquare className="h-3.5 w-3.5" />
+            )}
+            <span className="text-xs">Copiar</span>
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+          {text}
+        </p>
+      </div>
+    );
+  };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            {protocol.image_url && (
-              <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border">
+    <Card className={`transition-all duration-200 ${expanded ? 'ring-2 ring-primary/20' : 'hover:shadow-md'}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-3 min-w-0">
+            {protocol.image_url ? (
+              <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border bg-muted">
                 <img 
                   src={protocol.image_url} 
                   alt={protocol.name}
                   className="w-full h-full object-cover"
-                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                  onError={(e) => (e.currentTarget.src = '/placeholder.svg')}
                 />
               </div>
+            ) : (
+              <div className={`w-14 h-14 rounded-lg shrink-0 flex items-center justify-center ${stage?.color || 'bg-primary'}/10`}>
+                <StageIcon className={`h-6 w-6 ${stage?.color?.replace('bg-', 'text-') || 'text-primary'}`} />
+              </div>
             )}
-            <div>
-              <CardTitle className="text-base">{protocol.name}</CardTitle>
-              {protocol.description && (
-                <CardDescription className="text-xs mt-1">{protocol.description}</CardDescription>
+            <div className="min-w-0">
+              <CardTitle className="text-base leading-tight">{protocol.name}</CardTitle>
+              {stage && (
+                <Badge variant="outline" className="mt-1 text-xs gap-1">
+                  <StageIcon className="h-3 w-3" />
+                  {stage.label}
+                </Badge>
               )}
             </div>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 shrink-0">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
               <Edit2 className="h-4 w-4" />
             </Button>
@@ -1062,21 +1116,47 @@ const ProtocolCard = ({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Price */}
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-primary">
-            {formatCurrency(protocol.promotional_price || protocol.price)}
-          </span>
-          {protocol.promotional_price && protocol.price && (
-            <span className="text-sm text-muted-foreground line-through">
-              {formatCurrency(protocol.price)}
+
+      <CardContent className="space-y-4">
+        {/* Description */}
+        {protocol.description && (
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {protocol.description}
+            </p>
+          </div>
+        )}
+
+        {/* Price Section */}
+        <div className="flex items-baseline gap-3 p-3 bg-gradient-to-r from-primary/5 to-green-500/5 rounded-lg border border-primary/10">
+          {protocol.price && protocol.promotional_price && protocol.promotional_price < protocol.price ? (
+            <>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">De</p>
+                <span className="text-lg text-muted-foreground line-through">
+                  {formatCurrency(protocol.price)}
+                </span>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-0.5">
+                <p className="text-xs text-green-600 font-medium">Por</p>
+                <span className="text-2xl font-bold text-green-600">
+                  {formatCurrency(protocol.promotional_price)}
+                </span>
+              </div>
+              <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700">
+                {Math.round((1 - protocol.promotional_price / protocol.price) * 100)}% OFF
+              </Badge>
+            </>
+          ) : (
+            <span className="text-2xl font-bold text-primary">
+              {formatCurrency(protocol.promotional_price || protocol.price)}
             </span>
           )}
         </div>
 
-        {/* Badges */}
-        <div className="flex flex-wrap gap-1">
+        {/* Info Badges */}
+        <div className="flex flex-wrap gap-1.5">
           {role && (
             <Badge variant="outline" className="gap-1">
               <User className="h-3 w-3" />
@@ -1089,39 +1169,182 @@ const ProtocolCard = ({
               Vídeo
             </Badge>
           )}
-          {protocol.sales_script && (
-            <Badge variant="secondary" className="gap-1">
+          {hasScripts && (
+            <Badge variant="secondary" className="gap-1 bg-blue-100 text-blue-700">
               <MessageSquare className="h-3 w-3" />
-              Script
+              Scripts
+            </Badge>
+          )}
+          {protocol.materials_urls && protocol.materials_urls.length > 0 && (
+            <Badge variant="secondary" className="gap-1">
+              <FileText className="h-3 w-3" />
+              {protocol.materials_urls.length} material(is)
             </Badge>
           )}
         </div>
 
-        {/* Procedures */}
+        {/* Procedures Included */}
         {includedProcedures.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">
-              Procedimentos ({includedProcedures.length}):
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              O que inclui ({includedProcedures.length})
             </p>
-            <div className="flex flex-wrap gap-1">
-              {includedProcedures.slice(0, 3).map(proc => (
-                <Badge key={proc.id} variant="secondary" className="text-xs">
-                  {proc.name}
-                </Badge>
+            <div className="grid gap-1">
+              {includedProcedures.map(proc => (
+                <div key={proc.id} className="flex items-center gap-2 text-sm p-2 bg-muted/30 rounded">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                  <span className="flex-1 truncate">{proc.name}</span>
+                  {proc.price && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {formatCurrency(proc.price)}
+                    </span>
+                  )}
+                </div>
               ))}
-              {includedProcedures.length > 3 && (
-                <Badge variant="secondary" className="text-xs">
-                  +{includedProcedures.length - 3}
-                </Badge>
-              )}
             </div>
           </div>
         )}
 
         {/* Trigger */}
         {protocol.offer_trigger && (
-          <div className="text-xs text-muted-foreground">
-            <span className="font-medium">Quando ofertar:</span> {protocol.offer_trigger}
+          <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200/50">
+            <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Quando ofertar</p>
+              <p className="text-sm text-amber-900 dark:text-amber-200">{protocol.offer_trigger}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Expand Scripts Button */}
+        {hasScripts && (
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <MessageSquare className="h-4 w-4" />
+            {expanded ? "Ocultar Scripts" : "Ver Scripts de Venda"}
+            <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+          </Button>
+        )}
+
+        {/* Expanded Scripts Section */}
+        {expanded && hasScripts && (
+          <div className="space-y-4 pt-2 border-t animate-in fade-in-50 slide-in-from-top-2">
+            <Tabs value={activeScriptTab} onValueChange={setActiveScriptTab}>
+              <TabsList className="w-full grid grid-cols-4 h-auto p-1">
+                <TabsTrigger value="oferta" className="text-xs py-1.5">
+                  Oferta
+                </TabsTrigger>
+                <TabsTrigger value="objecoes" className="text-xs py-1.5">
+                  Objeções
+                </TabsTrigger>
+                <TabsTrigger value="followup" className="text-xs py-1.5">
+                  Follow-up
+                </TabsTrigger>
+                <TabsTrigger value="outros" className="text-xs py-1.5">
+                  Outros
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="oferta" className="space-y-3 mt-3">
+                <ScriptBlock
+                  label="Script de Oferta"
+                  text={protocol.sales_script}
+                  icon={Target}
+                  color="text-green-500"
+                />
+                <ScriptBlock
+                  label="Script de Fechamento"
+                  text={protocol.closing_script}
+                  icon={CheckCircle}
+                  color="text-primary"
+                />
+              </TabsContent>
+
+              <TabsContent value="objecoes" className="space-y-3 mt-3">
+                {protocol.objection_scripts && (
+                  <>
+                    <ScriptBlock
+                      label='💰 "Está caro..."'
+                      text={(protocol.objection_scripts as any).preco}
+                      icon={AlertCircle}
+                      color="text-amber-500"
+                    />
+                    <ScriptBlock
+                      label='⏰ "Não tenho tempo..."'
+                      text={(protocol.objection_scripts as any).tempo}
+                      icon={Clock}
+                      color="text-amber-500"
+                    />
+                    <ScriptBlock
+                      label='🏢 "Vou pesquisar em outro lugar..."'
+                      text={(protocol.objection_scripts as any).concorrencia}
+                      icon={AlertCircle}
+                      color="text-amber-500"
+                    />
+                    <ScriptBlock
+                      label='🤔 "Preciso pensar..."'
+                      text={(protocol.objection_scripts as any).duvida}
+                      icon={AlertCircle}
+                      color="text-amber-500"
+                    />
+                  </>
+                )}
+                {(!protocol.objection_scripts || Object.keys(protocol.objection_scripts).length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum script de objeção cadastrado
+                  </p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="followup" className="space-y-3 mt-3">
+                <ScriptBlock
+                  label="Follow-up 1"
+                  text={protocol.followup_script}
+                  icon={RefreshCw}
+                  color="text-blue-500"
+                />
+                <ScriptBlock
+                  label="Follow-up 2"
+                  text={protocol.followup_script_2}
+                  icon={RefreshCw}
+                  color="text-amber-500"
+                />
+                <ScriptBlock
+                  label="Follow-up 3 (Última tentativa)"
+                  text={protocol.followup_script_3}
+                  icon={RefreshCw}
+                  color="text-red-500"
+                />
+                {!protocol.followup_script && !protocol.followup_script_2 && !protocol.followup_script_3 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum script de follow-up cadastrado
+                  </p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="outros" className="space-y-3 mt-3">
+                <ScriptBlock
+                  label="Script de Indicação"
+                  text={protocol.referral_script}
+                  icon={Users}
+                  color="text-purple-500"
+                />
+                <ScriptBlock
+                  label="Script de Reativação"
+                  text={protocol.reactivation_script}
+                  icon={Sparkles}
+                  color="text-orange-500"
+                />
+                {!protocol.referral_script && !protocol.reactivation_script && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum script adicional cadastrado
+                  </p>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </CardContent>
