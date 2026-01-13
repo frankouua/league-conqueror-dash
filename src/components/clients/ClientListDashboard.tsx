@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Table, TableBody, TableCell, TableHead, 
@@ -19,7 +18,8 @@ import {
   Crown, Heart, Zap, AlertTriangle, Clock, RefreshCw,
   ChevronDown, ChevronUp, MoreHorizontal, Loader2, 
   Calendar, DollarSign, TrendingUp, History, CheckCircle,
-  Target, Sparkles, ArrowUpDown, Check, Eye
+  Target, Sparkles, ArrowUpDown, Check, Eye, Bot, 
+  Flame, Thermometer, Snowflake, Shield, Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -35,17 +35,31 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ClientProfileDrawer } from './ClientProfileDrawer';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Types
-interface UnifiedClient {
+interface CRMClient {
   id: string;
-  source: 'rfv' | 'patient' | 'crm';
   name: string;
   phone: string | null;
   whatsapp: string | null;
   email: string | null;
   cpf: string | null;
   prontuario: string | null;
+  feegow_id: string | null;
+  // Team info
+  team_id: string | null;
+  team_name: string | null;
+  assigned_to: string | null;
+  assigned_name: string | null;
+  // Values
+  estimated_value: number;
+  contract_value: number | null;
   // RFV data
   rfv_segment: string | null;
   rfv_score_r: number | null;
@@ -53,31 +67,46 @@ interface UnifiedClient {
   rfv_score_v: number | null;
   total_value: number;
   total_purchases: number;
-  average_ticket: number;
   days_since_last_purchase: number | null;
   last_purchase_date: string | null;
-  // Recurrence data
-  has_recurrence: boolean;
+  // CRM data
+  pipeline_id: string | null;
+  pipeline_name: string | null;
+  stage_id: string | null;
+  stage_name: string | null;
+  temperature: string | null;
+  is_priority: boolean;
+  // AI data
+  ai_intent: string | null;
+  ai_next_action: string | null;
+  ai_summary: string | null;
+  ai_analyzed_at: string | null;
+  // Recurrence
+  is_recurrence_lead: boolean;
   recurrence_due_date: string | null;
   recurrence_days_overdue: number | null;
   recurrence_group: string | null;
-  // Assignment
-  assigned_to: string | null;
-  assigned_team: string | null;
-  // CRM reference
-  crm_lead_id: string | null;
+  // Dates
+  created_at: string;
+  last_activity_at: string | null;
+  source: string | null;
+  tags: string[] | null;
+}
+
+interface Team {
+  id: string;
+  name: string;
+}
+
+interface Pipeline {
+  id: string;
+  name: string;
 }
 
 interface TeamMember {
   id: string;
   full_name: string;
   team_id: string;
-  team_name?: string;
-}
-
-interface Team {
-  id: string;
-  name: string;
 }
 
 // Constants
@@ -104,6 +133,12 @@ const SEGMENT_NAME_TO_KEY: Record<string, string> = {
   'Hibernando': 'hibernating',
   'Quase Dormindo': 'hibernating',
   'Perdidos': 'lost',
+};
+
+const TEMPERATURE_CONFIG = {
+  quente: { icon: Flame, color: 'text-red-500', bg: 'bg-red-100' },
+  morno: { icon: Thermometer, color: 'text-amber-500', bg: 'bg-amber-100' },
+  frio: { icon: Snowflake, color: 'text-blue-500', bg: 'bg-blue-100' },
 };
 
 const PAGE_SIZE = 50;
@@ -138,8 +173,89 @@ const RFVBadge = memo(({ segment }: { segment: string | null }) => {
   );
 });
 
-const RecurrenceStatus = memo(({ client }: { client: UnifiedClient }) => {
-  if (!client.has_recurrence) {
+const TemperatureBadge = memo(({ temperature }: { temperature: string | null }) => {
+  if (!temperature) return <span className="text-muted-foreground text-sm">-</span>;
+  
+  const config = TEMPERATURE_CONFIG[temperature as keyof typeof TEMPERATURE_CONFIG];
+  if (!config) return <Badge variant="outline">{temperature}</Badge>;
+  
+  const Icon = config.icon;
+  return (
+    <Badge variant="outline" className={cn("gap-1", config.bg, config.color, "border-0")}>
+      <Icon className="h-3 w-3" />
+      {temperature.charAt(0).toUpperCase() + temperature.slice(1)}
+    </Badge>
+  );
+});
+
+const TeamBadge = memo(({ teamName }: { teamName: string | null }) => {
+  if (!teamName) return <Badge variant="outline" className="text-muted-foreground">Sem Time</Badge>;
+  
+  const isLioness = teamName.toLowerCase().includes('lioness');
+  const isTroia = teamName.toLowerCase().includes('troia') || teamName.toLowerCase().includes('tróia');
+  
+  return (
+    <Badge 
+      variant="outline" 
+      className={cn(
+        "gap-1",
+        isLioness && "bg-amber-100 text-amber-700 border-amber-300",
+        isTroia && "bg-purple-100 text-purple-700 border-purple-300",
+        !isLioness && !isTroia && "bg-gray-100 text-gray-700"
+      )}
+    >
+      <Shield className="h-3 w-3" />
+      {teamName}
+    </Badge>
+  );
+});
+
+const AISuggestionBadge = memo(({ client }: { client: CRMClient }) => {
+  if (!client.ai_intent && !client.ai_next_action) {
+    return (
+      <span className="text-muted-foreground text-xs flex items-center gap-1">
+        <Bot className="h-3 w-3" />
+        Não analisado
+      </span>
+    );
+  }
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex flex-col gap-1 max-w-[180px]">
+            {client.ai_intent && (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                <Sparkles className="h-3 w-3 text-primary" />
+                {client.ai_intent}
+              </Badge>
+            )}
+            {client.ai_next_action && (
+              <span className="text-xs text-muted-foreground truncate">
+                {client.ai_next_action}
+              </span>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="left" className="max-w-[300px]">
+          <div className="space-y-2">
+            <p className="font-medium">Sugestão da IA</p>
+            {client.ai_summary && <p className="text-sm">{client.ai_summary}</p>}
+            {client.ai_next_action && (
+              <p className="text-sm text-muted-foreground">
+                <strong>Próxima ação:</strong> {client.ai_next_action}
+              </p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+});
+
+const RecurrenceStatus = memo(({ client }: { client: CRMClient }) => {
+  if (!client.is_recurrence_lead) {
     return <span className="text-muted-foreground text-sm">-</span>;
   }
 
@@ -149,20 +265,20 @@ const RecurrenceStatus = memo(({ client }: { client: UnifiedClient }) => {
   
   if (days > 60) {
     colorClass = "text-destructive";
-    label = `${days} dias atraso`;
+    label = `${days}d atraso`;
   } else if (days > 0) {
     colorClass = "text-orange-500";
-    label = `${days} dias atraso`;
+    label = `${days}d atraso`;
   } else if (days > -30) {
     colorClass = "text-amber-500";
-    label = `Vence em ${Math.abs(days)} dias`;
+    label = `Em ${Math.abs(days)}d`;
   }
 
   return (
     <div className="flex flex-col">
       <span className={cn("text-sm font-medium", colorClass)}>{label}</span>
       {client.recurrence_group && (
-        <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+        <span className="text-xs text-muted-foreground truncate max-w-[100px]">
           {client.recurrence_group}
         </span>
       )}
@@ -174,15 +290,19 @@ const RecurrenceStatus = memo(({ client }: { client: UnifiedClient }) => {
 export function ClientListDashboard() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState('all');
   const [selectedSegment, setSelectedSegment] = useState('all');
+  const [selectedTemperature, setSelectedTemperature] = useState('all');
+  const [selectedPipeline, setSelectedPipeline] = useState('all');
   const [selectedRecurrence, setSelectedRecurrence] = useState('all');
-  const [selectedAssignment, setSelectedAssignment] = useState('all');
+  const [selectedAI, setSelectedAI] = useState('all');
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [page, setPage] = useState(1);
-  const [sortField, setSortField] = useState<'name' | 'total_value' | 'days_since_last_purchase' | 'recurrence_days_overdue'>('total_value');
+  const [sortField, setSortField] = useState<'name' | 'estimated_value' | 'days_since_last_purchase' | 'created_at'>('estimated_value');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [assigningTo, setAssigningTo] = useState<string | null>(null);
   const [bulkAssigning, setBulkAssigning] = useState(false);
+  const [classifyingAI, setClassifyingAI] = useState(false);
+  
   // Profile drawer state
   const [profileOpen, setProfileOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -192,97 +312,124 @@ export function ClientListDashboard() {
     setProfileOpen(true);
   }, []);
 
-  // Fetch unified client list from RFV customers with recurrence info
+  // Fetch clients from crm_leads with all joined data
   const { data: clients = [], isLoading: loadingClients, refetch } = useQuery({
-    queryKey: ['unified-clients', selectedSegment],
-    queryFn: async (): Promise<UnifiedClient[]> => {
-      // Fetch RFV customers as base
-      let rfvQuery = supabase
-        .from('rfv_customers')
-        .select('*')
-        .order('total_value', { ascending: false })
+    queryKey: ['crm-clients-list', selectedTeam, selectedSegment, selectedPipeline],
+    queryFn: async (): Promise<CRMClient[]> => {
+      let query = supabase
+        .from('crm_leads')
+        .select(`
+          id, name, phone, whatsapp, email, cpf, prontuario, feegow_id,
+          team_id, assigned_to, estimated_value, contract_value,
+          pipeline_id, stage_id, temperature, is_priority,
+          ai_intent, ai_next_action, ai_summary, ai_analyzed_at,
+          is_recurrence_lead, recurrence_due_date, recurrence_days_overdue, recurrence_group,
+          created_at, last_activity_at, source, tags,
+          teams:team_id (name),
+          pipelines:pipeline_id (name),
+          stages:stage_id (name),
+          users:assigned_to (full_name),
+          rfv_customer:rfv_customer_id (
+            segment, recency_score, frequency_score, value_score,
+            total_value, total_purchases, days_since_last_purchase, last_purchase_date
+          )
+        `)
+        .order('estimated_value', { ascending: false })
         .limit(5000);
 
-      if (selectedSegment !== 'all') {
-        const segmentNames = Object.entries(SEGMENT_NAME_TO_KEY)
-          .filter(([_, key]) => key === selectedSegment)
-          .map(([name, _]) => name);
-        if (segmentNames.length > 0) {
-          rfvQuery = rfvQuery.in('segment', segmentNames);
-        }
+      // Apply team filter at query level for performance
+      if (selectedTeam !== 'all') {
+        query = query.eq('team_id', selectedTeam);
       }
 
-      const { data: rfvData, error: rfvError } = await rfvQuery;
-      if (rfvError) throw rfvError;
+      // Apply pipeline filter
+      if (selectedPipeline !== 'all') {
+        query = query.eq('pipeline_id', selectedPipeline);
+      }
 
-      // Fetch existing CRM leads to check assignments and recurrences
-      const { data: crmLeads, error: crmError } = await supabase
-        .from('crm_leads')
-        .select('id, rfv_customer_id, assigned_to, team_id, is_recurrence_lead, recurrence_due_date, recurrence_days_overdue, recurrence_group')
-        .not('rfv_customer_id', 'is', null);
+      const { data, error } = await query;
+      if (error) throw error;
 
-      if (crmError) console.warn('CRM leads fetch error:', crmError);
-
-      // Create lookup map for CRM data
-      const crmLookup = new Map<string, {
-        id: string;
-        assigned_to: string | null;
-        team_id: string | null;
-        is_recurrence_lead: boolean;
-        recurrence_due_date: string | null;
-        recurrence_days_overdue: number | null;
-        recurrence_group: string | null;
-      }>();
-
-      crmLeads?.forEach(lead => {
-        if (lead.rfv_customer_id) {
-          crmLookup.set(lead.rfv_customer_id, {
-            id: lead.id,
-            assigned_to: lead.assigned_to,
-            team_id: lead.team_id,
-            is_recurrence_lead: lead.is_recurrence_lead || false,
-            recurrence_due_date: lead.recurrence_due_date,
-            recurrence_days_overdue: lead.recurrence_days_overdue,
-            recurrence_group: lead.recurrence_group,
-          });
-        }
-      });
-
-      // Transform to unified format
-      return (rfvData || []).map((rfv): UnifiedClient => {
-        const crm = crmLookup.get(rfv.id);
+      // Transform to flat structure
+      return (data || []).map((lead: any): CRMClient => {
+        const rfv = lead.rfv_customer;
         return {
-          id: rfv.id,
-          source: 'rfv',
-          name: rfv.name || 'Sem nome',
-          phone: rfv.phone,
-          whatsapp: rfv.whatsapp,
-          email: rfv.email,
-          cpf: rfv.cpf,
-          prontuario: rfv.prontuario,
-          rfv_segment: rfv.segment,
-          rfv_score_r: rfv.recency_score,
-          rfv_score_f: rfv.frequency_score,
-          rfv_score_v: rfv.value_score,
-          total_value: rfv.total_value || 0,
-          total_purchases: rfv.total_purchases || 0,
-          average_ticket: rfv.average_ticket || 0,
-          days_since_last_purchase: rfv.days_since_last_purchase,
-          last_purchase_date: rfv.last_purchase_date,
-          has_recurrence: crm?.is_recurrence_lead || false,
-          recurrence_due_date: crm?.recurrence_due_date || null,
-          recurrence_days_overdue: crm?.recurrence_days_overdue || null,
-          recurrence_group: crm?.recurrence_group || null,
-          assigned_to: crm?.assigned_to || null,
-          assigned_team: crm?.team_id || null,
-          crm_lead_id: crm?.id || null,
+          id: lead.id,
+          name: lead.name || 'Sem nome',
+          phone: lead.phone,
+          whatsapp: lead.whatsapp,
+          email: lead.email,
+          cpf: lead.cpf,
+          prontuario: lead.prontuario,
+          feegow_id: lead.feegow_id,
+          team_id: lead.team_id,
+          team_name: lead.teams?.name || null,
+          assigned_to: lead.assigned_to,
+          assigned_name: lead.users?.full_name || null,
+          estimated_value: lead.estimated_value || rfv?.total_value || 0,
+          contract_value: lead.contract_value,
+          rfv_segment: rfv?.segment || null,
+          rfv_score_r: rfv?.recency_score || null,
+          rfv_score_f: rfv?.frequency_score || null,
+          rfv_score_v: rfv?.value_score || null,
+          total_value: rfv?.total_value || lead.estimated_value || 0,
+          total_purchases: rfv?.total_purchases || 0,
+          days_since_last_purchase: rfv?.days_since_last_purchase || null,
+          last_purchase_date: rfv?.last_purchase_date || null,
+          pipeline_id: lead.pipeline_id,
+          pipeline_name: lead.pipelines?.name || null,
+          stage_id: lead.stage_id,
+          stage_name: lead.stages?.name || null,
+          temperature: lead.temperature,
+          is_priority: lead.is_priority || false,
+          ai_intent: lead.ai_intent,
+          ai_next_action: lead.ai_next_action,
+          ai_summary: lead.ai_summary,
+          ai_analyzed_at: lead.ai_analyzed_at,
+          is_recurrence_lead: lead.is_recurrence_lead || false,
+          recurrence_due_date: lead.recurrence_due_date,
+          recurrence_days_overdue: lead.recurrence_days_overdue,
+          recurrence_group: lead.recurrence_group,
+          created_at: lead.created_at,
+          last_activity_at: lead.last_activity_at,
+          source: lead.source,
+          tags: lead.tags,
         };
       });
+    },
+    staleTime: 30000,
+  });
+
+  // Fetch teams
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams-list'],
+    queryFn: async (): Promise<Team[]> => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      return data || [];
     },
     staleTime: 60000,
   });
 
-  // Fetch team members for assignment
+  // Fetch pipelines
+  const { data: pipelines = [] } = useQuery({
+    queryKey: ['pipelines-list'],
+    queryFn: async (): Promise<Pipeline[]> => {
+      const { data, error } = await supabase
+        .from('crm_pipelines')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('order_index');
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 60000,
+  });
+
+  // Fetch team members
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team-members-for-distribution'],
     queryFn: async (): Promise<TeamMember[]> => {
@@ -301,31 +448,25 @@ export function ClientListDashboard() {
     staleTime: 60000,
   });
 
-  // Fetch teams
-  const { data: teams = [] } = useQuery({
-    queryKey: ['teams-list'],
-    queryFn: async (): Promise<Team[]> => {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('id, name')
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 60000,
-  });
-
-  // Get segment stats
-  const segmentStats = useMemo(() => {
-    const stats: Record<string, number> = {};
+  // Get stats
+  const stats = useMemo(() => {
+    const total = clients.length;
+    const withTeam = clients.filter(c => c.team_id).length;
+    const withAI = clients.filter(c => c.ai_analyzed_at).length;
+    const totalValue = clients.reduce((sum, c) => sum + (c.estimated_value || 0), 0);
+    
+    const byTeam: Record<string, { count: number; value: number }> = {};
     clients.forEach(c => {
-      const key = SEGMENT_NAME_TO_KEY[c.rfv_segment || ''] || 'unknown';
-      stats[key] = (stats[key] || 0) + 1;
+      const teamName = c.team_name || 'Sem Time';
+      if (!byTeam[teamName]) byTeam[teamName] = { count: 0, value: 0 };
+      byTeam[teamName].count++;
+      byTeam[teamName].value += c.estimated_value || 0;
     });
-    return stats;
+
+    return { total, withTeam, withAI, totalValue, byTeam };
   }, [clients]);
 
-  // Filter and sort clients
+  // Filter clients
   const filteredClients = useMemo(() => {
     let result = clients;
 
@@ -337,30 +478,43 @@ export function ClientListDashboard() {
         c.phone?.includes(search) ||
         c.whatsapp?.includes(search) ||
         c.cpf?.includes(search) ||
-        c.email?.toLowerCase().includes(searchLower)
+        c.email?.toLowerCase().includes(searchLower) ||
+        c.prontuario?.includes(search)
       );
+    }
+
+    // Segment filter
+    if (selectedSegment !== 'all') {
+      const segmentNames = Object.entries(SEGMENT_NAME_TO_KEY)
+        .filter(([_, key]) => key === selectedSegment)
+        .map(([name, _]) => name);
+      result = result.filter(c => segmentNames.includes(c.rfv_segment || ''));
+    }
+
+    // Temperature filter
+    if (selectedTemperature !== 'all') {
+      result = result.filter(c => c.temperature === selectedTemperature);
     }
 
     // Recurrence filter
     if (selectedRecurrence !== 'all') {
       if (selectedRecurrence === 'has_recurrence') {
-        result = result.filter(c => c.has_recurrence);
+        result = result.filter(c => c.is_recurrence_lead);
       } else if (selectedRecurrence === 'overdue') {
-        result = result.filter(c => c.has_recurrence && (c.recurrence_days_overdue || 0) > 0);
+        result = result.filter(c => c.is_recurrence_lead && (c.recurrence_days_overdue || 0) > 0);
       } else if (selectedRecurrence === 'critical') {
-        result = result.filter(c => c.has_recurrence && (c.recurrence_days_overdue || 0) > 60);
+        result = result.filter(c => c.is_recurrence_lead && (c.recurrence_days_overdue || 0) > 60);
       }
     }
 
-    // Assignment filter
-    if (selectedAssignment !== 'all') {
-      if (selectedAssignment === 'unassigned') {
-        result = result.filter(c => !c.assigned_to);
-      } else if (selectedAssignment === 'assigned') {
-        result = result.filter(c => c.assigned_to);
-      } else {
-        // Filter by specific team
-        result = result.filter(c => c.assigned_team === selectedAssignment);
+    // AI filter
+    if (selectedAI !== 'all') {
+      if (selectedAI === 'analyzed') {
+        result = result.filter(c => c.ai_analyzed_at);
+      } else if (selectedAI === 'not_analyzed') {
+        result = result.filter(c => !c.ai_analyzed_at);
+      } else if (selectedAI === 'priority') {
+        result = result.filter(c => c.is_priority);
       }
     }
 
@@ -374,17 +528,17 @@ export function ClientListDashboard() {
           valA = a.name;
           valB = b.name;
           break;
-        case 'total_value':
-          valA = a.total_value;
-          valB = b.total_value;
+        case 'estimated_value':
+          valA = a.estimated_value;
+          valB = b.estimated_value;
           break;
         case 'days_since_last_purchase':
           valA = a.days_since_last_purchase || 9999;
           valB = b.days_since_last_purchase || 9999;
           break;
-        case 'recurrence_days_overdue':
-          valA = a.recurrence_days_overdue || -9999;
-          valB = b.recurrence_days_overdue || -9999;
+        case 'created_at':
+          valA = new Date(a.created_at).getTime();
+          valB = new Date(b.created_at).getTime();
           break;
       }
 
@@ -395,7 +549,7 @@ export function ClientListDashboard() {
     });
 
     return result;
-  }, [clients, search, selectedRecurrence, selectedAssignment, sortField, sortDirection]);
+  }, [clients, search, selectedSegment, selectedTemperature, selectedRecurrence, selectedAI, sortField, sortDirection]);
 
   // Pagination
   const totalPages = Math.ceil(filteredClients.length / PAGE_SIZE);
@@ -409,80 +563,44 @@ export function ClientListDashboard() {
     mutationFn: async ({ clientIds, assigneeId, teamId }: { clientIds: string[]; assigneeId: string; teamId: string }) => {
       setBulkAssigning(true);
       
-      // Get or create CRM leads for these clients
-      const { data: pipelines } = await supabase
-        .from('crm_pipelines')
-        .select('id')
-        .eq('pipeline_type', 'farmer')
-        .single();
-      
-      if (!pipelines) throw new Error('Pipeline Farmer não encontrado');
-
-      const { data: stages } = await supabase
-        .from('crm_stages')
-        .select('id')
-        .eq('pipeline_id', pipelines.id)
-        .order('order_index', { ascending: true })
-        .limit(1);
-
-      if (!stages || stages.length === 0) throw new Error('Estágio não encontrado');
-
-      const stageId = stages[0].id;
-
-      // Check which clients already have leads
-      const { data: existingLeads } = await supabase
+      const { error } = await supabase
         .from('crm_leads')
-        .select('id, rfv_customer_id')
-        .in('rfv_customer_id', clientIds);
+        .update({ assigned_to: assigneeId, team_id: teamId })
+        .in('id', clientIds);
 
-      const existingMap = new Map(existingLeads?.map(l => [l.rfv_customer_id, l.id]) || []);
-
-      // Update existing leads
-      const existingIds = Array.from(existingMap.values());
-      if (existingIds.length > 0) {
-        await supabase
-          .from('crm_leads')
-          .update({ assigned_to: assigneeId, team_id: teamId })
-          .in('id', existingIds);
-      }
-
-      // Create new leads for clients without them
-      const newClientIds = clientIds.filter(id => !existingMap.has(id));
-      if (newClientIds.length > 0) {
-        const clientsToCreate = clients.filter(c => newClientIds.includes(c.id));
-        
-        const newLeads = clientsToCreate.map(client => ({
-          name: client.name,
-          phone: client.phone,
-          whatsapp: client.whatsapp,
-          email: client.email,
-          cpf: client.cpf,
-          pipeline_id: pipelines.id,
-          stage_id: stageId,
-          rfv_customer_id: client.id,
-          assigned_to: assigneeId,
-          team_id: teamId,
-          source: 'client_list_distribution',
-          created_by: assigneeId,
-          tags: [client.rfv_segment || 'Novo'].filter(Boolean),
-        }));
-
-        await supabase.from('crm_leads').insert(newLeads);
-      }
-
-      return { updated: existingIds.length, created: newClientIds.length };
+      if (error) throw error;
+      return { updated: clientIds.length };
     },
     onSuccess: (result) => {
-      toast.success(`Distribuição concluída: ${result.updated} atualizados, ${result.created} criados`);
+      toast.success(`${result.updated} clientes atribuídos com sucesso`);
       setSelectedClients([]);
       setBulkAssigning(false);
-      queryClient.invalidateQueries({ queryKey: ['unified-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-clients-list'] });
     },
     onError: (error) => {
-      toast.error(`Erro na distribuição: ${error.message}`);
+      toast.error(`Erro na atribuição: ${error.message}`);
       setBulkAssigning(false);
     },
   });
+
+  // AI Classification
+  const classifyWithAI = useCallback(async () => {
+    setClassifyingAI(true);
+    try {
+      const response = await supabase.functions.invoke('ai-lead-classifier', {
+        body: { mode: 'batch', batchSize: 20 }
+      });
+      
+      if (response.error) throw response.error;
+      
+      toast.success(`IA classificou ${response.data.classified} clientes`);
+      refetch();
+    } catch (error: any) {
+      toast.error(`Erro na classificação: ${error.message}`);
+    } finally {
+      setClassifyingAI(false);
+    }
+  }, [refetch]);
 
   // Handlers
   const toggleSelectAll = useCallback(() => {
@@ -523,62 +641,73 @@ export function ClientListDashboard() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
-  const getMemberName = useCallback((id: string | null) => {
-    if (!id) return '-';
-    const member = teamMembers.find(m => m.id === id);
-    return member?.full_name || '-';
-  }, [teamMembers]);
-
   return (
     <div className="p-6 space-y-6">
-      {/* Header Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Card 
-          className={cn(
-            "cursor-pointer transition-all hover:shadow-md",
-            selectedSegment === 'all' && "ring-2 ring-primary"
-          )}
-          onClick={() => setSelectedSegment('all')}
-        >
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary">
-                <Users className="h-4 w-4 text-primary-foreground" />
+      {/* Header Stats - Team Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-lg font-bold">{clients.length}</p>
+                <p className="text-sm text-muted-foreground">Total Clientes</p>
+                <p className="text-2xl font-bold">{stats.total.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {Object.entries(RFV_SEGMENTS).map(([key, config]) => {
-          const SegmentIcon = config.icon;
-          const count = segmentStats[key] || 0;
-          return (
-            <Card 
-              key={key} 
-              className={cn(
-                "cursor-pointer transition-all hover:shadow-md",
-                selectedSegment === key && "ring-2 ring-primary"
-              )}
-              onClick={() => setSelectedSegment(selectedSegment === key ? 'all' : key)}
-            >
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2">
-                  <div className={cn("p-1.5 rounded-lg", config.color)}>
-                    <SegmentIcon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{config.name}</p>
-                    <p className="text-lg font-bold">{count}</p>
-                  </div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-100">
+                <DollarSign className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Valor Total</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {Object.entries(stats.byTeam).slice(0, 2).map(([teamName, data]) => (
+          <Card 
+            key={teamName}
+            className={cn(
+              "cursor-pointer transition-all",
+              selectedTeam !== 'all' && teams.find(t => t.name === teamName)?.id === selectedTeam && "ring-2 ring-primary"
+            )}
+            onClick={() => {
+              const team = teams.find(t => t.name === teamName);
+              if (team) {
+                setSelectedTeam(selectedTeam === team.id ? 'all' : team.id);
+                setPage(1);
+              }
+            }}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "p-2 rounded-lg",
+                  teamName.toLowerCase().includes('lioness') ? "bg-amber-100" : "bg-purple-100"
+                )}>
+                  <Shield className={cn(
+                    "h-5 w-5",
+                    teamName.toLowerCase().includes('lioness') ? "text-amber-600" : "text-purple-600"
+                  )} />
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                <div>
+                  <p className="text-sm text-muted-foreground">{teamName}</p>
+                  <p className="text-xl font-bold">{data.count.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(data.value)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Main Card */}
@@ -591,7 +720,7 @@ export function ClientListDashboard() {
                 Lista de Clientes
               </CardTitle>
               <CardDescription>
-                Visão unificada de clientes com RFV, histórico e recorrências
+                {filteredClients.length} clientes • {stats.withAI} analisados por IA
               </CardDescription>
             </div>
 
@@ -603,38 +732,76 @@ export function ClientListDashboard() {
                   placeholder="Buscar nome, CPF, telefone..."
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  className="pl-9 w-[220px]"
+                  className="pl-9 w-[200px]"
                 />
               </div>
 
-              {/* Recurrence Filter */}
-              <Select value={selectedRecurrence} onValueChange={(v) => { setSelectedRecurrence(v); setPage(1); }}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Recorrência" />
+              {/* Team Filter */}
+              <Select value={selectedTeam} onValueChange={(v) => { setSelectedTeam(v); setPage(1); }}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Time" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="has_recurrence">Com Recorrência</SelectItem>
-                  <SelectItem value="overdue">Vencidas</SelectItem>
-                  <SelectItem value="critical">Críticas (60+ dias)</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Assignment Filter */}
-              <Select value={selectedAssignment} onValueChange={(v) => { setSelectedAssignment(v); setPage(1); }}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Atribuição" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="unassigned">Sem Atribuição</SelectItem>
-                  <SelectItem value="assigned">Com Atribuição</SelectItem>
-                  <DropdownMenuSeparator />
+                  <SelectItem value="all">Todos Times</SelectItem>
                   {teams.map(team => (
                     <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
+              {/* Pipeline Filter */}
+              <Select value={selectedPipeline} onValueChange={(v) => { setSelectedPipeline(v); setPage(1); }}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Pipeline" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Pipelines</SelectItem>
+                  {pipelines.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Temperature Filter */}
+              <Select value={selectedTemperature} onValueChange={(v) => { setSelectedTemperature(v); setPage(1); }}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Temperatura" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="quente">🔥 Quente</SelectItem>
+                  <SelectItem value="morno">🌡️ Morno</SelectItem>
+                  <SelectItem value="frio">❄️ Frio</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* AI Filter */}
+              <Select value={selectedAI} onValueChange={(v) => { setSelectedAI(v); setPage(1); }}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="IA" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="analyzed">✅ Analisados</SelectItem>
+                  <SelectItem value="not_analyzed">⏳ Não analisados</SelectItem>
+                  <SelectItem value="priority">⚡ Prioridade</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* AI Classify Button */}
+              <Button 
+                variant="outline" 
+                onClick={classifyWithAI} 
+                disabled={classifyingAI}
+                className="gap-2"
+              >
+                {classifyingAI ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Bot className="h-4 w-4" />
+                )}
+                Classificar IA
+              </Button>
 
               {/* Bulk Actions */}
               {selectedClients.length > 0 && (
@@ -646,7 +813,7 @@ export function ClientListDashboard() {
                       ) : (
                         <UserPlus className="h-4 w-4" />
                       )}
-                      Distribuir ({selectedClients.length})
+                      Atribuir ({selectedClients.length})
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -658,7 +825,6 @@ export function ClientListDashboard() {
                           key={member.id}
                           onClick={() => handleBulkAssign(member.id)}
                         >
-                          <Check className="h-4 w-4 mr-2 opacity-0" />
                           {member.full_name}
                         </DropdownMenuItem>
                       ))}
@@ -683,11 +849,11 @@ export function ClientListDashboard() {
             </div>
           ) : (
             <>
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50px]">
+                      <TableHead className="w-[40px]">
                         <Checkbox
                           checked={selectedClients.length === paginatedClients.length && paginatedClients.length > 0}
                           onCheckedChange={toggleSelectAll}
@@ -702,37 +868,21 @@ export function ClientListDashboard() {
                           <ArrowUpDown className="h-3 w-3" />
                         </div>
                       </TableHead>
-                      <TableHead>Contato</TableHead>
-                      <TableHead>Segmento RFV</TableHead>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Segmento</TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('total_value')}
+                        onClick={() => handleSort('estimated_value')}
                       >
                         <div className="flex items-center gap-1">
-                          Valor Total
+                          Valor
                           <ArrowUpDown className="h-3 w-3" />
                         </div>
                       </TableHead>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('days_since_last_purchase')}
-                      >
-                        <div className="flex items-center gap-1">
-                          Última Compra
-                          <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('recurrence_days_overdue')}
-                      >
-                        <div className="flex items-center gap-1">
-                          Recorrência
-                          <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead>Responsável</TableHead>
-                      <TableHead className="w-[50px]" />
+                      <TableHead>Temp.</TableHead>
+                      <TableHead>Sugestão IA</TableHead>
+                      <TableHead>Pipeline</TableHead>
+                      <TableHead className="w-[40px]" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -744,7 +894,13 @@ export function ClientListDashboard() {
                       </TableRow>
                     ) : (
                       paginatedClients.map(client => (
-                        <TableRow key={client.id} className={cn(selectedClients.includes(client.id) && "bg-primary/5")}>
+                        <TableRow 
+                          key={client.id} 
+                          className={cn(
+                            selectedClients.includes(client.id) && "bg-primary/5",
+                            client.is_priority && "bg-amber-50"
+                          )}
+                        >
                           <TableCell>
                             <Checkbox
                               checked={selectedClients.includes(client.id)}
@@ -754,60 +910,51 @@ export function ClientListDashboard() {
                           <TableCell>
                             <button
                               onClick={() => openClientProfile(client.id)}
-                              className="flex flex-col text-left hover:text-primary transition-colors"
+                              className="flex flex-col text-left hover:text-primary transition-colors group"
                             >
                               <span className="font-medium flex items-center gap-1">
+                                {client.is_priority && <Sparkles className="h-3 w-3 text-amber-500" />}
                                 {client.name}
                                 <Eye className="h-3 w-3 opacity-0 group-hover:opacity-100" />
                               </span>
-                              {client.cpf && (
-                                <span className="text-xs text-muted-foreground">CPF: {client.cpf}</span>
-                              )}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {client.phone && <span>{client.phone}</span>}
+                                {client.prontuario && <span>• #{client.prontuario}</span>}
+                              </div>
                             </button>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              {client.phone && (
-                                <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                                  <a href={`tel:${client.phone}`}><Phone className="h-3 w-3" /></a>
-                                </Button>
-                              )}
-                              {client.email && (
-                                <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                                  <a href={`mailto:${client.email}`}><Mail className="h-3 w-3" /></a>
-                                </Button>
-                              )}
-                              {!client.phone && !client.email && <span className="text-muted-foreground">-</span>}
-                            </div>
+                            <TeamBadge teamName={client.team_name} />
                           </TableCell>
                           <TableCell>
                             <RFVBadge segment={client.rfv_segment} />
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
-                              <span className="font-medium text-primary">{formatCurrency(client.total_value)}</span>
-                              <span className="text-xs text-muted-foreground">{client.total_purchases} compras</span>
+                              <span className="font-medium text-primary">
+                                {formatCurrency(client.estimated_value)}
+                              </span>
+                              {client.total_purchases > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                  {client.total_purchases} compras
+                                </span>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            {client.last_purchase_date ? (
-                              <div className="flex flex-col">
-                                <span className="text-sm">
-                                  {format(new Date(client.last_purchase_date), 'dd/MM/yyyy')}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {client.days_since_last_purchase} dias atrás
-                                </span>
-                              </div>
+                            <TemperatureBadge temperature={client.temperature} />
+                          </TableCell>
+                          <TableCell>
+                            <AISuggestionBadge client={client} />
+                          </TableCell>
+                          <TableCell>
+                            {client.pipeline_name ? (
+                              <Badge variant="outline" className="text-xs">
+                                {client.pipeline_name}
+                              </Badge>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-muted-foreground text-xs">-</span>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <RecurrenceStatus client={client} />
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm">{getMemberName(client.assigned_to)}</span>
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -820,13 +967,19 @@ export function ClientListDashboard() {
                                 <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                 <DropdownMenuItem onClick={() => openClientProfile(client.id)}>
                                   <Eye className="h-4 w-4 mr-2" />
-                                  Ver Perfil Completo
+                                  Ver Perfil
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => toggleClient(client.id)}>
+                                  <Check className="h-4 w-4 mr-2" />
                                   {selectedClients.includes(client.id) ? 'Desmarcar' : 'Selecionar'}
                                 </DropdownMenuItem>
-                                {client.crm_lead_id && (
-                                  <DropdownMenuItem>Ver no CRM</DropdownMenuItem>
+                                {client.phone && (
+                                  <DropdownMenuItem asChild>
+                                    <a href={`https://wa.me/55${client.phone.replace(/\D/g, '')}`} target="_blank">
+                                      <Phone className="h-4 w-4 mr-2" />
+                                      WhatsApp
+                                    </a>
+                                  </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -840,20 +993,22 @@ export function ClientListDashboard() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <PaginationControls
-                  currentPage={page}
-                  totalPages={totalPages}
-                  pageSize={PAGE_SIZE}
-                  totalItems={filteredClients.length}
-                  startIndex={(page - 1) * PAGE_SIZE}
-                  endIndex={Math.min(page * PAGE_SIZE, filteredClients.length)}
-                  hasNextPage={page < totalPages}
-                  hasPreviousPage={page > 1}
-                  onNextPage={() => setPage(p => Math.min(p + 1, totalPages))}
-                  onPreviousPage={() => setPage(p => Math.max(p - 1, 1))}
-                  onGoToPage={setPage}
-                  onPageSizeChange={() => {}} // Fixed page size for now
-                />
+                <div className="mt-4">
+                  <PaginationControls
+                    currentPage={page}
+                    totalPages={totalPages}
+                    pageSize={PAGE_SIZE}
+                    totalItems={filteredClients.length}
+                    startIndex={(page - 1) * PAGE_SIZE}
+                    endIndex={Math.min(page * PAGE_SIZE, filteredClients.length)}
+                    hasNextPage={page < totalPages}
+                    hasPreviousPage={page > 1}
+                    onNextPage={() => setPage(p => Math.min(p + 1, totalPages))}
+                    onPreviousPage={() => setPage(p => Math.max(p - 1, 1))}
+                    onGoToPage={setPage}
+                    onPageSizeChange={() => {}}
+                  />
+                </div>
               )}
             </>
           )}
@@ -865,7 +1020,7 @@ export function ClientListDashboard() {
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
         clientId={selectedClientId || ''}
-        clientSource="rfv"
+        clientSource="crm"
       />
     </div>
   );
