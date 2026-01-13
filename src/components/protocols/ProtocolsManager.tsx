@@ -123,17 +123,29 @@ export function ProtocolsManager() {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<Protocol>) => {
-      const { recurrence_days, recurrence_type, recurrence_script, referral_bonus, referral_script, loyalty_points, ...baseData } = data;
+      // Only include fields that exist in the database
+      const saveData = {
+        name: data.name,
+        description: data.description,
+        protocol_type: data.protocol_type,
+        price: data.price,
+        promotional_price: data.promotional_price,
+        target_segments: data.target_segments,
+        sales_script: data.sales_script,
+        is_active: data.is_active,
+        is_featured: data.is_featured,
+      };
+      
       if (editingProtocol) {
         const { error } = await supabase
           .from('protocols')
-          .update(baseData)
+          .update(saveData)
           .eq('id', editingProtocol.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('protocols')
-          .insert({ ...data, created_by: user?.id || '' });
+          .insert({ ...saveData, created_by: user?.id || '' });
         if (error) throw error;
       }
     },
@@ -142,8 +154,8 @@ export function ProtocolsManager() {
       queryClient.invalidateQueries({ queryKey: ['protocols-manager'] });
       handleCloseDialog();
     },
-    onError: (error) => {
-      toast.error(`Erro: ${error.message}`);
+    onError: (error: any) => {
+      toast.error(`Erro: ${error?.message || 'Erro desconhecido'}`);
     },
   });
 
