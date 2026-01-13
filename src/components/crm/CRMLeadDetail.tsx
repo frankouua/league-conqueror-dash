@@ -5,7 +5,7 @@ import {
   User, Phone, Mail, MessageSquare, Clock, Calendar, Tag, Star,
   Sparkles, AlertTriangle, CheckCircle2, Circle, Plus, Send,
   ArrowRight, History, ListTodo, FileText, TrendingUp, Brain, Loader2,
-  Edit2, Trash2, X, ClipboardCheck, MessagesSquare, PhoneCall
+  Edit2, Trash2, X, ClipboardCheck, MessagesSquare, PhoneCall, UserCircle
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,7 @@ import { CRMLeadScriptSuggestions } from './CRMLeadScriptSuggestions';
 import { CRMRealtimeScriptSuggestions } from './CRMRealtimeScriptSuggestions';
 import { CRMProcedureRecommendations } from './CRMProcedureRecommendations';
 import { CRMCadenceAnalytics } from './CRMCadenceAnalytics';
+import { CRMLeadPersonalData } from './CRMLeadPersonalData';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -259,8 +260,12 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               </ScrollArea>
             ) : (
               /* Content Tabs */
-              <Tabs defaultValue="checklist" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="mx-3 sm:mx-6 mt-3 sm:mt-4 grid grid-cols-7 w-auto gap-0.5 sm:gap-1">
+              <Tabs defaultValue="perfil" className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="mx-3 sm:mx-6 mt-3 sm:mt-4 grid grid-cols-8 w-auto gap-0.5 sm:gap-1">
+              <TabsTrigger value="perfil" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                <UserCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Perfil</span>
+              </TabsTrigger>
               <TabsTrigger value="checklist" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
                 <ClipboardCheck className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden xs:inline">Check</span>
@@ -297,6 +302,19 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
             </TabsList>
 
             <ScrollArea className="flex-1 px-3 sm:px-6 py-3 sm:py-4">
+              {/* Perfil Tab - Dados Pessoais Completos */}
+              <TabsContent value="perfil" className="m-0">
+                {lead && (
+                  <CRMLeadPersonalData
+                    leadCpf={lead.cpf}
+                    leadProntuario={lead.prontuario}
+                    patientDataId={lead.patient_data_id}
+                    leadName={lead.name}
+                    leadEstimatedValue={lead.estimated_value}
+                  />
+                )}
+              </TabsContent>
+
               {/* Checklist Tab */}
               <TabsContent value="checklist" className="m-0 space-y-3 sm:space-y-4">
                 {lead && (
