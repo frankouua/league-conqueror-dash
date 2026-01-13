@@ -19,7 +19,7 @@ import {
   Crown, Heart, Zap, AlertTriangle, Clock, RefreshCw,
   ChevronDown, ChevronUp, MoreHorizontal, Loader2, 
   Calendar, DollarSign, TrendingUp, History, CheckCircle,
-  Target, Sparkles, ArrowUpDown, Check
+  Target, Sparkles, ArrowUpDown, Check, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -34,6 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ClientProfileDrawer } from './ClientProfileDrawer';
 
 // Types
 interface UnifiedClient {
@@ -182,6 +183,14 @@ export function ClientListDashboard() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [assigningTo, setAssigningTo] = useState<string | null>(null);
   const [bulkAssigning, setBulkAssigning] = useState(false);
+  // Profile drawer state
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  const openClientProfile = useCallback((clientId: string) => {
+    setSelectedClientId(clientId);
+    setProfileOpen(true);
+  }, []);
 
   // Fetch unified client list from RFV customers with recurrence info
   const { data: clients = [], isLoading: loadingClients, refetch } = useQuery({
@@ -743,12 +752,18 @@ export function ClientListDashboard() {
                             />
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{client.name}</span>
+                            <button
+                              onClick={() => openClientProfile(client.id)}
+                              className="flex flex-col text-left hover:text-primary transition-colors"
+                            >
+                              <span className="font-medium flex items-center gap-1">
+                                {client.name}
+                                <Eye className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                              </span>
                               {client.cpf && (
                                 <span className="text-xs text-muted-foreground">CPF: {client.cpf}</span>
                               )}
-                            </div>
+                            </button>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -803,6 +818,10 @@ export function ClientListDashboard() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => openClientProfile(client.id)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Ver Perfil Completo
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => toggleClient(client.id)}>
                                   {selectedClients.includes(client.id) ? 'Desmarcar' : 'Selecionar'}
                                 </DropdownMenuItem>
@@ -840,6 +859,14 @@ export function ClientListDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Client Profile Drawer */}
+      <ClientProfileDrawer
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        clientId={selectedClientId || ''}
+        clientSource="rfv"
+      />
     </div>
   );
 }
