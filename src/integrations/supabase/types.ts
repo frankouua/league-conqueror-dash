@@ -5802,7 +5802,7 @@ export type Database = {
         | "relacionamento"
         | "ganho"
         | "perdido"
-      testimonial_type: "google" | "video" | "gold"
+      testimonial_type: "google" | "video" | "gold" | "whatsapp"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5982,7 +5982,7 @@ export const Constants = {
         "ganho",
         "perdido",
       ],
-      testimonial_type: ["google", "video", "gold"],
+      testimonial_type: ["google", "video", "gold", "whatsapp"],
     },
   },
 } as const

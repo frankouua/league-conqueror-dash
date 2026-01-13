@@ -21,6 +21,7 @@ const SCORING = {
     nps9: 3,              // NPS 9 = 3pts
     nps10: 5,             // NPS 10 = 5pts
     npsCitationBonus: 10, // Citação nominal = +10pts
+    testimonialWhatsapp: 5,   // Depoimento WhatsApp = 5pts
     testimonialGoogle: 10,  // Google Review 5★ = 10pts
     testimonialVideo: 30,   // Vídeo padrão = 30pts
     testimonialGold: 50,    // Depoimento Ouro = 50pts
@@ -122,7 +123,8 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         // Testimonials
         const teamTestimonials = allTestimonials?.filter(r => r.team_id === team.id) || [];
         for (const t of teamTestimonials) {
-          if (t.type === "google") qualityPoints += SCORING.quality.testimonialGoogle;
+          if (t.type === "whatsapp") qualityPoints += SCORING.quality.testimonialWhatsapp;
+          else if (t.type === "google") qualityPoints += SCORING.quality.testimonialGoogle;
           else if (t.type === "video") qualityPoints += SCORING.quality.testimonialVideo;
           else if (t.type === "gold") qualityPoints += SCORING.quality.testimonialGold;
         }
