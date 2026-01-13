@@ -107,11 +107,11 @@ const RESPONSIBLE_ROLES = [
 
 // Categorias de protocolos para organização visual
 const PROTOCOL_CATEGORIES = [
-  { id: "jornada_cirurgica", label: "Jornada Cirúrgica", color: "bg-blue-500", textColor: "text-blue-600", bgLight: "bg-blue-50" },
-  { id: "genetica", label: "Genética", color: "bg-purple-500", textColor: "text-purple-600", bgLight: "bg-purple-50" },
-  { id: "neuro_wellness", label: "Neuro/Wellness", color: "bg-emerald-500", textColor: "text-emerald-600", bgLight: "bg-emerald-50" },
-  { id: "spa_day", label: "Spa Day", color: "bg-pink-500", textColor: "text-pink-600", bgLight: "bg-pink-50" },
-  { id: "avulsos", label: "Avulsos", color: "bg-orange-500", textColor: "text-orange-600", bgLight: "bg-orange-50" },
+  { id: "jornada_cirurgica", label: "Jornada Cirúrgica", color: "bg-blue-500", textColor: "text-blue-600", bgLight: "bg-blue-50", icon: Scissors, description: "Protocolos CPI Pré e Pós-Cirúrgicos" },
+  { id: "genetica", label: "Genética", color: "bg-purple-500", textColor: "text-purple-600", bgLight: "bg-purple-50", icon: Activity, description: "Análises e testes genéticos" },
+  { id: "neuro_wellness", label: "Neuro/Wellness", color: "bg-emerald-500", textColor: "text-emerald-600", bgLight: "bg-emerald-50", icon: Heart, description: "Saúde mental e bem-estar" },
+  { id: "spa_day", label: "Spa Day", color: "bg-pink-500", textColor: "text-pink-600", bgLight: "bg-pink-50", icon: Sparkles, description: "Experiências de relaxamento" },
+  { id: "avulsos", label: "Avulsos", color: "bg-orange-500", textColor: "text-orange-600", bgLight: "bg-orange-50", icon: Package, description: "Protocolos independentes" },
 ];
 
 interface Protocol {
@@ -163,6 +163,8 @@ const ProtocolsJourneyManager = () => {
   
   const [search, setSearch] = useState("");
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"category" | "stage">("category");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProtocol, setEditingProtocol] = useState<Protocol | null>(null);
   const [activeTab, setActiveTab] = useState("info");
@@ -418,14 +420,29 @@ const ProtocolsJourneyManager = () => {
     return acc;
   }, {} as Record<string, Protocol[]>);
 
-  const filteredProtocols = selectedStage 
-    ? protocols.filter(p => p.journey_stage === selectedStage)
-    : protocols;
+  // Group protocols by category
+  const protocolsByCategory = PROTOCOL_CATEGORIES.reduce((acc, cat) => {
+    acc[cat.id] = protocols.filter(p => p.category === cat.id);
+    return acc;
+  }, {} as Record<string, Protocol[]>);
+
+  // Apply filters
+  let filteredProtocols = protocols;
+  if (selectedStage) {
+    filteredProtocols = filteredProtocols.filter(p => p.journey_stage === selectedStage);
+  }
+  if (selectedCategory) {
+    filteredProtocols = filteredProtocols.filter(p => p.category === selectedCategory);
+  }
 
   const searchFiltered = filteredProtocols.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.description?.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Stats
+  const totalValue = protocols.reduce((sum, p) => sum + (p.promotional_price || p.price || 0), 0);
+  const avgValue = protocols.length > 0 ? totalValue / protocols.length : 0;
 
   // Calculate selected procedures total
   const selectedProceduresTotal = formData.procedure_ids.reduce((sum, id) => {
@@ -435,153 +452,354 @@ const ProtocolsJourneyManager = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Journey Timeline */}
-      <Card className="overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-purple-500/10 pb-4">
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            Jornada do Cliente
-          </CardTitle>
-          <CardDescription>
-            Clique em uma etapa para filtrar os protocolos
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-2">
-            <Badge
-              variant={selectedStage === null ? "default" : "outline"}
-              className="cursor-pointer py-2 px-3"
-              onClick={() => setSelectedStage(null)}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {PROTOCOL_CATEGORIES.map(cat => {
+          const CatIcon = cat.icon;
+          const count = protocolsByCategory[cat.id]?.length || 0;
+          const catTotal = protocolsByCategory[cat.id]?.reduce((sum, p) => 
+            sum + (p.promotional_price || p.price || 0), 0) || 0;
+          return (
+            <Card 
+              key={cat.id}
+              className={`cursor-pointer transition-all hover:scale-[1.02] ${
+                selectedCategory === cat.id 
+                  ? `ring-2 ${cat.color.replace('bg-', 'ring-')} shadow-lg` 
+                  : 'hover:shadow-md'
+              }`}
+              onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
             >
-              Todos ({protocols.length})
-            </Badge>
-            {JOURNEY_STAGES.map((stage, idx) => {
-              const Icon = stage.icon;
-              const count = protocolsByStage[stage.id]?.length || 0;
-              return (
-                <Badge
-                  key={stage.id}
-                  variant={selectedStage === stage.id ? "default" : "outline"}
-                  className="cursor-pointer py-2 px-3 gap-1.5"
-                  onClick={() => setSelectedStage(stage.id)}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {stage.label} ({count})
-                  {idx < JOURNEY_STAGES.length - 1 && (
-                    <ChevronRight className="h-3 w-3 ml-1 text-muted-foreground" />
-                  )}
-                </Badge>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions Bar */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar protocolo..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={handleOpenNew} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Protocolo
-        </Button>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`p-2 rounded-lg ${cat.bgLight}`}>
+                    <CatIcon className={`h-4 w-4 ${cat.textColor}`} />
+                  </div>
+                  <Badge className={`${cat.color} text-white text-xs`}>
+                    {count}
+                  </Badge>
+                </div>
+                <p className="font-semibold text-sm truncate">{cat.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formatCurrency(catTotal)}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Protocols by Stage */}
-      {selectedStage ? (
-        <Card>
-          <CardHeader>
+      {/* View Toggle & Actions */}
+      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+        {/* View Mode Toggle */}
+        <div className="flex bg-muted rounded-lg p-1">
+          <Button
+            variant={viewMode === "category" ? "default" : "ghost"}
+            size="sm"
+            className="gap-2"
+            onClick={() => setViewMode("category")}
+          >
+            <Package className="h-4 w-4" />
+            Por Categoria
+          </Button>
+          <Button
+            variant={viewMode === "stage" ? "default" : "ghost"}
+            size="sm"
+            className="gap-2"
+            onClick={() => setViewMode("stage")}
+          >
+            <Activity className="h-4 w-4" />
+            Por Etapa da Jornada
+          </Button>
+        </div>
+
+        <div className="flex-1 flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar protocolo..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {/* Clear filters */}
+          {(selectedStage || selectedCategory) && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setSelectedStage(null);
+                setSelectedCategory(null);
+              }}
+              className="gap-2 whitespace-nowrap"
+            >
+              <X className="h-4 w-4" />
+              Limpar filtros
+            </Button>
+          )}
+          
+          <Button onClick={handleOpenNew} className="gap-2 whitespace-nowrap">
+            <Plus className="h-4 w-4" />
+            Novo Protocolo
+          </Button>
+        </div>
+      </div>
+
+      {/* Active Filters Display */}
+      {(selectedCategory || selectedStage) && (
+        <div className="flex flex-wrap gap-2 items-center text-sm">
+          <span className="text-muted-foreground">Filtros ativos:</span>
+          {selectedCategory && (
+            <Badge 
+              variant="secondary" 
+              className="gap-1 cursor-pointer hover:bg-destructive/20"
+              onClick={() => setSelectedCategory(null)}
+            >
+              {PROTOCOL_CATEGORIES.find(c => c.id === selectedCategory)?.label}
+              <X className="h-3 w-3" />
+            </Badge>
+          )}
+          {selectedStage && (
+            <Badge 
+              variant="secondary" 
+              className="gap-1 cursor-pointer hover:bg-destructive/20"
+              onClick={() => setSelectedStage(null)}
+            >
+              {JOURNEY_STAGES.find(s => s.id === selectedStage)?.label}
+              <X className="h-3 w-3" />
+            </Badge>
+          )}
+          <span className="text-muted-foreground ml-2">
+            ({searchFiltered.length} protocolo{searchFiltered.length !== 1 ? 's' : ''})
+          </span>
+        </div>
+      )}
+
+      {/* Journey Stage Selector (when in stage view) */}
+      {viewMode === "stage" && !selectedStage && !selectedCategory && (
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 pb-4">
             <CardTitle className="flex items-center gap-2">
-              {(() => {
-                const stage = JOURNEY_STAGES.find(s => s.id === selectedStage);
-                const Icon = stage?.icon || Activity;
-                return (
-                  <>
-                    <div className={`p-2 rounded-lg ${stage?.color}/20`}>
-                      <Icon className={`h-5 w-5 ${stage?.color?.replace("bg-", "text-")}`} />
-                    </div>
-                    {stage?.label}
-                  </>
-                );
-              })()}
+              <Activity className="h-5 w-5 text-primary" />
+              Jornada do Cliente
             </CardTitle>
             <CardDescription>
-              {JOURNEY_STAGES.find(s => s.id === selectedStage)?.description}
+              Selecione uma etapa para ver os protocolos correspondentes
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {searchFiltered.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p>Nenhum protocolo nesta etapa</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={handleOpenNew}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar protocolo
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {searchFiltered.map(protocol => (
-                  <ProtocolCard
-                    key={protocol.id}
-                    protocol={protocol}
-                    procedures={procedures}
-                    onEdit={() => handleEdit(protocol)}
-                    onDelete={() => isAdmin && deleteMutation.mutate(protocol.id)}
-                    onView={() => setDetailProtocol(protocol)}
-                    canDelete={isAdmin}
-                  />
-                ))}
-              </div>
-            )}
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-2">
+              {JOURNEY_STAGES.map((stage, idx) => {
+                const Icon = stage.icon;
+                const count = protocolsByStage[stage.id]?.length || 0;
+                return (
+                  <Badge
+                    key={stage.id}
+                    variant="outline"
+                    className={`cursor-pointer py-2 px-3 gap-1.5 hover:bg-muted transition-colors ${
+                      count === 0 ? 'opacity-50' : ''
+                    }`}
+                    onClick={() => count > 0 && setSelectedStage(stage.id)}
+                  >
+                    <div className={`p-1 rounded ${stage.color}/20`}>
+                      <Icon className={`h-3 w-3 ${stage.color.replace('bg-', 'text-')}`} />
+                    </div>
+                    <span>{stage.label}</span>
+                    <span className="ml-1 opacity-60">({count})</span>
+                    {idx < JOURNEY_STAGES.length - 1 && (
+                      <ChevronRight className="h-3 w-3 ml-1 text-muted-foreground/50" />
+                    )}
+                  </Badge>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Protocols Display - Based on View Mode */}
+      {viewMode === "category" ? (
+        /* Category View */
+        selectedCategory ? (
+          /* Single Category View */
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {(() => {
+                  const cat = PROTOCOL_CATEGORIES.find(c => c.id === selectedCategory);
+                  const CatIcon = cat?.icon || Package;
+                  return (
+                    <>
+                      <div className={`p-2 rounded-lg ${cat?.bgLight}`}>
+                        <CatIcon className={`h-5 w-5 ${cat?.textColor}`} />
+                      </div>
+                      {cat?.label}
+                    </>
+                  );
+                })()}
+              </CardTitle>
+              <CardDescription>
+                {PROTOCOL_CATEGORIES.find(c => c.id === selectedCategory)?.description}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {searchFiltered.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>Nenhum protocolo nesta categoria</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={handleOpenNew}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar protocolo
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {searchFiltered.map(protocol => (
+                    <ProtocolCard
+                      key={protocol.id}
+                      protocol={protocol}
+                      procedures={procedures}
+                      onEdit={() => handleEdit(protocol)}
+                      onDelete={() => isAdmin && deleteMutation.mutate(protocol.id)}
+                      onView={() => setDetailProtocol(protocol)}
+                      canDelete={isAdmin}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          /* All Categories Accordion */
+          <Accordion type="multiple" defaultValue={PROTOCOL_CATEGORIES.map(c => c.id)} className="space-y-4">
+            {PROTOCOL_CATEGORIES.map(cat => {
+              const catProtocols = protocolsByCategory[cat.id] || [];
+              const CatIcon = cat.icon;
+              const catTotal = catProtocols.reduce((sum, p) => sum + (p.promotional_price || p.price || 0), 0);
+              
+              if (catProtocols.length === 0) return null;
+              
+              return (
+                <AccordionItem key={cat.id} value={cat.id} className="border rounded-lg overflow-hidden shadow-sm">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50">
+                    <div className="flex items-center gap-3 w-full">
+                      <div className={`p-2 rounded-lg ${cat.bgLight}`}>
+                        <CatIcon className={`h-5 w-5 ${cat.textColor}`} />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className="font-semibold">{cat.label}</p>
+                        <p className="text-xs text-muted-foreground">{cat.description}</p>
+                      </div>
+                      <div className="flex items-center gap-3 mr-4">
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{formatCurrency(catTotal)}</p>
+                          <p className="text-xs text-muted-foreground">valor total</p>
+                        </div>
+                        <Badge className={`${cat.color} text-white`}>
+                          {catProtocols.length} protocolo{catProtocols.length !== 1 ? "s" : ""}
+                        </Badge>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {catProtocols
+                        .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+                        .map(protocol => (
+                          <ProtocolCard
+                            key={protocol.id}
+                            protocol={protocol}
+                            procedures={procedures}
+                            onEdit={() => handleEdit(protocol)}
+                            onDelete={() => isAdmin && deleteMutation.mutate(protocol.id)}
+                            onView={() => setDetailProtocol(protocol)}
+                            canDelete={isAdmin}
+                          />
+                        ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )
       ) : (
-        <Accordion type="multiple" className="space-y-4">
-          {JOURNEY_STAGES.map(stage => {
-            const stageProtocols = protocolsByStage[stage.id] || [];
-            const Icon = stage.icon;
-            return (
-              <AccordionItem key={stage.id} value={stage.id} className="border rounded-lg overflow-hidden">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${stage.color}/20`}>
-                      <Icon className={`h-5 w-5 ${stage.color.replace("bg-", "text-")}`} />
+        /* Stage View */
+        selectedStage ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {(() => {
+                  const stage = JOURNEY_STAGES.find(s => s.id === selectedStage);
+                  const Icon = stage?.icon || Activity;
+                  return (
+                    <>
+                      <div className={`p-2 rounded-lg ${stage?.color}/20`}>
+                        <Icon className={`h-5 w-5 ${stage?.color?.replace("bg-", "text-")}`} />
+                      </div>
+                      {stage?.label}
+                    </>
+                  );
+                })()}
+              </CardTitle>
+              <CardDescription>
+                {JOURNEY_STAGES.find(s => s.id === selectedStage)?.description}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {searchFiltered.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>Nenhum protocolo nesta etapa</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={handleOpenNew}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar protocolo
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {searchFiltered.map(protocol => (
+                    <ProtocolCard
+                      key={protocol.id}
+                      protocol={protocol}
+                      procedures={procedures}
+                      onEdit={() => handleEdit(protocol)}
+                      onDelete={() => isAdmin && deleteMutation.mutate(protocol.id)}
+                      onView={() => setDetailProtocol(protocol)}
+                      canDelete={isAdmin}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Accordion type="multiple" className="space-y-4">
+            {JOURNEY_STAGES.map(stage => {
+              const stageProtocols = protocolsByStage[stage.id] || [];
+              const Icon = stage.icon;
+              
+              if (stageProtocols.length === 0) return null;
+              
+              return (
+                <AccordionItem key={stage.id} value={stage.id} className="border rounded-lg overflow-hidden">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${stage.color}/20`}>
+                        <Icon className={`h-5 w-5 ${stage.color.replace("bg-", "text-")}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">{stage.label}</p>
+                        <p className="text-xs text-muted-foreground">{stage.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto mr-4">
+                        {stageProtocols.length} protocolo{stageProtocols.length !== 1 ? "s" : ""}
+                      </Badge>
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium">{stage.label}</p>
-                      <p className="text-xs text-muted-foreground">{stage.description}</p>
-                    </div>
-                    <Badge variant="secondary" className="ml-auto mr-4">
-                      {stageProtocols.length} protocolo{stageProtocols.length !== 1 ? "s" : ""}
-                    </Badge>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  {stageProtocols.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground">
-                      <p className="text-sm">Nenhum protocolo cadastrado</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={() => {
-                          setSelectedStage(stage.id);
-                          handleOpenNew();
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Adicionar
-                      </Button>
-                    </div>
-                  ) : (
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {stageProtocols
                         .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
@@ -597,12 +815,12 @@ const ProtocolsJourneyManager = () => {
                           />
                         ))}
                     </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )
       )}
 
       {/* Create/Edit Dialog */}
