@@ -170,58 +170,69 @@ const CRM = () => {
   // Use the leads hook for the selected pipeline
   const { leads, isLoading: leadsLoading, refetch } = useCRMLeads(selectedPipeline);
 
-  const pipelineStages = stages.filter(s => s.pipeline_id === selectedPipeline);
+  const pipelineStages = useMemo(() => 
+    stages.filter(s => s.pipeline_id === selectedPipeline), 
+    [stages, selectedPipeline]
+  );
 
   // Calculate active filters count
   const activeFiltersCount = useMemo(() => {
     return Object.values(filters).filter(Boolean).length;
   }, [filters]);
 
-  // Apply filters
+  // Apply filters - optimized with early returns
   const filteredLeads = useMemo(() => {
+    if (!leads.length) return [];
+    
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const searchLower = debouncedSearch.toLowerCase();
+    const hasSearchFilter = !!debouncedSearch;
+    const hasAnyFilter = activeFiltersCount > 0;
+
+    // Early return if no filters active
+    if (!hasSearchFilter && !hasAnyFilter) return leads;
 
     return leads.filter(lead => {
       // Search filter with debounced value
-      const searchLower = debouncedSearch.toLowerCase();
-      const matchesSearch = !debouncedSearch || 
-        lead.name.toLowerCase().includes(searchLower) ||
-        lead.email?.toLowerCase().includes(searchLower) ||
-        lead.phone?.includes(debouncedSearch) ||
-        lead.whatsapp?.includes(debouncedSearch);
+      if (hasSearchFilter) {
+        const matchesSearch = 
+          lead.name.toLowerCase().includes(searchLower) ||
+          lead.email?.toLowerCase().includes(searchLower) ||
+          lead.phone?.includes(debouncedSearch) ||
+          lead.whatsapp?.includes(debouncedSearch);
+        if (!matchesSearch) return false;
+      }
       
-      // Quick filters
-      const matchesStale = !filters.staleOnly || lead.is_stale;
-      const matchesPriority = !filters.priorityOnly || lead.is_priority;
-      const matchesAI = !filters.aiAnalyzedOnly || !!lead.ai_analyzed_at;
-      const matchesUnassigned = !filters.unassignedOnly || !lead.assigned_to;
-      const matchesRecent = !filters.recentOnly || new Date(lead.created_at) > oneDayAgo;
-      const matchesHighValue = !filters.highValueOnly || (lead.estimated_value && lead.estimated_value >= 10000);
-      const matchesQualified = !filters.qualifiedOnly || (lead.lead_score && lead.lead_score >= 25);
-      const matchesWon = !filters.wonOnly || !!lead.won_at;
-      const matchesLost = !filters.lostOnly || !!lead.lost_at;
+      // Quick filters - early returns
+      if (filters.staleOnly && !lead.is_stale) return false;
+      if (filters.priorityOnly && !lead.is_priority) return false;
+      if (filters.aiAnalyzedOnly && !lead.ai_analyzed_at) return false;
+      if (filters.unassignedOnly && lead.assigned_to) return false;
+      if (filters.recentOnly && new Date(lead.created_at) <= oneDayAgo) return false;
+      if (filters.highValueOnly && (!lead.estimated_value || lead.estimated_value < 10000)) return false;
+      if (filters.qualifiedOnly && (!lead.lead_score || lead.lead_score < 25)) return false;
+      if (filters.wonOnly && !lead.won_at) return false;
+      if (filters.lostOnly && !lead.lost_at) return false;
 
-      return matchesSearch && matchesStale && matchesPriority && matchesAI && 
-             matchesUnassigned && matchesRecent && matchesHighValue && 
-             matchesQualified && matchesWon && matchesLost;
+      return true;
     });
-  }, [leads, debouncedSearch, filters]);
+  }, [leads, debouncedSearch, filters, activeFiltersCount]);
 
   const isLoading = pipelinesLoading || stagesLoading || leadsLoading;
 
-  const handleNewLead = (stageId?: string) => {
+  const handleNewLead = useCallback((stageId?: string) => {
     setInitialStageId(stageId);
     setNewLeadDialogOpen(true);
-  };
+  }, []);
 
-  const handleLeadClick = (lead: CRMLead) => {
+  const handleLeadClick = useCallback((lead: CRMLead) => {
     setSelectedLead(lead);
     // Also open chat if WhatsApp is available
     if (lead.whatsapp || lead.phone) {
       setChatLead(lead);
     }
-  };
+  }, []);
 
   // Calculate quick stats for current pipeline
   const quickStats = useMemo(() => {
