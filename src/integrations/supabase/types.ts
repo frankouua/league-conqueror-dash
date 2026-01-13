@@ -5342,11 +5342,11 @@ export type Database = {
       get_recurrence_stats: {
         Args: never
         Returns: {
-          top_procedures: Json
-          total_notified_this_month: number
-          total_overdue: number
-          total_pending: number
-          total_this_week: number
+          by_procedure_group: Json
+          total_overdue_critical: number
+          total_overdue_recent: number
+          total_recovered_month: number
+          total_upcoming: number
         }[]
       }
       get_seller_cadence_summary: {

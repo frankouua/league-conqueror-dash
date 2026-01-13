@@ -27,7 +27,8 @@ import {
   TrendingUp,
   Package,
   Lock,
-  Timer
+  Timer,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +49,7 @@ export type CRMViewMode =
   | 'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
   | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
   | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager' | 'sentiment' | 'vendedores-kpis'
-  | 'cadence';
+  | 'cadence' | 'recurrences';
 
 interface CRMNavigationMenuProps {
   viewMode: CRMViewMode;
@@ -138,6 +139,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Automação',
     icon: Zap,
     items: [
+      { value: 'recurrences', label: 'Recorrências', icon: RefreshCw, color: 'text-amber-500' },
       { value: 'automations', label: 'Automações', icon: Zap },
       { value: 'marketing', label: 'Marketing', icon: Mail, color: 'text-purple-500' },
       { value: 'campaigns', label: 'Campanhas', icon: TrendingUp },
