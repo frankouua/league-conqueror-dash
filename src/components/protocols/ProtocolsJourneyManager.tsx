@@ -39,8 +39,9 @@ import {
   Heart, Clock, ArrowRight, Search, Trash2, Edit2, 
   Save, X, Package, User, Zap, ChevronRight, Sparkles,
   Users, Activity, Image, Video, FileText, RefreshCw,
-  AlertCircle, CheckCircle, Target, Star
+  AlertCircle, CheckCircle, Target, Star, Eye
 } from "lucide-react";
+import { ProtocolDetailSheet } from "./ProtocolDetailSheet";
 
 // Configuração das etapas da jornada
 const JOURNEY_STAGES = [
@@ -153,6 +154,7 @@ const ProtocolsJourneyManager = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProtocol, setEditingProtocol] = useState<Protocol | null>(null);
   const [activeTab, setActiveTab] = useState("info");
+  const [detailProtocol, setDetailProtocol] = useState<Protocol | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -513,6 +515,7 @@ const ProtocolsJourneyManager = () => {
                     procedures={procedures}
                     onEdit={() => handleEdit(protocol)}
                     onDelete={() => isAdmin && deleteMutation.mutate(protocol.id)}
+                    onView={() => setDetailProtocol(protocol)}
                     canDelete={isAdmin}
                   />
                 ))}
@@ -569,6 +572,7 @@ const ProtocolsJourneyManager = () => {
                             procedures={procedures}
                             onEdit={() => handleEdit(protocol)}
                             onDelete={() => isAdmin && deleteMutation.mutate(protocol.id)}
+                            onView={() => setDetailProtocol(protocol)}
                             canDelete={isAdmin}
                           />
                         ))}
@@ -1000,6 +1004,20 @@ const ProtocolsJourneyManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Protocol Detail Sheet */}
+      <ProtocolDetailSheet
+        protocol={detailProtocol}
+        procedures={procedures}
+        open={!!detailProtocol}
+        onClose={() => setDetailProtocol(null)}
+        onEdit={() => {
+          if (detailProtocol) {
+            handleEdit(detailProtocol);
+            setDetailProtocol(null);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -1009,12 +1027,14 @@ const ProtocolCard = ({
   procedures,
   onEdit,
   onDelete,
+  onView,
   canDelete,
 }: {
   protocol: Protocol;
   procedures: Procedure[];
   onEdit: () => void;
   onDelete: () => void;
+  onView: () => void;
   canDelete: boolean;
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -1216,18 +1236,21 @@ const ProtocolCard = ({
           </div>
         )}
 
-        {/* Expand Scripts Button */}
-        {hasScripts && (
-          <Button
-            variant="outline"
-            className="w-full gap-2"
-            onClick={() => setExpanded(!expanded)}
-          >
-            <MessageSquare className="h-4 w-4" />
-            {expanded ? "Ocultar Scripts" : "Ver Scripts de Venda"}
-            <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-          </Button>
-        )}
+        {/* View Details Button */}
+        <Button
+          variant="default"
+          className="w-full gap-2"
+          onClick={onView}
+        >
+          <Eye className="h-4 w-4" />
+          Ver Detalhes e Scripts
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default ProtocolsJourneyManager;
 
         {/* Expanded Scripts Section */}
         {expanded && hasScripts && (
