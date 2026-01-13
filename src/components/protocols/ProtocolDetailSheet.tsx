@@ -57,6 +57,7 @@ interface Protocol {
   reactivation_script?: string | null;
   materials_urls?: string[] | null;
   group_script?: string | null;
+  doctor_recommended_script?: string | null;
 }
 
 interface Procedure {
@@ -370,6 +371,13 @@ export const ProtocolDetailSheet = ({
                 color="bg-green-500"
               />
               <ScriptCard
+                label="🩺 Doutor Recomendou"
+                subtitle="Quando o médico pediu para apresentar ao paciente"
+                text={protocol.doctor_recommended_script}
+                icon={Heart}
+                color="bg-teal-500"
+              />
+              <ScriptCard
                 label="Script de Fechamento"
                 subtitle="Como conduzir para fechar a venda"
                 text={protocol.closing_script}
@@ -383,7 +391,7 @@ export const ProtocolDetailSheet = ({
                 icon={Users}
                 color="bg-purple-500"
               />
-              {!protocol.sales_script && !protocol.closing_script && !protocol.referral_script && (
+              {!protocol.sales_script && !protocol.closing_script && !protocol.referral_script && !protocol.doctor_recommended_script && (
                 <EmptyState message="Nenhum script de oferta cadastrado" />
               )}
             </TabsContent>
