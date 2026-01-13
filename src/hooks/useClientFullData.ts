@@ -85,44 +85,72 @@ export function useClientFullData(leadCpf: string | null, leadProntuario: string
       let totalExecuted = 0;
       let totalProcedures = 0;
 
-      // 1. Buscar patient_data
+      // Normalizar CPF e prontuário (remover caracteres não numéricos)
+      const normalizedCpf = leadCpf?.replace(/\D/g, '') || null;
+      const normalizedProntuario = leadProntuario?.trim() || null;
+
+      console.log('useClientFullData params:', { patientDataId, normalizedCpf, normalizedProntuario });
+
+      // 1. Buscar patient_data - priorizar patient_data_id
       if (patientDataId) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('patient_data')
           .select('*')
           .eq('id', patientDataId)
-          .single();
-        patientData = data;
-      } else if (leadCpf || leadProntuario) {
-        let query = supabase.from('patient_data').select('*');
-        if (leadCpf) {
-          query = query.eq('cpf', leadCpf);
-        } else if (leadProntuario) {
-          query = query.eq('prontuario', leadProntuario);
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching patient_data by id:', error);
         }
-        const { data } = await query.single();
         patientData = data;
+        console.log('patient_data by id:', data ? 'found' : 'not found');
+      }
+      
+      // Se não encontrou por ID, buscar por CPF ou prontuário
+      if (!patientData && (normalizedCpf || normalizedProntuario)) {
+        let query = supabase.from('patient_data').select('*');
+        
+        if (normalizedCpf) {
+          query = query.eq('cpf', normalizedCpf);
+        } else if (normalizedProntuario) {
+          query = query.eq('prontuario', normalizedProntuario);
+        }
+        
+        const { data, error } = await query.maybeSingle();
+        if (error) {
+          console.error('Error fetching patient_data by cpf/prontuario:', error);
+        }
+        patientData = data;
+        console.log('patient_data by cpf/pront:', data ? 'found' : 'not found');
       }
 
-      // 2. Buscar executed_records
-      if (leadCpf || leadProntuario) {
+      // 2. Buscar executed_records usando CPF ou prontuário do patient_data encontrado ou do lead
+      const cpfToSearch = patientData?.cpf || normalizedCpf;
+      const prontuarioToSearch = patientData?.prontuario || normalizedProntuario;
+
+      if (cpfToSearch || prontuarioToSearch) {
         let query = supabase
           .from('executed_records')
           .select('id, procedure_name, amount, date, department, executor_name, origin')
-          .order('date', { ascending: false });
+          .order('date', { ascending: false })
+          .limit(500);
 
-        if (leadCpf && leadProntuario) {
-          query = query.or(`patient_cpf.eq.${leadCpf},patient_prontuario.eq.${leadProntuario}`);
-        } else if (leadCpf) {
-          query = query.eq('patient_cpf', leadCpf);
-        } else if (leadProntuario) {
-          query = query.eq('patient_prontuario', leadProntuario);
+        if (cpfToSearch && prontuarioToSearch) {
+          query = query.or(`patient_cpf.eq.${cpfToSearch},patient_prontuario.eq.${prontuarioToSearch}`);
+        } else if (cpfToSearch) {
+          query = query.eq('patient_cpf', cpfToSearch);
+        } else if (prontuarioToSearch) {
+          query = query.eq('patient_prontuario', prontuarioToSearch);
         }
 
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) {
+          console.error('Error fetching executed_records:', error);
+        }
         executedRecords = data || [];
         totalExecuted = executedRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
         totalProcedures = executedRecords.length;
+        console.log('executed_records found:', executedRecords.length);
       }
 
       const ticketMedio = totalProcedures > 0 ? totalExecuted / totalProcedures : 0;
@@ -137,6 +165,7 @@ export function useClientFullData(leadCpf: string | null, leadProntuario: string
     },
     enabled: !!(leadCpf || leadProntuario || patientDataId),
     staleTime: 30000,
+    refetchOnMount: true,
   });
 
   return {

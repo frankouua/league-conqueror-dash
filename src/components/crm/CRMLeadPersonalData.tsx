@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { useClientFullData, PatientDataFull, ExecutedRecord } from '@/hooks/useClientFullData';
 
 interface CRMLeadPersonalDataProps {
@@ -20,14 +21,15 @@ interface CRMLeadPersonalDataProps {
   leadEstimatedValue?: number | null;
 }
 
-function InfoRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined; icon?: any }) {
-  if (!value) return null;
+function InfoRow({ label, value, icon: Icon, showEmpty = false }: { label: string; value: string | null | undefined; icon?: any; showEmpty?: boolean }) {
+  const displayValue = value || '-';
+  if (!showEmpty && !value) return null;
   return (
     <div className="flex items-start gap-2 py-1">
       {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />}
       <div className="min-w-0">
         <p className="text-[10px] text-muted-foreground">{label}</p>
-        <p className="text-xs font-medium truncate">{value}</p>
+        <p className={cn("text-xs font-medium truncate", !value && "text-muted-foreground")}>{displayValue}</p>
       </div>
     </div>
   );
@@ -137,27 +139,23 @@ export function CRMLeadPersonalData({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-              <InfoRow label="Nome" value={patientData?.name || leadName} icon={User} />
-              <InfoRow label="CPF" value={patientData?.cpf || leadCpf} icon={FileText} />
-              <InfoRow label="RG" value={patientData?.rg} icon={FileText} />
-              <InfoRow label="Prontuário" value={patientData?.prontuario || leadProntuario} icon={ClipboardList} />
-              <InfoRow label="Data Nasc." value={formatDate(patientData?.birth_date)} icon={Calendar} />
-              <InfoRow label="Idade" value={patientData?.age ? `${patientData.age} anos` : null} />
-              <InfoRow label="Gênero" value={patientData?.gender} />
-              <InfoRow label="Estado Civil" value={patientData?.marital_status} icon={Heart} />
-              <InfoRow label="Profissão" value={patientData?.profession} icon={Briefcase} />
-              <InfoRow label="Nacionalidade" value={patientData?.nationality} icon={Globe} />
+              <InfoRow label="Nome" value={patientData?.name || leadName} icon={User} showEmpty />
+              <InfoRow label="CPF" value={patientData?.cpf || leadCpf} icon={FileText} showEmpty />
+              <InfoRow label="RG" value={patientData?.rg} icon={FileText} showEmpty />
+              <InfoRow label="Prontuário" value={patientData?.prontuario || leadProntuario} icon={ClipboardList} showEmpty />
+              <InfoRow label="Data Nasc." value={formatDate(patientData?.birth_date)} icon={Calendar} showEmpty />
+              <InfoRow label="Idade" value={patientData?.age ? `${patientData.age} anos` : null} showEmpty />
+              <InfoRow label="Gênero" value={patientData?.gender} showEmpty />
+              <InfoRow label="Estado Civil" value={patientData?.marital_status} icon={Heart} showEmpty />
+              <InfoRow label="Profissão" value={patientData?.profession} icon={Briefcase} showEmpty />
               <InfoRow 
                 label="Filhos" 
-                value={patientData?.has_children !== null ? (patientData.has_children ? `Sim${patientData.children_count ? ` (${patientData.children_count})` : ''}` : 'Não') : null} 
+                value={patientData?.has_children !== null && patientData?.has_children !== undefined 
+                  ? (patientData.has_children ? `Sim${patientData.children_count ? ` (${patientData.children_count})` : ''}` : 'Não') 
+                  : null} 
                 icon={Baby}
+                showEmpty
               />
-              {patientData?.height_cm && patientData?.weight_kg && (
-                <InfoRow 
-                  label="Altura/Peso" 
-                  value={`${patientData.height_cm}cm / ${patientData.weight_kg}kg`} 
-                />
-              )}
             </div>
           </CardContent>
         </Card>
@@ -172,16 +170,12 @@ export function CRMLeadPersonalData({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-              <InfoRow label="Telefone" value={patientData?.phone} icon={Phone} />
-              <InfoRow label="WhatsApp" value={patientData?.whatsapp} icon={Phone} />
-              <InfoRow label="Email" value={patientData?.email} icon={Mail} />
-              <InfoRow label="Instagram" value={patientData?.instagram_handle} icon={Instagram} />
-              <InfoRow label="Endereço" value={patientData?.address} icon={MapPin} />
-              <InfoRow label="Bairro" value={patientData?.neighborhood} />
-              <InfoRow label="Cidade" value={patientData?.city} />
-              <InfoRow label="Estado" value={patientData?.state} />
-              <InfoRow label="CEP" value={patientData?.cep} />
-              <InfoRow label="País" value={patientData?.country} />
+              <InfoRow label="Telefone" value={patientData?.phone} icon={Phone} showEmpty />
+              <InfoRow label="WhatsApp" value={patientData?.whatsapp} icon={Phone} showEmpty />
+              <InfoRow label="Email" value={patientData?.email} icon={Mail} showEmpty />
+              <InfoRow label="Instagram" value={patientData?.instagram_handle} icon={Instagram} showEmpty />
+              <InfoRow label="Endereço" value={patientData?.address} icon={MapPin} showEmpty />
+              <InfoRow label="CEP" value={patientData?.cep} showEmpty />
             </div>
           </CardContent>
         </Card>
