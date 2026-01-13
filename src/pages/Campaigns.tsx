@@ -33,12 +33,11 @@ import {
   Leaf, Smile, Baby, Ribbon, Gem, RefreshCw, TrendingUp, 
   Activity, Eye, Candy, Copy, Check, Send, Phone, User,
   FileText, Image, ExternalLink, Sparkles, Settings, UserCheck,
-  Download, List, CheckCheck, Package
+  Download, List, CheckCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import CampaignsManager from "@/components/admin/CampaignsManager";
-import ProtocolsManager from "@/components/admin/ProtocolsManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ==================== CAMPANHAS 2026 ====================
@@ -680,7 +679,7 @@ const Campaigns = () => {
   const [personalizedMessage, setPersonalizedMessage] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("calendar");
+  
   
   // Bulk messaging state
   const [showBulkDialog, setShowBulkDialog] = useState(false);
@@ -909,7 +908,7 @@ const Campaigns = () => {
               Campanhas 2026
             </h1>
             <p className="text-muted-foreground mt-1">
-              Campanhas, protocolos e estratégias de vendas
+              Calendário e estratégias de vendas
             </p>
           </div>
           
@@ -921,30 +920,12 @@ const Campaigns = () => {
           )}
         </div>
 
-        {/* Main Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
-            <TabsTrigger value="calendar" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              Calendário
-            </TabsTrigger>
-            <TabsTrigger value="protocols" className="gap-2">
-              <Package className="h-4 w-4" />
-              Protocolos
-            </TabsTrigger>
-            <TabsTrigger value="rfv" className="gap-2">
-              <Users className="h-4 w-4" />
-              Matriz RFV
-            </TabsTrigger>
+        {/* Calendar Content */}
+        <Tabs defaultValue="annual" className="w-full">
+          <TabsList className="grid w-full max-w-xs grid-cols-2">
+            <TabsTrigger value="annual">📅 Visão Anual</TabsTrigger>
+            <TabsTrigger value="monthly">📆 Visão Mensal</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="calendar" className="mt-6 space-y-6">
-            {/* Subtabs: Anual / Mensal */}
-            <Tabs defaultValue="annual" className="w-full">
-              <TabsList className="grid w-full max-w-xs grid-cols-2">
-                <TabsTrigger value="annual">📅 Visão Anual</TabsTrigger>
-                <TabsTrigger value="monthly">📆 Visão Mensal</TabsTrigger>
-              </TabsList>
 
               {/* Visão Anual */}
               <TabsContent value="annual" className="mt-4">
@@ -1030,7 +1011,6 @@ const Campaigns = () => {
                   })}
                 </div>
               </TabsContent>
-            </Tabs>
 
         {/* Campanhas do Mês Selecionado */}
         <div className="space-y-4">
@@ -1318,144 +1298,18 @@ const Campaigns = () => {
                 {/* Botão para ir à Matriz RFV */}
                 <div className="flex gap-3 pt-4 border-t border-border">
                   <Button 
-                    variant="default"
-                    className="flex-1 gap-2"
-                    onClick={() => setActiveTab("rfv")}
-                  >
-                    <Users className="w-4 h-4" />
-                    Ir para Matriz RFV
-                  </Button>
-                  <Button 
                     variant="outline"
                     className="flex-1 gap-2"
-                    onClick={() => navigate("/rfv")}
+                    onClick={() => navigate("/alavancas")}
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Abrir Dashboard RFV
+                    Ir para Clientes RFV
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
-          </TabsContent>
-
-          <TabsContent value="protocols" className="mt-6">
-            <ProtocolsManager />
-          </TabsContent>
-
-          {/* Nova Tab: Matriz RFV */}
-          <TabsContent value="rfv" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-purple-500" />
-                  Matriz RFV - Segmentação de Clientes
-                </CardTitle>
-                <CardDescription>
-                  Selecione um segmento para ações de marketing e campanhas
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Cards de Segmentos */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  {RFV_SEGMENTS.map(segment => {
-                    const count = rfvSegments?.[segment.value] || segment.count;
-                    const isSelected = selectedSegment === segment.value;
-                    
-                    return (
-                      <Card
-                        key={segment.value}
-                        onClick={() => setSelectedSegment(segment.value)}
-                        className={`cursor-pointer transition-all hover:shadow-lg ${
-                          isSelected ? "ring-2 ring-purple-500 bg-purple-500/10" : "hover:border-purple-500/30"
-                        }`}
-                      >
-                        <CardContent className="p-4 text-center">
-                          <p className={`text-2xl font-bold ${isSelected ? "text-purple-400" : ""}`}>
-                            {count}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{segment.label}</p>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                {/* Ações Rápidas */}
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => navigate("/rfv")}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Dashboard Completo RFV
-                  </Button>
-                  
-                  {selectedSegment && selectedCampaign?.scripts?.length > 0 && (
-                    <Button
-                      className="gap-2 bg-purple-600 hover:bg-purple-700"
-                      onClick={() => {
-                        if (!bulkScript && selectedCampaign?.scripts?.length > 0) {
-                          setBulkScript(selectedCampaign.scripts[0]);
-                        }
-                        setShowBulkDialog(true);
-                      }}
-                    >
-                      <Send className="w-4 h-4" />
-                      Iniciar Disparo ({selectedSegment})
-                    </Button>
-                  )}
-                </div>
-
-                {/* Dica: Selecione uma campanha */}
-                {!selectedCampaign && (
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                    <Target className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Selecione uma campanha no Calendário para usar os scripts de disparo
-                    </p>
-                    <Button 
-                      variant="link" 
-                      className="mt-2"
-                      onClick={() => setActiveTab("calendar")}
-                    >
-                      Ir para o Calendário
-                    </Button>
-                  </div>
-                )}
-
-                {/* Campanha selecionada */}
-                {selectedCampaign && (
-                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`p-2 rounded-lg ${selectedCampaign.color} text-white`}>
-                        <selectedCampaign.icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{selectedCampaign.name}</p>
-                        <p className="text-xs text-muted-foreground">{selectedCampaign.scripts.length} scripts disponíveis</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCampaign.scripts.map((script: any, idx: number) => (
-                        <Button
-                          key={idx}
-                          variant={bulkScript?.title === script.title ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setBulkScript(script)}
-                        >
-                          {script.title}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </main>
 
