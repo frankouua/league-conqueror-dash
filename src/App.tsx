@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { CommercialAssistant } from "@/components/CommercialAssistant";
 import { AnalyticsAIFloating } from "@/components/AnalyticsAIFloating";
+import { FeatureOnboardingDialog } from "@/components/onboarding/FeatureOnboardingDialog";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -71,6 +72,9 @@ const FloatingAssistants = () => {
   
   return (
     <>
+      {/* Feature Onboarding - shows once for new features */}
+      {user && <FeatureOnboardingDialog />}
+      
       {/* Commercial Assistant - visible for all logged in users */}
       {user && <CommercialAssistant />}
       

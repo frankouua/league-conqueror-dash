@@ -26,14 +26,18 @@ interface RecurrenceLead {
   phone: string | null;
   whatsapp: string | null;
   email: string | null;
-  cpf: string | null;
+  cpf?: string | null;
   last_procedure_date: string | null;
   last_procedure_name: string | null;
   recurrence_due_date: string | null;
   recurrence_days_overdue: number;
   recurrence_group: string | null;
-  temperature: string | null;
-  assigned_to: string | null;
+  temperature?: string | null;
+  assigned_to?: string | null;
+  stage?: {
+    name: string;
+    color: string;
+  } | null;
 }
 
 interface RecurrenceGroupCardProps {

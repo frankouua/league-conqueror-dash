@@ -2307,6 +2307,27 @@ export type Database = {
           },
         ]
       }
+      feature_onboarding_reads: {
+        Row: {
+          feature_key: string
+          id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          feature_key: string
+          id?: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          feature_key?: string
+          id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       feegow_sync_logs: {
         Row: {
           completed_at: string | null
