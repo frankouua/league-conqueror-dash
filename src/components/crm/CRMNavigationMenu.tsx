@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { 
   LayoutGrid, 
   PieChart, 
@@ -157,39 +157,46 @@ const MENU_GROUPS: MenuGroup[] = [
   }
 ];
 
+// Memoized lookup maps for performance
+const VIEW_LOOKUP = MENU_GROUPS.reduce((acc, group) => {
+  group.items.forEach(item => {
+    acc[item.value] = { label: item.label, icon: item.icon };
+  });
+  return acc;
+}, {} as Record<CRMViewMode, { label: string; icon: any }>);
+
 // Get label for current view
 const getViewLabel = (viewMode: CRMViewMode): string => {
-  for (const group of MENU_GROUPS) {
-    const item = group.items.find(i => i.value === viewMode);
-    if (item) return item.label;
-  }
-  return 'Selecionar';
+  return VIEW_LOOKUP[viewMode]?.label || 'Selecionar';
 };
 
 // Get icon for current view
 const getViewIcon = (viewMode: CRMViewMode): any => {
-  for (const group of MENU_GROUPS) {
-    const item = group.items.find(i => i.value === viewMode);
-    if (item) return item.icon;
-  }
-  return LayoutGrid;
+  return VIEW_LOOKUP[viewMode]?.icon || LayoutGrid;
 };
 
-export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount }: CRMNavigationMenuProps) {
+function CRMNavigationMenuComponent({ viewMode, onViewChange, staleCount, aiCount }: CRMNavigationMenuProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const { role } = useAuth();
   const isAdmin = role === 'admin';
 
   // Quick access buttons (most used)
-  const quickAccessItems: CRMViewMode[] = ['kanban', 'whatsapp', 'routine'];
+  const quickAccessItems: CRMViewMode[] = useMemo(() => ['kanban', 'whatsapp', 'routine'], []);
 
-  const CurrentIcon = getViewIcon(viewMode);
+  const CurrentIcon = useMemo(() => getViewIcon(viewMode), [viewMode]);
   
-  // Filter menu groups based on user role
-  const filteredMenuGroups = MENU_GROUPS.map(group => ({
-    ...group,
-    items: group.items.filter(item => !item.adminOnly || isAdmin)
-  })).filter(group => group.items.length > 0);
+  // Filter menu groups based on user role - memoized
+  const filteredMenuGroups = useMemo(() => 
+    MENU_GROUPS.map(group => ({
+      ...group,
+      items: group.items.filter(item => !item.adminOnly || isAdmin)
+    })).filter(group => group.items.length > 0), 
+  [isAdmin]);
+
+  const handleViewChange = useCallback((view: CRMViewMode) => {
+    onViewChange(view);
+    setOpenDropdown(null);
+  }, [onViewChange]);
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
@@ -266,10 +273,7 @@ export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount 
                   return (
                     <DropdownMenuItem
                       key={item.value}
-                      onClick={() => {
-                        onViewChange(item.value);
-                        setOpenDropdown(null);
-                      }}
+                      onClick={() => handleViewChange(item.value)}
                       className={cn(
                         "gap-2 cursor-pointer",
                         isActive && "bg-primary/10"
@@ -301,3 +305,7 @@ export function CRMNavigationMenu({ viewMode, onViewChange, staleCount, aiCount 
     </div>
   );
 }
+
+// Memoized export
+export const CRMNavigationMenu = memo(CRMNavigationMenuComponent);
+CRMNavigationMenu.displayName = 'CRMNavigationMenu';

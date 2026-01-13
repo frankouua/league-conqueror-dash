@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,16 +18,14 @@ import {
   MessageSquare,
   Search,
   Calendar,
-  Filter,
   Users,
   TrendingUp,
-  Send,
   Zap,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, differenceInDays } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -193,28 +191,28 @@ export function CRMRecurrenceDashboard() {
     });
   }, [leads, search, selectedGroup, selectedUrgency]);
 
-  // Toggle lead selection
-  const toggleLeadSelection = (leadId: string) => {
+  // Toggle lead selection - memoized
+  const toggleLeadSelection = useCallback((leadId: string) => {
     setSelectedLeads(prev => 
       prev.includes(leadId) 
         ? prev.filter(id => id !== leadId)
         : [...prev, leadId]
     );
-  };
+  }, []);
 
-  // Select all visible leads
-  const selectAllVisible = () => {
+  // Select all visible leads - memoized
+  const selectAllVisible = useCallback(() => {
     const allIds = filteredLeads.map(l => l.id);
     setSelectedLeads(allIds);
-  };
+  }, [filteredLeads]);
 
-  // Clear selection
-  const clearSelection = () => {
+  // Clear selection - memoized
+  const clearSelection = useCallback(() => {
     setSelectedLeads([]);
-  };
+  }, []);
 
-  // Handle WhatsApp dispatch
-  const handleWhatsAppDispatch = () => {
+  // Handle WhatsApp dispatch - memoized
+  const handleWhatsAppDispatch = useCallback(() => {
     if (selectedLeads.length === 0) {
       toast.warning('Selecione pelo menos um lead para disparar');
       return;
@@ -234,10 +232,10 @@ export function CRMRecurrenceDashboard() {
     }
 
     toast.info(`${selectedLeads.length} leads selecionados para disparo`);
-  };
+  }, [selectedLeads, filteredLeads]);
 
-  // Get urgency badge
-  const getUrgencyBadge = (daysOverdue: number) => {
+  // Get urgency badge - memoized
+  const getUrgencyBadge = useCallback((daysOverdue: number) => {
     if (daysOverdue > 60) {
       return <Badge variant="destructive" className="gap-1"><AlertCircle className="w-3 h-3" />Crítico</Badge>;
     }
@@ -245,7 +243,7 @@ export function CRMRecurrenceDashboard() {
       return <Badge variant="secondary" className="bg-orange-500/20 text-orange-600 gap-1"><AlertTriangle className="w-3 h-3" />Vencido</Badge>;
     }
     return <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-600"><Clock className="w-3 h-3" />Por Vencer</Badge>;
-  };
+  }, []);
 
   return (
     <div className="space-y-4">
