@@ -139,16 +139,25 @@ export function FeatureOnboardingDialog() {
   const markAsReadMutation = useMutation({
     mutationFn: async (featureKey: string) => {
       if (!user?.id) return;
+      
+      // Check if already exists
+      const { data: existing } = await supabase
+        .from('feature_onboarding_reads')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('feature_key', featureKey)
+        .maybeSingle();
+      
+      if (existing) return; // Already marked as read
+      
       const { error } = await supabase
         .from('feature_onboarding_reads')
-        .upsert({
+        .insert({
           user_id: user.id,
           feature_key: featureKey
-        }, {
-          onConflict: 'user_id,feature_key'
         });
       
-      if (error) throw error;
+      if (error && !error.message.includes('duplicate')) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feature-onboarding'] });
@@ -159,18 +168,39 @@ export function FeatureOnboardingDialog() {
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
       if (!user?.id) return;
-      const records = FEATURES.map(f => ({
-        user_id: user.id,
-        feature_key: f.key
-      }));
       
-      const { error } = await supabase
+      // Get existing reads
+      const { data: existing } = await supabase
         .from('feature_onboarding_reads')
-        .upsert(records, {
-          onConflict: 'user_id,feature_key'
-        });
+        .select('feature_key')
+        .eq('user_id', user.id);
       
-      if (error) throw error;
+      const existingKeys = new Set(existing?.map(e => e.feature_key) || []);
+      
+      // Filter to only new features
+      const newRecords = FEATURES
+        .filter(f => !existingKeys.has(f.key))
+        .map(f => ({
+          user_id: user.id!,
+          feature_key: f.key
+        }));
+      
+      // Also add the version key if not present
+      const versionKey = `onboarding_${ONBOARDING_VERSION}`;
+      if (!existingKeys.has(versionKey)) {
+        newRecords.push({
+          user_id: user.id!,
+          feature_key: versionKey
+        });
+      }
+      
+      if (newRecords.length > 0) {
+        const { error } = await supabase
+          .from('feature_onboarding_reads')
+          .insert(newRecords);
+        
+        if (error && !error.message.includes('duplicate')) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feature-onboarding'] });
