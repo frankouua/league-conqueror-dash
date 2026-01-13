@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { AlavancasKPIWidget } from "@/components/alavancas/AlavancasKPIWidget";
 
 // Lazy load the content components
 import { lazy, Suspense } from "react";
@@ -201,6 +202,9 @@ const Alavancas = () => {
 
         {/* Main Content */}
         <main className="flex-1 min-h-[calc(100vh-73px)]">
+          {/* KPI Widget */}
+          <AlavancasKPIWidget />
+
           {/* Content Header */}
           <div className="sticky top-[73px] z-10 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4">
             <div className="flex items-center gap-3">
