@@ -5358,7 +5358,7 @@ export type Database = {
         }[]
       }
       get_recurrence_opportunities: {
-        Args: { p_days_before?: number; p_limit?: number }
+        Args: { p_days_before?: number; p_limit?: number; p_year_from?: number }
         Returns: {
           out_days_overdue: number
           out_due_date: string
@@ -5377,7 +5377,7 @@ export type Database = {
         }[]
       }
       get_recurrence_stats: {
-        Args: never
+        Args: { p_year_from?: number }
         Returns: {
           by_procedure_group: Json
           overdue_critical: number

@@ -32,9 +32,9 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { daysAhead = 30, limit = 100, createLeads = true } = await req.json().catch(() => ({}));
+    const { daysAhead = 30, limit = 100, createLeads = true, yearFrom = 2024 } = await req.json().catch(() => ({}));
 
-    console.log(`🔄 Identifying recurrence opportunities (daysAhead: ${daysAhead}, limit: ${limit})`);
+    console.log(`🔄 Identifying recurrence opportunities (daysAhead: ${daysAhead}, limit: ${limit}, yearFrom: ${yearFrom})`);
 
     // Get the Farmer pipeline ID
     const { data: farmerPipeline } = await supabase
@@ -67,11 +67,12 @@ Deno.serve(async (req) => {
       throw new Error('Estágios de recorrência não encontrados no pipeline Farmer');
     }
 
-    // Get recurrence opportunities
+    // Get recurrence opportunities with year filter
     const { data: opportunities, error: oppError } = await supabase
       .rpc('get_recurrence_opportunities', {
         p_days_before: daysAhead,
-        p_limit: limit
+        p_limit: limit,
+        p_year_from: yearFrom
       });
 
     if (oppError) {
