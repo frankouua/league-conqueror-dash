@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { 
   Users, Target, Zap, LayoutGrid, Star, Share2, Grid3X3, 
-  ArrowRight, TrendingUp, ChevronRight 
+  ArrowRight, TrendingUp, ChevronRight, ClipboardCheck 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -83,6 +83,16 @@ const pipelineConfig: Record<string, {
     shortName: 'Farmer',
     step: 5,
   },
+  coordinator: {
+    icon: ClipboardCheck,
+    gradient: 'from-violet-500 to-purple-500',
+    bgGradient: 'from-violet-500/10 to-purple-500/10',
+    borderColor: 'border-violet-500/30 hover:border-violet-500/60',
+    iconBg: 'bg-violet-500/20',
+    description: 'Gestão & Coordenação',
+    shortName: 'Coord',
+    step: 6,
+  },
   influencer: {
     icon: Star,
     gradient: 'from-rose-500 to-red-500',
@@ -91,7 +101,7 @@ const pipelineConfig: Record<string, {
     iconBg: 'bg-rose-500/20',
     description: 'UniInfluencers',
     shortName: 'Influencer',
-    step: 6,
+    step: 7,
   },
   rfv_matrix: {
     icon: Grid3X3,
@@ -101,12 +111,12 @@ const pipelineConfig: Record<string, {
     iconBg: 'bg-cyan-500/20',
     description: 'Matriz RFV',
     shortName: 'RFV',
-    step: 7,
+    step: 8,
   },
 };
 
 // Order pipelines by customer journey
-const journeyOrder = ['social_selling', 'sdr', 'closer', 'cs', 'farmer', 'influencer', 'rfv_matrix'];
+const journeyOrder = ['social_selling', 'sdr', 'closer', 'cs', 'farmer', 'coordinator', 'influencer', 'rfv_matrix'];
 
 export function CRMPipelineJourney({
   pipelines,
