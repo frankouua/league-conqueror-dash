@@ -35,7 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { IndividualTeamFields, getEffectiveInsertData } from "./IndividualTeamFields";
 
 const testimonialSchema = z.object({
-  type: z.enum(["google", "video", "gold"], {
+  type: z.enum(["google", "video", "gold", "whatsapp"], {
     required_error: "Selecione o tipo de depoimento",
   }),
   link: z.string().optional(),
@@ -48,6 +48,7 @@ const testimonialSchema = z.object({
 type TestimonialFormData = z.infer<typeof testimonialSchema>;
 
 const testimonialTypes = {
+  whatsapp: { label: "Depoimento WhatsApp", points: 5 },
   google: { label: "Google Review 5★", points: 10 },
   video: { label: "Depoimento em Vídeo", points: 20 },
   gold: { label: "Depoimento Ouro", points: 40 },
@@ -221,7 +222,7 @@ const TestimonialForm = () => {
         <div>
           <h3 className="text-xl font-bold text-foreground">Depoimentos</h3>
           <p className="text-muted-foreground text-sm">
-            Google: 10pts | Vídeo: 20pts | Ouro: 40pts
+            WhatsApp: 5pts | Google: 10pts | Vídeo: 20pts | Ouro: 40pts
           </p>
         </div>
       </div>
