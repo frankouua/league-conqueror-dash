@@ -31,6 +31,7 @@ const SCORING = {
     nps9: 3,              // NPS 9 = 3pts
     nps10: 5,             // NPS 10 = 5pts
     npsCitationBonus: 10, // Citação nominal = +10pts
+    testimonialWhatsapp: 5,   // Depoimento WhatsApp = 5pts
     testimonialGoogle: 10,  // Google Review 5★ = 10pts
     testimonialVideo: 30,   // Vídeo padrão = 30pts (was 20)
     testimonialGold: 50,    // Depoimento Ouro = 50pts (was 40)
@@ -155,7 +156,10 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
         for (const t of teamTestimonials) {
           let pts = 0;
           let desc = "";
-          if (t.type === "google") {
+          if (t.type === "whatsapp") {
+            pts = SCORING.quality.testimonialWhatsapp;
+            desc = "Depoimento WhatsApp";
+          } else if (t.type === "google") {
             pts = SCORING.quality.testimonialGoogle;
             desc = "Depoimento Google 5★";
           } else if (t.type === "video") {
