@@ -3485,6 +3485,57 @@ export type Database = {
         }
         Relationships: []
       }
+      procedures: {
+        Row: {
+          category: string | null
+          code: string | null
+          created_at: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          imported_from: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          name: string
+          price: number | null
+          promotional_price: number | null
+          subcategory: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          imported_from?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          name: string
+          price?: number | null
+          promotional_price?: number | null
+          subcategory?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          imported_from?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          name?: string
+          price?: number | null
+          promotional_price?: number | null
+          subcategory?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           access_count: number | null
@@ -3825,10 +3876,13 @@ export type Database = {
           included_items: string[] | null
           is_active: boolean | null
           is_featured: boolean | null
+          journey_stage: string | null
           loyalty_points: number | null
           materials: Json | null
           name: string
+          offer_trigger: string | null
           price: number | null
+          procedure_ids: string[] | null
           promotional_price: number | null
           protocol_type: string
           recurrence_days: number | null
@@ -3836,6 +3890,7 @@ export type Database = {
           recurrence_type: string | null
           referral_bonus: number | null
           referral_script: string | null
+          responsible_role: string | null
           sales_script: string | null
           target_audience: string | null
           target_segments: string[] | null
@@ -3855,10 +3910,13 @@ export type Database = {
           included_items?: string[] | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          journey_stage?: string | null
           loyalty_points?: number | null
           materials?: Json | null
           name: string
+          offer_trigger?: string | null
           price?: number | null
+          procedure_ids?: string[] | null
           promotional_price?: number | null
           protocol_type: string
           recurrence_days?: number | null
@@ -3866,6 +3924,7 @@ export type Database = {
           recurrence_type?: string | null
           referral_bonus?: number | null
           referral_script?: string | null
+          responsible_role?: string | null
           sales_script?: string | null
           target_audience?: string | null
           target_segments?: string[] | null
@@ -3885,10 +3944,13 @@ export type Database = {
           included_items?: string[] | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          journey_stage?: string | null
           loyalty_points?: number | null
           materials?: Json | null
           name?: string
+          offer_trigger?: string | null
           price?: number | null
+          procedure_ids?: string[] | null
           promotional_price?: number | null
           protocol_type?: string
           recurrence_days?: number | null
@@ -3896,6 +3958,7 @@ export type Database = {
           recurrence_type?: string | null
           referral_bonus?: number | null
           referral_script?: string | null
+          responsible_role?: string | null
           sales_script?: string | null
           target_audience?: string | null
           target_segments?: string[] | null

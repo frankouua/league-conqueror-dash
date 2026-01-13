@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   Megaphone, UserPlus, Target, ShieldAlert,
-  TrendingUp, ChevronLeft, ChevronRight, Users
+  TrendingUp, ChevronLeft, ChevronRight, Users, Package, Dna
 } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ const ReferralLeadsContent = lazy(() => import("@/pages/ReferralLeads").then(m =
 const RFVDashboardContent = lazy(() => import("@/pages/RFVDashboard").then(m => ({ default: m.default })));
 const CancellationsContent = lazy(() => import("@/pages/Cancellations").then(m => ({ default: m.default })));
 const ClientListContent = lazy(() => import("@/components/clients/ClientListDashboard").then(m => ({ default: m.default })));
+const ProceduresContent = lazy(() => import("@/components/procedures/ProceduresList").then(m => ({ default: m.default })));
+const ProtocolsContent = lazy(() => import("@/components/protocols/ProtocolsJourneyManager").then(m => ({ default: m.default })));
 
 const MiniLoader = () => (
   <div className="flex items-center justify-center py-20">
@@ -24,7 +26,7 @@ const MiniLoader = () => (
   </div>
 );
 
-type TabKey = "clientes" | "campanhas" | "indicacoes" | "rfv" | "cancelamentos";
+type TabKey = "clientes" | "campanhas" | "procedimentos" | "protocolos" | "indicacoes" | "rfv" | "cancelamentos";
 
 interface NavItem {
   key: TabKey;
@@ -37,6 +39,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { key: "clientes", label: "Lista de Clientes", icon: Users, description: "Visão unificada com distribuição", color: "text-primary" },
   { key: "campanhas", label: "Campanhas", icon: Megaphone, description: "Promoções e ações de vendas", color: "text-purple-500" },
+  { key: "procedimentos", label: "Procedimentos", icon: Package, description: "Lista de serviços individuais", color: "text-amber-500" },
+  { key: "protocolos", label: "Protocolos", icon: Dna, description: "Jornada do cliente", color: "text-cyan-500" },
   { key: "indicacoes", label: "Indicações", icon: UserPlus, description: "Leads de clientes indicados", color: "text-green-500" },
   { key: "rfv", label: "Clientes RFV", icon: Target, description: "Análise de recência, frequência e valor", color: "text-blue-500" },
   { key: "cancelamentos", label: "Cancelamentos", icon: ShieldAlert, description: "Gestão e retenção", color: "text-orange-500" },
@@ -59,6 +63,18 @@ const Alavancas = () => {
         return (
           <Suspense fallback={<MiniLoader />}>
             <CampaignsContent />
+          </Suspense>
+        );
+      case "procedimentos":
+        return (
+          <Suspense fallback={<MiniLoader />}>
+            <ProceduresContent />
+          </Suspense>
+        );
+      case "protocolos":
+        return (
+          <Suspense fallback={<MiniLoader />}>
+            <ProtocolsContent />
           </Suspense>
         );
       case "indicacoes":
@@ -162,7 +178,7 @@ const Alavancas = () => {
               <div className="p-4 border-t border-border">
                 <div className="grid grid-cols-2 gap-2 text-center">
                   <div className="p-2 rounded-lg bg-muted/50">
-                    <p className="text-lg font-bold text-primary">5</p>
+                    <p className="text-lg font-bold text-primary">7</p>
                     <p className="text-[10px] text-muted-foreground">Alavancas</p>
                   </div>
                   <div className="p-2 rounded-lg bg-muted/50">
