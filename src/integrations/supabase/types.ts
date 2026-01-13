@@ -3876,6 +3876,7 @@ export type Database = {
           followup_script: string | null
           followup_script_2: string | null
           followup_script_3: string | null
+          group_script: string | null
           id: string
           image_url: string | null
           included_items: string[] | null
@@ -3920,6 +3921,7 @@ export type Database = {
           followup_script?: string | null
           followup_script_2?: string | null
           followup_script_3?: string | null
+          group_script?: string | null
           id?: string
           image_url?: string | null
           included_items?: string[] | null
@@ -3964,6 +3966,7 @@ export type Database = {
           followup_script?: string | null
           followup_script_2?: string | null
           followup_script_3?: string | null
+          group_script?: string | null
           id?: string
           image_url?: string | null
           included_items?: string[] | null

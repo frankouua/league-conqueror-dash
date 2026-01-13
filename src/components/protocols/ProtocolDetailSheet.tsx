@@ -56,6 +56,7 @@ interface Protocol {
   closing_script?: string | null;
   reactivation_script?: string | null;
   materials_urls?: string[] | null;
+  group_script?: string | null;
 }
 
 interface Procedure {
@@ -458,8 +459,18 @@ export const ProtocolDetailSheet = ({
                 icon={Sparkles}
                 color="bg-orange-500"
               />
+
+              <Separator />
+
+              <ScriptCard
+                label="📢 Script para Grupo"
+                subtitle="Mensagem para enviar em grupos de WhatsApp/Telegram (sem nome específico)"
+                text={protocol.group_script}
+                icon={Users}
+                color="bg-purple-500"
+              />
               
-              {!protocol.followup_script && !protocol.followup_script_2 && !protocol.followup_script_3 && !protocol.reactivation_script && (
+              {!protocol.followup_script && !protocol.followup_script_2 && !protocol.followup_script_3 && !protocol.reactivation_script && !protocol.group_script && (
                 <EmptyState message="Nenhum script de follow-up cadastrado" />
               )}
             </TabsContent>

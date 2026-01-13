@@ -127,6 +127,7 @@ interface Protocol {
   closing_script?: string | null;
   reactivation_script?: string | null;
   materials_urls?: string[] | null;
+  group_script?: string | null;
 }
 
 interface Procedure {
@@ -181,6 +182,7 @@ const ProtocolsJourneyManager = () => {
     reactivation_script: "",
     materials_urls: [] as string[],
     new_material_url: "",
+    group_script: "",
   });
 
   // Fetch protocols
@@ -244,6 +246,7 @@ const ProtocolsJourneyManager = () => {
         closing_script: data.closing_script || null,
         reactivation_script: data.reactivation_script || null,
         materials_urls: data.materials_urls.length > 0 ? data.materials_urls : null,
+        group_script: data.group_script || null,
       };
 
       if (data.id) {
@@ -313,6 +316,7 @@ const ProtocolsJourneyManager = () => {
       reactivation_script: "",
       materials_urls: [],
       new_material_url: "",
+      group_script: "",
     });
     setActiveTab("info");
     setDialogOpen(true);
@@ -345,6 +349,7 @@ const ProtocolsJourneyManager = () => {
       reactivation_script: protocol.reactivation_script || "",
       materials_urls: protocol.materials_urls || [],
       new_material_url: "",
+      group_script: protocol.group_script || "",
     });
     setActiveTab("info");
     setDialogOpen(true);
@@ -898,6 +903,24 @@ const ProtocolsJourneyManager = () => {
                     value={formData.reactivation_script}
                     onChange={(e) => setFormData({ ...formData, reactivation_script: e.target.value })}
                     placeholder="Script para reativar clientes que não respondem há muito tempo..."
+                    rows={4}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-purple-500" />
+                    📢 Script para Grupo (WhatsApp/Telegram)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Mensagem genérica para enviar em grupos de pacientes, sem usar nome específico.
+                  </p>
+                  <Textarea
+                    value={formData.group_script}
+                    onChange={(e) => setFormData({ ...formData, group_script: e.target.value })}
+                    placeholder="Ex: Olá pessoal! 👋 Temos uma novidade incrível para vocês..."
                     rows={4}
                   />
                 </div>
