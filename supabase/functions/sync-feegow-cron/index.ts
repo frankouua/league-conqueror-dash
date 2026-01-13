@@ -9,6 +9,7 @@ const corsHeaders = {
 // Webhook for external CRON services (cron-job.org, etc)
 // URL: https://mbnjjwatnqjjqxogmaju.supabase.co/functions/v1/sync-feegow-cron
 // Header: x-cron-secret: <your-secret>
+// Recommended schedule: Every 6 hours (0 */6 * * *)
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,6 +20,7 @@ serve(async (req) => {
   const FEEGOW_API_TOKEN = Deno.env.get("FEEGOW_API_TOKEN")
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")
 
   // Validate cron secret (optional but recommended for security)
   const cronSecretHeader = req.headers.get("x-cron-secret")
@@ -41,6 +43,9 @@ serve(async (req) => {
   const FEEGOW_BASE_URL = "https://api.feegow.com/v1/api"
   const feegowHeaders = { "x-access-token": FEEGOW_API_TOKEN, "Content-Type": "application/json" }
 
+  // Check if we should run AI classification after sync
+  const { runAiClassification = true } = await req.json().catch(() => ({}))
+
   // Read sync state from database to continue where we left off
   const { data: syncState } = await supabase
     .from('feegow_sync_logs')
@@ -58,6 +63,7 @@ serve(async (req) => {
   const results = {
     pagesProcessed: 0,
     patients: { fetched: 0, created: 0, updated: 0, skipped: 0, errors: 0 },
+    aiClassification: { classified: 0, errors: 0 },
     nextStartPage: 0,
     hasMore: false,
     status: 'running',
@@ -104,6 +110,7 @@ serve(async (req) => {
     // Process pages incrementally
     let currentPage = startPage
     let pagesProcessed = 0
+    const newLeadIds: string[] = []
 
     while (pagesProcessed < maxPages) {
       const start = currentPage * pageSize
@@ -186,9 +193,17 @@ serve(async (req) => {
       // Insert/update
       for (let i = 0; i < toCreate.length; i += batchSize) {
         const batch = toCreate.slice(i, i + batchSize)
-        const { error } = await supabase.from('crm_leads').insert(batch)
-        if (!error) results.patients.created += batch.length
-        else results.patients.errors += batch.length
+        const { data: inserted, error } = await supabase
+          .from('crm_leads')
+          .insert(batch)
+          .select('id')
+        
+        if (!error && inserted) {
+          results.patients.created += batch.length
+          newLeadIds.push(...inserted.map((l: any) => l.id))
+        } else {
+          results.patients.errors += batch.length
+        }
       }
 
       for (const { id, data } of toUpdate) {
@@ -212,6 +227,41 @@ serve(async (req) => {
       await new Promise(r => setTimeout(r, 100))
     }
 
+    // Link with RFV customers
+    console.log("🔗 Linking leads with RFV customers...")
+    try {
+      await supabase.rpc('link_leads_rfv')
+    } catch {
+      // Fallback manual linking
+      console.log("RPC failed, trying manual link...")
+    }
+
+    // Run AI classification for new leads if enabled
+    if (runAiClassification && LOVABLE_API_KEY && newLeadIds.length > 0) {
+      console.log(`🤖 Running AI classification for ${newLeadIds.length} new leads...`)
+      
+      try {
+        const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/ai-lead-classifier`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ mode: 'batch', batchSize: Math.min(newLeadIds.length, 20) })
+        })
+
+        if (aiResponse.ok) {
+          const aiResult = await aiResponse.json()
+          results.aiClassification.classified = aiResult.classified || 0
+          results.aiClassification.errors = aiResult.errors || 0
+          console.log(`✅ AI classified ${results.aiClassification.classified} leads`)
+        }
+      } catch (aiError) {
+        console.error("AI classification error:", aiError)
+        results.aiClassification.errors = 1
+      }
+    }
+
     // Update log entry
     await supabase
       .from('feegow_sync_logs')
@@ -231,6 +281,9 @@ serve(async (req) => {
       : `CRON: Sincronização completa! ${results.patients.created} criados, ${results.patients.updated} atualizados`
 
     console.log(`🎉 ${message}`)
+    if (results.aiClassification.classified > 0) {
+      console.log(`🤖 IA classificou ${results.aiClassification.classified} leads automaticamente`)
+    }
 
     return new Response(
       JSON.stringify({
