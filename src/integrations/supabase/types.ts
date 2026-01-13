@@ -3872,6 +3872,7 @@ export type Database = {
           created_by: string
           cross_sell_protocols: string[] | null
           description: string | null
+          doctor_recommended_script: string | null
           duration_days: number | null
           followup_script: string | null
           followup_script_2: string | null
@@ -3917,6 +3918,7 @@ export type Database = {
           created_by: string
           cross_sell_protocols?: string[] | null
           description?: string | null
+          doctor_recommended_script?: string | null
           duration_days?: number | null
           followup_script?: string | null
           followup_script_2?: string | null
@@ -3962,6 +3964,7 @@ export type Database = {
           created_by?: string
           cross_sell_protocols?: string[] | null
           description?: string | null
+          doctor_recommended_script?: string | null
           duration_days?: number | null
           followup_script?: string | null
           followup_script_2?: string | null

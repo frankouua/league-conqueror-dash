@@ -128,6 +128,7 @@ interface Protocol {
   reactivation_script?: string | null;
   materials_urls?: string[] | null;
   group_script?: string | null;
+  doctor_recommended_script?: string | null;
 }
 
 interface Procedure {
@@ -183,6 +184,7 @@ const ProtocolsJourneyManager = () => {
     materials_urls: [] as string[],
     new_material_url: "",
     group_script: "",
+    doctor_recommended_script: "",
   });
 
   // Fetch protocols
@@ -247,6 +249,7 @@ const ProtocolsJourneyManager = () => {
         reactivation_script: data.reactivation_script || null,
         materials_urls: data.materials_urls.length > 0 ? data.materials_urls : null,
         group_script: data.group_script || null,
+        doctor_recommended_script: data.doctor_recommended_script || null,
       };
 
       if (data.id) {
@@ -317,6 +320,7 @@ const ProtocolsJourneyManager = () => {
       materials_urls: [],
       new_material_url: "",
       group_script: "",
+      doctor_recommended_script: "",
     });
     setActiveTab("info");
     setDialogOpen(true);
@@ -350,6 +354,7 @@ const ProtocolsJourneyManager = () => {
       materials_urls: protocol.materials_urls || [],
       new_material_url: "",
       group_script: protocol.group_script || "",
+      doctor_recommended_script: protocol.doctor_recommended_script || "",
     });
     setActiveTab("info");
     setDialogOpen(true);
@@ -921,6 +926,24 @@ const ProtocolsJourneyManager = () => {
                     value={formData.group_script}
                     onChange={(e) => setFormData({ ...formData, group_script: e.target.value })}
                     placeholder="Ex: Olá pessoal! 👋 Temos uma novidade incrível para vocês..."
+                    rows={4}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Stethoscope className="h-4 w-4 text-green-500" />
+                    🩺 Script "Doutor Recomendou"
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Quando o médico pediu para apresentar o protocolo ao paciente.
+                  </p>
+                  <Textarea
+                    value={formData.doctor_recommended_script}
+                    onChange={(e) => setFormData({ ...formData, doctor_recommended_script: e.target.value })}
+                    placeholder="Ex: Olá {nome}! O doutor(a) estava lembrando de você e pediu para te apresentar..."
                     rows={4}
                   />
                 </div>
