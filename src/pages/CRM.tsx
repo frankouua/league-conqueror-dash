@@ -54,6 +54,7 @@ import { CRMNotificationsBell } from "@/components/crm/CRMNotificationsBell";
 import { CRMDailyOverview } from "@/components/crm/CRMDailyOverview";
 import { CRMSentimentDashboard } from "@/components/crm/CRMSentimentDashboard";
 import { CRMVendedoresKPIsDashboard } from "@/components/crm/CRMVendedoresKPIsDashboard";
+import { CRMRecurrenceDashboard } from "@/components/crm/CRMRecurrenceDashboard";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -437,6 +438,10 @@ const CRM = () => {
         
         {viewMode === 'automations' && (
           <CRMAutomations />
+        )}
+
+        {viewMode === 'recurrences' && (
+          <CRMRecurrenceDashboard />
         )}
 
         {viewMode === 'marketing' && (
