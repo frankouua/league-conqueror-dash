@@ -333,8 +333,8 @@ export function ClientListDashboard() {
             total_value, total_purchases, days_since_last_purchase, last_purchase_date
           )
         `)
-        .order('estimated_value', { ascending: false })
-        .limit(5000);
+        .order('estimated_value', { ascending: false, nullsFirst: false })
+        .limit(10000);
 
       // Apply team filter at query level for performance
       if (selectedTeam !== 'all') {
