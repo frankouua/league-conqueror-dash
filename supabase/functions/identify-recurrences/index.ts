@@ -6,21 +6,20 @@ const corsHeaders = {
 };
 
 interface RecurrenceOpportunity {
-  patient_cpf: string;
-  patient_name: string;
-  patient_phone: string;
-  patient_email: string;
-  patient_prontuario: string;
-  procedure_id: string;
-  procedure_name: string;
-  procedure_group: string;
-  last_procedure_date: string;
-  recurrence_days: number;
-  due_date: string;
-  days_overdue: number;
-  urgency_level: string;
-  script_whatsapp: string;
-  existing_lead_id: string | null;
+  out_patient_cpf: string;
+  out_patient_name: string;
+  out_patient_phone: string;
+  out_patient_email: string;
+  out_patient_prontuario: string;
+  out_procedure_name: string;
+  out_procedure_group: string;
+  out_last_procedure_date: string;
+  out_recurrence_days: number;
+  out_due_date: string;
+  out_days_overdue: number;
+  out_urgency_level: string;
+  out_whatsapp_script: string;
+  out_existing_lead_id: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -105,10 +104,10 @@ Deno.serve(async (req) => {
       try {
         // Determine the correct stage based on urgency
         let stageId = stageMap.upcoming;
-        if (opp.urgency_level === 'critical') {
+        if (opp.out_urgency_level === 'critical') {
           stageId = stageMap.critical;
           stats.critical++;
-        } else if (opp.urgency_level === 'overdue') {
+        } else if (opp.out_urgency_level === 'overdue') {
           stageId = stageMap.overdue;
           stats.overdue++;
         } else {
@@ -116,22 +115,22 @@ Deno.serve(async (req) => {
         }
 
         if (!stageId) {
-          console.warn('No stage found for urgency:', opp.urgency_level);
+          console.warn('No stage found for urgency:', opp.out_urgency_level);
           continue;
         }
 
-        if (opp.existing_lead_id) {
+        if (opp.out_existing_lead_id) {
           // Update existing lead
           const { error: updateError } = await supabase
             .from('crm_leads')
             .update({
               stage_id: stageId,
-              recurrence_days_overdue: opp.days_overdue,
-              recurrence_due_date: opp.due_date,
+              recurrence_days_overdue: opp.out_days_overdue,
+              recurrence_due_date: opp.out_due_date,
               last_activity_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
-            .eq('id', opp.existing_lead_id);
+            .eq('id', opp.out_existing_lead_id);
 
           if (updateError) {
             console.error('Error updating lead:', updateError);
@@ -140,11 +139,11 @@ Deno.serve(async (req) => {
             stats.leadsUpdated++;
           }
         } else {
-          // Check if lead with same CPF exists (not marked as recurrence)
+          // Check if lead with same CPF exists
           const { data: existingLead } = await supabase
             .from('crm_leads')
             .select('id')
-            .eq('cpf', opp.patient_cpf)
+            .eq('cpf', opp.out_patient_cpf)
             .single();
 
           if (existingLead) {
@@ -155,12 +154,11 @@ Deno.serve(async (req) => {
                 pipeline_id: farmerPipeline.id,
                 stage_id: stageId,
                 is_recurrence_lead: true,
-                last_procedure_date: opp.last_procedure_date,
-                last_procedure_name: opp.procedure_name,
-                recurrence_due_date: opp.due_date,
-                recurrence_days_overdue: opp.days_overdue,
-                recurrence_group: opp.procedure_group,
-                recurrence_procedure_id: opp.procedure_id,
+                last_procedure_date: opp.out_last_procedure_date,
+                last_procedure_name: opp.out_procedure_name,
+                recurrence_due_date: opp.out_due_date,
+                recurrence_days_overdue: opp.out_days_overdue,
+                recurrence_group: opp.out_procedure_group,
                 last_activity_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
@@ -177,26 +175,25 @@ Deno.serve(async (req) => {
             const { error: createError } = await supabase
               .from('crm_leads')
               .insert({
-                name: opp.patient_name || 'Paciente Recorrência',
-                phone: opp.patient_phone,
-                email: opp.patient_email,
-                cpf: opp.patient_cpf,
-                prontuario: opp.patient_prontuario,
+                name: opp.out_patient_name || 'Paciente Recorrência',
+                phone: opp.out_patient_phone,
+                email: opp.out_patient_email,
+                cpf: opp.out_patient_cpf,
+                prontuario: opp.out_patient_prontuario,
                 pipeline_id: farmerPipeline.id,
                 stage_id: stageId,
                 source: 'recurrence_system',
-                source_detail: `Recorrência: ${opp.procedure_name}`,
+                source_detail: `Recorrência: ${opp.out_procedure_name}`,
                 is_recurrence_lead: true,
-                last_procedure_date: opp.last_procedure_date,
-                last_procedure_name: opp.procedure_name,
-                recurrence_due_date: opp.due_date,
-                recurrence_days_overdue: opp.days_overdue,
-                recurrence_group: opp.procedure_group,
-                recurrence_procedure_id: opp.procedure_id,
-                temperature: opp.urgency_level === 'critical' ? 'hot' : 
-                             opp.urgency_level === 'overdue' ? 'warm' : 'cold',
-                notes: `📅 Último procedimento: ${opp.procedure_name}\n📆 Data: ${opp.last_procedure_date}\n⏰ Vencimento: ${opp.due_date}\n${opp.days_overdue > 0 ? `⚠️ Atrasado: ${opp.days_overdue} dias` : `📌 Faltam: ${Math.abs(opp.days_overdue)} dias`}`,
-                created_by: '00000000-0000-0000-0000-000000000000' // System user
+                last_procedure_date: opp.out_last_procedure_date,
+                last_procedure_name: opp.out_procedure_name,
+                recurrence_due_date: opp.out_due_date,
+                recurrence_days_overdue: opp.out_days_overdue,
+                recurrence_group: opp.out_procedure_group,
+                temperature: opp.out_urgency_level === 'critical' ? 'hot' : 
+                             opp.out_urgency_level === 'overdue' ? 'warm' : 'cold',
+                notes: `📅 Último procedimento: ${opp.out_procedure_name}\n📆 Data: ${opp.out_last_procedure_date}\n⏰ Vencimento: ${opp.out_due_date}\n${opp.out_days_overdue > 0 ? `⚠️ Atrasado: ${opp.out_days_overdue} dias` : `📌 Faltam: ${Math.abs(opp.out_days_overdue)} dias`}`,
+                created_by: '00000000-0000-0000-0000-000000000000'
               });
 
             if (createError) {
@@ -215,7 +212,6 @@ Deno.serve(async (req) => {
 
     // Notify sellers if enabled
     if (notifySellers && (stats.leadsCreated > 0 || stats.leadsUpdated > 0)) {
-      // Get all active sellers
       const { data: sellers } = await supabase
         .from('profiles')
         .select('user_id, full_name')
@@ -225,7 +221,7 @@ Deno.serve(async (req) => {
         const notifications = sellers.map(seller => ({
           user_id: seller.user_id,
           title: '🔔 Novas Recorrências Identificadas',
-          message: `${stats.leadsCreated} novos leads e ${stats.leadsUpdated} atualizados no pipeline de Recorrências. ${stats.critical} críticos requerem atenção imediata!`,
+          message: `${stats.leadsCreated} novos leads e ${stats.leadsUpdated} atualizados no pipeline de Recorrências.`,
           type: 'recurrence_alert'
         }));
 

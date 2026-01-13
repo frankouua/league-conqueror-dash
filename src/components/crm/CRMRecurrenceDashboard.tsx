@@ -54,15 +54,11 @@ interface RecurrenceLead {
 }
 
 interface RecurrenceStats {
-  total_upcoming: number;
-  total_overdue_recent: number;
-  total_overdue_critical: number;
-  total_recovered_month: number;
-  by_procedure_group: Array<{
-    group: string;
-    count: number;
-    overdue: number;
-  }>;
+  total_pending: number;
+  upcoming_30_days: number;
+  overdue_recent: number;
+  overdue_critical: number;
+  by_procedure_group: Record<string, number>;
 }
 
 const PROCEDURE_GROUPS = [
@@ -267,7 +263,7 @@ export function CRMRecurrenceDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Por Vencer</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats?.total_upcoming || 0}</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats?.upcoming_30_days || 0}</p>
               </div>
               <Clock className="w-8 h-8 text-yellow-500/50" />
             </div>
@@ -279,7 +275,7 @@ export function CRMRecurrenceDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Vencido Recente</p>
-                <p className="text-2xl font-bold text-orange-600">{stats?.total_overdue_recent || 0}</p>
+                <p className="text-2xl font-bold text-orange-600">{stats?.overdue_recent || 0}</p>
               </div>
               <AlertTriangle className="w-8 h-8 text-orange-500/50" />
             </div>
@@ -291,7 +287,7 @@ export function CRMRecurrenceDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Crítico (60+ dias)</p>
-                <p className="text-2xl font-bold text-red-600">{stats?.total_overdue_critical || 0}</p>
+                <p className="text-2xl font-bold text-red-600">{stats?.overdue_critical || 0}</p>
               </div>
               <AlertCircle className="w-8 h-8 text-red-500/50" />
             </div>
@@ -302,8 +298,8 @@ export function CRMRecurrenceDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Recuperados (mês)</p>
-                <p className="text-2xl font-bold text-green-600">{stats?.total_recovered_month || 0}</p>
+                <p className="text-xs text-muted-foreground">Total Pendentes</p>
+                <p className="text-2xl font-bold text-green-600">{stats?.total_pending || 0}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500/50" />
             </div>
@@ -312,7 +308,7 @@ export function CRMRecurrenceDashboard() {
       </div>
 
       {/* Procedure Groups Breakdown */}
-      {stats?.by_procedure_group && stats.by_procedure_group.length > 0 && (
+      {stats?.by_procedure_group && Object.keys(stats.by_procedure_group).length > 0 && (
         <Card>
           <CardHeader className="py-3 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
             <CardTitle className="text-sm flex items-center justify-between">
@@ -326,16 +322,11 @@ export function CRMRecurrenceDashboard() {
           {isExpanded && (
             <CardContent className="pt-0">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {stats.by_procedure_group.map((group, idx) => (
+                {Object.entries(stats.by_procedure_group).map(([group, count], idx) => (
                   <div key={idx} className="p-3 rounded-lg bg-muted/50 border">
-                    <p className="text-xs text-muted-foreground truncate">{group.group}</p>
+                    <p className="text-xs text-muted-foreground truncate">{group}</p>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="font-bold">{group.count}</span>
-                      {group.overdue > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          {group.overdue} vencidos
-                        </Badge>
-                      )}
+                      <span className="font-bold">{count}</span>
                     </div>
                   </div>
                 ))}

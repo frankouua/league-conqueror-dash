@@ -1513,9 +1513,12 @@ export type Database = {
           id: string
           interested_procedures: string[] | null
           is_priority: boolean | null
+          is_recurrence_lead: boolean | null
           is_stale: boolean | null
           last_activity_at: string | null
           last_feegow_sync: string | null
+          last_procedure_date: string | null
+          last_procedure_name: string | null
           lead_score: number | null
           lost_at: string | null
           lost_reason: string | null
@@ -1528,6 +1531,9 @@ export type Database = {
           post_surgery_checklist_completed: boolean | null
           pre_surgery_checklist_completed: boolean | null
           prontuario: string | null
+          recurrence_days_overdue: number | null
+          recurrence_due_date: string | null
+          recurrence_group: string | null
           referral_lead_id: string | null
           rfv_customer_id: string | null
           source: string | null
@@ -1574,9 +1580,12 @@ export type Database = {
           id?: string
           interested_procedures?: string[] | null
           is_priority?: boolean | null
+          is_recurrence_lead?: boolean | null
           is_stale?: boolean | null
           last_activity_at?: string | null
           last_feegow_sync?: string | null
+          last_procedure_date?: string | null
+          last_procedure_name?: string | null
           lead_score?: number | null
           lost_at?: string | null
           lost_reason?: string | null
@@ -1589,6 +1598,9 @@ export type Database = {
           post_surgery_checklist_completed?: boolean | null
           pre_surgery_checklist_completed?: boolean | null
           prontuario?: string | null
+          recurrence_days_overdue?: number | null
+          recurrence_due_date?: string | null
+          recurrence_group?: string | null
           referral_lead_id?: string | null
           rfv_customer_id?: string | null
           source?: string | null
@@ -1635,9 +1647,12 @@ export type Database = {
           id?: string
           interested_procedures?: string[] | null
           is_priority?: boolean | null
+          is_recurrence_lead?: boolean | null
           is_stale?: boolean | null
           last_activity_at?: string | null
           last_feegow_sync?: string | null
+          last_procedure_date?: string | null
+          last_procedure_name?: string | null
           lead_score?: number | null
           lost_at?: string | null
           lost_reason?: string | null
@@ -1650,6 +1665,9 @@ export type Database = {
           post_surgery_checklist_completed?: boolean | null
           pre_surgery_checklist_completed?: boolean | null
           prontuario?: string | null
+          recurrence_days_overdue?: number | null
+          recurrence_due_date?: string | null
+          recurrence_group?: string | null
           referral_lead_id?: string | null
           rfv_customer_id?: string | null
           source?: string | null
@@ -5339,14 +5357,33 @@ export type Database = {
           script_whatsapp: string
         }[]
       }
+      get_recurrence_opportunities: {
+        Args: { p_days_before?: number; p_limit?: number }
+        Returns: {
+          out_days_overdue: number
+          out_due_date: string
+          out_existing_lead_id: string
+          out_last_procedure_date: string
+          out_patient_cpf: string
+          out_patient_email: string
+          out_patient_name: string
+          out_patient_phone: string
+          out_patient_prontuario: string
+          out_procedure_group: string
+          out_procedure_name: string
+          out_recurrence_days: number
+          out_urgency_level: string
+          out_whatsapp_script: string
+        }[]
+      }
       get_recurrence_stats: {
         Args: never
         Returns: {
           by_procedure_group: Json
-          total_overdue_critical: number
-          total_overdue_recent: number
-          total_recovered_month: number
-          total_upcoming: number
+          overdue_critical: number
+          overdue_recent: number
+          total_pending: number
+          upcoming_30_days: number
         }[]
       }
       get_seller_cadence_summary: {
