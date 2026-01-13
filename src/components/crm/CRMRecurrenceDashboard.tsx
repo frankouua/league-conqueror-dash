@@ -25,7 +25,9 @@ import {
   ChevronDown,
   ChevronUp,
   UserPlus,
-  Filter
+  Filter,
+  Send,
+  DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -315,10 +317,20 @@ function CRMRecurrenceDashboardComponent() {
     toast.info(`${selectedLeads.length} leads selecionados para disparo`);
   }, [selectedLeads, filteredLeads]);
 
-  // Stats for unassigned leads
+  // Stats for unassigned leads and potential value
   const unassignedCount = useMemo(() => {
     return leads?.filter(l => !l.assigned_to).length || 0;
   }, [leads]);
+
+  const totalPotentialValue = useMemo(() => {
+    return filteredLeads.reduce((sum, lead) => {
+      // Estimate value based on procedure group
+      const baseValue = lead.recurrence_group?.includes('HARMONIZAÇÃO') ? 3500 :
+                       lead.recurrence_group?.includes('SOROTERAPIA') ? 1200 :
+                       lead.recurrence_group?.includes('SPA') ? 800 : 1500;
+      return sum + baseValue;
+    }, 0);
+  }, [filteredLeads]);
 
   return (
     <div className="space-y-4">
@@ -367,7 +379,7 @@ function CRMRecurrenceDashboardComponent() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="border-yellow-500/30 bg-yellow-500/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -412,6 +424,25 @@ function CRMRecurrenceDashboardComponent() {
                 <p className="text-2xl font-bold text-green-600">{stats?.total_pending || 0}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500/50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-500/30 bg-emerald-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Valor Potencial</p>
+                <p className="text-xl font-bold text-emerald-600">
+                  {new Intl.NumberFormat('pt-BR', { 
+                    style: 'currency', 
+                    currency: 'BRL',
+                    notation: 'compact',
+                    maximumFractionDigits: 1
+                  }).format(totalPotentialValue)}
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-emerald-500/50" />
             </div>
           </CardContent>
         </Card>
@@ -524,10 +555,27 @@ function CRMRecurrenceDashboardComponent() {
 
           {/* Selection Actions */}
           {selectedLeads.length > 0 && (
-            <div className="flex items-center gap-2 mt-3 p-2 bg-primary/10 rounded-lg">
-              <Badge variant="secondary">{selectedLeads.length} selecionados</Badge>
+            <div className="flex flex-wrap items-center gap-2 mt-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <Badge variant="secondary" className="text-sm">
+                {selectedLeads.length} selecionados
+              </Badge>
+              <div className="flex-1" />
               <Button size="sm" variant="outline" onClick={clearSelection}>
                 Limpar
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  // Navigate to CRM with selected leads
+                  const leadIds = selectedLeads.join(',');
+                  toast.success(`${selectedLeads.length} leads prontos para trabalhar no CRM`);
+                  window.location.href = `/crm?filter=recurrence&ids=${leadIds}`;
+                }} 
+                className="gap-1"
+              >
+                <Send className="w-4 h-4" />
+                Abrir no CRM
               </Button>
               <Button size="sm" onClick={handleWhatsAppDispatch} className="gap-1 bg-green-600 hover:bg-green-700">
                 <MessageSquare className="w-4 h-4" />
