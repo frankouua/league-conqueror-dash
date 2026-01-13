@@ -93,34 +93,38 @@ export function CRMRecurrenceDashboard() {
     }
   });
 
-  // Fetch recurrence leads
-  const { data: leads, isLoading: loadingLeads } = useQuery({
+  // Fetch recurrence leads from the database with recurrence fields
+  const { data: leads, isLoading: loadingLeads, refetch: refetchLeads } = useQuery({
     queryKey: ['recurrence-leads'],
     queryFn: async (): Promise<RecurrenceLead[]> => {
       const { data, error } = await supabase
         .from('crm_leads')
-        .select('id, name, phone, whatsapp, email, temperature, assigned_to, notes, source_detail')
-        .eq('source', 'recurrence_system')
-        .order('created_at', { ascending: false })
+        .select(`
+          id, name, phone, whatsapp, email, temperature, assigned_to,
+          last_procedure_date, last_procedure_name, recurrence_due_date,
+          recurrence_days_overdue, recurrence_group,
+          stage:crm_stages(name, color)
+        `)
+        .eq('is_recurrence_lead', true)
+        .order('recurrence_days_overdue', { ascending: false, nullsFirst: false })
         .limit(200);
 
       if (error) throw error;
       
-      // Map to our interface - new columns will be available after types regenerate
-      return (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        phone: item.phone,
-        whatsapp: item.whatsapp,
-        email: item.email,
-        last_procedure_date: null,
-        last_procedure_name: item.source_detail?.replace('Recorrência: ', '') || null,
-        recurrence_due_date: null,
-        recurrence_days_overdue: 0,
-        recurrence_group: null,
-        temperature: item.temperature,
-        assigned_to: item.assigned_to,
-        stage: null,
+      return (data || []).map((item: Record<string, unknown>) => ({
+        id: item.id as string,
+        name: item.name as string,
+        phone: item.phone as string | null,
+        whatsapp: item.whatsapp as string | null,
+        email: item.email as string | null,
+        last_procedure_date: item.last_procedure_date as string | null,
+        last_procedure_name: item.last_procedure_name as string | null,
+        recurrence_due_date: item.recurrence_due_date as string | null,
+        recurrence_days_overdue: (item.recurrence_days_overdue as number) || 0,
+        recurrence_group: item.recurrence_group as string | null,
+        temperature: item.temperature as string | null,
+        assigned_to: item.assigned_to as string | null,
+        stage: item.stage as { name: string; color: string } | null,
         assigned_user: null
       }));
     }
@@ -130,18 +134,19 @@ export function CRMRecurrenceDashboard() {
   const identifyMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('identify-recurrences', {
-        body: { daysAhead: 30, limit: 500, createLeads: true, notifySellers: true }
+        body: { daysAhead: 30, limit: 100, createLeads: true }
       });
       if (error) throw error;
       return data;
     },
     onSuccess: (data) => {
-      toast.success(`Identificação concluída: ${data.stats?.leadsCreated || 0} novos, ${data.stats?.leadsUpdated || 0} atualizados`);
-      queryClient.invalidateQueries({ queryKey: ['recurrence-leads'] });
+      toast.success(`${data.stats?.leadsCreated || 0} criados, ${data.stats?.leadsUpdated || 0} atualizados`);
+      refetchLeads();
       queryClient.invalidateQueries({ queryKey: ['recurrence-stats'] });
     },
     onError: (error) => {
-      toast.error('Erro ao identificar recorrências: ' + error.message);
+      console.error('Identify error:', error);
+      toast.error('Erro ao identificar: ' + (error as Error).message);
     }
   });
 
