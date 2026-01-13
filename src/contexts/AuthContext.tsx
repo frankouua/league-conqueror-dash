@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer Supabase calls with setTimeout
+        // Defer backend calls with setTimeout
         if (session?.user) {
           setTimeout(() => {
             fetchUserData(session.user.id);
@@ -118,6 +118,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => subscription.unsubscribe();
   }, [fetchUserData]);
+
+  // Keep session alive while testing (prevents frequent re-logins when the tab stays open)
+  useEffect(() => {
+    if (!session) return;
+
+    let isMounted = true;
+
+    const refresh = async () => {
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (!isMounted) return;
+        if (error) {
+          console.warn("Session refresh failed:", error);
+          return;
+        }
+        if (data?.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+        }
+      } catch (e) {
+        console.warn("Session refresh exception:", e);
+      }
+    };
+
+    // Refresh immediately and then periodically
+    refresh();
+    const intervalId = window.setInterval(refresh, 1000 * 60 * 4);
+
+    // Also refresh when the user focuses the tab again
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [session]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
