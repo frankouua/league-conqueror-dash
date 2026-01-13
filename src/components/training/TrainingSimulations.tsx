@@ -369,7 +369,7 @@ const TrainingSimulations = ({ targetRole }: TrainingSimulationsProps) => {
 
       {/* Simulation Chat Dialog */}
       <Dialog open={isPlaying && !feedback} onOpenChange={handleCloseSimulation}>
-        <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-2xl h-[85vh] max-h-[600px] sm:max-h-[80vh] flex flex-col p-4 sm:p-6">
           {selectedSimulation && (
             <>
               <DialogHeader className="flex-shrink-0">
@@ -479,7 +479,7 @@ const TrainingSimulations = ({ targetRole }: TrainingSimulationsProps) => {
 
       {/* Feedback Dialog */}
       <Dialog open={!!feedback} onOpenChange={handleCloseSimulation}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           {feedback && selectedSimulation && (
             <>
               <DialogHeader>

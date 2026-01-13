@@ -825,7 +825,7 @@ const ProtocolsJourneyManager = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] overflow-y-auto flex flex-col p-3 sm:p-6">
           <DialogHeader>
             <DialogTitle>
               {editingProtocol ? "Editar Protocolo" : "Novo Protocolo"}

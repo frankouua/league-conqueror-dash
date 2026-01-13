@@ -183,7 +183,7 @@ const TrainingQuizzes = ({ targetRole }: TrainingQuizzesProps) => {
 
       {/* Quiz Detail / Start Dialog */}
       <Dialog open={!!selectedQuiz && !isPlaying} onOpenChange={() => setSelectedQuiz(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           {selectedQuiz && (
             <>
               <DialogHeader>
@@ -236,7 +236,7 @@ const TrainingQuizzes = ({ targetRole }: TrainingQuizzesProps) => {
 
       {/* Quiz Playing Dialog */}
       <Dialog open={isPlaying && !showResults} onOpenChange={handleCloseQuiz}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           {selectedQuiz && (
             <>
               <DialogHeader>
@@ -315,7 +315,7 @@ const TrainingQuizzes = ({ targetRole }: TrainingQuizzesProps) => {
 
       {/* Results Dialog */}
       <Dialog open={showResults} onOpenChange={handleCloseQuiz}>
-        <DialogContent className="max-w-md text-center">
+        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto text-center p-4 sm:p-6">
           {quizResult && selectedQuiz && (
             <>
               <div className="py-6">
