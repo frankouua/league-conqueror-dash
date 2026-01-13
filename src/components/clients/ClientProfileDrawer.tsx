@@ -15,7 +15,9 @@ import {
   DollarSign, TrendingUp, Clock, MessageSquare, FileText,
   Crown, AlertTriangle, Zap, RefreshCw, History, Activity,
   CreditCard, Package, Users, Star, Target, ChevronRight,
-  ExternalLink, Copy, Loader2, Edit, Send
+  ExternalLink, Copy, Loader2, Edit, Send, CalendarDays,
+  CalendarCheck, CalendarX, Receipt, FileCheck, AlertCircle,
+  CheckCircle, XCircle, Timer
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -120,13 +122,62 @@ interface CommunicationRecord {
 
 interface TimelineEvent {
   id: string;
-  type: 'procedure' | 'communication' | 'crm' | 'financial';
+  type: 'procedure' | 'communication' | 'crm' | 'financial' | 'appointment';
   title: string;
   description: string | null;
   date: string;
   value?: number;
   icon: React.ElementType;
   color: string;
+}
+
+// Feegow Types
+interface FeegowAppointment {
+  id: number;
+  date: string;
+  time: string;
+  status: string;
+  status_id: number;
+  procedure_name: string | null;
+  professional_name: string | null;
+  location: string | null;
+  notes: string | null;
+}
+
+interface FeegowFinancialRecord {
+  id: number;
+  date: string;
+  description: string;
+  value: number;
+  status: string;
+  payment_method: string | null;
+  due_date: string | null;
+  paid_date: string | null;
+}
+
+interface FeegowProposal {
+  id: number;
+  date: string;
+  description: string;
+  total_value: number;
+  status: string;
+  valid_until: string | null;
+  items: { procedure_name: string; quantity: number; unit_value: number; total_value: number }[];
+}
+
+interface FeegowPatientDetails {
+  appointments: {
+    past: FeegowAppointment[];
+    upcoming: FeegowAppointment[];
+    today: FeegowAppointment[];
+  };
+  financial: {
+    records: FeegowFinancialRecord[];
+    total_paid: number;
+    total_pending: number;
+    total_overdue: number;
+  };
+  proposals: FeegowProposal[];
 }
 
 // RFV Segment config
@@ -308,6 +359,39 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
     enabled: open && !!clientId,
   });
 
+  // Fetch Feegow patient details (appointments, financial, proposals)
+  const { data: feegowDetails, isLoading: loadingFeegow } = useQuery({
+    queryKey: ['client-feegow-details', clientId, profile?.prontuario, profile?.cpf],
+    queryFn: async (): Promise<FeegowPatientDetails | null> => {
+      if (!profile?.prontuario && !profile?.cpf) return null;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('feegow-patient-details', {
+          body: { 
+            prontuario: profile.prontuario,
+            cpf: profile.cpf
+          }
+        });
+
+        if (error) {
+          console.error('Error fetching Feegow details:', error);
+          return null;
+        }
+
+        if (data?.success && data?.data) {
+          return data.data as FeegowPatientDetails;
+        }
+
+        return null;
+      } catch (err) {
+        console.error('Error calling Feegow function:', err);
+        return null;
+      }
+    },
+    enabled: open && !!(profile?.prontuario || profile?.cpf),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   // Fetch procedure history
   const { data: procedures = [], isLoading: loadingProcedures } = useQuery({
     queryKey: ['client-procedures', clientId, profile?.cpf],
@@ -389,9 +473,36 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
       });
     });
 
+    // Add Feegow appointments to timeline
+    if (feegowDetails?.appointments) {
+      const allApts = [
+        ...feegowDetails.appointments.past,
+        ...feegowDetails.appointments.today,
+        ...feegowDetails.appointments.upcoming,
+      ];
+      
+      allApts.forEach(apt => {
+        // Parse Feegow date format (DD-MM-YYYY)
+        const [day, month, year] = apt.date.split('-').map(Number);
+        const aptDate = new Date(year, month - 1, day);
+        
+        events.push({
+          id: `apt-${apt.id}`,
+          type: 'appointment',
+          title: apt.procedure_name || 'Consulta',
+          description: `${apt.professional_name || 'Profissional'} - ${apt.status}`,
+          date: aptDate.toISOString(),
+          icon: CalendarCheck,
+          color: apt.status_id === 5 ? 'bg-emerald-500' : 
+                 apt.status_id === 6 ? 'bg-red-500' :
+                 apt.status_id === 7 ? 'bg-gray-500' : 'bg-blue-500',
+        });
+      });
+    }
+
     // Sort by date descending
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [procedures, communications]);
+  }, [procedures, communications, feegowDetails]);
 
   // Helper functions
   const formatCurrency = (value: number | null) => {
@@ -528,22 +639,30 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-              <TabsList className="grid grid-cols-4 mx-6 mt-4">
-                <TabsTrigger value="overview" className="gap-1">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Perfil</span>
+              <TabsList className="grid grid-cols-6 mx-6 mt-4">
+                <TabsTrigger value="overview" className="gap-1 text-xs px-1">
+                  <User className="h-3 w-3" />
+                  <span className="hidden lg:inline">Perfil</span>
                 </TabsTrigger>
-                <TabsTrigger value="procedures" className="gap-1">
-                  <Package className="h-4 w-4" />
-                  <span className="hidden sm:inline">Procedimentos</span>
+                <TabsTrigger value="agenda" className="gap-1 text-xs px-1">
+                  <CalendarDays className="h-3 w-3" />
+                  <span className="hidden lg:inline">Agenda</span>
                 </TabsTrigger>
-                <TabsTrigger value="financial" className="gap-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="hidden sm:inline">Financeiro</span>
+                <TabsTrigger value="procedures" className="gap-1 text-xs px-1">
+                  <Package className="h-3 w-3" />
+                  <span className="hidden lg:inline">Proced.</span>
                 </TabsTrigger>
-                <TabsTrigger value="timeline" className="gap-1">
-                  <History className="h-4 w-4" />
-                  <span className="hidden sm:inline">Timeline</span>
+                <TabsTrigger value="financial" className="gap-1 text-xs px-1">
+                  <DollarSign className="h-3 w-3" />
+                  <span className="hidden lg:inline">Financ.</span>
+                </TabsTrigger>
+                <TabsTrigger value="proposals" className="gap-1 text-xs px-1">
+                  <FileCheck className="h-3 w-3" />
+                  <span className="hidden lg:inline">Propostas</span>
+                </TabsTrigger>
+                <TabsTrigger value="timeline" className="gap-1 text-xs px-1">
+                  <History className="h-3 w-3" />
+                  <span className="hidden lg:inline">Timeline</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -657,6 +776,80 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
                         </p>
                       </CardContent>
                     </Card>
+                  )}
+                </TabsContent>
+
+                {/* Agenda Tab - NEW */}
+                <TabsContent value="agenda" className="space-y-4 mt-0">
+                  {loadingFeegow ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Today's Appointments */}
+                      {feegowDetails?.appointments.today && feegowDetails.appointments.today.length > 0 && (
+                        <Card className="border-primary/50 bg-primary/5">
+                          <CardHeader className="py-3">
+                            <CardTitle className="text-sm flex items-center gap-2 text-primary">
+                              <CalendarCheck className="h-4 w-4" />
+                              Hoje ({feegowDetails.appointments.today.length})
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            {feegowDetails.appointments.today.map(apt => (
+                              <AppointmentCard key={apt.id} appointment={apt} />
+                            ))}
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Upcoming Appointments */}
+                      <Card>
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <CalendarDays className="h-4 w-4 text-blue-500" />
+                            Próximas Consultas ({feegowDetails?.appointments.upcoming?.length || 0})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {!feegowDetails?.appointments.upcoming?.length ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              Nenhuma consulta futura agendada
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {feegowDetails.appointments.upcoming.slice(0, 10).map(apt => (
+                                <AppointmentCard key={apt.id} appointment={apt} />
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Past Appointments */}
+                      <Card>
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <History className="h-4 w-4 text-muted-foreground" />
+                            Histórico de Consultas ({feegowDetails?.appointments.past?.length || 0})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {!feegowDetails?.appointments.past?.length ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              Nenhuma consulta anterior encontrada
+                            </p>
+                          ) : (
+                            <div className="space-y-2 max-h-80 overflow-y-auto">
+                              {feegowDetails.appointments.past.slice(0, 20).map(apt => (
+                                <AppointmentCard key={apt.id} appointment={apt} variant="past" />
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </>
                   )}
                 </TabsContent>
 
@@ -774,6 +967,26 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
                   </Card>
                 </TabsContent>
 
+                {/* Proposals Tab */}
+                <TabsContent value="proposals" className="space-y-4 mt-0">
+                  {loadingFeegow ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : !feegowDetails?.proposals?.length ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileCheck className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>Nenhuma proposta/orçamento encontrado</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {feegowDetails.proposals.map(proposal => (
+                        <ProposalCard key={proposal.id} proposal={proposal} />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
                 {/* Timeline Tab */}
                 <TabsContent value="timeline" className="space-y-4 mt-0">
                   {timeline.length === 0 ? (
@@ -872,6 +1085,170 @@ function RFVScoreBar({ label, value, color }: { label: string; value: number; co
       </div>
       <p className="text-lg font-bold mt-1">{value}</p>
     </div>
+  );
+}
+
+// Appointment Card Component
+function AppointmentCard({ appointment, variant = 'upcoming' }: { 
+  appointment: FeegowAppointment; 
+  variant?: 'upcoming' | 'past'; 
+}) {
+  const formatFeegowDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const getStatusBadge = (status: string, statusId: number) => {
+    const config: Record<number, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ElementType }> = {
+      1: { variant: 'outline', icon: Clock }, // Agendado
+      2: { variant: 'default', icon: CheckCircle }, // Confirmado
+      3: { variant: 'default', icon: Timer }, // Chegou
+      4: { variant: 'default', icon: Activity }, // Em Atendimento
+      5: { variant: 'secondary', icon: CheckCircle }, // Atendido
+      6: { variant: 'destructive', icon: XCircle }, // Não Compareceu
+      7: { variant: 'destructive', icon: XCircle }, // Cancelado
+      8: { variant: 'outline', icon: RefreshCw }, // Remarcado
+    };
+
+    const cfg = config[statusId] || { variant: 'outline' as const, icon: Clock };
+    const Icon = cfg.icon;
+
+    return (
+      <Badge variant={cfg.variant} className="gap-1 text-xs">
+        <Icon className="h-3 w-3" />
+        {status}
+      </Badge>
+    );
+  };
+
+  return (
+    <div className={cn(
+      "flex items-center justify-between p-3 rounded-lg border",
+      variant === 'past' ? 'bg-muted/30' : 'bg-background'
+    )}>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm truncate">
+          {appointment.procedure_name || 'Consulta'}
+        </p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3" />
+          <span>{formatFeegowDate(appointment.date)}</span>
+          {appointment.time && (
+            <>
+              <span>•</span>
+              <Clock className="h-3 w-3" />
+              <span>{appointment.time}</span>
+            </>
+          )}
+        </div>
+        {appointment.professional_name && (
+          <p className="text-xs text-muted-foreground mt-1">
+            <User className="h-3 w-3 inline mr-1" />
+            {appointment.professional_name}
+          </p>
+        )}
+      </div>
+      {getStatusBadge(appointment.status, appointment.status_id)}
+    </div>
+  );
+}
+
+// Financial Record Card Component
+function FinancialRecordCard({ record }: { record: FeegowFinancialRecord }) {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const getStatusColor = (status: string) => {
+    const lower = status.toLowerCase();
+    if (lower.includes('pago') || lower.includes('paid')) return 'text-emerald-600';
+    if (lower.includes('vencido') || lower.includes('overdue')) return 'text-red-600';
+    return 'text-amber-600';
+  };
+
+  const getStatusIcon = (status: string) => {
+    const lower = status.toLowerCase();
+    if (lower.includes('pago') || lower.includes('paid')) return CheckCircle;
+    if (lower.includes('vencido') || lower.includes('overdue')) return AlertCircle;
+    return Clock;
+  };
+
+  const StatusIcon = getStatusIcon(record.status);
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border bg-background">
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm truncate">{record.description}</p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3" />
+          <span>{record.date}</span>
+          {record.due_date && (
+            <>
+              <span>•</span>
+              <span>Venc: {record.due_date}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="font-bold">{formatCurrency(record.value)}</p>
+        <p className={cn("text-xs flex items-center gap-1 justify-end", getStatusColor(record.status))}>
+          <StatusIcon className="h-3 w-3" />
+          {record.status}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Proposal Card Component
+function ProposalCard({ proposal }: { proposal: FeegowProposal }) {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    const lower = status.toLowerCase();
+    if (lower.includes('aprovad') || lower.includes('aceito')) return 'default';
+    if (lower.includes('recusad') || lower.includes('cancelad')) return 'destructive';
+    return 'outline';
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="font-medium">{proposal.description}</p>
+            <p className="text-xs text-muted-foreground">
+              Criado em: {proposal.date}
+              {proposal.valid_until && ` • Válido até: ${proposal.valid_until}`}
+            </p>
+          </div>
+          <Badge variant={getStatusVariant(proposal.status)}>
+            {proposal.status}
+          </Badge>
+        </div>
+        
+        {proposal.items.length > 0 && (
+          <div className="space-y-1 border-t pt-2">
+            {proposal.items.map((item, idx) => (
+              <div key={idx} className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {item.quantity}x {item.procedure_name}
+                </span>
+                <span>{formatCurrency(item.total_value)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="flex justify-between items-center mt-3 pt-2 border-t">
+          <span className="text-sm font-medium">Total</span>
+          <span className="text-lg font-bold text-primary">{formatCurrency(proposal.total_value)}</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
