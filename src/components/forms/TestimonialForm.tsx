@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Star, Loader2 } from "lucide-react";
+import { CalendarIcon, Star, Loader2, Upload, X, Image } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,6 +56,10 @@ const testimonialTypes = {
 const TestimonialForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [adminSelectedTeamId, setAdminSelectedTeamId] = useState<string | undefined>();
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [evidencePreview, setEvidencePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, profile, role } = useAuth();
   const { toast } = useToast();
   const isAdmin = role === "admin";
@@ -69,6 +73,76 @@ const TestimonialForm = () => {
       attributedToUserId: "",
     },
   });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Tipo de arquivo inválido",
+          description: "Apenas imagens são permitidas",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setEvidenceFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setEvidencePreview(previewUrl);
+    }
+  };
+
+  const removeEvidence = () => {
+    setEvidenceFile(null);
+    if (evidencePreview) {
+      URL.revokeObjectURL(evidencePreview);
+      setEvidencePreview(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadEvidence = async (): Promise<string | null> => {
+    if (!evidenceFile || !user) return null;
+    
+    setIsUploading(true);
+    try {
+      const fileExt = evidenceFile.name.split(".").pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("testimonial-evidence")
+        .upload(fileName, evidenceFile);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from("testimonial-evidence")
+        .getPublicUrl(fileName);
+      
+      return publicUrl;
+    } catch (error: any) {
+      console.error("Error uploading evidence:", error);
+      toast({
+        title: "Erro no upload",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleTeamChange = useCallback((teamId: string) => {
     setAdminSelectedTeamId(teamId);
@@ -89,6 +163,12 @@ const TestimonialForm = () => {
     setIsLoading(true);
 
     try {
+      // Upload evidence if provided
+      let evidenceUrl: string | null = null;
+      if (evidenceFile) {
+        evidenceUrl = await uploadEvidence();
+      }
+
       const insertData = getEffectiveInsertData(
         user.id,
         data.attributedToUserId,
@@ -107,6 +187,7 @@ const TestimonialForm = () => {
         counts_for_individual: insertData.counts_for_individual,
         attributed_to_user_id: insertData.attributed_to_user_id,
         registered_by_admin: insertData.registered_by_admin,
+        evidence_url: evidenceUrl,
       });
 
       if (error) throw error;
@@ -119,6 +200,7 @@ const TestimonialForm = () => {
       });
 
       form.reset();
+      removeEvidence();
     } catch (error: any) {
       toast({
         title: "Erro ao registrar",
@@ -253,17 +335,67 @@ const TestimonialForm = () => {
             )}
           />
 
+          {/* Campo de Upload de Evidência */}
+          <div className="space-y-2">
+            <FormLabel className="text-foreground">Evidência / Print (opcional)</FormLabel>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept="image/*"
+              className="hidden"
+            />
+            
+            {!evidencePreview ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-24 border-dashed border-2 bg-secondary/50 hover:bg-secondary flex flex-col items-center justify-center gap-2"
+              >
+                <Upload className="w-6 h-6 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Clique para anexar print/evidência
+                </span>
+              </Button>
+            ) : (
+              <div className="relative rounded-lg overflow-hidden border border-border bg-secondary/50">
+                <img 
+                  src={evidencePreview} 
+                  alt="Preview da evidência" 
+                  className="w-full h-32 object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  onClick={removeEvidence}
+                  className="absolute top-2 right-2 h-8 w-8"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 text-xs">
+                  <Image className="w-3 h-3" />
+                  <span>{evidenceFile?.name}</span>
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Anexe um print do depoimento como evidência (máx. 5MB)
+            </p>
+          </div>
+
           <IndividualTeamFields form={form} onTeamChange={handleTeamChange} />
 
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isUploading}
             className="w-full bg-gradient-gold-shine text-primary-foreground font-bold hover:opacity-90"
           >
-            {isLoading ? (
+            {isLoading || isUploading ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Registrando...
+                {isUploading ? "Enviando imagem..." : "Registrando..."}
               </span>
             ) : (
               "Registrar Depoimento"
