@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { daysAhead = 30, limit = 100, createLeads = true, yearFrom = 2024 } = await req.json().catch(() => ({}));
+    const { daysAhead = 30, limit = 2000, createLeads = true, yearFrom = 2024 } = await req.json().catch(() => ({}));
 
     console.log(`🔄 Identifying recurrence opportunities (daysAhead: ${daysAhead}, limit: ${limit}, yearFrom: ${yearFrom})`);
 

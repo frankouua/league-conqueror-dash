@@ -116,7 +116,7 @@ export function CRMRecurrenceDashboard() {
         `)
         .eq('is_recurrence_lead', true)
         .order('recurrence_days_overdue', { ascending: false, nullsFirst: false })
-        .limit(200);
+        .limit(1000);
 
       if (error) throw error;
       
@@ -143,7 +143,7 @@ export function CRMRecurrenceDashboard() {
   const identifyMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('identify-recurrences', {
-        body: { daysAhead: 30, limit: 200, createLeads: true, yearFrom: parseInt(selectedYear) }
+        body: { daysAhead: 30, limit: 2000, createLeads: true, yearFrom: parseInt(selectedYear) }
       });
       if (error) throw error;
       return data;
