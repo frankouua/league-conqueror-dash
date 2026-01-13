@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   Megaphone, UserPlus, Target, ShieldAlert,
-  TrendingUp, ChevronLeft, ChevronRight
+  TrendingUp, ChevronLeft, ChevronRight, Users
 } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const CampaignsContent = lazy(() => import("@/pages/Campaigns").then(m => ({ def
 const ReferralLeadsContent = lazy(() => import("@/pages/ReferralLeads").then(m => ({ default: m.default })));
 const RFVDashboardContent = lazy(() => import("@/pages/RFVDashboard").then(m => ({ default: m.default })));
 const CancellationsContent = lazy(() => import("@/pages/Cancellations").then(m => ({ default: m.default })));
+const ClientListContent = lazy(() => import("@/components/clients/ClientListDashboard").then(m => ({ default: m.default })));
 
 const MiniLoader = () => (
   <div className="flex items-center justify-center py-20">
@@ -23,7 +24,7 @@ const MiniLoader = () => (
   </div>
 );
 
-type TabKey = "campanhas" | "indicacoes" | "rfv" | "cancelamentos";
+type TabKey = "clientes" | "campanhas" | "indicacoes" | "rfv" | "cancelamentos";
 
 interface NavItem {
   key: TabKey;
@@ -34,6 +35,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { key: "clientes", label: "Lista de Clientes", icon: Users, description: "Visão unificada com distribuição", color: "text-primary" },
   { key: "campanhas", label: "Campanhas", icon: Megaphone, description: "Promoções e ações de vendas", color: "text-purple-500" },
   { key: "indicacoes", label: "Indicações", icon: UserPlus, description: "Leads de clientes indicados", color: "text-green-500" },
   { key: "rfv", label: "Clientes RFV", icon: Target, description: "Análise de recência, frequência e valor", color: "text-blue-500" },
@@ -41,12 +43,18 @@ const navItems: NavItem[] = [
 ];
 
 const Alavancas = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>("campanhas");
+  const [activeTab, setActiveTab] = useState<TabKey>("clientes");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { profile } = useAuth();
 
   const renderContent = () => {
     switch (activeTab) {
+      case "clientes":
+        return (
+          <Suspense fallback={<MiniLoader />}>
+            <ClientListContent />
+          </Suspense>
+        );
       case "campanhas":
         return (
           <Suspense fallback={<MiniLoader />}>
@@ -154,7 +162,7 @@ const Alavancas = () => {
               <div className="p-4 border-t border-border">
                 <div className="grid grid-cols-2 gap-2 text-center">
                   <div className="p-2 rounded-lg bg-muted/50">
-                    <p className="text-lg font-bold text-primary">4</p>
+                    <p className="text-lg font-bold text-primary">5</p>
                     <p className="text-[10px] text-muted-foreground">Alavancas</p>
                   </div>
                   <div className="p-2 rounded-lg bg-muted/50">
