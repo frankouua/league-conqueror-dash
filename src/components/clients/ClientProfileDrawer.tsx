@@ -278,6 +278,85 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
         };
       }
 
+      // Handle CRM source - fetch from crm_leads with joined data
+      if (clientSource === 'crm') {
+        const { data: lead, error: leadError } = await supabase
+          .from('crm_leads')
+          .select(`
+            *,
+            rfv_customer:rfv_customer_id (
+              segment, recency_score, frequency_score, value_score,
+              total_value, total_purchases, average_ticket, days_since_last_purchase,
+              last_purchase_date, first_purchase_date
+            )
+          `)
+          .eq('id', clientId)
+          .single();
+
+        if (leadError) throw leadError;
+
+        const rfv = lead.rfv_customer;
+        const feegowData = lead.feegow_data as any || {};
+
+        return {
+          id: lead.id,
+          name: lead.name,
+          phone: lead.phone,
+          whatsapp: lead.whatsapp,
+          email: lead.email,
+          cpf: lead.cpf,
+          prontuario: lead.prontuario || lead.feegow_id,
+          rg: null,
+          foto_url: null,
+          birth_date: feegowData?.nascimento || null,
+          age: null,
+          gender: feegowData?.sexo_id === 1 ? 'Masculino' : feegowData?.sexo_id === 2 ? 'Feminino' : null,
+          nationality: null,
+          marital_status: null,
+          profession: null,
+          has_children: null,
+          children_count: null,
+          country: null,
+          state: null,
+          city: null,
+          neighborhood: feegowData?.bairro || null,
+          address: null,
+          cep: null,
+          height_cm: null,
+          weight_kg: null,
+          origin: lead.source,
+          origin_detail: lead.source_detail,
+          referral_name: null,
+          influencer_name: null,
+          instagram_handle: null,
+          main_objective: null,
+          why_not_done_yet: null,
+          dreams: null,
+          desires: null,
+          fears: null,
+          expectations: null,
+          preferred_procedures: lead.interested_procedures?.join(', ') || null,
+          total_value_sold: lead.estimated_value,
+          total_value_executed: lead.contract_value,
+          total_procedures: rfv?.total_purchases,
+          first_contact_date: lead.first_contact_at,
+          last_contact_date: lead.last_activity_at,
+          first_purchase_date: rfv?.first_purchase_date,
+          last_purchase_date: rfv?.last_purchase_date || lead.last_procedure_date,
+          observacoes_feegow: lead.notes,
+          total_agendamentos: null,
+          no_show_count: null,
+          rfv_segment: rfv?.segment,
+          rfv_score_r: rfv?.recency_score,
+          rfv_score_f: rfv?.frequency_score,
+          rfv_score_v: rfv?.value_score,
+          total_value: rfv?.total_value || lead.estimated_value,
+          total_purchases: rfv?.total_purchases,
+          average_ticket: rfv?.average_ticket,
+          days_since_last_purchase: rfv?.days_since_last_purchase,
+        };
+      }
+
       // Default: fetch from patient_data
       const { data: pd, error: pdError } = await supabase
         .from('patient_data')
