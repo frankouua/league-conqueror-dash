@@ -3628,27 +3628,219 @@ export type Database = {
           },
         ]
       }
+      protocol_recurrence_tracking: {
+        Row: {
+          created_at: string | null
+          days_overdue: number | null
+          id: string
+          last_procedure_date: string
+          lead_id: string | null
+          next_due_date: string
+          protocol_id: string | null
+          reactivated_at: string | null
+          reminder_sent_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          days_overdue?: number | null
+          id?: string
+          last_procedure_date: string
+          lead_id?: string | null
+          next_due_date: string
+          protocol_id?: string | null
+          reactivated_at?: string | null
+          reminder_sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          days_overdue?: number | null
+          id?: string
+          last_procedure_date?: string
+          lead_id?: string | null
+          next_due_date?: string
+          protocol_id?: string | null
+          reactivated_at?: string | null
+          reminder_sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_recurrence_tracking_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_recurrence_tracking_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_referrals: {
+        Row: {
+          bonus_earned: number | null
+          converted_at: string | null
+          created_at: string | null
+          id: string
+          paid_at: string | null
+          protocol_id: string | null
+          referral_code: string | null
+          referred_lead_id: string | null
+          referrer_lead_id: string | null
+          status: string | null
+        }
+        Insert: {
+          bonus_earned?: number | null
+          converted_at?: string | null
+          created_at?: string | null
+          id?: string
+          paid_at?: string | null
+          protocol_id?: string | null
+          referral_code?: string | null
+          referred_lead_id?: string | null
+          referrer_lead_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          bonus_earned?: number | null
+          converted_at?: string | null
+          created_at?: string | null
+          id?: string
+          paid_at?: string | null
+          protocol_id?: string | null
+          referral_code?: string | null
+          referred_lead_id?: string | null
+          referrer_lead_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_referrals_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "protocols"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_referrals_referred_lead_id_fkey"
+            columns: ["referred_lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_referrals_referrer_lead_id_fkey"
+            columns: ["referrer_lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_suggestions: {
+        Row: {
+          acted_at: string | null
+          action_result: string | null
+          ai_confidence: number | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          lead_id: string | null
+          personalized_script: string | null
+          priority: number | null
+          protocol_id: string | null
+          reason: string
+          suggested_at: string | null
+          suggestion_type: string
+          viewed_at: string | null
+        }
+        Insert: {
+          acted_at?: string | null
+          action_result?: string | null
+          ai_confidence?: number | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          lead_id?: string | null
+          personalized_script?: string | null
+          priority?: number | null
+          protocol_id?: string | null
+          reason: string
+          suggested_at?: string | null
+          suggestion_type: string
+          viewed_at?: string | null
+        }
+        Update: {
+          acted_at?: string | null
+          action_result?: string | null
+          ai_confidence?: number | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          lead_id?: string | null
+          personalized_script?: string | null
+          priority?: number | null
+          protocol_id?: string | null
+          reason?: string
+          suggested_at?: string | null
+          suggestion_type?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_suggestions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_suggestions_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       protocols: {
         Row: {
           benefits: string[] | null
           campaign_id: string | null
           created_at: string
           created_by: string
+          cross_sell_protocols: string[] | null
           description: string | null
           duration_days: number | null
           id: string
           included_items: string[] | null
           is_active: boolean | null
           is_featured: boolean | null
+          loyalty_points: number | null
           materials: Json | null
           name: string
           price: number | null
           promotional_price: number | null
           protocol_type: string
+          recurrence_days: number | null
+          recurrence_script: string | null
+          recurrence_type: string | null
+          referral_bonus: number | null
+          referral_script: string | null
           sales_script: string | null
           target_audience: string | null
           target_segments: string[] | null
           updated_at: string
+          upsell_protocols: string[] | null
           whatsapp_scripts: Json | null
         }
         Insert: {
@@ -3656,21 +3848,29 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string
           created_by: string
+          cross_sell_protocols?: string[] | null
           description?: string | null
           duration_days?: number | null
           id?: string
           included_items?: string[] | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          loyalty_points?: number | null
           materials?: Json | null
           name: string
           price?: number | null
           promotional_price?: number | null
           protocol_type: string
+          recurrence_days?: number | null
+          recurrence_script?: string | null
+          recurrence_type?: string | null
+          referral_bonus?: number | null
+          referral_script?: string | null
           sales_script?: string | null
           target_audience?: string | null
           target_segments?: string[] | null
           updated_at?: string
+          upsell_protocols?: string[] | null
           whatsapp_scripts?: Json | null
         }
         Update: {
@@ -3678,21 +3878,29 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string
           created_by?: string
+          cross_sell_protocols?: string[] | null
           description?: string | null
           duration_days?: number | null
           id?: string
           included_items?: string[] | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          loyalty_points?: number | null
           materials?: Json | null
           name?: string
           price?: number | null
           promotional_price?: number | null
           protocol_type?: string
+          recurrence_days?: number | null
+          recurrence_script?: string | null
+          recurrence_type?: string | null
+          referral_bonus?: number | null
+          referral_script?: string | null
           sales_script?: string | null
           target_audience?: string | null
           target_segments?: string[] | null
           updated_at?: string
+          upsell_protocols?: string[] | null
           whatsapp_scripts?: Json | null
         }
         Relationships: [
