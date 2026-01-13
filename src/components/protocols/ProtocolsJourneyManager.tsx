@@ -1094,10 +1094,17 @@ const ProtocolCard = ({
   const stage = JOURNEY_STAGES.find(s => s.id === protocol.journey_stage);
   const StageIcon = stage?.icon || Package;
 
-  const hasScripts = protocol.sales_script || protocol.closing_script || 
-    protocol.followup_script || protocol.followup_script_2 || 
-    protocol.followup_script_3 || protocol.referral_script || 
-    protocol.reactivation_script || (protocol.objection_scripts && Object.keys(protocol.objection_scripts).length > 0);
+  const hasScripts =
+    protocol.sales_script ||
+    protocol.closing_script ||
+    protocol.followup_script ||
+    protocol.followup_script_2 ||
+    protocol.followup_script_3 ||
+    protocol.referral_script ||
+    protocol.reactivation_script ||
+    protocol.group_script ||
+    protocol.doctor_recommended_script ||
+    (protocol.objection_scripts && Object.keys(protocol.objection_scripts).length > 0);
 
   const copyScript = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
