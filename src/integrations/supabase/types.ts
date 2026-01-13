@@ -3867,6 +3867,7 @@ export type Database = {
         Row: {
           benefits: string[] | null
           campaign_id: string | null
+          category: string | null
           closing_script: string | null
           created_at: string
           created_by: string
@@ -3913,6 +3914,7 @@ export type Database = {
         Insert: {
           benefits?: string[] | null
           campaign_id?: string | null
+          category?: string | null
           closing_script?: string | null
           created_at?: string
           created_by: string
@@ -3959,6 +3961,7 @@ export type Database = {
         Update: {
           benefits?: string[] | null
           campaign_id?: string | null
+          category?: string | null
           closing_script?: string | null
           created_at?: string
           created_by?: string
