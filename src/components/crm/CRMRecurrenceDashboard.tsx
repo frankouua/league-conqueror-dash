@@ -155,12 +155,19 @@ function CRMRecurrenceDashboardComponent() {
   const { data: teamMembers } = useQuery({
     queryKey: ['team-members-sellers'],
     queryFn: async (): Promise<{ id: string; full_name: string; team_id: string }[]> => {
-      const { data, error } = await (supabase as unknown as { from: (table: string) => { select: (cols: string) => Promise<{ data: unknown[]; error: unknown }> } })
-        .from('users')
-        .select('id, full_name, team_id, role, is_approved');
-      if (error) throw error;
-      const users = data as { id: string; full_name: string; team_id: string; role: string; is_approved: boolean }[];
-      return users.filter(u => u.role === 'seller' && u.is_approved);
+      // Use raw fetch to avoid type issues with users table
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/users?select=id,full_name,team_id,role,is_approved&role=eq.seller&is_approved=eq.true`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          }
+        }
+      );
+      if (!response.ok) throw new Error('Failed to fetch team members');
+      const users = await response.json();
+      return users as { id: string; full_name: string; team_id: string }[];
     },
     staleTime: 60000
   });
