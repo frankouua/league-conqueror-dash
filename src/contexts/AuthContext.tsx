@@ -120,31 +120,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchUserData]);
 
   // Keep session alive while testing (prevents frequent re-logins when the tab stays open)
+  // IMPORTANT: avoid updating React state here to prevent refresh loops / rate limiting.
   useEffect(() => {
-    if (!session) return;
+    if (!session?.user) return;
 
     let isMounted = true;
 
     const refresh = async () => {
+      if (!isMounted) return;
       try {
-        const { data, error } = await supabase.auth.refreshSession();
-        if (!isMounted) return;
+        const { error } = await supabase.auth.refreshSession();
+
+        // If there's no session yet (e.g. user just got logged out), don't spam requests.
         if (error) {
+          const name = (error as any)?.name;
+          if (name === "AuthSessionMissingError") return;
           console.warn("Session refresh failed:", error);
-          return;
-        }
-        if (data?.session) {
-          setSession(data.session);
-          setUser(data.session.user);
         }
       } catch (e) {
         console.warn("Session refresh exception:", e);
       }
     };
 
-    // Refresh immediately and then periodically
-    refresh();
-    const intervalId = window.setInterval(refresh, 1000 * 60 * 4);
+    // Refresh occasionally (not too often to avoid API rate limits)
+    const intervalId = window.setInterval(refresh, 1000 * 60 * 20);
 
     // Also refresh when the user focuses the tab again
     const onFocus = () => refresh();
@@ -155,7 +154,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", onFocus);
     };
-  }, [session]);
+  }, [session?.user?.id]);
+
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
