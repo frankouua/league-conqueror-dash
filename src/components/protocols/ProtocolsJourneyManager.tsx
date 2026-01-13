@@ -105,6 +105,15 @@ const RESPONSIBLE_ROLES = [
   { id: "todos", label: "Todos" },
 ];
 
+// Categorias de protocolos para organização visual
+const PROTOCOL_CATEGORIES = [
+  { id: "jornada_cirurgica", label: "Jornada Cirúrgica", color: "bg-blue-500", textColor: "text-blue-600", bgLight: "bg-blue-50" },
+  { id: "genetica", label: "Genética", color: "bg-purple-500", textColor: "text-purple-600", bgLight: "bg-purple-50" },
+  { id: "neuro_wellness", label: "Neuro/Wellness", color: "bg-emerald-500", textColor: "text-emerald-600", bgLight: "bg-emerald-50" },
+  { id: "spa_day", label: "Spa Day", color: "bg-pink-500", textColor: "text-pink-600", bgLight: "bg-pink-50" },
+  { id: "avulsos", label: "Avulsos", color: "bg-orange-500", textColor: "text-orange-600", bgLight: "bg-orange-50" },
+];
+
 interface Protocol {
   id: string;
   name: string;
@@ -129,6 +138,7 @@ interface Protocol {
   materials_urls?: string[] | null;
   group_script?: string | null;
   doctor_recommended_script?: string | null;
+  category?: string | null;
 }
 
 interface Procedure {
@@ -1164,12 +1174,29 @@ const ProtocolCard = ({
             )}
             <div className="min-w-0">
               <CardTitle className="text-base leading-tight">{protocol.name}</CardTitle>
-              {stage && (
-                <Badge variant="outline" className="mt-1 text-xs gap-1">
-                  <StageIcon className="h-3 w-3" />
-                  {stage.label}
-                </Badge>
-              )}
+              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                {/* Category Tag */}
+                {(() => {
+                  const cat = PROTOCOL_CATEGORIES.find(c => c.id === protocol.category);
+                  if (cat) {
+                    return (
+                      <Badge 
+                        className={`${cat.color} text-white text-[10px] px-1.5 py-0 h-5 font-medium`}
+                      >
+                        {cat.label}
+                      </Badge>
+                    );
+                  }
+                  return null;
+                })()}
+                {/* Stage Tag */}
+                {stage && (
+                  <Badge variant="outline" className="text-[10px] gap-1 px-1.5 py-0 h-5">
+                    <StageIcon className="h-3 w-3" />
+                    {stage.label}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex gap-1 shrink-0">
