@@ -63,9 +63,10 @@ interface RecurrenceStats {
 
 const PROCEDURE_GROUPS = [
   { value: 'all', label: 'Todos os Procedimentos' },
-  { value: 'SOROTERAPIA', label: 'Implantes Hormonais' },
-  { value: 'PÓS OPERATÓRIO', label: 'Pós-Operatório' },
-  { value: 'HARMONIZAÇÃO', label: 'Harmonização Facial' },
+  { value: '04 - SOROTERAPIA', label: 'Soroterapia / Implantes' },
+  { value: '03 - PÓS OPERATÓRIO', label: 'Pós-Operatório' },
+  { value: '08 - HARMONIZAÇÃO', label: 'Harmonização Facial' },
+  { value: '09 - SPA', label: 'SPA e Estética' },
 ];
 
 const URGENCY_FILTERS = [
@@ -75,19 +76,27 @@ const URGENCY_FILTERS = [
   { value: 'upcoming', label: 'Por Vencer (30 dias)' },
 ];
 
+const YEAR_FILTERS = [
+  { value: '2024', label: 'Desde 2024' },
+  { value: '2025', label: 'Apenas 2025' },
+];
+
 export function CRMRecurrenceDashboard() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
   const [selectedUrgency, setSelectedUrgency] = useState('all');
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+  const [selectedYear, setSelectedYear] = useState('2024');
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Fetch recurrence stats
-  const { data: stats, isLoading: loadingStats } = useQuery({
-    queryKey: ['recurrence-stats'],
+  // Fetch recurrence stats with year filter
+  const { data: stats, isLoading: loadingStats, refetch: refetchStats } = useQuery({
+    queryKey: ['recurrence-stats', selectedYear],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_recurrence_stats');
+      const { data, error } = await supabase.rpc('get_recurrence_stats', { 
+        p_year_from: parseInt(selectedYear) 
+      });
       if (error) throw error;
       return data?.[0] as RecurrenceStats | null;
     }
@@ -134,7 +143,7 @@ export function CRMRecurrenceDashboard() {
   const identifyMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('identify-recurrences', {
-        body: { daysAhead: 30, limit: 100, createLeads: true }
+        body: { daysAhead: 30, limit: 200, createLeads: true, yearFrom: parseInt(selectedYear) }
       });
       if (error) throw error;
       return data;
@@ -142,7 +151,7 @@ export function CRMRecurrenceDashboard() {
     onSuccess: (data) => {
       toast.success(`${data.stats?.leadsCreated || 0} criados, ${data.stats?.leadsUpdated || 0} atualizados`);
       refetchLeads();
-      queryClient.invalidateQueries({ queryKey: ['recurrence-stats'] });
+      refetchStats();
     },
     onError: (error) => {
       console.error('Identify error:', error);
@@ -355,6 +364,20 @@ export function CRMRecurrenceDashboard() {
               />
             </div>
             
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-[140px]">
+                <Calendar className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {YEAR_FILTERS.map(filter => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select value={selectedGroup} onValueChange={setSelectedGroup}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
