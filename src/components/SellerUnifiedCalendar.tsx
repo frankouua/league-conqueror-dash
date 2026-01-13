@@ -962,7 +962,7 @@ export function SellerUnifiedCalendar() {
         setShowNewEvent(open);
         if (!open) resetNewEventForm();
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5 text-primary" />

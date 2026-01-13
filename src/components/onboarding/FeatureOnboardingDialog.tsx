@@ -228,7 +228,7 @@ export function FeatureOnboardingDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] p-0 overflow-hidden">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-primary/90 to-primary p-6 text-primary-foreground">
           <div className="flex items-center justify-between mb-4">

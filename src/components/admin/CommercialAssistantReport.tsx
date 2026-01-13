@@ -552,7 +552,7 @@ export function CommercialAssistantReport() {
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-2xl max-h-[80vh]">
+                              <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto p-3 sm:p-6">
                                 <DialogHeader>
                                   <DialogTitle className="flex items-center gap-2">
                                     <MessageSquare className="h-5 w-5" />

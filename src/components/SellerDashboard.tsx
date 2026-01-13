@@ -536,7 +536,7 @@ export default function SellerDashboard({
 
       {/* Detailed Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] overflow-y-auto p-3 sm:p-6">
           {selectedSeller && (
             <>
               <DialogHeader>
