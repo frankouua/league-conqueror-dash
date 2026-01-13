@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { 
   RefreshCw, 
   Clock, 
@@ -22,12 +23,17 @@ import {
   TrendingUp,
   Zap,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  UserPlus,
+  Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { RecurrenceLeadRow } from './RecurrenceLeadRow';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { useRecurrencePagination } from '@/hooks/useRecurrencePagination';
 
 interface RecurrenceLead {
   id: string;
@@ -35,6 +41,7 @@ interface RecurrenceLead {
   phone: string | null;
   whatsapp: string | null;
   email: string | null;
+  cpf: string | null;
   last_procedure_date: string | null;
   last_procedure_name: string | null;
   recurrence_due_date: string | null;
@@ -45,9 +52,6 @@ interface RecurrenceLead {
   stage: {
     name: string;
     color: string;
-  } | null;
-  assigned_user?: {
-    full_name: string;
   } | null;
 }
 
@@ -79,14 +83,22 @@ const YEAR_FILTERS = [
   { value: '2025', label: 'Apenas 2025' },
 ];
 
-export function CRMRecurrenceDashboard() {
+const ASSIGNMENT_FILTERS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'unassigned', label: 'Sem Atribuição' },
+  { value: 'assigned', label: 'Com Atribuição' },
+];
+
+function CRMRecurrenceDashboardComponent() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
   const [selectedUrgency, setSelectedUrgency] = useState('all');
+  const [selectedAssignment, setSelectedAssignment] = useState('all');
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState('2024');
   const [isExpanded, setIsExpanded] = useState(true);
+  const [processingProgress, setProcessingProgress] = useState<number | null>(null);
 
   // Fetch recurrence stats with year filter
   const { data: stats, isLoading: loadingStats, refetch: refetchStats } = useQuery({
@@ -97,24 +109,25 @@ export function CRMRecurrenceDashboard() {
       });
       if (error) throw error;
       return data?.[0] as RecurrenceStats | null;
-    }
+    },
+    staleTime: 30000 // 30 seconds cache
   });
 
-  // Fetch recurrence leads from the database with recurrence fields
+  // Fetch recurrence leads with optimized query
   const { data: leads, isLoading: loadingLeads, refetch: refetchLeads } = useQuery({
     queryKey: ['recurrence-leads'],
     queryFn: async (): Promise<RecurrenceLead[]> => {
       const { data, error } = await supabase
         .from('crm_leads')
         .select(`
-          id, name, phone, whatsapp, email, temperature, assigned_to,
+          id, name, phone, whatsapp, email, cpf, temperature, assigned_to,
           last_procedure_date, last_procedure_name, recurrence_due_date,
           recurrence_days_overdue, recurrence_group,
           stage:crm_stages(name, color)
         `)
         .eq('is_recurrence_lead', true)
         .order('recurrence_days_overdue', { ascending: false, nullsFirst: false })
-        .limit(1000);
+        .limit(2000);
 
       if (error) throw error;
       
@@ -124,6 +137,7 @@ export function CRMRecurrenceDashboard() {
         phone: item.phone as string | null,
         whatsapp: item.whatsapp as string | null,
         email: item.email as string | null,
+        cpf: item.cpf as string | null,
         last_procedure_date: item.last_procedure_date as string | null,
         last_procedure_name: item.last_procedure_name as string | null,
         recurrence_due_date: item.recurrence_due_date as string | null,
@@ -132,51 +146,103 @@ export function CRMRecurrenceDashboard() {
         temperature: item.temperature as string | null,
         assigned_to: item.assigned_to as string | null,
         stage: item.stage as { name: string; color: string } | null,
-        assigned_user: null
       }));
-    }
+    },
+    staleTime: 30000
   });
 
-  // Run identification mutation
+  // Fetch team members for assignment
+  const { data: teamMembers } = useQuery({
+    queryKey: ['team-members-sellers'],
+    queryFn: async (): Promise<{ id: string; full_name: string; team_id: string }[]> => {
+      const { data, error } = await (supabase as unknown as { from: (table: string) => { select: (cols: string) => Promise<{ data: unknown[]; error: unknown }> } })
+        .from('users')
+        .select('id, full_name, team_id, role, is_approved');
+      if (error) throw error;
+      const users = data as { id: string; full_name: string; team_id: string; role: string; is_approved: boolean }[];
+      return users.filter(u => u.role === 'seller' && u.is_approved);
+    },
+    staleTime: 60000
+  });
+
+  // Run identification mutation with progress
   const identifyMutation = useMutation({
     mutationFn: async () => {
+      setProcessingProgress(10);
       const { data, error } = await supabase.functions.invoke('identify-recurrences', {
         body: { daysAhead: 30, limit: 2000, createLeads: true, yearFrom: parseInt(selectedYear) }
       });
+      setProcessingProgress(90);
       if (error) throw error;
       return data;
     },
     onSuccess: (data) => {
+      setProcessingProgress(100);
+      setTimeout(() => setProcessingProgress(null), 1000);
       toast.success(`${data.stats?.leadsCreated || 0} criados, ${data.stats?.leadsUpdated || 0} atualizados`);
-      refetchLeads();
-      refetchStats();
+      queryClient.invalidateQueries({ queryKey: ['recurrence-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['recurrence-stats'] });
     },
     onError: (error) => {
+      setProcessingProgress(null);
       console.error('Identify error:', error);
       toast.error('Erro ao identificar: ' + (error as Error).message);
     }
   });
 
-  // Filter leads
+  // Auto-assign mutation
+  const autoAssignMutation = useMutation({
+    mutationFn: async () => {
+      if (!teamMembers?.length) throw new Error('Nenhum vendedor disponível');
+      
+      const unassignedLeads = leads?.filter(l => !l.assigned_to) || [];
+      if (unassignedLeads.length === 0) throw new Error('Todos os leads já estão atribuídos');
+      
+      let assignedCount = 0;
+      for (let i = 0; i < unassignedLeads.length; i++) {
+        const lead = unassignedLeads[i];
+        const member = teamMembers[i % teamMembers.length];
+        
+        const { error } = await supabase
+          .from('crm_leads')
+          .update({ assigned_to: member.id })
+          .eq('id', lead.id);
+        
+        if (!error) assignedCount++;
+      }
+      
+      return { assignedCount, total: unassignedLeads.length };
+    },
+    onSuccess: (data) => {
+      toast.success(`${data.assignedCount} leads atribuídos automaticamente`);
+      refetchLeads();
+    },
+    onError: (error) => {
+      toast.error((error as Error).message);
+    }
+  });
+
+  // Filter leads with memoization
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
 
     return leads.filter(lead => {
-      // Search filter
+      // Search filter - check name, phone, CPF, procedure
       if (search) {
         const searchLower = search.toLowerCase();
-        if (!lead.name?.toLowerCase().includes(searchLower) &&
-            !lead.phone?.includes(search) &&
-            !lead.last_procedure_name?.toLowerCase().includes(searchLower)) {
+        const matchesName = lead.name?.toLowerCase().includes(searchLower);
+        const matchesPhone = lead.phone?.includes(search);
+        const matchesCPF = lead.cpf?.includes(search);
+        const matchesProcedure = lead.last_procedure_name?.toLowerCase().includes(searchLower);
+        
+        if (!matchesName && !matchesPhone && !matchesCPF && !matchesProcedure) {
           return false;
         }
       }
 
       // Group filter
-      if (selectedGroup !== 'all') {
-        if (!lead.recurrence_group?.includes(selectedGroup)) {
-          return false;
-        }
+      if (selectedGroup !== 'all' && !lead.recurrence_group?.includes(selectedGroup)) {
+        return false;
       }
 
       // Urgency filter
@@ -187,11 +253,18 @@ export function CRMRecurrenceDashboard() {
         if (selectedUrgency === 'upcoming' && overdue >= 0) return false;
       }
 
+      // Assignment filter
+      if (selectedAssignment === 'unassigned' && lead.assigned_to) return false;
+      if (selectedAssignment === 'assigned' && !lead.assigned_to) return false;
+
       return true;
     });
-  }, [leads, search, selectedGroup, selectedUrgency]);
+  }, [leads, search, selectedGroup, selectedUrgency, selectedAssignment]);
 
-  // Toggle lead selection - memoized
+  // Pagination hook
+  const pagination = useRecurrencePagination(filteredLeads, { pageSize: 50 });
+
+  // Toggle lead selection
   const toggleLeadSelection = useCallback((leadId: string) => {
     setSelectedLeads(prev => 
       prev.includes(leadId) 
@@ -200,29 +273,30 @@ export function CRMRecurrenceDashboard() {
     );
   }, []);
 
-  // Select all visible leads - memoized
+  // Select all visible leads
   const selectAllVisible = useCallback(() => {
-    const allIds = filteredLeads.map(l => l.id);
-    setSelectedLeads(allIds);
-  }, [filteredLeads]);
+    const allIds = pagination.paginatedItems.map(l => l.id);
+    setSelectedLeads(prev => {
+      const newSelection = new Set([...prev, ...allIds]);
+      return Array.from(newSelection);
+    });
+  }, [pagination.paginatedItems]);
 
-  // Clear selection - memoized
+  // Clear selection
   const clearSelection = useCallback(() => {
     setSelectedLeads([]);
   }, []);
 
-  // Handle WhatsApp dispatch - memoized
+  // Handle WhatsApp dispatch
   const handleWhatsAppDispatch = useCallback(() => {
     if (selectedLeads.length === 0) {
       toast.warning('Selecione pelo menos um lead para disparar');
       return;
     }
     
-    // Get selected leads data
     const selectedData = filteredLeads.filter(l => selectedLeads.includes(l.id));
-    
-    // For now, open WhatsApp for the first lead
     const firstLead = selectedData[0];
+    
     if (firstLead?.whatsapp || firstLead?.phone) {
       const phone = (firstLead.whatsapp || firstLead.phone || '').replace(/\D/g, '');
       const message = encodeURIComponent(
@@ -234,16 +308,10 @@ export function CRMRecurrenceDashboard() {
     toast.info(`${selectedLeads.length} leads selecionados para disparo`);
   }, [selectedLeads, filteredLeads]);
 
-  // Get urgency badge - memoized
-  const getUrgencyBadge = useCallback((daysOverdue: number) => {
-    if (daysOverdue > 60) {
-      return <Badge variant="destructive" className="gap-1"><AlertCircle className="w-3 h-3" />Crítico</Badge>;
-    }
-    if (daysOverdue > 0) {
-      return <Badge variant="secondary" className="bg-orange-500/20 text-orange-600 gap-1"><AlertTriangle className="w-3 h-3" />Vencido</Badge>;
-    }
-    return <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-600"><Clock className="w-3 h-3" />Por Vencer</Badge>;
-  }, []);
+  // Stats for unassigned leads
+  const unassignedCount = useMemo(() => {
+    return leads?.filter(l => !l.assigned_to).length || 0;
+  }, [leads]);
 
   return (
     <div className="space-y-4">
@@ -258,15 +326,38 @@ export function CRMRecurrenceDashboard() {
             Identifique e recupere pacientes com procedimentos vencidos
           </p>
         </div>
-        <Button 
-          onClick={() => identifyMutation.mutate()}
-          disabled={identifyMutation.isPending}
-          className="gap-2"
-        >
-          <Zap className="w-4 h-4" />
-          {identifyMutation.isPending ? 'Identificando...' : 'Identificar Recorrências'}
-        </Button>
+        <div className="flex gap-2">
+          {unassignedCount > 0 && (
+            <Button 
+              variant="outline"
+              onClick={() => autoAssignMutation.mutate()}
+              disabled={autoAssignMutation.isPending}
+              className="gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              Atribuir ({unassignedCount})
+            </Button>
+          )}
+          <Button 
+            onClick={() => identifyMutation.mutate()}
+            disabled={identifyMutation.isPending}
+            className="gap-2"
+          >
+            <Zap className="w-4 h-4" />
+            {identifyMutation.isPending ? 'Identificando...' : 'Identificar Recorrências'}
+          </Button>
+        </div>
       </div>
+
+      {/* Progress bar */}
+      {processingProgress !== null && (
+        <div className="space-y-1">
+          <Progress value={processingProgress} className="h-2" />
+          <p className="text-xs text-muted-foreground text-center">
+            Processando recorrências... {processingProgress}%
+          </p>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -351,56 +442,77 @@ export function CRMRecurrenceDashboard() {
       {/* Filters & Actions */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, telefone ou procedimento..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+          <div className="flex flex-col gap-3">
+            {/* First row: Search and year */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, telefone, CPF ou procedimento..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[140px]">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEAR_FILTERS.map(filter => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[140px]">
-                <Calendar className="w-4 h-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {YEAR_FILTERS.map(filter => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
-            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROCEDURE_GROUPS.map(group => (
-                  <SelectItem key={group.value} value={group.value}>
-                    {group.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Second row: Filters */}
+            <div className="flex flex-wrap gap-2">
+              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROCEDURE_GROUPS.map(group => (
+                    <SelectItem key={group.value} value={group.value}>
+                      {group.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Select value={selectedUrgency} onValueChange={setSelectedUrgency}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {URGENCY_FILTERS.map(filter => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={selectedUrgency} onValueChange={setSelectedUrgency}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {URGENCY_FILTERS.map(filter => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedAssignment} onValueChange={setSelectedAssignment}>
+                <SelectTrigger className="w-[150px]">
+                  <Users className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSIGNMENT_FILTERS.map(filter => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Selection Actions */}
@@ -428,7 +540,7 @@ export function CRMRecurrenceDashboard() {
               Pacientes com Recorrência ({filteredLeads.length})
             </CardTitle>
             <Button size="sm" variant="ghost" onClick={selectAllVisible}>
-              Selecionar Todos
+              Selecionar Página
             </Button>
           </div>
         </CardHeader>
@@ -446,72 +558,39 @@ export function CRMRecurrenceDashboard() {
               </div>
             ) : (
               <div className="divide-y">
-                {filteredLeads.map(lead => (
-                  <div
+                {pagination.paginatedItems.map(lead => (
+                  <RecurrenceLeadRow
                     key={lead.id}
-                    className={cn(
-                      "p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors",
-                      selectedLeads.includes(lead.id) && "bg-primary/5"
-                    )}
-                  >
-                    <Checkbox
-                      checked={selectedLeads.includes(lead.id)}
-                      onCheckedChange={() => toggleLeadSelection(lead.id)}
-                    />
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium truncate">{lead.name}</span>
-                        {getUrgencyBadge(lead.recurrence_days_overdue || 0)}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                        <span className="truncate">{lead.last_procedure_name}</span>
-                        {lead.recurrence_due_date && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {format(new Date(lead.recurrence_due_date), 'dd/MM/yyyy', { locale: ptBR })}
-                          </span>
-                        )}
-                        {lead.recurrence_days_overdue > 0 && (
-                          <span className="text-red-500 font-medium">
-                            +{lead.recurrence_days_overdue} dias
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      {lead.phone && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => window.open(`tel:${lead.phone}`, '_blank')}
-                        >
-                          <Phone className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {(lead.whatsapp || lead.phone) && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          onClick={() => {
-                            const phone = (lead.whatsapp || lead.phone || '').replace(/\D/g, '');
-                            window.open(`https://wa.me/55${phone}`, '_blank');
-                          }}
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                    lead={lead}
+                    isSelected={selectedLeads.includes(lead.id)}
+                    onToggleSelection={toggleLeadSelection}
+                  />
                 ))}
               </div>
             )}
           </ScrollArea>
+
+          {/* Pagination */}
+          {filteredLeads.length > 0 && (
+            <PaginationControls
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              pageSize={pagination.pageSize}
+              totalItems={filteredLeads.length}
+              startIndex={pagination.startIndex}
+              endIndex={pagination.endIndex}
+              hasNextPage={pagination.hasNextPage}
+              hasPreviousPage={pagination.hasPreviousPage}
+              onNextPage={pagination.nextPage}
+              onPreviousPage={pagination.previousPage}
+              onGoToPage={pagination.goToPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+export const CRMRecurrenceDashboard = memo(CRMRecurrenceDashboardComponent);
