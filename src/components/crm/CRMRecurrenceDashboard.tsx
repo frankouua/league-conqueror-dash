@@ -34,6 +34,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { RecurrenceLeadRow } from './RecurrenceLeadRow';
+import { RecurrenceGroupCard } from './RecurrenceGroupCard';
+import { RecurrenceScriptDialog } from './RecurrenceScriptDialog';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useRecurrencePagination } from '@/hooks/useRecurrencePagination';
 
@@ -101,7 +103,8 @@ function CRMRecurrenceDashboardComponent() {
   const [selectedYear, setSelectedYear] = useState('2024');
   const [isExpanded, setIsExpanded] = useState(true);
   const [processingProgress, setProcessingProgress] = useState<number | null>(null);
-
+  const [viewMode, setViewMode] = useState<'list' | 'groups'>('groups');
+  const [scriptDialogLead, setScriptDialogLead] = useState<RecurrenceLead | null>(null);
   // Fetch recurrence stats with year filter
   const { data: stats, isLoading: loadingStats, refetch: refetchStats } = useQuery({
     queryKey: ['recurrence-stats', selectedYear],
@@ -324,7 +327,6 @@ function CRMRecurrenceDashboardComponent() {
 
   const totalPotentialValue = useMemo(() => {
     return filteredLeads.reduce((sum, lead) => {
-      // Estimate value based on procedure group
       const baseValue = lead.recurrence_group?.includes('HARMONIZAÇÃO') ? 3500 :
                        lead.recurrence_group?.includes('SOROTERAPIA') ? 1200 :
                        lead.recurrence_group?.includes('SPA') ? 800 : 1500;
@@ -586,64 +588,116 @@ function CRMRecurrenceDashboardComponent() {
         </CardContent>
       </Card>
 
-      {/* Leads List */}
-      <Card>
-        <CardHeader className="py-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Pacientes com Recorrência ({filteredLeads.length})
-            </CardTitle>
-            <Button size="sm" variant="ghost" onClick={selectAllVisible}>
-              Selecionar Página
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[400px]">
-            {loadingLeads ? (
-              <div className="p-8 text-center text-muted-foreground">
-                Carregando...
-              </div>
-            ) : filteredLeads.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <RefreshCw className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Nenhum paciente encontrado</p>
-                <p className="text-xs mt-1">Execute a identificação de recorrências</p>
-              </div>
-            ) : (
-              <div className="divide-y">
-                {pagination.paginatedItems.map(lead => (
-                  <RecurrenceLeadRow
-                    key={lead.id}
-                    lead={lead}
-                    isSelected={selectedLeads.includes(lead.id)}
-                    onToggleSelection={toggleLeadSelection}
-                  />
-                ))}
-              </div>
-            )}
-          </ScrollArea>
+      {/* View Mode Toggle */}
+      <div className="flex justify-end gap-2">
+        <Button
+          variant={viewMode === 'groups' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('groups')}
+        >
+          Por Grupo
+        </Button>
+        <Button
+          variant={viewMode === 'list' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('list')}
+        >
+          Lista
+        </Button>
+      </div>
 
-          {/* Pagination */}
-          {filteredLeads.length > 0 && (
-            <PaginationControls
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              pageSize={pagination.pageSize}
-              totalItems={filteredLeads.length}
-              startIndex={pagination.startIndex}
-              endIndex={pagination.endIndex}
-              hasNextPage={pagination.hasNextPage}
-              hasPreviousPage={pagination.hasPreviousPage}
-              onNextPage={pagination.nextPage}
-              onPreviousPage={pagination.previousPage}
-              onGoToPage={pagination.goToPage}
-              onPageSizeChange={pagination.setPageSize}
-            />
-          )}
-        </CardContent>
-      </Card>
+      {/* Groups View */}
+      {viewMode === 'groups' && (
+        <div className="space-y-3">
+          {Object.entries(
+            filteredLeads.reduce((acc, lead) => {
+              const group = lead.recurrence_group || 'Outros';
+              if (!acc[group]) acc[group] = [];
+              acc[group].push(lead);
+              return acc;
+            }, {} as Record<string, RecurrenceLead[]>)
+          )
+            .sort(([, a], [, b]) => b.length - a.length)
+            .map(([group, groupLeads]) => (
+              <RecurrenceGroupCard
+                key={group}
+                groupName={group}
+                leads={groupLeads}
+                selectedLeads={selectedLeads}
+                onToggleSelection={toggleLeadSelection}
+                onSelectAll={(ids) => setSelectedLeads(prev => [...new Set([...prev, ...ids])])}
+                onOpenScript={(lead) => setScriptDialogLead(lead)}
+              />
+            ))}
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <Card>
+          <CardHeader className="py-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Pacientes com Recorrência ({filteredLeads.length})
+              </CardTitle>
+              <Button size="sm" variant="ghost" onClick={selectAllVisible}>
+                Selecionar Página
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[400px]">
+              {loadingLeads ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  Carregando...
+                </div>
+              ) : filteredLeads.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  <RefreshCw className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p>Nenhum paciente encontrado</p>
+                  <p className="text-xs mt-1">Execute a identificação de recorrências</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {pagination.paginatedItems.map(lead => (
+                    <RecurrenceLeadRow
+                      key={lead.id}
+                      lead={lead}
+                      isSelected={selectedLeads.includes(lead.id)}
+                      onToggleSelection={toggleLeadSelection}
+                    />
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+
+            {filteredLeads.length > 0 && (
+              <PaginationControls
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                pageSize={pagination.pageSize}
+                totalItems={filteredLeads.length}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                hasNextPage={pagination.hasNextPage}
+                hasPreviousPage={pagination.hasPreviousPage}
+                onNextPage={pagination.nextPage}
+                onPreviousPage={pagination.previousPage}
+                onGoToPage={pagination.goToPage}
+                onPageSizeChange={pagination.setPageSize}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Script Dialog */}
+      <RecurrenceScriptDialog
+        lead={scriptDialogLead}
+        open={!!scriptDialogLead}
+        onOpenChange={(open) => !open && setScriptDialogLead(null)}
+      />
     </div>
   );
 }
