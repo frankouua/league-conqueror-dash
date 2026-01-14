@@ -480,32 +480,33 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
 
   return (
     <>
-      <div className="space-y-4">
-        {/* Header Actions */}
-        <Card className="border-primary/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Editar Lead
-              </CardTitle>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
-                  <X className="h-4 w-4 mr-1" />
-                  Cancelar
-                </Button>
-                <Button size="sm" onClick={handleSubmit} disabled={saving}>
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-1" />
-                  )}
-                  Salvar
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <div className="flex flex-col h-full">
+        {/* Sticky Header with Save Button */}
+        <div className="sticky top-0 z-10 bg-background border-b p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <User className="h-4 w-4" />
+            Editar Lead
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
+              <X className="h-4 w-4 mr-1" />
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleSubmit} disabled={saving}>
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Salvar
+            </Button>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <Card className="border-primary/50 rounded-t-none border-t-0">
+            <CardContent className="space-y-4 pt-4">
             {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1148,15 +1149,18 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
             </div>
           </CardContent>
         </Card>
+        </div>
 
-        {/* Sticky Footer for Mobile */}
-        <div className="sticky bottom-0 p-4 bg-background border-t md:hidden">
+        {/* Sticky Footer - Always Visible */}
+        <div className="sticky bottom-0 z-10 p-4 bg-background border-t shadow-lg">
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>
+              <X className="h-4 w-4 mr-1" />
               Cancelar
             </Button>
             <Button className="flex-1" onClick={handleSubmit} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+              Salvar Alterações
             </Button>
           </div>
         </div>
