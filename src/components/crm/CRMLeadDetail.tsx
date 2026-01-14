@@ -5,7 +5,7 @@ import {
   User, Phone, Mail, Star, Sparkles, AlertTriangle, CheckCircle2,
   Circle, Plus, Send, History, ListTodo, FileText, TrendingUp, Brain,
   Loader2, Edit2, Trash2, ClipboardCheck, PhoneCall, Trophy, ThumbsDown,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, MessageSquare
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -397,23 +397,27 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                 )}
               </ScrollArea>
             ) : (
-              /* Content Tabs - SIMPLIFIED: Only 5 main tabs */
+              /* Content Tabs - 6 main tabs with Scripts */
               <Tabs defaultValue="resumo" className="flex-1 flex flex-col overflow-hidden">
             <div className="mx-3 sm:mx-6 mt-3 sm:mt-4">
-              <TabsList className="grid grid-cols-5 w-full gap-1">
-                <TabsTrigger value="resumo" className="gap-1 text-xs px-2">
+              <TabsList className="grid grid-cols-6 w-full gap-1">
+                <TabsTrigger value="resumo" className="gap-1 text-xs px-1.5">
                   <FileText className="h-4 w-4" />
                   <span className="hidden sm:inline">Resumo</span>
                 </TabsTrigger>
-                <TabsTrigger value="checklist" className="gap-1 text-xs px-2">
+                <TabsTrigger value="scripts" className="gap-1 text-xs px-1.5">
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="hidden sm:inline">Scripts</span>
+                </TabsTrigger>
+                <TabsTrigger value="checklist" className="gap-1 text-xs px-1.5">
                   <ClipboardCheck className="h-4 w-4" />
                   <span className="hidden sm:inline">Ações</span>
                 </TabsTrigger>
-                <TabsTrigger value="contatos" className="gap-1 text-xs px-2">
+                <TabsTrigger value="contatos" className="gap-1 text-xs px-1.5">
                   <PhoneCall className="h-4 w-4" />
                   <span className="hidden sm:inline">Contatos</span>
                 </TabsTrigger>
-                <TabsTrigger value="tarefas" className="gap-1 text-xs px-2 relative">
+                <TabsTrigger value="tarefas" className="gap-1 text-xs px-1.5 relative">
                   <ListTodo className="h-4 w-4" />
                   <span className="hidden sm:inline">Tarefas</span>
                   {tasks.filter(t => !t.is_completed).length > 0 && (
@@ -422,7 +426,7 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="mais" className="gap-1 text-xs px-2">
+                <TabsTrigger value="mais" className="gap-1 text-xs px-1.5">
                   <Sparkles className="h-4 w-4" />
                   <span className="hidden sm:inline">+ Info</span>
                 </TabsTrigger>
@@ -596,17 +600,36 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                 )}
               </TabsContent>
 
+              {/* SCRIPTS Tab - Dedicated scripts section */}
+              <TabsContent value="scripts" className="m-0 space-y-4">
+                {lead && (
+                  <>
+                    {/* Real-time script suggestions based on context */}
+                    <CRMRealtimeScriptSuggestions 
+                      leadId={lead.id}
+                      leadName={lead.name}
+                      currentIntention={lead.ai_intent}
+                      stageKey={currentStage?.name?.toLowerCase().replace(/\s+/g, '_')}
+                      temperature={lead.temperature}
+                    />
+                    
+                    {/* Static script suggestions by stage */}
+                    <CRMLeadScriptSuggestions lead={lead} />
+                    
+                    {/* Journey protocol suggestions */}
+                    <CRMJourneyProtocolSuggestions 
+                      lead={lead} 
+                      stageName={currentStage?.name}
+                    />
+                  </>
+                )}
+              </TabsContent>
+
               {/* CHECKLIST Tab - Actions and protocols */}
               <TabsContent value="checklist" className="m-0 space-y-4">
                 {lead && (
                   <>
                     <CRMLeadChecklistPanel leadId={lead.id} />
-                    <CRMJourneyProtocolSuggestions 
-                      lead={lead} 
-                      stageName={currentStage?.name}
-                      compact
-                    />
-                    <CRMLeadScriptSuggestions lead={lead} compact />
                     <CRMLeadChecklist 
                       lead={lead} 
                       stage={currentStage || null}
