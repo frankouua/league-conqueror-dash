@@ -100,13 +100,13 @@ export function CRMRoutineCompactBar({ pipelineId, pipelineType, onViewDetails }
       const { data: tasks } = await supabase
         .from('lead_checklist_items')
         .select(`
-          id, is_completed, is_overdue, due_date,
+          id, is_completed, is_overdue, due_at,
           lead:crm_leads!lead_checklist_items_lead_id_fkey(
             id, estimated_value, assigned_to, pipeline_id
           )
         `)
-        .gte('due_date', today.toISOString())
-        .lte('due_date', addDays(endToday, 1).toISOString());
+        .gte('due_at', today.toISOString())
+        .lte('due_at', addDays(endToday, 1).toISOString());
 
       // Fetch next actions
       let nextActionsQuery = supabase
