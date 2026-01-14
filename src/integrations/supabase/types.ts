@@ -2264,6 +2264,110 @@ export type Database = {
           },
         ]
       }
+      crm_lead_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string | null
+          due_at: string | null
+          escalated: boolean | null
+          escalated_at: string | null
+          escalated_to: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          requires_coordinator_validation: boolean | null
+          responsible_role: string | null
+          started_at: string | null
+          status: string | null
+          task_code: string | null
+          task_description: string | null
+          task_name: string
+          template_id: string | null
+          updated_at: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_notes: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_at?: string | null
+          escalated?: boolean | null
+          escalated_at?: string | null
+          escalated_to?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          requires_coordinator_validation?: boolean | null
+          responsible_role?: string | null
+          started_at?: string | null
+          status?: string | null
+          task_code?: string | null
+          task_description?: string | null
+          task_name: string
+          template_id?: string | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_at?: string | null
+          escalated?: boolean | null
+          escalated_at?: string | null
+          escalated_to?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          requires_coordinator_validation?: boolean | null
+          responsible_role?: string | null
+          started_at?: string | null
+          status?: string | null
+          task_code?: string | null
+          task_description?: string | null
+          task_name?: string
+          template_id?: string | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "stage_checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_tasks_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_leads: {
         Row: {
           ai_analyzed_at: string | null
@@ -6827,39 +6931,67 @@ export type Database = {
           created_at: string
           deadline_hours: number | null
           description: string | null
+          escalation_to: string | null
           id: string
           is_required: boolean
           order_index: number
+          pipeline_id: string | null
+          requires_coordinator_validation: boolean | null
           responsible_role: string | null
+          sla_unit: string | null
           stage_id: string
+          task_code: string | null
           title: string
+          trigger_event: string | null
+          trigger_timing: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           deadline_hours?: number | null
           description?: string | null
+          escalation_to?: string | null
           id?: string
           is_required?: boolean
           order_index?: number
+          pipeline_id?: string | null
+          requires_coordinator_validation?: boolean | null
           responsible_role?: string | null
+          sla_unit?: string | null
           stage_id: string
+          task_code?: string | null
           title: string
+          trigger_event?: string | null
+          trigger_timing?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           deadline_hours?: number | null
           description?: string | null
+          escalation_to?: string | null
           id?: string
           is_required?: boolean
           order_index?: number
+          pipeline_id?: string | null
+          requires_coordinator_validation?: boolean | null
           responsible_role?: string | null
+          sla_unit?: string | null
           stage_id?: string
+          task_code?: string | null
           title?: string
+          trigger_event?: string | null
+          trigger_timing?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stage_checklist_templates_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stage_checklist_templates_stage_id_fkey"
             columns: ["stage_id"]
