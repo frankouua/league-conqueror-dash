@@ -49,7 +49,7 @@ export type CRMViewMode =
   | 'contacts' | 'postsale' | 'connections' | 'marketing' | 'calendar' | 'proposals'
   | 'predictive' | 'funnel' | 'team-performance' | 'gamification' | 'integrations'
   | 'surgery' | 'templates' | 'alerts' | 'pipeline-manager' | 'sentiment' | 'vendedores-kpis'
-  | 'cadence' | 'recurrences';
+  | 'cadence' | 'recurrences' | 'sla' | 'cadences-manager';
 
 interface CRMNavigationMenuProps {
   viewMode: CRMViewMode;
@@ -140,6 +140,8 @@ const MENU_GROUPS: MenuGroup[] = [
     icon: Zap,
     items: [
       { value: 'recurrences', label: 'Recorrências', icon: RefreshCw, color: 'text-amber-500' },
+      { value: 'cadences-manager', label: 'Cadências', icon: Timer, color: 'text-teal-500' },
+      { value: 'sla', label: 'SLA', icon: Clock, color: 'text-red-500' },
       { value: 'automations', label: 'Automações', icon: Zap },
       { value: 'marketing', label: 'Marketing', icon: Mail, color: 'text-purple-500' },
       { value: 'campaigns', label: 'Campanhas', icon: TrendingUp },
