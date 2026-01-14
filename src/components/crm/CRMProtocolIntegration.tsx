@@ -117,11 +117,45 @@ export function CRMProtocolIntegration({ selectedLead, onOfferSent }: CRMProtoco
       // Update lead with offered protocol
       const currentProcedures = selectedLead.interested_procedures || [];
       if (!currentProcedures.includes(protocol.name)) {
+        const nextProcedures = [...currentProcedures, protocol.name];
+
+        // Recalculate negotiation value as SUM of all selected items
+        // (Protocols + Procedures), instead of overwriting with only the last offered item.
+        const [protocolsRes, proceduresRes] = await Promise.all([
+          supabase
+            .from('protocols')
+            .select('name, price, promotional_price')
+            .in('name', nextProcedures),
+          supabase
+            .from('procedures')
+            .select('name, price, promotional_price')
+            .in('name', nextProcedures),
+        ]);
+
+        if (protocolsRes.error) throw protocolsRes.error;
+        if (proceduresRes.error) throw proceduresRes.error;
+
+        const priceByName = new Map<string, number>();
+        for (const p of (protocolsRes.data || [])) {
+          priceByName.set(p.name, p.promotional_price ?? p.price ?? 0);
+        }
+        for (const p of (proceduresRes.data || [])) {
+          // Avoid double-counting if a name exists in both tables
+          if (!priceByName.has(p.name)) {
+            priceByName.set(p.name, p.promotional_price ?? p.price ?? 0);
+          }
+        }
+
+        const computedEstimatedValue = nextProcedures.reduce(
+          (sum, name) => sum + (priceByName.get(name) ?? 0),
+          0
+        );
+
         await supabase
           .from('crm_leads')
-          .update({ 
-            interested_procedures: [...currentProcedures, protocol.name],
-            estimated_value: protocol.promotional_price || protocol.price,
+          .update({
+            interested_procedures: nextProcedures,
+            estimated_value: computedEstimatedValue > 0 ? computedEstimatedValue : selectedLead.estimated_value,
           })
           .eq('id', selectedLead.id);
       }
