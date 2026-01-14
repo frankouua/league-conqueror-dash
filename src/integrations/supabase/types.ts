@@ -457,6 +457,78 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_logs: {
+        Row: {
+          automation_type: string
+          completed_at: string | null
+          created_at: string
+          errors: string[] | null
+          id: string
+          results: Json | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          automation_type: string
+          completed_at?: string | null
+          created_at?: string
+          errors?: string[] | null
+          id?: string
+          results?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          automation_type?: string
+          completed_at?: string | null
+          created_at?: string
+          errors?: string[] | null
+          id?: string
+          results?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      automation_schedules: {
+        Row: {
+          automation_name: string
+          created_at: string
+          cron_expression: string
+          description: string | null
+          function_name: string
+          id: string
+          is_active: boolean | null
+          last_run_at: string | null
+          next_run_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          automation_name: string
+          created_at?: string
+          cron_expression: string
+          description?: string | null
+          function_name: string
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          next_run_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          automation_name?: string
+          created_at?: string
+          cron_expression?: string
+          description?: string | null
+          function_name?: string
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          next_run_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       calendar_event_invitations: {
         Row: {
           created_at: string | null

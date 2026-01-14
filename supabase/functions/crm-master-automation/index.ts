@@ -24,76 +24,45 @@ serve(async (req) => {
 
     console.log("🚀 Iniciando Orquestrador de Automações CRM...");
 
-    // 1. Executar Cadências
-    try {
-      const { data, error } = await supabase.functions.invoke('execute-cadences');
-      results.cadences = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`Cadências: ${e?.message || 'Erro desconhecido'}`);
-    }
+    // Lista completa de automações conforme documento
+    const automations = [
+      { name: 'cadences', fn: 'execute-cadences' },
+      { name: 'sla', fn: 'check-sla-alerts' },
+      { name: 'staleLeads', fn: 'check-stale-leads' },
+      { name: 'surgeryChecklist', fn: 'surgery-checklist-automation' },
+      { name: 'aiManager', fn: 'daily-ai-manager' },
+      { name: 'crmAlerts', fn: 'check-crm-alerts' },
+      { name: 'churn', fn: 'predict-churn' },
+      { name: 'recurrences', fn: 'identify-recurrences' },
+      { name: 'sellerAlerts', fn: 'daily-seller-alerts' },
+      { name: 'stageChange', fn: 'stage-change-automation' },
+      { name: 'escalation', fn: 'escalation-automation' },
+      { name: 'referral', fn: 'referral-automation' },
+      { name: 'whatsapp', fn: 'whatsapp-automation' },
+      { name: 'nps', fn: 'nps-automation' },
+      { name: 'temperature', fn: 'temperature-automation' },
+      { name: 'postSale', fn: 'post-sale-automation' },
+      { name: 'leadDistribution', fn: 'lead-distribution' },
+      { name: 'reactivation', fn: 'reactivation-automation' },
+      { name: 'crossSell', fn: 'cross-sell-automation' },
+      { name: 'birthday', fn: 'birthday-automation' },
+      { name: 'goalAchievement', fn: 'goal-achievement-automation' },
+    ];
 
-    // 2. Verificar SLA
-    try {
-      const { data, error } = await supabase.functions.invoke('check-sla-alerts');
-      results.sla = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`SLA: ${e?.message || 'Erro desconhecido'}`);
-    }
-
-    // 3. Verificar Leads Parados
-    try {
-      const { data, error } = await supabase.functions.invoke('check-stale-leads');
-      results.staleLeads = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`Leads Parados: ${e?.message || 'Erro desconhecido'}`);
-    }
-
-    // 4. Automação de Checklist Cirúrgico
-    try {
-      const { data, error } = await supabase.functions.invoke('surgery-checklist-automation');
-      results.surgeryChecklist = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`Checklist Cirúrgico: ${e?.message || 'Erro desconhecido'}`);
-    }
-
-    // 5. IA Manager Diário
-    try {
-      const { data, error } = await supabase.functions.invoke('daily-ai-manager');
-      results.aiManager = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`IA Manager: ${e?.message || 'Erro desconhecido'}`);
-    }
-
-    // 6. Alertas CRM
-    try {
-      const { data, error } = await supabase.functions.invoke('check-crm-alerts');
-      results.crmAlerts = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`Alertas CRM: ${e?.message || 'Erro desconhecido'}`);
-    }
-
-    // 7. Previsão de Churn
-    try {
-      const { data, error } = await supabase.functions.invoke('predict-churn');
-      results.churn = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`Churn: ${e?.message || 'Erro desconhecido'}`);
-    }
-
-    // 8. Identificar Recorrências
-    try {
-      const { data, error } = await supabase.functions.invoke('identify-recurrences');
-      results.recurrences = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`Recorrências: ${e?.message || 'Erro desconhecido'}`);
-    }
-
-    // 9. Alertas de Vendedores
-    try {
-      const { data, error } = await supabase.functions.invoke('daily-seller-alerts');
-      results.sellerAlerts = data || { error: error?.message };
-    } catch (e: any) {
-      errors.push(`Alertas Vendedores: ${e?.message || 'Erro desconhecido'}`);
+    // Executar cada automação
+    for (const automation of automations) {
+      try {
+        console.log(`⚙️ Executando: ${automation.name}...`);
+        const { data, error } = await supabase.functions.invoke(automation.fn);
+        results[automation.name] = data || { error: error?.message };
+        
+        if (error) {
+          errors.push(`${automation.name}: ${error.message}`);
+        }
+      } catch (e: any) {
+        errors.push(`${automation.name}: ${e?.message || 'Erro desconhecido'}`);
+        results[automation.name] = { error: e?.message };
+      }
     }
 
     // Registrar execução
@@ -102,14 +71,28 @@ serve(async (req) => {
       status: errors.length === 0 ? 'success' : 'partial',
       results: results,
       errors: errors.length > 0 ? errors : null,
+      completed_at: new Date().toISOString(),
     });
 
-    console.log("🎉 Orquestrador finalizado!", { results, errors });
+    // Atualizar schedule
+    await supabase
+      .from('automation_schedules')
+      .update({ last_run_at: new Date().toISOString() })
+      .eq('function_name', 'crm-master-automation');
+
+    console.log("🎉 Orquestrador finalizado!", { 
+      total: automations.length,
+      success: automations.length - errors.length,
+      errors: errors.length 
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
         message: "Automações executadas com sucesso",
+        total_automations: automations.length,
+        successful: automations.length - errors.length,
+        failed: errors.length,
         results,
         errors: errors.length > 0 ? errors : null,
         timestamp: new Date().toISOString(),
