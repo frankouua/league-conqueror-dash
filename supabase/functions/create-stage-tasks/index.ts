@@ -25,7 +25,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Creating tasks for lead ${lead_id} in stage ${stage_id}`);
+    console.log(`Creating checklist items for lead ${lead_id} in stage ${stage_id}`);
 
     // 1. Get task templates for this stage
     const { data: templates, error: templatesError } = await supabase
@@ -47,23 +47,23 @@ serve(async (req) => {
       );
     }
 
-    // 2. Check for existing tasks to avoid duplicates
-    const { data: existingTasks } = await supabase
-      .from('crm_lead_tasks')
-      .select('task_code')
+    // 2. Check for existing items in lead_checklist_items to avoid duplicates
+    const { data: existingItems } = await supabase
+      .from('lead_checklist_items')
+      .select('template_id')
       .eq('lead_id', lead_id)
-      .in('task_code', templates.map(t => t.task_code));
+      .eq('stage_id', stage_id);
 
-    const existingCodes = new Set(existingTasks?.map(t => t.task_code) || []);
+    const existingTemplateIds = new Set(existingItems?.map(t => t.template_id) || []);
 
-    // 3. Create tasks for each template
-    const tasksToCreate = [];
+    // 3. Create checklist items for each template
+    const itemsToCreate = [];
     const now = new Date();
 
     for (const template of templates) {
-      // Skip if task already exists
-      if (existingCodes.has(template.task_code)) {
-        console.log(`Task ${template.task_code} already exists, skipping`);
+      // Skip if item already exists for this template
+      if (existingTemplateIds.has(template.id)) {
+        console.log(`Checklist item for template ${template.task_code} already exists, skipping`);
         continue;
       }
 
@@ -90,45 +90,115 @@ serve(async (req) => {
         dueAt.setHours(dueAt.getHours() + template.deadline_hours);
       }
 
-      tasksToCreate.push({
+      itemsToCreate.push({
         lead_id,
         template_id: template.id,
-        task_code: template.task_code,
-        task_name: template.title,
-        task_description: template.description,
-        responsible_role: template.responsible_role,
-        assigned_to: assigned_to || null,
+        stage_id: stage_id,
+        title: template.title,
+        description: template.description,
+        is_custom: false,
+        is_completed: false,
         due_at: dueAt.toISOString(),
-        requires_coordinator_validation: template.requires_coordinator_validation,
-        status: 'pending'
+        is_overdue: false,
+        order_index: template.order_index,
       });
     }
 
-    if (tasksToCreate.length === 0) {
+    if (itemsToCreate.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'All tasks already exist', tasks_created: 0 }),
+        JSON.stringify({ message: 'All checklist items already exist', tasks_created: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 4. Insert tasks
-    const { data: createdTasks, error: insertError } = await supabase
-      .from('crm_lead_tasks')
-      .insert(tasksToCreate)
+    // 4. Insert into lead_checklist_items (used by CRMLeadChecklistPanel)
+    const { data: createdItems, error: insertError } = await supabase
+      .from('lead_checklist_items')
+      .insert(itemsToCreate)
       .select();
 
     if (insertError) {
-      console.error('Error creating tasks:', insertError);
+      console.error('Error creating checklist items:', insertError);
       throw insertError;
     }
 
-    console.log(`Created ${createdTasks?.length || 0} tasks for lead ${lead_id}`);
+    console.log(`Created ${createdItems?.length || 0} checklist items for lead ${lead_id}`);
+
+    // 5. Also create in crm_lead_tasks for task tracking compatibility
+    const tasksToCreate = templates
+      .filter(t => !existingTemplateIds.has(t.id))
+      .map((template, idx) => {
+        let dueAt = new Date(now);
+        
+        if (template.trigger_timing && surgery_date) {
+          const match = template.trigger_timing.match(/D([+-]?)(\d*)/);
+          if (match) {
+            const surgeryDateObj = new Date(surgery_date);
+            const sign = match[1] === '-' ? -1 : 1;
+            const days = parseInt(match[2] || '0');
+            dueAt = new Date(surgeryDateObj);
+            dueAt.setDate(dueAt.getDate() + (sign * days));
+            if (template.deadline_hours) {
+              dueAt.setHours(dueAt.getHours() + template.deadline_hours);
+            }
+          }
+        } else if (template.deadline_hours) {
+          dueAt.setHours(dueAt.getHours() + template.deadline_hours);
+        }
+
+        return {
+          lead_id,
+          template_id: template.id,
+          task_code: template.task_code,
+          task_name: template.title,
+          task_description: template.description,
+          responsible_role: template.responsible_role,
+          assigned_to: assigned_to || null,
+          due_at: dueAt.toISOString(),
+          requires_coordinator_validation: template.requires_coordinator_validation,
+          status: 'pending'
+        };
+      });
+
+    if (tasksToCreate.length > 0) {
+      // Check existing tasks to avoid duplicates
+      const { data: existingTasks } = await supabase
+        .from('crm_lead_tasks')
+        .select('task_code')
+        .eq('lead_id', lead_id)
+        .in('task_code', tasksToCreate.map(t => t.task_code));
+
+      const existingCodes = new Set(existingTasks?.map(t => t.task_code) || []);
+      const newTasks = tasksToCreate.filter(t => !existingCodes.has(t.task_code));
+
+      if (newTasks.length > 0) {
+        const { error: taskInsertError } = await supabase
+          .from('crm_lead_tasks')
+          .insert(newTasks);
+
+        if (taskInsertError) {
+          console.error('Error creating tasks (non-critical):', taskInsertError);
+          // Don't throw - the main checklist items were created successfully
+        }
+      }
+    }
+
+    // 6. Update lead with checklist counts
+    await supabase
+      .from('crm_leads')
+      .update({
+        checklist_total: (createdItems?.length || 0),
+        checklist_completed: 0,
+        checklist_overdue: 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', lead_id);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        tasks_created: createdTasks?.length || 0,
-        tasks: createdTasks 
+        tasks_created: createdItems?.length || 0,
+        items: createdItems 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

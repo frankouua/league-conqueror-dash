@@ -313,10 +313,27 @@ export function useCRMLeads(pipelineId?: string) {
         performed_by: user!.id,
       });
 
+      // ===== CRIAR TAREFAS DO CHECKLIST PARA O ESTÁGIO INICIAL =====
+      try {
+        await supabase.functions.invoke('create-stage-tasks', {
+          body: {
+            lead_id: data.id,
+            stage_id: data.stage_id,
+            pipeline_id: data.pipeline_id,
+            surgery_date: leadData.surgery_date,
+            assigned_to: leadData.assigned_to,
+          }
+        });
+        console.log('✅ Tarefas do checklist criadas para o novo lead', data.id);
+      } catch (taskError) {
+        console.error('Erro ao criar tarefas do checklist:', taskError);
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-checklist'] });
       toast({ title: 'Lead criado com sucesso!' });
     },
     onError: (error: any) => {
@@ -438,6 +455,8 @@ export function useCRMLeads(pipelineId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
       queryClient.invalidateQueries({ queryKey: ['crm-lead-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-checklist'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-routine-tasks'] });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao mover lead', description: error.message, variant: 'destructive' });

@@ -72,26 +72,26 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
   const additionalProcedures = (lead.interested_procedures?.length || 0) - 1;
   const currentValue = lead.estimated_value || 0;
   
-  // Discount info
-  const discountPercent = (lead as any).discount_percentage;
-  const discountAmount = (lead as any).discount_amount;
+  // Discount info - now properly typed from CRMLead interface
+  const discountPercent = lead.discount_percentage || 0;
+  const discountAmount = lead.discount_amount || 0;
   const hasDiscount = discountPercent > 0 || discountAmount > 0;
   
-  // Payment info
-  const paymentMethod = (lead as any).payment_method;
-  const paymentInstallments = (lead as any).payment_installments;
+  // Payment info - now properly typed from CRMLead interface
+  const paymentMethod = lead.payment_method;
+  const paymentInstallments = lead.payment_installments;
   
-  // AI Score
-  const aiScore = (lead as any).ai_score;
-  const aiProbability = (lead as any).ai_conversion_probability;
+  // AI Score - now properly typed from CRMLead interface
+  const aiScore = lead.ai_score;
+  const aiProbability = lead.ai_conversion_probability;
   
   // Lead Score (MQL) - from marketing forms
-  const leadScore = (lead as any).lead_score || 0;
+  const leadScore = lead.lead_score || 0;
   const isHighPriorityLead = leadScore >= 70;
   
-  // Next action
-  const nextAction = (lead as any).next_action;
-  const nextActionDate = (lead as any).next_action_date;
+  // Next action - now properly typed from CRMLead interface
+  const nextAction = lead.next_action;
+  const nextActionDate = lead.next_action_date;
   
   // Historical data (past purchases) - MINIMIZED
   const historicalTotal = (lead as any).historical_total_value || 0;

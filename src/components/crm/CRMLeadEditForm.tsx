@@ -187,6 +187,11 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
     authority_score: lead?.authority_score || 0,
     need_score: lead?.need_score || 0,
     timing_score: lead?.timing_score || 0,
+    // Discount and payment fields
+    discount_percentage: lead?.discount_percentage?.toString() || '',
+    discount_amount: lead?.discount_amount?.toString() || '',
+    payment_method: lead?.payment_method || '',
+    payment_installments: lead?.payment_installments?.toString() || '',
   });
 
   // Track if user manually overrode the value
@@ -427,6 +432,11 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
         authority_score: formData.authority_score || null,
         need_score: formData.need_score || null,
         timing_score: formData.timing_score || null,
+        // Discount and payment fields
+        discount_percentage: formData.discount_percentage ? parseFloat(formData.discount_percentage) : null,
+        discount_amount: formData.discount_amount ? parseFloat(formData.discount_amount) : null,
+        payment_method: formData.payment_method || null,
+        payment_installments: formData.payment_installments ? parseInt(formData.payment_installments) : null,
       });
 
       // Log negotiation change if there were changes
@@ -700,6 +710,71 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
                 >
                   ⭐ {formData.is_priority ? 'Prioritário' : 'Marcar Prioritário'}
                 </Button>
+              </div>
+            </div>
+
+            {/* Discount and Payment - NEGOTIATION CONDITIONS */}
+            <div className="space-y-3 pt-2 border-t">
+              <Label className="flex items-center gap-2 text-green-600">
+                <DollarSign className="h-4 w-4" />
+                Condições da Negociação
+              </Label>
+              <div className="grid grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Desconto %</Label>
+                  <Input
+                    type="number"
+                    value={formData.discount_percentage}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discount_percentage: e.target.value }))}
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Desconto R$</Label>
+                  <Input
+                    type="number"
+                    value={formData.discount_amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discount_amount: e.target.value }))}
+                    placeholder="0"
+                    min="0"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Forma Pgto</Label>
+                  <Select
+                    value={formData.payment_method || '__none__'}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, payment_method: v === '__none__' ? '' : v }))}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Não definido</SelectItem>
+                      <SelectItem value="pix">PIX</SelectItem>
+                      <SelectItem value="credit_card">Cartão Crédito</SelectItem>
+                      <SelectItem value="debit">Cartão Débito</SelectItem>
+                      <SelectItem value="cash">Dinheiro</SelectItem>
+                      <SelectItem value="financing">Financiamento</SelectItem>
+                      <SelectItem value="installment">Parcelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Parcelas</Label>
+                  <Input
+                    type="number"
+                    value={formData.payment_installments}
+                    onChange={(e) => setFormData(prev => ({ ...prev, payment_installments: e.target.value }))}
+                    placeholder="1"
+                    min="1"
+                    max="48"
+                    className="h-8"
+                  />
+                </div>
               </div>
             </div>
 
