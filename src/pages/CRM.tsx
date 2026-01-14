@@ -55,6 +55,9 @@ import { CRMDailyOverview } from "@/components/crm/CRMDailyOverview";
 import { CRMSentimentDashboard } from "@/components/crm/CRMSentimentDashboard";
 import { CRMVendedoresKPIsDashboard } from "@/components/crm/CRMVendedoresKPIsDashboard";
 import { CRMRecurrenceDashboard } from "@/components/crm/CRMRecurrenceDashboard";
+import { CRMGamificationWidget } from "@/components/crm/CRMGamificationWidget";
+import { CRMSLADashboard } from "@/components/crm/CRMSLADashboard";
+import { CRMCadencesManager } from "@/components/crm/CRMCadencesManager";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -493,7 +496,10 @@ const CRM = () => {
         )}
 
         {viewMode === 'gamification' && (
-          <CRMGamificationDashboard />
+          <div className="space-y-6">
+            <CRMGamificationDashboard />
+            <CRMGamificationWidget />
+          </div>
         )}
 
         {viewMode === 'vendedores-kpis' && (
@@ -539,6 +545,14 @@ const CRM = () => {
           </Card>
         )}
         
+        {viewMode === 'sla' && (
+          <CRMSLADashboard />
+        )}
+
+        {viewMode === 'cadences-manager' && (
+          <CRMCadencesManager />
+        )}
+
         {viewMode === 'cadence' && (
           <CRMCadenceAnalytics />
         )}
