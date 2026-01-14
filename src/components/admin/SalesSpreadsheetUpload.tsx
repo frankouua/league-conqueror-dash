@@ -1310,22 +1310,49 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     }
     
     // Buscar um user/team padrão para linhas sem vendedor mapeado
-    const { data: adminProfile } = await supabase
+    // (fallback: o próprio usuário logado e o team_id do profile)
+    const { data: adminProfile, error: adminProfileError } = await supabase
       .from('profiles')
       .select('user_id, team_id')
       .not('team_id', 'is', null)
       .limit(1)
       .single();
-    
-    const defaultUserId = adminProfile?.user_id || user?.id;
-    const defaultTeamId = adminProfile?.team_id;
-    
+
+    if (adminProfileError) {
+      console.warn('[Upload] Could not fetch fallback admin profile:', adminProfileError);
+    }
+
+    const defaultUserId = adminProfile?.user_id || user?.id || null;
+    const defaultTeamId = adminProfile?.team_id || profile?.team_id || null;
+
+    if (!defaultUserId || !defaultTeamId) {
+      toast({
+        title: 'Configuração incompleta',
+        description:
+          'Não foi possível determinar um usuário/time padrão para importar as linhas sem mapeamento. Verifique se o seu usuário possui time vinculado.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Converter vendas sem mapeamento para usar o padrão
-    const validSales = allSales.map(sale => ({
-      ...sale,
-      matchedUserId: sale.matchedUserId || defaultUserId || null,
-      matchedTeamId: sale.matchedTeamId || defaultTeamId || null,
-    })).filter(s => s.matchedUserId && s.matchedTeamId);
+    const validSales = allSales
+      .map((sale) => ({
+        ...sale,
+        matchedUserId: sale.matchedUserId || defaultUserId,
+        matchedTeamId: sale.matchedTeamId || defaultTeamId,
+      }))
+      .filter((s) => s.matchedUserId && s.matchedTeamId);
+
+    if (validSales.length === 0) {
+      toast({
+        title: 'Nada para importar',
+        description:
+          'Nenhuma linha ficou elegível para importação após aplicar time/usuário padrão. Verifique o mapeamento de vendedores e o time do seu usuário.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsImporting(true);
     setImportErrors([]); // Clear previous errors
