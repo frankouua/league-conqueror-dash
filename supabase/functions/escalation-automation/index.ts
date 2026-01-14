@@ -36,8 +36,7 @@ serve(async (req) => {
       .from('crm_leads')
       .select(`
         id, name, phone, email, assigned_to, team_id, pipeline_id, stage_id,
-        stage_changed_at, created_at, estimated_value, contract_value,
-        assigned_user:profiles!crm_leads_assigned_to_fkey(id, full_name, position, team_id)
+        stage_changed_at, created_at, estimated_value, contract_value
       `)
       .in('pipeline_id', pipelineIds)
       .is('won_at', null)
@@ -105,7 +104,17 @@ serve(async (req) => {
 
       if (newAssignee) {
         const leadTags = (lead as any).tags || [];
-        const assignedUserName = Array.isArray(lead.assigned_user) ? lead.assigned_user[0]?.full_name : lead.assigned_user?.full_name;
+        
+        // Buscar nome do usuário anterior
+        let assignedUserName = 'Não atribuído';
+        if (lead.assigned_to) {
+          const { data: prevUser } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', lead.assigned_to)
+            .single();
+          assignedUserName = prevUser?.full_name || 'Não atribuído';
+        }
         
         const { error: updateError } = await supabase
           .from('crm_leads')
