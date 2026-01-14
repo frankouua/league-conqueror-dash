@@ -42,6 +42,7 @@ import { CRMBANTDisplay } from './CRMBANTDisplay';
 import { CRMQuickActions } from './CRMQuickActions';
 import { CRMTransferDialog } from './CRMTransferDialog';
 import { CRMLeadChecklist } from './CRMLeadChecklist';
+import { CRMLeadChecklistPanel } from './CRMLeadChecklistPanel';
 import { CRMTemperatureBadge, CRMTemperatureSelector } from './CRMTemperatureBadge';
 import { CRMInternalChat } from './CRMInternalChat';
 import { CRMLeadInteractions } from './CRMLeadInteractions';
@@ -362,6 +363,9 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               <TabsContent value="checklist" className="m-0 space-y-3 sm:space-y-4">
                 {lead && (
                   <>
+                    {/* New Stage-based Checklist Panel */}
+                    <CRMLeadChecklistPanel leadId={lead.id} />
+                    
                     {/* Journey Protocol Suggestions */}
                     <CRMJourneyProtocolSuggestions 
                       lead={lead} 
@@ -372,6 +376,7 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                     {/* Script Suggestions based on stage */}
                     <CRMLeadScriptSuggestions lead={lead} compact />
                     
+                    {/* Legacy Checklist for backwards compatibility */}
                     <CRMLeadChecklist 
                       lead={lead} 
                       stage={currentStage || null}
