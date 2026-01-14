@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useCRMLeads } from '@/hooks/useCRM';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,7 +28,6 @@ export function CRMSurgeryDateEditor({
 }: CRMSurgeryDateEditorProps) {
   const { toast } = useToast();
   const { profile } = useAuth();
-  const { updateLead } = useCRMLeads(pipelineId);
   const [isEditing, setIsEditing] = useState(false);
   const [newDate, setNewDate] = useState(surgeryDate ? surgeryDate.split('T')[0] : '');
   const [saving, setSaving] = useState(false);
@@ -39,10 +37,16 @@ export function CRMSurgeryDateEditor({
     try {
       const oldDate = surgeryDate;
       
-      await updateLead.mutateAsync({
-        id: leadId,
-        surgery_date: newDate || null,
-      });
+      // Update lead directly via supabase for immediate response
+      const { error: updateError } = await supabase
+        .from('crm_leads')
+        .update({ 
+          surgery_date: newDate || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId);
+      
+      if (updateError) throw updateError;
 
       // Log history
       await supabase.from('crm_lead_history').insert({
@@ -57,10 +61,18 @@ export function CRMSurgeryDateEditor({
         new_value: newDate || null,
       });
 
-      toast({ title: 'Data da cirurgia atualizada!' });
+      toast({ 
+        title: '✅ Data da cirurgia atualizada!',
+        description: newDate 
+          ? `Nova data: ${format(new Date(newDate), "dd/MM/yyyy", { locale: ptBR })}`
+          : 'Data removida'
+      });
       setIsEditing(false);
+      
+      // Force refetch of lead data
       onUpdate?.();
     } catch (error: any) {
+      console.error('Erro ao salvar data da cirurgia:', error);
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
     } finally {
       setSaving(false);
