@@ -746,45 +746,118 @@ const ReferralLeads = () => {
                   return (
                     <div
                       key={lead.id}
-                      onClick={() => handleOpenEditDialog(lead)}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`p-3 rounded-lg transition-colors ${
                         urgencyLevel 
                           ? urgencyStyles[urgencyLevel] 
                           : "bg-secondary/50 hover:bg-secondary border border-transparent hover:border-primary/30"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-1">
-                        <p className="font-medium text-foreground text-sm truncate flex-1">
-                          {lead.referred_name}
+                      <div 
+                        onClick={() => handleOpenEditDialog(lead)}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between gap-1">
+                          <p className="font-medium text-foreground text-sm truncate flex-1">
+                            {lead.referred_name}
+                          </p>
+                          {urgencyLevel && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] px-1.5 py-0 shrink-0 ${
+                                urgencyLevel === "critical" ? "border-red-500 text-red-500 bg-red-500/20" :
+                                urgencyLevel === "warning" ? "border-orange-500 text-orange-500 bg-orange-500/20" :
+                                "border-yellow-500 text-yellow-500 bg-yellow-500/20"
+                              }`}
+                            >
+                              <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                              {urgencyLabel}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          Indicado por: {lead.referrer_name}
                         </p>
-                        {urgencyLevel && (
-                          <Badge 
-                            variant="outline" 
-                            className={`text-[10px] px-1.5 py-0 shrink-0 ${
-                              urgencyLevel === "critical" ? "border-red-500 text-red-500 bg-red-500/20" :
-                              urgencyLevel === "warning" ? "border-orange-500 text-orange-500 bg-orange-500/20" :
-                              "border-yellow-500 text-yellow-500 bg-yellow-500/20"
-                            }`}
-                          >
-                            <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
-                            {urgencyLabel}
+                        {lead.referred_phone && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <Phone className="w-3 h-3" />
+                            {lead.referred_phone}
+                          </p>
+                        )}
+                        {lead.registered_profile && (
+                          <p className="text-xs text-primary/80 mt-1 truncate">
+                            Coletado por: {lead.registered_profile.full_name.split(" ")[0]}
+                          </p>
+                        )}
+                        {lead.assigned_profile && (
+                          <Badge variant="outline" className="mt-2 text-xs">
+                            {lead.assigned_profile.full_name.split(" ")[0]}
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        Indicado por: {lead.referrer_name}
-                      </p>
-                      {lead.referred_phone && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                          <Phone className="w-3 h-3" />
-                          {lead.referred_phone}
-                        </p>
-                      )}
-                      {lead.assigned_profile && (
-                        <Badge variant="outline" className="mt-2 text-xs">
-                          {lead.assigned_profile.full_name.split(" ")[0]}
-                        </Badge>
-                      )}
+                      
+                      {/* Quick status change */}
+                      <div className="mt-2 pt-2 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={lead.status}
+                          onValueChange={async (newStatus: ReferralLeadStatus) => {
+                            if (newStatus === lead.status) return;
+                            try {
+                              const { error } = await supabase
+                                .from("referral_leads")
+                                .update({ 
+                                  status: newStatus, 
+                                  last_contact_at: new Date().toISOString() 
+                                })
+                                .eq("id", lead.id);
+                              
+                              if (error) throw error;
+                              
+                              // Add history entry
+                              await supabase.from("referral_lead_history").insert({
+                                lead_id: lead.id,
+                                old_status: lead.status,
+                                new_status: newStatus,
+                                changed_by: user?.id,
+                                note: `Status alterado para ${STATUS_CONFIG[newStatus].label}`,
+                              });
+                              
+                              // Send notification
+                              sendLeadNotification("status_change", {
+                                lead_id: lead.id,
+                                lead_name: lead.referred_name,
+                                referrer_name: lead.referrer_name,
+                                team_id: lead.team_id,
+                                old_status: lead.status,
+                                new_status: newStatus,
+                                assigned_to: lead.assigned_to || undefined,
+                              });
+                              
+                              toast({ title: "Status atualizado!" });
+                              fetchLeads();
+                            } catch (error: any) {
+                              toast({ 
+                                title: "Erro", 
+                                description: error.message, 
+                                variant: "destructive" 
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-xs bg-background/50 border-border/50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            {STATUS_ORDER.map((s) => (
+                              <SelectItem key={s} value={s} className="text-xs">
+                                <span className="flex items-center gap-1.5">
+                                  {STATUS_CONFIG[s].icon}
+                                  {STATUS_CONFIG[s].label}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   );
                 })}
