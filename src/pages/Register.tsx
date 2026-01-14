@@ -46,7 +46,7 @@ const Register = () => {
     setRefreshKey((prev) => prev + 1);
   };
 
-  const RevenueModeSelector = () => (
+  const renderRevenueModeSelector = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-xl font-bold text-foreground mb-2">Como deseja registrar?</h3>
@@ -55,7 +55,7 @@ const Register = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Upload Vendas */}
-        <Card 
+        <Card
           className="cursor-pointer border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all group"
           onClick={() => setRevenueMode('upload-vendas')}
         >
@@ -67,9 +67,7 @@ const Register = () => {
             <CardDescription className="text-xs">Planilha de Competência</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-xs text-muted-foreground mb-3">
-              Importe dados de vendas do Feegow
-            </p>
+            <p className="text-xs text-muted-foreground mb-3">Importe dados de vendas do Feegow</p>
             <Button variant="outline" size="sm" className="w-full gap-2">
               <Upload className="w-4 h-4" />
               Selecionar
@@ -78,7 +76,7 @@ const Register = () => {
         </Card>
 
         {/* Upload Execução */}
-        <Card 
+        <Card
           className="cursor-pointer border-2 border-border hover:border-success/50 hover:bg-success/5 transition-all group"
           onClick={() => setRevenueMode('upload-executado')}
         >
@@ -90,9 +88,7 @@ const Register = () => {
             <CardDescription className="text-xs">Planilha de Executados</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-xs text-muted-foreground mb-3">
-              Importe dados de procedimentos realizados
-            </p>
+            <p className="text-xs text-muted-foreground mb-3">Importe dados de procedimentos realizados</p>
             <Button variant="outline" size="sm" className="w-full gap-2 border-success/50 text-success hover:bg-success/10">
               <Upload className="w-4 h-4" />
               Selecionar
@@ -101,7 +97,7 @@ const Register = () => {
         </Card>
 
         {/* Registro Manual */}
-        <Card 
+        <Card
           className="cursor-pointer border-2 border-border hover:border-amber-500/50 hover:bg-amber-500/5 transition-all group"
           onClick={() => setRevenueMode('manual')}
         >
@@ -113,9 +109,7 @@ const Register = () => {
             <CardDescription className="text-xs">Inserir dados manualmente</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-xs text-muted-foreground mb-3">
-              Registre vendas individuais uma a uma
-            </p>
+            <p className="text-xs text-muted-foreground mb-3">Registre vendas individuais uma a uma</p>
             <Button variant="outline" size="sm" className="w-full gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-500/10">
               <PenLine className="w-4 h-4" />
               Registrar
@@ -126,24 +120,20 @@ const Register = () => {
     </div>
   );
 
-  const RevenueContent = () => {
-    if (revenueMode === 'select') {
-      return <RevenueModeSelector />;
-    }
+  const renderRevenueContent = () => {
+    if (revenueMode === 'select') return renderRevenueModeSelector();
 
     return (
       <div className="space-y-4">
-        {/* Back button */}
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setRevenueMode('select')}
           className="gap-2 text-muted-foreground hover:text-foreground"
         >
           ← Voltar para opções
         </Button>
 
-        {/* Content based on mode */}
         {revenueMode === 'upload-vendas' && (
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -222,7 +212,7 @@ const Register = () => {
             </TabsList>
           </div>
 
-          <TabsContent value="revenue" className="animate-scale-in"><RevenueContent /></TabsContent>
+          <TabsContent value="revenue" className="animate-scale-in">{renderRevenueContent()}</TabsContent>
           <TabsContent value="testimonials" className="animate-scale-in"><TestimonialForm /></TabsContent>
           <TabsContent value="nps" className="animate-scale-in"><NPSForm /></TabsContent>
           <TabsContent value="other" className="animate-scale-in"><OtherIndicatorsForm /></TabsContent>
