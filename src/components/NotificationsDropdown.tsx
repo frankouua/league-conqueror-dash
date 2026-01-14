@@ -18,11 +18,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink, Megaphone, X, Flame, Sun, BarChart3 } from "lucide-react";
+import { Bell, Check, Target, Trophy, Award, Sparkles, AlertTriangle, ExternalLink, Megaphone, X, Flame, Sun, BarChart3, Phone, User, UserPlus, Zap } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { playUrgentAlertSound, playNotificationSound } from "@/lib/sounds";
 
 interface Notification {
   id: string;
@@ -40,6 +42,7 @@ const NotificationsDropdown = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [popupNotification, setPopupNotification] = useState<Notification | null>(null);
+  const [referralPopup, setReferralPopup] = useState<Notification | null>(null);
   const shownNotifications = useRef<Set<string>>(new Set());
   const { data: notifications } = useQuery({
     queryKey: ["notifications", user?.id, profile?.team_id],
@@ -96,6 +99,7 @@ const NotificationsDropdown = () => {
           ) {
             shownNotifications.current.add(newNotification.id);
             setPopupNotification(newNotification);
+            playNotificationSound();
             
             toast({
               title: `📢 ${newNotification.title}`,
@@ -104,30 +108,51 @@ const NotificationsDropdown = () => {
             });
           }
           
-          // Show toast for lead assignment - IMMEDIATE notification to seller
+          // 🚨 URGENT POPUP for lead assignment - IMPOSSIBLE TO IGNORE!
           if (
             newNotification.type === "lead_assigned" &&
             newNotification.user_id === user.id &&
             !shownNotifications.current.has(newNotification.id)
           ) {
             shownNotifications.current.add(newNotification.id);
+            playUrgentAlertSound();
+            setReferralPopup(newNotification);
+            
             toast({
-              title: `🎯 ${newNotification.title}`,
-              description: newNotification.message + " Clique no sininho para ver.",
-              duration: 10000,
+              title: `🚨 NOVA INDICAÇÃO ATRIBUÍDA!`,
+              description: newNotification.message + " Precisa entrar em contato AGORA!",
+              duration: 15000,
             });
           }
           
-          // Show toast for new referral leads to the team
+          // 🚨 URGENT POPUP for new referral leads to the team
           if (
             newNotification.type === "new_referral" &&
             !shownNotifications.current.has(newNotification.id)
           ) {
             shownNotifications.current.add(newNotification.id);
+            playUrgentAlertSound();
+            setReferralPopup(newNotification);
+            
             toast({
-              title: `✨ ${newNotification.title}`,
+              title: `🔥 NOVA INDICAÇÃO NO TIME!`,
               description: newNotification.message,
-              duration: 6000,
+              duration: 15000,
+            });
+          }
+          
+          // Show toast for referral approval/rejection
+          if (
+            (newNotification.type === "referral_approved" || newNotification.type === "referral_rejected") &&
+            !shownNotifications.current.has(newNotification.id)
+          ) {
+            shownNotifications.current.add(newNotification.id);
+            playNotificationSound();
+            
+            toast({
+              title: newNotification.title,
+              description: newNotification.message,
+              duration: 8000,
             });
           }
           
@@ -137,6 +162,7 @@ const NotificationsDropdown = () => {
             !shownNotifications.current.has(newNotification.id)
           ) {
             shownNotifications.current.add(newNotification.id);
+            playNotificationSound();
             toast({
               title: `🏆 ${newNotification.title}`,
               description: newNotification.message,
@@ -209,9 +235,9 @@ const NotificationsDropdown = () => {
         return <Megaphone className="w-4 h-4 text-primary" />;
       // New referral lead notification types
       case "new_referral":
-        return <Sparkles className="w-4 h-4 text-green-500" />;
+        return <UserPlus className="w-4 h-4 text-amber-500" />;
       case "lead_assigned":
-        return <Bell className="w-4 h-4 text-blue-500" />;
+        return <Zap className="w-4 h-4 text-amber-500" />;
       case "lead_milestone":
         return <Trophy className="w-4 h-4 text-emerald-500" />;
       case "lead_alert":
@@ -220,6 +246,11 @@ const NotificationsDropdown = () => {
         return <Target className="w-4 h-4 text-cyan-500" />;
       case "lead_reminder":
         return <Bell className="w-4 h-4 text-amber-500" />;
+      // Referral approval/rejection
+      case "referral_approved":
+        return <Check className="w-4 h-4 text-green-500" />;
+      case "referral_rejected":
+        return <X className="w-4 h-4 text-red-500" />;
       // Timed reminders
       case "lead_reminder_2h":
         return <Flame className="w-4 h-4 text-red-500" />;
@@ -251,6 +282,21 @@ const NotificationsDropdown = () => {
     }
   };
 
+  const handleCloseReferralPopup = () => {
+    if (referralPopup) {
+      markAsRead.mutate(referralPopup.id);
+      setReferralPopup(null);
+    }
+  };
+
+  const handleGoToReferrals = () => {
+    if (referralPopup) {
+      markAsRead.mutate(referralPopup.id);
+      setReferralPopup(null);
+      navigate("/referral-leads");
+    }
+  };
+
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {
       markAsRead.mutate(notification.id);
@@ -268,6 +314,8 @@ const NotificationsDropdown = () => {
       case "lead_reminder":
       case "lead_reminder_2h":
       case "lead_reminder_24h":
+      case "referral_approved":
+      case "referral_rejected":
         navigate("/referral-leads");
         break;
       
@@ -322,6 +370,60 @@ const NotificationsDropdown = () => {
 
   return (
     <>
+      {/* 🚨 URGENT POPUP for Referral Leads - Impossible to Ignore! */}
+      <Dialog open={!!referralPopup} onOpenChange={(open) => !open && handleCloseReferralPopup()}>
+        <DialogContent className="sm:max-w-lg border-2 border-amber-500/50 bg-gradient-to-b from-amber-500/10 to-background">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 rounded-full bg-amber-500/20 animate-pulse">
+                <Zap className="w-7 h-7 text-amber-500" />
+              </div>
+              <div>
+                <Badge variant="destructive" className="mb-1 animate-pulse">
+                  ⚡ AÇÃO IMEDIATA NECESSÁRIA
+                </Badge>
+                <DialogTitle className="text-xl font-bold">
+                  {referralPopup?.title}
+                </DialogTitle>
+              </div>
+            </div>
+            <DialogDescription className="pt-4 text-base text-foreground whitespace-pre-wrap bg-card/50 p-4 rounded-lg border">
+              {referralPopup?.message}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/30 mt-2">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-semibold text-amber-600 dark:text-amber-400 mb-1">
+                  Indicações têm CAC ZERO!
+                </p>
+                <p className="text-muted-foreground">
+                  Leads indicados convertem até 3x mais. Entre em contato o mais rápido possível para não deixar esfriar!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <span className="text-xs text-muted-foreground flex-1">
+              {referralPopup && formatDistanceToNow(new Date(referralPopup.created_at), {
+                addSuffix: true,
+                locale: ptBR,
+              })}
+            </span>
+            <Button variant="outline" onClick={handleCloseReferralPopup}>
+              Entendi
+            </Button>
+            <Button onClick={handleGoToReferrals} className="bg-amber-500 hover:bg-amber-600 text-black font-bold">
+              <Phone className="w-4 h-4 mr-2" />
+              Ver Indicação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Popup Dialog for Admin Announcements */}
       <Dialog open={!!popupNotification} onOpenChange={(open) => !open && handleClosePopup()}>
         <DialogContent className="sm:max-w-md">
@@ -390,7 +492,7 @@ const NotificationsDropdown = () => {
               key={notification.id}
             className={`flex items-start gap-3 p-3 cursor-pointer ${
                 !notification.read ? "bg-primary/5" : ""
-              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10 border-l-2 border-amber-500" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""} ${notification.type === "new_referral" ? "hover:bg-green-500/10 border-l-2 border-green-500" : ""} ${notification.type === "lead_milestone" ? "hover:bg-emerald-500/10 border-l-2 border-emerald-500" : ""} ${notification.type === "lead_assigned" ? "hover:bg-blue-500/10 border-l-2 border-blue-500" : ""} ${notification.type === "lead_alert" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "lead_reminder_2h" ? "hover:bg-red-500/10 border-l-2 border-red-500 animate-pulse" : ""} ${notification.type === "lead_reminder_24h" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "morning_summary" ? "hover:bg-amber-500/10 border-l-2 border-amber-500" : ""} ${notification.type === "weekly_report" ? "hover:bg-info/10 border-l-2 border-info" : ""}`}
+              } ${notification.type === "stale_lead" ? "hover:bg-orange-500/10" : ""} ${notification.type === "goal_reminder" ? "hover:bg-blue-500/10" : ""} ${notification.type === "goal_near" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "seller_critical" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "seller_warning" ? "hover:bg-amber-500/10 border-l-2 border-amber-500" : ""} ${notification.type === "admin_announcement" ? "hover:bg-primary/10 border-l-2 border-primary" : ""} ${notification.type === "new_referral" ? "hover:bg-amber-500/10 border-l-2 border-amber-500 bg-amber-500/5" : ""} ${notification.type === "lead_milestone" ? "hover:bg-emerald-500/10 border-l-2 border-emerald-500" : ""} ${notification.type === "lead_assigned" ? "hover:bg-amber-500/10 border-l-2 border-amber-500 bg-amber-500/5" : ""} ${notification.type === "lead_alert" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""} ${notification.type === "lead_reminder_2h" ? "hover:bg-red-500/10 border-l-2 border-red-500 animate-pulse" : ""} ${notification.type === "lead_reminder_24h" ? "hover:bg-orange-500/10 border-l-2 border-orange-500" : ""} ${notification.type === "morning_summary" ? "hover:bg-amber-500/10 border-l-2 border-amber-500" : ""} ${notification.type === "weekly_report" ? "hover:bg-info/10 border-l-2 border-info" : ""} ${notification.type === "referral_approved" ? "hover:bg-green-500/10 border-l-2 border-green-500" : ""} ${notification.type === "referral_rejected" ? "hover:bg-red-500/10 border-l-2 border-red-500" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="mt-0.5">
@@ -449,9 +551,20 @@ const NotificationsDropdown = () => {
                     </span>
                   )}
                   {(notification.type === "new_referral" || notification.type === "lead_assigned") && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500 text-amber-500 font-bold animate-pulse">
+                      ⚡ URGENTE
+                    </Badge>
+                  )}
+                  {(notification.type === "referral_approved") && (
                     <span className="text-xs text-green-500 flex items-center gap-1">
                       <ExternalLink className="w-3 h-3" />
                       Ver indicação
+                    </span>
+                  )}
+                  {(notification.type === "referral_rejected") && (
+                    <span className="text-xs text-red-500 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Ver detalhes
                     </span>
                   )}
                   {notification.type === "lead_milestone" && (
