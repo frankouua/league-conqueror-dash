@@ -268,11 +268,36 @@ const ReferralLeads = () => {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [leadToReject, setLeadToReject] = useState<ReferralLead | null>(null);
   
+  // Feature announcement popup
+  const [showEvidenceAnnouncement, setShowEvidenceAnnouncement] = useState(false);
+  const EVIDENCE_ANNOUNCEMENT_KEY = "referral_evidence_announcement_seen_v1";
+  
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+  
+  // Check if user has seen the evidence announcement
+  useEffect(() => {
+    if (user) {
+      const hasSeenAnnouncement = localStorage.getItem(`${EVIDENCE_ANNOUNCEMENT_KEY}_${user.id}`);
+      if (!hasSeenAnnouncement) {
+        // Delay a bit to not show immediately on page load
+        const timer = setTimeout(() => {
+          setShowEvidenceAnnouncement(true);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user]);
+  
+  const handleDismissEvidenceAnnouncement = () => {
+    if (user) {
+      localStorage.setItem(`${EVIDENCE_ANNOUNCEMENT_KEY}_${user.id}`, "true");
+    }
+    setShowEvidenceAnnouncement(false);
+  };
 
   const fetchLeads = async () => {
     // Admins can see all, members need team_id
@@ -2006,6 +2031,66 @@ const ReferralLeads = () => {
                 Abrir em nova aba
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Popup de Anúncio: Novo Processo de Evidência */}
+      <Dialog open={showEvidenceAnnouncement} onOpenChange={setShowEvidenceAnnouncement}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2 text-lg">
+              <div className="p-2 rounded-full bg-primary/20">
+                <Image className="w-6 h-6 text-primary" />
+              </div>
+              Novo Processo de Indicação! 📸
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              Atenção equipe! Temos uma atualização importante.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+              <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-primary" />
+                Evidência Obrigatória
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                A partir de agora, ao registrar uma <strong className="text-foreground">nova indicação</strong>, 
+                é necessário anexar o <strong className="text-primary">print do WhatsApp</strong> comprovando 
+                que você estimulou ativamente a indicação.
+              </p>
+            </div>
+            
+            <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+              <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-yellow-500" />
+                Por que isso é importante?
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>✅ Ajuda na validação rápida da indicação</li>
+                <li>✅ Garante que os pontos sejam aprovados</li>
+                <li>✅ Comprova a origem da indicação</li>
+              </ul>
+            </div>
+
+            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+              <p className="text-sm text-green-400 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                <span>Indicações com print são aprovadas mais rápido!</span>
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              className="w-full bg-primary hover:bg-primary/90"
+              onClick={handleDismissEvidenceAnnouncement}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Entendi, vou anexar os prints!
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
