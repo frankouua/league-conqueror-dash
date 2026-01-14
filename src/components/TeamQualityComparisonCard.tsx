@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  Star, MessageSquare, Heart, Sparkles, Trophy, ChevronDown
+  Star, MessageSquare, Heart, Sparkles, Trophy, Calendar
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import brasaoLioness from "@/assets/brasao-lioness-team.png";
+import brasaoTroia from "@/assets/brasao-troia-team.png";
 
 type PeriodFilter = "month" | "year" | "all";
 
@@ -57,7 +58,6 @@ const TeamQualityComparisonCard = () => {
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [teamStats, setTeamStats] = useState<TeamQualityStats[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const fetchQualityStats = async () => {
@@ -103,7 +103,7 @@ const TeamQualityComparisonCard = () => {
 
           // Referrals from referral_leads table (Alavancas)
           const teamReferrals = allReferralLeads?.filter(r => r.team_id === team.id) || [];
-          const referralsCollected = teamReferrals.length; // All collected
+          const referralsCollected = teamReferrals.length;
           const referralsConsultation = teamReferrals.filter(r => r.status === "agendou" || r.status === "operou").length;
           const referralsSurgery = teamReferrals.filter(r => r.status === "operou").length;
 
@@ -154,10 +154,15 @@ const TeamQualityComparisonCard = () => {
 
   if (isLoading) {
     return (
-      <Card className="bg-muted/30 border-border">
-        <CardHeader className="py-2 px-3">
-          <Skeleton className="h-4 w-40" />
+      <Card className="bg-gradient-card border-border">
+        <CardHeader className="py-3 px-4">
+          <Skeleton className="h-5 w-48" />
         </CardHeader>
+        <CardContent className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </CardContent>
       </Card>
     );
   }
@@ -167,94 +172,209 @@ const TeamQualityComparisonCard = () => {
   const team1 = teamStats[0];
   const team2 = teamStats[1];
 
-  const compactMetrics = [
-    { label: "NPS 10", icon: Star, v1: team1.nps10Count, v2: team2.nps10Count, color: "text-yellow-500" },
-    { label: "NPS 9", icon: Star, v1: team1.nps9Count, v2: team2.nps9Count, color: "text-yellow-400" },
-    { label: "Menções NPS", icon: Star, v1: team1.npsCitations, v2: team2.npsCitations, color: "text-amber-500" },
-    { label: "Dep. Ouro", icon: MessageSquare, v1: team1.testimonialGold, v2: team2.testimonialGold, color: "text-amber-400" },
-    { label: "Dep. Vídeo", icon: MessageSquare, v1: team1.testimonialVideo, v2: team2.testimonialVideo, color: "text-blue-500" },
-    { label: "Dep. Google", icon: MessageSquare, v1: team1.testimonialGoogle, v2: team2.testimonialGoogle, color: "text-blue-400" },
-    { label: "Dep. WhatsApp", icon: MessageSquare, v1: team1.testimonialWhatsapp, v2: team2.testimonialWhatsapp, color: "text-green-500" },
-    { label: "Indic. Coletadas", icon: Heart, v1: team1.referralsCollected, v2: team2.referralsCollected, color: "text-pink-500" },
-    { label: "Indic. → Consulta", icon: Heart, v1: team1.referralsConsultation, v2: team2.referralsConsultation, color: "text-pink-400" },
-    { label: "Indic. → Cirurgia", icon: Heart, v1: team1.referralsSurgery, v2: team2.referralsSurgery, color: "text-rose-500" },
-    { label: "Embaixadoras", icon: Sparkles, v1: team1.ambassadors, v2: team2.ambassadors, color: "text-purple-500" },
-    { label: "UniLovers", icon: Sparkles, v1: team1.unilovers, v2: team2.unilovers, color: "text-purple-400" },
-    { label: "Menções Insta", icon: Sparkles, v1: team1.instagramMentions, v2: team2.instagramMentions, color: "text-fuchsia-500" },
+  const getPercentage = (v1: number, v2: number) => {
+    const total = v1 + v2;
+    if (total === 0) return { p1: 50, p2: 50 };
+    return { p1: (v1 / total) * 100, p2: (v2 / total) * 100 };
+  };
+
+  const categories = [
+    {
+      name: "NPS",
+      icon: Star,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-500/10",
+      items: [
+        { label: "NPS 10", v1: team1.nps10Count, v2: team2.nps10Count, pts: 5 },
+        { label: "NPS 9", v1: team1.nps9Count, v2: team2.nps9Count, pts: 3 },
+        { label: "Com Menção", v1: team1.npsCitations, v2: team2.npsCitations, pts: 10 },
+      ],
+    },
+    {
+      name: "Depoimentos",
+      icon: MessageSquare,
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
+      items: [
+        { label: "Ouro", v1: team1.testimonialGold, v2: team2.testimonialGold, pts: 50 },
+        { label: "Vídeo", v1: team1.testimonialVideo, v2: team2.testimonialVideo, pts: 30 },
+        { label: "Google 5★", v1: team1.testimonialGoogle, v2: team2.testimonialGoogle, pts: 10 },
+        { label: "WhatsApp", v1: team1.testimonialWhatsapp, v2: team2.testimonialWhatsapp, pts: 5 },
+      ],
+    },
+    {
+      name: "Indicações",
+      icon: Heart,
+      color: "text-pink-500",
+      bgColor: "bg-pink-500/10",
+      items: [
+        { label: "→ Cirurgia", v1: team1.referralsSurgery, v2: team2.referralsSurgery, pts: 50 },
+        { label: "→ Consulta", v1: team1.referralsConsultation, v2: team2.referralsConsultation, pts: 20 },
+        { label: "Coletadas", v1: team1.referralsCollected, v2: team2.referralsCollected, pts: 5 },
+      ],
+    },
+    {
+      name: "Extras",
+      icon: Sparkles,
+      color: "text-purple-500",
+      bgColor: "bg-purple-500/10",
+      items: [
+        { label: "Embaixadoras", v1: team1.ambassadors, v2: team2.ambassadors, pts: 50 },
+        { label: "UniLovers", v1: team1.unilovers, v2: team2.unilovers, pts: 5 },
+        { label: "Menções Insta", v1: team1.instagramMentions, v2: team2.instagramMentions, pts: 2 },
+      ],
+    },
   ];
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card className="bg-muted/30 border-border">
-        <CollapsibleTrigger className="w-full">
-          <CardHeader className="py-2 px-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-3.5 h-3.5 text-primary" />
-                <CardTitle className="text-xs font-medium text-foreground">
-                  Indicadores de Qualidade
-                </CardTitle>
-                <div className="flex gap-1">
-                  {(["month", "year", "all"] as PeriodFilter[]).map((p) => (
-                    <button
-                      key={p}
-                      onClick={(e) => { e.stopPropagation(); setPeriod(p); }}
-                      className={cn(
-                        "px-1.5 py-0.5 text-[10px] rounded transition-all",
-                        period === p
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted"
-                      )}
-                    >
-                      {p === "month" ? "Mês" : p === "year" ? "Ano" : "Geral"}
-                    </button>
-                  ))}
+    <Card className="bg-gradient-card border-border overflow-hidden">
+      <CardHeader className="py-3 px-4 border-b border-border/50">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Trophy className="w-4 h-4 text-primary" />
+            Indicadores de Qualidade
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+            <div className="flex gap-1 bg-muted/50 rounded-lg p-0.5">
+              {(["month", "year", "all"] as PeriodFilter[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={cn(
+                    "px-2.5 py-1 text-xs font-medium rounded-md transition-all",
+                    period === p
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  {p === "month" ? "Mês" : p === "year" ? "Ano" : "Geral"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="p-4">
+        {/* Team Headers */}
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4 pb-3 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <img 
+              src={team1.teamName.toLowerCase().includes("lioness") ? brasaoLioness : brasaoTroia} 
+              alt={team1.teamName}
+              className="w-10 h-10 object-contain"
+            />
+            <div>
+              <p className="text-sm font-bold text-foreground">{team1.teamName}</p>
+              <p className={cn(
+                "text-lg font-black",
+                team1.totalQualityPoints > team2.totalQualityPoints ? "text-green-500" : "text-muted-foreground"
+              )}>
+                {team1.totalQualityPoints} pts
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-center">
+            <span className="text-xs font-bold text-muted-foreground bg-muted px-3 py-1 rounded-full">VS</span>
+          </div>
+          
+          <div className="flex items-center justify-end gap-3">
+            <div className="text-right">
+              <p className="text-sm font-bold text-foreground">{team2.teamName}</p>
+              <p className={cn(
+                "text-lg font-black",
+                team2.totalQualityPoints > team1.totalQualityPoints ? "text-green-500" : "text-muted-foreground"
+              )}>
+                {team2.totalQualityPoints} pts
+              </p>
+            </div>
+            <img 
+              src={team2.teamName.toLowerCase().includes("lioness") ? brasaoLioness : brasaoTroia} 
+              alt={team2.teamName}
+              className="w-10 h-10 object-contain"
+            />
+          </div>
+        </div>
+
+        {/* Categories Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {categories.map((cat) => {
+            const Icon = cat.icon;
+            return (
+              <div key={cat.name} className={cn("rounded-lg p-3", cat.bgColor)}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className={cn("w-4 h-4", cat.color)} />
+                  <span className="text-xs font-semibold text-foreground">{cat.name}</span>
+                </div>
+                
+                <div className="space-y-2">
+                  {cat.items.map((item) => {
+                    const { p1, p2 } = getPercentage(item.v1, item.v2);
+                    const t1Win = item.v1 > item.v2;
+                    const t2Win = item.v2 > item.v1;
+                    const hasData = item.v1 > 0 || item.v2 > 0;
+                    
+                    return (
+                      <div key={item.label} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={cn("font-bold", t1Win ? "text-green-500" : "text-foreground")}>
+                            {item.v1}
+                          </span>
+                          <span className="text-muted-foreground text-[10px]">
+                            {item.label} ({item.pts}pts)
+                          </span>
+                          <span className={cn("font-bold", t2Win ? "text-green-500" : "text-foreground")}>
+                            {item.v2}
+                          </span>
+                        </div>
+                        
+                        <div className="relative h-2 bg-background/50 rounded-full overflow-hidden">
+                          {hasData && (
+                            <>
+                              <div
+                                className={cn(
+                                  "absolute left-0 h-full transition-all duration-500 rounded-l-full",
+                                  t1Win ? "bg-green-500" : "bg-primary/60"
+                                )}
+                                style={{ width: `${p1}%` }}
+                              />
+                              <div
+                                className={cn(
+                                  "absolute right-0 h-full transition-all duration-500 rounded-r-full",
+                                  t2Win ? "bg-green-500" : "bg-primary/60"
+                                )}
+                                style={{ width: `${p2}%` }}
+                              />
+                            </>
+                          )}
+                          <div className="absolute left-1/2 top-0 w-0.5 h-full bg-background -translate-x-1/2" />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-[10px]">
-                  <span className="text-muted-foreground truncate max-w-[60px]">{team1.teamName.split(" ")[0]}</span>
-                  <span className={cn("font-bold", team1.totalQualityPoints > team2.totalQualityPoints ? "text-green-500" : "text-muted-foreground")}>
-                    {team1.totalQualityPoints}
-                  </span>
-                  <span className="text-muted-foreground">×</span>
-                  <span className={cn("font-bold", team2.totalQualityPoints > team1.totalQualityPoints ? "text-green-500" : "text-muted-foreground")}>
-                    {team2.totalQualityPoints}
-                  </span>
-                  <span className="text-muted-foreground truncate max-w-[60px]">{team2.teamName.split(" ")[0]}</span>
-                </div>
-                <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
-              </div>
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <CardContent className="pt-0 pb-2 px-3">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-3 gap-y-1">
-              {compactMetrics.map((m, i) => {
-                const Icon = m.icon;
-                const t1Win = m.v1 > m.v2;
-                const t2Win = m.v2 > m.v1;
-                return (
-                  <div key={i} className="flex items-center justify-between py-0.5 border-b border-border/30 last:border-0">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <Icon className={cn("w-2.5 h-2.5 shrink-0", m.color)} />
-                      <span className="text-[10px] text-muted-foreground truncate">{m.label}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] font-medium">
-                      <span className={t1Win ? "text-green-500" : "text-muted-foreground"}>{m.v1}</span>
-                      <span className="text-muted-foreground/50">:</span>
-                      <span className={t2Win ? "text-green-500" : "text-muted-foreground"}>{m.v2}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
+            );
+          })}
+        </div>
+
+        {/* Summary Footer */}
+        <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">
+            {team1.totalQualityPoints > team2.totalQualityPoints
+              ? `${team1.teamName} lidera em qualidade`
+              : team2.totalQualityPoints > team1.totalQualityPoints
+              ? `${team2.teamName} lidera em qualidade`
+              : "Empate em qualidade!"}
+          </span>
+          <span className="font-semibold text-primary">
+            Diferença: {Math.abs(team1.totalQualityPoints - team2.totalQualityPoints)} pts
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
