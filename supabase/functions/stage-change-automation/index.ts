@@ -8,6 +8,7 @@ const corsHeaders = {
 
 // Automação de Mudança de Stage
 // Executa ações automáticas quando um lead muda de estágio
+// Nota: As tarefas do checklist são criadas pela edge function create-stage-tasks
 
 interface StageChangePayload {
   lead_id: string;
@@ -48,37 +49,21 @@ serve(async (req) => {
 
     const actions: string[] = [];
     const notifications: any[] = [];
-    const tasks: any[] = [];
     const tags: string[] = [];
 
-    // ======== AUTOMAÇÕES POR STAGE ========
+    // ======== AUTOMAÇÕES POR STAGE (Tags, Notificações, Updates) ========
+    // Nota: As tarefas do checklist são criadas automaticamente pela create-stage-tasks
 
     // STAGE: Engajamento (Social Selling)
     if (newStage.name === 'Engajamento') {
       tags.push('origem:social', 'temperatura:frio');
-      tasks.push({
-        lead_id,
-        title: 'Responder interação em 2h',
-        description: 'Lead engajou nas redes sociais - responder rapidamente',
-        due_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-        priority: 'high',
-        assigned_to: lead.assigned_to,
-      });
-      actions.push('Tarefa criada: Responder interação');
+      actions.push('Tags de engajamento adicionadas');
     }
 
     // STAGE: Contato Inicial
     if (newStage.name === 'Contato Inicial' || newStage.name === 'Novo Lead') {
       tags.push('status:primeiro_contato');
-      tasks.push({
-        lead_id,
-        title: 'Fazer primeiro contato em 15min',
-        description: 'Lead novo - velocidade de resposta é crucial!',
-        due_date: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-        priority: 'urgent',
-        assigned_to: lead.assigned_to,
-      });
-      actions.push('Tarefa urgente criada: Primeiro contato');
+      actions.push('Tag de primeiro contato adicionada');
     }
 
     // STAGE: Qualificação
@@ -96,42 +81,18 @@ serve(async (req) => {
     // STAGE: Agendamento
     if (newStage.name === 'Agendamento' || newStage.name === 'Agendar Consulta') {
       tags.push('etapa:agendamento');
-      tasks.push({
-        lead_id,
-        title: 'Agendar consulta em 24h',
-        description: 'Lead qualificado - agendar consulta com urgência',
-        due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        priority: 'high',
-        assigned_to: lead.assigned_to,
-      });
-      actions.push('Tarefa criada: Agendar consulta');
+      actions.push('Tag de agendamento adicionada');
     }
 
     // STAGE: Consulta Agendada
     if (newStage.name === 'Consulta Agendada' || newStage.name === 'Aguardando Consulta') {
       tags.push('etapa:consulta_agendada');
-      tasks.push({
-        lead_id,
-        title: 'Confirmar consulta 24h antes',
-        description: 'Confirmar presença do paciente',
-        due_date: lead.next_contact_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        priority: 'medium',
-        assigned_to: lead.assigned_to,
-      });
-      actions.push('Lembrete de confirmação agendado');
+      actions.push('Tag de consulta agendada adicionada');
     }
 
     // STAGE: Proposta Enviada
     if (newStage.name === 'Proposta Enviada' || newStage.name === 'Negociação') {
       tags.push('etapa:proposta');
-      tasks.push({
-        lead_id,
-        title: 'Follow-up de proposta em 48h',
-        description: 'Verificar se paciente tem dúvidas sobre a proposta',
-        due_date: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-        priority: 'high',
-        assigned_to: lead.assigned_to,
-      });
       // Notificar coordenação
       notifications.push({
         user_id: performed_by || lead.assigned_to,
@@ -139,7 +100,7 @@ serve(async (req) => {
         message: `Proposta enviada para ${lead.name} - acompanhar fechamento`,
         type: 'lead_proposal',
       });
-      actions.push('Follow-up de proposta agendado');
+      actions.push('Notificação de proposta enviada');
     }
 
     // STAGE: Fechamento/Venda
@@ -159,11 +120,10 @@ serve(async (req) => {
     }
 
     // STAGE: Venda Ganha / Won
-    if (newStage.name === 'Venda Ganha' || newStage.name === 'Ganho' || newStage.is_won) {
+    if (newStage.name === 'Venda Ganha' || newStage.name === 'Ganho' || newStage.is_win_stage) {
       tags.push('resultado:ganho');
       await supabase.from('crm_leads').update({ 
         won_at: new Date().toISOString(),
-        status: 'won'
       }).eq('id', lead_id);
 
       // Gamificação
@@ -191,11 +151,10 @@ serve(async (req) => {
     }
 
     // STAGE: Perdido
-    if (newStage.name === 'Perdido' || newStage.is_lost) {
+    if (newStage.name === 'Perdido' || newStage.is_lost_stage) {
       tags.push('resultado:perdido');
       await supabase.from('crm_leads').update({ 
         lost_at: new Date().toISOString(),
-        status: 'lost'
       }).eq('id', lead_id);
       actions.push('Lead marcado como perdido');
     }
@@ -203,47 +162,12 @@ serve(async (req) => {
     // STAGE: Pós-Cirurgia
     if (newStage.name === 'Pós-Cirurgia' || newStage.name === 'Pós-Operatório') {
       tags.push('etapa:pos_cirurgia');
-      // Criar checklist de acompanhamento
-      tasks.push(
-        {
-          lead_id,
-          title: 'Ligar D+1 (dia seguinte)',
-          description: 'Verificar como paciente está após a cirurgia',
-          due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          priority: 'high',
-          assigned_to: lead.assigned_to,
-        },
-        {
-          lead_id,
-          title: 'Acompanhamento D+7',
-          description: 'Verificar recuperação após 1 semana',
-          due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          priority: 'medium',
-          assigned_to: lead.assigned_to,
-        },
-        {
-          lead_id,
-          title: 'Solicitar NPS D+30',
-          description: 'Pedir avaliação do paciente após 30 dias',
-          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          priority: 'medium',
-          assigned_to: lead.assigned_to,
-        }
-      );
-      actions.push('Checklist pós-cirurgia criado');
+      actions.push('Tag de pós-cirurgia adicionada');
     }
 
     // STAGE: Upsell / Cross-sell
     if (newStage.name === 'Oportunidade Upsell' || newStage.name === 'Upsell') {
       tags.push('oportunidade:upsell');
-      tasks.push({
-        lead_id,
-        title: 'Abordar cliente para upsell em 24h',
-        description: 'Apresentar procedimento complementar ao cliente',
-        due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        priority: 'high',
-        assigned_to: lead.assigned_to,
-      });
       // Buscar recomendações de procedimentos
       try {
         await supabase.functions.invoke('get-procedure-recommendation', { body: { leadId: lead_id } });
@@ -268,15 +192,7 @@ serve(async (req) => {
     // STAGE: Reativação
     if (newStage.name === 'Reativação') {
       tags.push('reativacao:em_andamento');
-      tasks.push({
-        lead_id,
-        title: 'Reativar cliente em 24h',
-        description: 'Cliente inativo - preparar oferta especial para reativação',
-        due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        priority: 'high',
-        assigned_to: lead.assigned_to,
-      });
-      actions.push('Tarefa de reativação criada');
+      actions.push('Tag de reativação adicionada');
     }
 
     // ======== EXECUTAR AÇÕES ========
@@ -287,14 +203,6 @@ serve(async (req) => {
       const newTags = [...new Set([...currentTags, ...tags])];
       await supabase.from('crm_leads').update({ tags: newTags }).eq('id', lead_id);
       actions.push(`Tags adicionadas: ${tags.join(', ')}`);
-    }
-
-    // Criar tarefas
-    if (tasks.length > 0) {
-      for (const task of tasks) {
-        await supabase.from('crm_tasks').insert(task);
-      }
-      actions.push(`${tasks.length} tarefa(s) criada(s)`);
     }
 
     // Criar notificações
@@ -308,13 +216,13 @@ serve(async (req) => {
     // Registrar no histórico
     await supabase.from('crm_lead_history').insert({
       lead_id,
-      action: 'stage_automation',
-      details: {
+      action_type: 'stage_automation',
+      title: 'Automação de estágio executada',
+      metadata: {
         old_stage: oldStage?.name,
         new_stage: newStage.name,
         actions_executed: actions,
         tags_added: tags,
-        tasks_created: tasks.length,
         notifications_sent: notifications.length,
       },
       performed_by: performed_by || '00000000-0000-0000-0000-000000000000',
@@ -330,16 +238,16 @@ serve(async (req) => {
         new_stage: newStage.name,
         actions_executed: actions,
         tags_added: tags,
-        tasks_created: tasks.length,
         notifications_sent: notifications.length,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Erro na automação:", error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
