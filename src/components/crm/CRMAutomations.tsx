@@ -27,7 +27,8 @@ import {
 import {
   Zap, Plus, Play, Pause, Trash2, Edit, Clock, Bell,
   Send, Tag, UserPlus, ArrowRight, Loader2, Settings,
-  Sparkles, AlertCircle, CheckCircle
+  Sparkles, AlertCircle, CheckCircle, Mail, MessageSquare,
+  Phone, Calendar, RefreshCw, Star, ThermometerSun
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,12 +59,19 @@ const TRIGGER_TYPES = [
 ];
 
 const ACTION_TYPES = [
-  { value: 'add_tag', label: 'Adicionar Tag', icon: Tag },
-  { value: 'send_notification', label: 'Notificação', icon: Bell },
-  { value: 'create_task', label: 'Criar Tarefa', icon: CheckCircle },
-  { value: 'move_stage', label: 'Mover Estágio', icon: ArrowRight },
-  { value: 'send_whatsapp', label: 'Enviar WhatsApp', icon: Send },
-  { value: 'assign_user', label: 'Atribuir Usuário', icon: UserPlus },
+  { value: 'send_whatsapp', label: 'Enviar WhatsApp', icon: MessageSquare, color: 'text-green-500', hasMessage: true },
+  { value: 'send_email', label: 'Enviar E-mail', icon: Mail, color: 'text-blue-500', hasMessage: true },
+  { value: 'send_sms', label: 'Enviar SMS', icon: Phone, color: 'text-purple-500', hasMessage: true },
+  { value: 'send_notification', label: 'Notificação Interna', icon: Bell, color: 'text-orange-500', hasMessage: true },
+  { value: 'add_tag', label: 'Adicionar Tag', icon: Tag, color: 'text-cyan-500', hasConfig: true },
+  { value: 'remove_tag', label: 'Remover Tag', icon: Tag, color: 'text-red-500', hasConfig: true },
+  { value: 'move_stage', label: 'Mover Estágio', icon: ArrowRight, color: 'text-indigo-500', hasConfig: true },
+  { value: 'create_task', label: 'Criar Tarefa', icon: CheckCircle, color: 'text-emerald-500', hasMessage: true },
+  { value: 'schedule_followup', label: 'Agendar Follow-up', icon: Calendar, color: 'text-amber-500', hasConfig: true },
+  { value: 'assign_user', label: 'Atribuir Responsável', icon: UserPlus, color: 'text-pink-500', hasConfig: true },
+  { value: 'update_temperature', label: 'Atualizar Temperatura', icon: ThermometerSun, color: 'text-red-400', hasConfig: true },
+  { value: 'add_points', label: 'Adicionar Pontos', icon: Star, color: 'text-yellow-500', hasConfig: true },
+  { value: 'webhook', label: 'Webhook Externo', icon: RefreshCw, color: 'text-gray-500', hasConfig: true },
 ];
 
 export function CRMAutomations() {
@@ -484,36 +492,177 @@ export function CRMAutomations() {
                   Nenhuma ação configurada
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {formData.actions.map((action, index) => {
                     const actionInfo = getActionInfo(action.type);
                     const ActionIcon = actionInfo.icon;
+                    const actionDef = ACTION_TYPES.find(a => a.value === action.type);
                     
                     return (
-                      <div key={index} className="flex items-center gap-2 p-2 rounded-lg border">
-                        <ActionIcon className="h-4 w-4 text-muted-foreground" />
-                        <Select
-                          value={action.type}
-                          onValueChange={(v) => updateAction(index, 'type', v)}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ACTION_TYPES.map((a) => (
-                              <SelectItem key={a.value} value={a.value}>
-                                {a.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => removeAction(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div key={index} className="p-3 rounded-lg border space-y-3">
+                        <div className="flex items-center gap-2">
+                          <ActionIcon className={`h-4 w-4 ${actionDef?.color || 'text-muted-foreground'}`} />
+                          <Select
+                            value={action.type}
+                            onValueChange={(v) => updateAction(index, 'type', v)}
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ACTION_TYPES.map((a) => (
+                                <SelectItem key={a.value} value={a.value}>
+                                  <div className="flex items-center gap-2">
+                                    <a.icon className={`h-4 w-4 ${a.color}`} />
+                                    {a.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeAction(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Config fields based on action type */}
+                        {(action.type === 'send_whatsapp' || action.type === 'send_email' || action.type === 'send_sms') && (
+                          <div className="space-y-2 pl-6">
+                            {action.type === 'send_email' && (
+                              <Input
+                                placeholder="Assunto do e-mail"
+                                value={action.config?.subject || ''}
+                                onChange={(e) => updateAction(index, 'config', { ...action.config, subject: e.target.value })}
+                              />
+                            )}
+                            <Textarea
+                              placeholder={`Mensagem ${action.type === 'send_email' ? 'do e-mail' : action.type === 'send_sms' ? 'SMS' : 'WhatsApp'}... Use {nome}, {procedimento}, {vendedor} para variáveis`}
+                              value={action.config?.message || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, message: e.target.value })}
+                              rows={2}
+                            />
+                          </div>
+                        )}
+
+                        {action.type === 'send_notification' && (
+                          <div className="space-y-2 pl-6">
+                            <Input
+                              placeholder="Título da notificação"
+                              value={action.config?.title || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, title: e.target.value })}
+                            />
+                            <Textarea
+                              placeholder="Mensagem da notificação..."
+                              value={action.config?.message || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, message: e.target.value })}
+                              rows={2}
+                            />
+                          </div>
+                        )}
+
+                        {action.type === 'create_task' && (
+                          <div className="space-y-2 pl-6">
+                            <Input
+                              placeholder="Título da tarefa"
+                              value={action.config?.task_title || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, task_title: e.target.value })}
+                            />
+                            <Input
+                              placeholder="Prazo em dias (ex: 1, 3, 7)"
+                              type="number"
+                              value={action.config?.due_days || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, due_days: parseInt(e.target.value) })}
+                            />
+                          </div>
+                        )}
+
+                        {(action.type === 'add_tag' || action.type === 'remove_tag') && (
+                          <div className="pl-6">
+                            <Input
+                              placeholder="Nome da tag"
+                              value={action.config?.tag || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, tag: e.target.value })}
+                            />
+                          </div>
+                        )}
+
+                        {action.type === 'move_stage' && (
+                          <div className="pl-6">
+                            <Select
+                              value={action.config?.target_stage_id || ''}
+                              onValueChange={(v) => updateAction(index, 'config', { ...action.config, target_stage_id: v })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o estágio" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {stages.map((s) => (
+                                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {action.type === 'schedule_followup' && (
+                          <div className="space-y-2 pl-6">
+                            <Input
+                              placeholder="Dias para follow-up (ex: 3)"
+                              type="number"
+                              value={action.config?.days || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, days: parseInt(e.target.value) })}
+                            />
+                            <Input
+                              placeholder="Descrição do follow-up"
+                              value={action.config?.description || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, description: e.target.value })}
+                            />
+                          </div>
+                        )}
+
+                        {action.type === 'update_temperature' && (
+                          <div className="pl-6">
+                            <Select
+                              value={action.config?.temperature || ''}
+                              onValueChange={(v) => updateAction(index, 'config', { ...action.config, temperature: v })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a temperatura" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="hot">🔥 Quente</SelectItem>
+                                <SelectItem value="warm">☀️ Morno</SelectItem>
+                                <SelectItem value="cold">❄️ Frio</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {action.type === 'add_points' && (
+                          <div className="pl-6">
+                            <Input
+                              placeholder="Pontos a adicionar"
+                              type="number"
+                              value={action.config?.points || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, points: parseInt(e.target.value) })}
+                            />
+                          </div>
+                        )}
+
+                        {action.type === 'webhook' && (
+                          <div className="space-y-2 pl-6">
+                            <Input
+                              placeholder="URL do webhook"
+                              type="url"
+                              value={action.config?.url || ''}
+                              onChange={(e) => updateAction(index, 'config', { ...action.config, url: e.target.value })}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
