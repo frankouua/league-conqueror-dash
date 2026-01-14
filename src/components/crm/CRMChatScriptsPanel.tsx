@@ -207,6 +207,7 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
   const [aiScripts, setAiScripts] = useState<AIScript[]>([]);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [viewingStage, setViewingStage] = useState<string | null>(null);
 
   // Determinar etapa atual do lead
   const currentStage = lead.stage?.name || 'Novo Lead';
@@ -400,13 +401,7 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
                       variant="outline"
                       size="sm"
                       className="justify-start text-xs h-8 border-border text-foreground hover:bg-secondary"
-                      onClick={() => {
-                        // Mostrar templates dessa etapa
-                        toast({ 
-                          title: stage, 
-                          description: `${STAGE_TEMPLATES[stage].length} templates disponíveis` 
-                        });
-                      }}
+                      onClick={() => setViewingStage(stage)}
                     >
                       <ChevronRight className="h-3 w-3 mr-1" />
                       {stage}
@@ -414,6 +409,71 @@ export function CRMChatScriptsPanel({ lead, onSelectTemplate, onClose }: CRMChat
                   ))}
               </div>
             </div>
+
+            {/* Modal de scripts da etapa selecionada */}
+            {viewingStage && viewingStage !== currentStage && (
+              <div className="mt-4 p-3 rounded-lg border border-primary/30 bg-primary/5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Scripts de "{viewingStage}"</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => setViewingStage(null)}
+                  >
+                    Fechar
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {STAGE_TEMPLATES[viewingStage]?.map((template) => (
+                    <Card key={template.id} className="hover:border-primary/50 transition-colors bg-card border-border">
+                      <CardContent className="p-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4 className="font-medium text-sm text-foreground">{template.title}</h4>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleCopy(template.id, template.message)}
+                            >
+                              {copiedId === template.id ? (
+                                <Check className="h-3.5 w-3.5 text-green-500" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleSelect(template.message)}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {parseTemplate(template.message)}
+                        </p>
+                        {template.tags && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {template.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-[10px] py-0 bg-secondary text-foreground border-border">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* Templates Gerais */}

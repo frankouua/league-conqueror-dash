@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Search, UserPlus } from 'lucide-react';
+import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Search, UserPlus, Package, Check } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,10 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CRMStage, useCRMLeads } from '@/hooks/useCRM';
 import { CRMPatientSearch } from './CRMPatientSearch';
+import { useQuery } from '@tanstack/react-query';
 
 interface CRMNewLeadDialogProps {
   open: boolean;
@@ -67,6 +71,8 @@ export function CRMNewLeadDialog({
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [activeTab, setActiveTab] = useState<'new' | 'search'>('new');
+  const [procedureSearch, setProcedureSearch] = useState('');
+  const [selectedProcedures, setSelectedProcedures] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -84,6 +90,34 @@ export function CRMNewLeadDialog({
     tags: '',
     patient_data_id: null as string | null,
   });
+
+  // Buscar procedimentos do banco
+  const { data: procedures = [] } = useQuery({
+    queryKey: ['procedures-for-new-lead'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('procedures')
+        .select('id, name, price, category')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Filtrar procedimentos baseado na busca
+  const filteredProcedures = procedures.filter(p =>
+    p.name.toLowerCase().includes(procedureSearch.toLowerCase()) ||
+    (p.category && p.category.toLowerCase().includes(procedureSearch.toLowerCase()))
+  );
+
+  const toggleProcedure = (procedureName: string) => {
+    setSelectedProcedures(prev =>
+      prev.includes(procedureName)
+        ? prev.filter(p => p !== procedureName)
+        : [...prev, procedureName]
+    );
+  };
 
   useEffect(() => {
     if (initialStageId) {
@@ -157,6 +191,7 @@ export function CRMNewLeadDialog({
       patient_data_id: formData.patient_data_id,
       cpf: formData.cpf || null,
       prontuario: formData.prontuario || null,
+      interested_procedures: selectedProcedures.length > 0 ? selectedProcedures : null,
     } as any, {
       onSuccess: () => {
         onClose();
@@ -177,6 +212,8 @@ export function CRMNewLeadDialog({
           tags: '',
           patient_data_id: null,
         });
+        setSelectedProcedures([]);
+        setProcedureSearch('');
         setActiveTab('new');
       },
     });
@@ -200,6 +237,8 @@ export function CRMNewLeadDialog({
       tags: '',
       patient_data_id: null,
     });
+    setSelectedProcedures([]);
+    setProcedureSearch('');
   };
 
   return (
@@ -424,6 +463,71 @@ export function CRMNewLeadDialog({
                   onChange={(e) => setFormData(prev => ({ ...prev, estimated_value: e.target.value }))}
                   placeholder="0,00"
                 />
+              </div>
+
+              {/* Procedimentos de Interesse */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Procedimentos de Interesse
+                </Label>
+                
+                {/* Procedimentos selecionados */}
+                {selectedProcedures.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {selectedProcedures.map(proc => (
+                      <Badge 
+                        key={proc} 
+                        variant="secondary" 
+                        className="cursor-pointer hover:bg-destructive/20"
+                        onClick={() => toggleProcedure(proc)}
+                      >
+                        {proc} ×
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {/* Busca de procedimentos */}
+                <Input
+                  value={procedureSearch}
+                  onChange={(e) => setProcedureSearch(e.target.value)}
+                  placeholder="Buscar procedimentos..."
+                  className="mb-2"
+                />
+
+                {/* Lista de procedimentos */}
+                <ScrollArea className="h-32 border rounded-md p-2">
+                  {filteredProcedures.length > 0 ? (
+                    <div className="space-y-1">
+                      {filteredProcedures.map(proc => (
+                        <div 
+                          key={proc.id}
+                          className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer"
+                          onClick={() => toggleProcedure(proc.name)}
+                        >
+                          <Checkbox 
+                            checked={selectedProcedures.includes(proc.name)}
+                            onCheckedChange={() => toggleProcedure(proc.name)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{proc.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {proc.category} • R$ {proc.price?.toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                          {selectedProcedures.includes(proc.name) && (
+                            <Check className="h-4 w-4 text-green-500" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      {procedureSearch ? 'Nenhum procedimento encontrado' : 'Digite para buscar'}
+                    </p>
+                  )}
+                </ScrollArea>
               </div>
 
               {/* Tags */}
