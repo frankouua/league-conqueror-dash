@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -177,6 +177,9 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [isResettingSystem, setIsResettingSystem] = useState(false);
   const [orphanStats, setOrphanStats] = useState<{ revenue: number; executed: number } | null>(null);
   const LARGE_REPLACE_THRESHOLD = 50;
+  
+  // Ref para scroll automático ao mapeamento de colunas
+  const columnMappingRef = useRef<HTMLDivElement>(null);
   
   // Persist state to sessionStorage whenever key data changes
   useEffect(() => {
@@ -546,9 +549,18 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       setShowColumnMapping(true);
       
       toast({
-        title: "Arquivo carregado",
-        description: `${jsonData.length} linhas encontradas. Configure o mapeamento de colunas.`,
+        title: "✅ Arquivo carregado com sucesso!",
+        description: `${jsonData.length} linhas encontradas. Role para baixo e clique em "Processar Dados".`,
+        duration: 8000,
       });
+      
+      // Scroll automático para o mapeamento de colunas
+      setTimeout(() => {
+        columnMappingRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 300);
     } catch (error) {
       console.error('Error parsing Excel:', error);
       toast({
@@ -2579,11 +2591,14 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
       {/* Column Mapping */}
       {showColumnMapping && availableColumns.length > 0 && (
-        <Card>
+        <Card ref={columnMappingRef} className="border-primary/40 bg-primary/5">
           <CardHeader>
-            <CardTitle>Mapeamento de Colunas</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-primary" />
+              Passo 2: Mapeamento de Colunas
+            </CardTitle>
             <CardDescription>
-              Selecione qual coluna da planilha corresponde a cada campo.
+              Configure as colunas abaixo e clique em <strong>"Processar Dados"</strong> para continuar.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -2784,16 +2799,21 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                 </div>
               </div>
             )}
-            <Button onClick={processWithMapping} disabled={isProcessing}>
+            <Button 
+              onClick={processWithMapping} 
+              disabled={isProcessing}
+              size="lg"
+              className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg py-6"
+            >
               {isProcessing ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processando...
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Processando dados...
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Processar Dados
+                  <Check className="w-5 h-5 mr-2" />
+                  🚀 Processar Dados da Planilha
                 </>
               )}
             </Button>
