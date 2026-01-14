@@ -226,17 +226,39 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
     );
   }
 
+  // Helper to get procedure price by name
+  const getProcedurePrice = (procedureName: string): number => {
+    // Check in individual procedures first
+    const proc = procedures.find(p => p.name === procedureName);
+    if (proc) return proc.promotional_price || proc.price;
+    
+    // Check in protocols
+    const protocol = protocols.find(p => p.name === procedureName);
+    if (protocol) return protocol.promotional_price || protocol.price;
+    
+    return 0;
+  };
+
+  // Calculate total value from selected procedures
+  const calculateTotalValue = (selectedProcedures: string[]): number => {
+    return selectedProcedures.reduce((total, procName) => {
+      return total + getProcedurePrice(procName);
+    }, 0);
+  };
+
   const handleProcedureToggle = (procedure: string) => {
-    console.log('handleProcedureToggle called with:', procedure);
-    console.log('Current interested_procedures:', formData.interested_procedures);
     setFormData(prev => {
       const newProcedures = prev.interested_procedures.includes(procedure)
         ? prev.interested_procedures.filter(p => p !== procedure)
         : [...prev.interested_procedures, procedure];
-      console.log('New interested_procedures:', newProcedures);
+      
+      // AUTO-CALCULATE negotiation value
+      const newValue = calculateTotalValue(newProcedures);
+      
       return {
         ...prev,
         interested_procedures: newProcedures,
+        estimated_value: newValue > 0 ? newValue.toString() : prev.estimated_value,
       };
     });
   };
@@ -587,13 +609,29 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
             </div>
           </div>
 
-          {/* Procedures from Database */}
+          {/* Procedures from Database - NEGOTIATION SECTION */}
           <div className="space-y-3 pt-2 border-t">
-            <Label className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Procedimentos de Interesse
-              {(loadingProtocols || loadingProcedures) && <Loader2 className="h-3 w-3 animate-spin" />}
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Procedimentos de Interesse
+                {(loadingProtocols || loadingProcedures) && <Loader2 className="h-3 w-3 animate-spin" />}
+              </Label>
+              
+              {/* NEGOTIATION VALUE - HIGHLIGHTED */}
+              {formData.interested_procedures.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-500/20 to-emerald-500/10 rounded-lg border-2 border-green-500/40">
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                  <span className="text-xs font-medium text-muted-foreground">Valor Negociação:</span>
+                  <span className="text-lg font-black text-green-600">
+                    {formatCurrency(parseFloat(formData.estimated_value) || 0)}
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    {formData.interested_procedures.length} itens
+                  </Badge>
+                </div>
+              )}
+            </div>
             
             {/* Search/Filter Input */}
             <div className="relative">

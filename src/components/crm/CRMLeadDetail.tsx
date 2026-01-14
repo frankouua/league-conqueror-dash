@@ -297,18 +297,28 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               <TabsContent value="resumo" className="m-0 space-y-4">
                 {lead && (
                   <>
-                    {/* Quick Stats - Value, Score, Interactions */}
-                    <div className="grid grid-cols-3 gap-3">
-                      <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-                        <CardContent className="p-3 text-center">
-                          <p className="text-xl font-bold text-green-600">
-                            {lead.estimated_value
-                              ? `R$ ${(lead.estimated_value / 1000).toFixed(0)}k`
-                              : '-'}
+                    {/* NEGOTIATION VALUE - HIGHLIGHTED */}
+                    <Card className="bg-gradient-to-r from-green-500/15 via-green-500/10 to-emerald-500/5 border-2 border-green-500/40">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">Valor da Negociação</span>
+                        </div>
+                        <p className="text-3xl font-black text-green-600">
+                          {lead.estimated_value
+                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_value)
+                            : 'R$ 0'}
+                        </p>
+                        {lead.interested_procedures && lead.interested_procedures.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {lead.interested_procedures.length} procedimento{lead.interested_procedures.length > 1 ? 's' : ''} selecionado{lead.interested_procedures.length > 1 ? 's' : ''}
                           </p>
-                          <p className="text-xs text-muted-foreground">Valor</p>
-                        </CardContent>
-                      </Card>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Quick Stats - Score, Interactions */}
+                    <div className="grid grid-cols-2 gap-3">
                       <Card>
                         <CardContent className="p-3 text-center">
                           <p className="text-xl font-bold">{lead.lead_score || 0}</p>
@@ -349,16 +359,23 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       </Card>
                     )}
 
-                    {/* Procedures of Interest */}
+                    {/* Procedures of Interest - Now with prominence */}
                     {lead.interested_procedures && lead.interested_procedures.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium mb-2">Procedimentos</p>
-                        <div className="flex flex-wrap gap-2">
-                          {lead.interested_procedures.map((proc, i) => (
-                            <Badge key={i} variant="secondary">{proc}</Badge>
-                          ))}
-                        </div>
-                      </div>
+                      <Card className="border-primary/30">
+                        <CardContent className="p-3">
+                          <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-primary" />
+                            Procedimentos em Negociação
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {lead.interested_procedures.map((proc, i) => (
+                              <Badge key={i} className="bg-primary/10 text-primary border border-primary/30">
+                                {proc}
+                              </Badge>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
                     )}
 
                     {/* Notes Section */}
