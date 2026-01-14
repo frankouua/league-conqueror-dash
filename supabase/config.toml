@@ -111,5 +111,47 @@ verify_jwt = false
 [functions.import-historical-data]
 verify_jwt = false
 
+[functions.crm-master-automation]
+verify_jwt = false
+
+[functions.stage-change-automation]
+verify_jwt = false
+
+[functions.escalation-automation]
+verify_jwt = false
+
+[functions.referral-automation]
+verify_jwt = false
+
+[functions.whatsapp-automation]
+verify_jwt = false
+
+[functions.nps-automation]
+verify_jwt = false
+
+[functions.temperature-automation]
+verify_jwt = false
+
+[functions.post-sale-automation]
+verify_jwt = false
+
+[functions.lead-distribution]
+verify_jwt = false
+
+[functions.reactivation-automation]
+verify_jwt = false
+
+[functions.cross-sell-automation]
+verify_jwt = false
+
+[functions.birthday-automation]
+verify_jwt = false
+
+[functions.goal-achievement-automation]
+verify_jwt = false
+
+[functions.identify-recurrences]
+verify_jwt = false
+
 [functions.rollback-import]
 verify_jwt = false
