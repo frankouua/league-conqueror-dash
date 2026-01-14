@@ -29,11 +29,16 @@ interface LeadContract {
   clicksign_document_key: string | null;
   status: string;
   sent_at: string | null;
+  viewed_at: string | null;
   signed_at: string | null;
-  signer_name: string | null;
+  cancelled_at: string | null;
   signer_email: string | null;
+  signer_phone: string | null;
+  document_url: string | null;
   signed_document_url: string | null;
+  created_by: string | null;
   created_at: string;
+  updated_at: string;
   contract_templates?: ContractTemplate;
 }
 
