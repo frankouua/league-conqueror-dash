@@ -26,8 +26,7 @@ serve(async (req) => {
       .from('crm_leads')
       .select(`
         id, name, temperature, created_at, last_activity_at, 
-        stage_changed_at, estimated_value, tags, assigned_to,
-        stage:crm_stages(name, is_won, is_lost)
+        stage_changed_at, estimated_value, tags, assigned_to, stage_id
       `)
       .is('won_at', null)
       .is('lost_at', null);
@@ -68,7 +67,16 @@ serve(async (req) => {
       const totalSentiments = sentiments?.length || 0;
 
       // ====== REGRAS DE TEMPERATURA ======
-      const stageName = Array.isArray(lead.stage) ? lead.stage[0]?.name : (lead.stage as any)?.name;
+      // Buscar nome do estágio se necessário
+      let stageName = '';
+      if (lead.stage_id) {
+        const { data: stageData } = await supabase
+          .from('crm_stages')
+          .select('name')
+          .eq('id', lead.stage_id)
+          .single();
+        stageName = stageData?.name || '';
+      }
 
       // HOT (Quente): Alta atividade, interações positivas, valor alto
       if (
