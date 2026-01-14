@@ -127,6 +127,7 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
   const [saving, setSaving] = useState(false);
   const [newTag, setNewTag] = useState('');
   const [procedureSearch, setProcedureSearch] = useState('');
+  const [isNegotiationValueOverridden, setIsNegotiationValueOverridden] = useState(false);
 
   // Fetch protocols from database
   const { data: protocols = [], isLoading: loadingProtocols } = useQuery({
@@ -230,25 +231,29 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
   const normalizeProcedureName = (name: string) =>
     name.replace(/^\s*Com\s*\d+\s*-\s*/i, '').trim();
 
-  // Helper to get procedure price by name (supports names with/without "Com XXX - " prefix)
-  const getProcedurePrice = (procedureName: string): number => {
-    const raw = procedureName.trim();
-    const normalized = normalizeProcedureName(raw);
+  const computeSelectedTotal = (selected: string[]) => {
+    if (!selected.length) return 0;
 
-    const matchByName = (name: string) => {
-      const proc = procedures.find(p => p.name === name);
-      if (proc) return proc.promotional_price || proc.price;
-      const protocol = protocols.find(p => p.name === name);
-      if (protocol) return protocol.promotional_price || protocol.price;
-      return null;
+    const protocolPriceByName = new Map(
+      protocols.map(p => [p.name, (p.promotional_price || p.price) as number])
+    );
+    const procedurePriceByName = new Map(
+      procedures.map(p => [p.name, (p.promotional_price || p.price) as number])
+    );
+
+    const getPrice = (name: string) => {
+      const raw = name.trim();
+      const normalized = normalizeProcedureName(raw);
+      return (
+        procedurePriceByName.get(raw) ??
+        procedurePriceByName.get(normalized) ??
+        protocolPriceByName.get(raw) ??
+        protocolPriceByName.get(normalized) ??
+        0
+      );
     };
 
-    return matchByName(raw) ?? matchByName(normalized) ?? 0;
-  };
-
-  // Calculate total value from selected procedures
-  const calculateTotalValue = (selectedProcedures: string[]): number => {
-    return selectedProcedures.reduce((total, procName) => total + getProcedurePrice(procName), 0);
+    return selected.reduce((sum, name) => sum + getPrice(name), 0);
   };
 
   const handleProcedureToggle = (procedure: string) => {
@@ -257,14 +262,15 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
         ? prev.interested_procedures.filter(p => p !== procedure)
         : [...prev.interested_procedures, procedure];
 
-      // AUTO-CALCULATE negotiation value
-      const newValue = calculateTotalValue(newProcedures);
+      const computedTotal = computeSelectedTotal(newProcedures);
 
       return {
         ...prev,
         interested_procedures: newProcedures,
-        // Always reflect what is selected (computed value)
-        estimated_value: newValue.toString(),
+        // If user didn't override manually, keep value always tied to selection
+        estimated_value: isNegotiationValueOverridden
+          ? prev.estimated_value
+          : computedTotal.toString(),
       };
     });
   };
@@ -306,7 +312,9 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
         source_detail: formData.source_detail || null,
         assigned_to: formData.assigned_to || null,
         team_id: formData.team_id || null,
-        estimated_value: formData.estimated_value ? parseFloat(formData.estimated_value) : null,
+        estimated_value: isNegotiationValueOverridden
+          ? (formData.estimated_value ? parseFloat(formData.estimated_value) : null)
+          : (computeSelectedTotal(formData.interested_procedures) || null),
         contract_value: formData.contract_value ? parseFloat(formData.contract_value) : null,
         notes: formData.notes || null,
         tags: formData.tags.length > 0 ? formData.tags : null,
@@ -516,7 +524,10 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
               <Input
                 type="number"
                 value={formData.estimated_value}
-                onChange={(e) => setFormData(prev => ({ ...prev, estimated_value: e.target.value }))}
+                onChange={(e) => {
+                  setIsNegotiationValueOverridden(true);
+                  setFormData(prev => ({ ...prev, estimated_value: e.target.value }));
+                }}
                 placeholder="0"
               />
             </div>
@@ -630,7 +641,11 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
                   <DollarSign className="h-4 w-4 text-green-600" />
                   <span className="text-xs font-medium text-muted-foreground">Valor Negociação:</span>
                   <span className="text-lg font-black text-green-600">
-                    {formatCurrency(parseFloat(formData.estimated_value) || 0)}
+                    {formatCurrency(
+                      isNegotiationValueOverridden
+                        ? (parseFloat(formData.estimated_value) || 0)
+                        : computeSelectedTotal(formData.interested_procedures)
+                    )}
                   </span>
                   <Badge variant="secondary" className="text-xs">
                     {formData.interested_procedures.length} itens
