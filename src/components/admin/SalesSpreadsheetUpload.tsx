@@ -181,6 +181,27 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   // Ref para scroll automático ao mapeamento de colunas
   const columnMappingRef = useRef<HTMLDivElement>(null);
 
+  const scrollToColumnMapping = (source: 'auto' | 'manual' = 'manual') => {
+    const el = columnMappingRef.current ?? document.getElementById('column-mapping');
+    if (!el) {
+      console.warn('[Upload] scrollToColumnMapping: elemento não encontrado');
+      if (source === 'manual') {
+        toast({
+          title: 'Não encontrei o mapeamento na tela',
+          description: 'Aguarde 1s e clique novamente. Se persistir, recarregue a página.',
+          variant: 'destructive',
+        });
+      }
+      return false;
+    }
+
+    const rect = el.getBoundingClientRect();
+    const targetTop = Math.max(0, rect.top + window.scrollY - 24);
+    window.scrollTo({ top: targetTop, behavior: 'smooth' });
+    console.log(`[Upload] Scroll para mapeamento (${source})`);
+    return true;
+  };
+
   // Controla tentativa de scroll após o upload (evita correr antes do render)
   const [pendingScrollToMapping, setPendingScrollToMapping] = useState(false);
 
@@ -188,30 +209,23 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     if (!pendingScrollToMapping) return;
     if (!showColumnMapping || availableColumns.length === 0) return;
 
-    // Tenta algumas vezes porque o DOM pode demorar a montar (tabs/dialog)
     let tries = 0;
-    const maxTries = 10;
+    const maxTries = 12;
 
     const tryScroll = () => {
       tries += 1;
-      const el = columnMappingRef.current;
-
-      if (el) {
-        console.log('[Upload] Scroll confirmado para mapeamento (useEffect)');
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const ok = scrollToColumnMapping('auto');
+      if (ok) {
         setPendingScrollToMapping(false);
         return;
       }
-
-      if (tries < maxTries) {
-        setTimeout(tryScroll, 150);
-      } else {
-        console.warn('[Upload] Não foi possível localizar o bloco de mapeamento para scroll.');
+      if (tries < maxTries) setTimeout(tryScroll, 150);
+      else {
+        console.warn('[Upload] Auto-scroll falhou (não localizou o mapeamento).');
         setPendingScrollToMapping(false);
       }
     };
 
-    // Próximo tick
     setTimeout(tryScroll, 0);
   }, [pendingScrollToMapping, showColumnMapping, availableColumns.length]);
 
@@ -2549,6 +2563,19 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             )}
           </div>
 
+          {showColumnMapping && availableColumns.length > 0 && (
+            <Alert>
+              <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  Próximo passo: <strong>Mapeamento de Colunas</strong>. Se não aparecer na tela, clique em <strong>"Ir para o Passo 2"</strong>.
+                </span>
+                <Button type="button" variant="secondary" onClick={() => scrollToColumnMapping('manual')}>
+                  Ir para o Passo 2
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {file && sheetNames.length > 1 && showColumnMapping && (
             <div>
               <Label>Aba da planilha</Label>
@@ -2627,7 +2654,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
       {/* Column Mapping */}
       {showColumnMapping && availableColumns.length > 0 && (
-        <div ref={columnMappingRef}>
+        <div id="column-mapping" ref={columnMappingRef}>
           <Card className="border-primary/40 bg-primary/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
