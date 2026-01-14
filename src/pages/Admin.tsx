@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell, History, Bot } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell, History, Bot, Send } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +23,10 @@ import AlertsManager from "@/components/admin/AlertsManager";
 import { FeegowEnrichment } from "@/components/admin/FeegowEnrichment";
 import HistoricalDataImport from "@/components/admin/HistoricalDataImport";
 import { AutomationsMonitor } from "@/components/admin/AutomationsMonitor";
+import { WhatsAppConfig } from "@/components/admin/WhatsAppConfig";
+import { EmailConfig } from "@/components/admin/EmailConfig";
+import { SMSConfig } from "@/components/admin/SMSConfig";
+import { ClickSignConfig } from "@/components/admin/ClickSignConfig";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -207,6 +211,13 @@ const Admin = () => {
                 <Bot className="w-4 h-4" />
                 <span className="text-xs font-medium">Automações</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="integrations"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
+              >
+                <Send className="w-4 h-4" />
+                <span className="text-xs font-medium">Integrações</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -279,6 +290,19 @@ const Admin = () => {
 
           <TabsContent value="automations" className="animate-scale-in">
             <AutomationsMonitor />
+          </TabsContent>
+
+          <TabsContent value="integrations" className="animate-scale-in">
+            <div className="space-y-6">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <WhatsAppConfig />
+                <SMSConfig />
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <EmailConfig />
+                <ClickSignConfig />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 

@@ -51,6 +51,9 @@ serve(async (req) => {
       { name: 'intelligentFollowup', fn: 'intelligent-followup' },
       { name: 'sellerPerformance', fn: 'seller-performance-automation' },
       { name: 'pipeline', fn: 'pipeline-automation' },
+      { name: 'coordinatorValidation', fn: 'coordinator-validation' },
+      { name: 'travelOrganization', fn: 'travel-organization' },
+      { name: 'weightProtocol', fn: 'weight-protocol' },
     ];
 
     // Executar cada automação
