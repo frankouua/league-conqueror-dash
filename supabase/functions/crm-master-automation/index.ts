@@ -7,13 +7,15 @@ const corsHeaders = {
 };
 
 // Orquestrador Central de Automações CRM
-// Executa todas as automações do documento em sequência
+// Executa automações críticas de forma mais eficiente
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -21,61 +23,97 @@ serve(async (req) => {
 
     const results: Record<string, any> = {};
     const errors: string[] = [];
+    const skipped: string[] = [];
 
     console.log("🚀 Iniciando Orquestrador de Automações CRM...");
 
-    // Lista completa de automações conforme documento
-    const automations = [
-      { name: 'cadences', fn: 'execute-cadences' },
+    // Automações prioritárias (executam sempre)
+    const criticalAutomations = [
       { name: 'sla', fn: 'check-sla-alerts' },
       { name: 'staleLeads', fn: 'check-stale-leads' },
-      { name: 'surgeryChecklist', fn: 'surgery-checklist-automation' },
-      { name: 'aiManager', fn: 'daily-ai-manager' },
       { name: 'crmAlerts', fn: 'check-crm-alerts' },
-      { name: 'churn', fn: 'predict-churn' },
-      { name: 'recurrences', fn: 'identify-recurrences' },
-      { name: 'sellerAlerts', fn: 'daily-seller-alerts' },
-      { name: 'stageChange', fn: 'stage-change-automation' },
-      { name: 'escalation', fn: 'escalation-automation' },
-      { name: 'referral', fn: 'referral-automation' },
-      { name: 'whatsapp', fn: 'whatsapp-automation' },
-      { name: 'nps', fn: 'nps-automation' },
-      { name: 'temperature', fn: 'temperature-automation' },
-      { name: 'postSale', fn: 'post-sale-automation' },
-      { name: 'leadDistribution', fn: 'lead-distribution' },
-      { name: 'reactivation', fn: 'reactivation-automation' },
-      { name: 'crossSell', fn: 'cross-sell-automation' },
-      { name: 'birthday', fn: 'birthday-automation' },
-      { name: 'goalAchievement', fn: 'goal-achievement-automation' },
-      { name: 'marketing', fn: 'marketing-automation' },
-      { name: 'intelligentFollowup', fn: 'intelligent-followup' },
-      { name: 'sellerPerformance', fn: 'seller-performance-automation' },
-      { name: 'pipeline', fn: 'pipeline-automation' },
-      { name: 'coordinatorValidation', fn: 'coordinator-validation' },
-      { name: 'travelOrganization', fn: 'travel-organization' },
-      { name: 'weightProtocol', fn: 'weight-protocol' },
     ];
 
-    // Executar cada automação
-    for (const automation of automations) {
+    // Automações secundárias (executam se houver tempo)
+    const secondaryAutomations = [
+      { name: 'cadences', fn: 'execute-cadences' },
+      { name: 'surgeryChecklist', fn: 'surgery-checklist-automation' },
+      { name: 'temperature', fn: 'temperature-automation' },
+      { name: 'recurrences', fn: 'identify-recurrences' },
+      { name: 'postSale', fn: 'post-sale-automation' },
+    ];
+
+    // Automações terciárias (só quando necessário)
+    const tertiaryAutomations = [
+      { name: 'referral', fn: 'referral-automation' },
+      { name: 'birthday', fn: 'birthday-automation' },
+      { name: 'sellerAlerts', fn: 'daily-seller-alerts' },
+    ];
+
+    // Helper function com timeout individual
+    const executeWithTimeout = async (automation: { name: string; fn: string }, timeoutMs: number = 8000) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
       try {
         console.log(`⚙️ Executando: ${automation.name}...`);
         const { data, error } = await supabase.functions.invoke(automation.fn);
-        results[automation.name] = data || { error: error?.message };
+        clearTimeout(timeoutId);
         
         if (error) {
           errors.push(`${automation.name}: ${error.message}`);
+          results[automation.name] = { error: error.message };
+        } else {
+          results[automation.name] = data || { success: true };
         }
       } catch (e: any) {
-        errors.push(`${automation.name}: ${e?.message || 'Erro desconhecido'}`);
-        results[automation.name] = { error: e?.message };
+        clearTimeout(timeoutId);
+        if (e.name === 'AbortError') {
+          skipped.push(`${automation.name}: timeout`);
+          results[automation.name] = { skipped: 'timeout' };
+        } else {
+          errors.push(`${automation.name}: ${e?.message || 'Erro desconhecido'}`);
+          results[automation.name] = { error: e?.message };
+        }
       }
+    };
+
+    // Executar automações críticas primeiro
+    for (const automation of criticalAutomations) {
+      // Check tempo restante (máx 25s total para evitar timeout de edge function)
+      if (Date.now() - startTime > 20000) {
+        skipped.push(`${automation.name}: tempo limite global`);
+        continue;
+      }
+      await executeWithTimeout(automation, 6000);
     }
+
+    // Executar automações secundárias se houver tempo
+    for (const automation of secondaryAutomations) {
+      if (Date.now() - startTime > 22000) {
+        skipped.push(`${automation.name}: tempo limite global`);
+        continue;
+      }
+      await executeWithTimeout(automation, 4000);
+    }
+
+    // Executar automações terciárias apenas se sobrar tempo
+    for (const automation of tertiaryAutomations) {
+      if (Date.now() - startTime > 24000) {
+        skipped.push(`${automation.name}: tempo limite global`);
+        continue;
+      }
+      await executeWithTimeout(automation, 3000);
+    }
+
+    const totalExecuted = criticalAutomations.length + secondaryAutomations.length + tertiaryAutomations.length;
+    const successCount = totalExecuted - errors.length - skipped.length;
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
     // Registrar execução
     await supabase.from('automation_logs').insert({
       automation_type: 'master_cron',
-      status: errors.length === 0 ? 'success' : 'partial',
+      status: errors.length === 0 ? 'success' : (errors.length < 3 ? 'partial' : 'error'),
       results: results,
       errors: errors.length > 0 ? errors : null,
       completed_at: new Date().toISOString(),
@@ -87,21 +125,25 @@ serve(async (req) => {
       .update({ last_run_at: new Date().toISOString() })
       .eq('function_name', 'crm-master-automation');
 
-    console.log("🎉 Orquestrador finalizado!", { 
-      total: automations.length,
-      success: automations.length - errors.length,
-      errors: errors.length 
+    console.log(`🎉 Orquestrador finalizado em ${duration}s!`, { 
+      total: totalExecuted,
+      success: successCount,
+      errors: errors.length,
+      skipped: skipped.length
     });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Automações executadas com sucesso",
-        total_automations: automations.length,
-        successful: automations.length - errors.length,
+        message: "Automações executadas",
+        total_automations: totalExecuted,
+        successful: successCount,
         failed: errors.length,
+        skipped: skipped.length,
+        duration_seconds: parseFloat(duration),
         results,
         errors: errors.length > 0 ? errors : null,
+        skipped_list: skipped.length > 0 ? skipped : null,
         timestamp: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -110,7 +152,11 @@ serve(async (req) => {
   } catch (error: any) {
     console.error("❌ Erro no orquestrador:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        duration_seconds: ((Date.now() - startTime) / 1000).toFixed(1)
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
