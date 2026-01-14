@@ -73,15 +73,19 @@ export function CRMLeadPersonalData({
     <ScrollArea className="h-full">
       <div className="space-y-3 sm:space-y-4 pb-4">
         {/* Resumo Financeiro */}
+        {/* IMPORTANTE: "Total Vendido" = histórico real (Feegow/planilhas) 
+            NÃO usar leadEstimatedValue aqui - isso é valor de NEGOCIAÇÃO/oportunidade */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Card className="bg-green-500/10 border-green-500/30">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-green-500" />
                 <div>
-                  <p className="text-[10px] text-muted-foreground">Total Vendido</p>
+                  <p className="text-[10px] text-muted-foreground">Vendido (Histórico)</p>
                   <p className="text-sm font-bold text-green-500">
-                    {formatCurrency(leadEstimatedValue || patientData?.total_value_sold)}
+                    {patientData?.total_value_sold 
+                      ? formatCurrency(patientData.total_value_sold)
+                      : <span className="text-muted-foreground text-xs">Sem histórico</span>}
                   </p>
                 </div>
               </div>
