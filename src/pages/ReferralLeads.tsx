@@ -23,6 +23,10 @@ import {
   Sparkles,
   AlertTriangle,
   BarChart3,
+  Shield,
+  ShieldCheck,
+  ShieldX,
+  Trash2,
 } from "lucide-react";
 import { ReferralConversionReport } from "@/components/ReferralConversionReport";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,7 +47,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -74,6 +89,10 @@ interface ReferralLead {
   surgery_date: string | null;
   created_at: string;
   updated_at: string;
+  approved: boolean;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
   assigned_profile?: { full_name: string } | null;
   registered_profile?: { full_name: string } | null;
 }
@@ -228,6 +247,14 @@ const ReferralLeads = () => {
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [showReport, setShowReport] = useState(false);
+  
+  // Approval system
+  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<ReferralLead | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [leadToReject, setLeadToReject] = useState<ReferralLead | null>(null);
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -390,26 +417,13 @@ const ReferralLeads = () => {
         registered_by: user.id,
         notes: newLead.notes || null,
         status: "nova",
+        approved: false, // Indicação começa não aprovada
       }).select().single();
 
       if (error) throw error;
 
-      // 🏆 COPA: +5 pontos por captar indicação
-      if (data && teamId) {
-        try {
-          await supabase.from('cards').insert({
-            team_id: teamId,
-            type: 'bonus' as any, // Tipo adicionado para pontuação Copa
-            points: 5,
-            reason: `Indicação captada: ${newLead.referred_name}`,
-            applied_by: user.id,
-            date: new Date().toISOString().split('T')[0],
-          });
-          console.log('🏆 Copa: +5 pontos por captar indicação');
-        } catch (e) {
-          console.error('Erro ao registrar pontos Copa:', e);
-        }
-      }
+      // 🏆 COPA: Pontos só são dados APÓS aprovação do admin
+      // Não dar pontos na criação - será dado quando admin aprovar
 
       // Send notification for new lead
       if (data) {
@@ -479,45 +493,56 @@ const ReferralLeads = () => {
 
       if (historyError) console.error("History error:", historyError);
 
-      // 🏆 COPA: Pontos por evolução da indicação
+      // 🏆 COPA: Pontos por evolução da indicação (só se aprovada)
+      // Lógica de SUBSTITUIÇÃO: pontos são atualizados, não acumulados
+      // nova = 5 pts → consultou = 15 pts → operou = 30 pts
       const COPA_POINTS: Record<string, number> = {
-        consultou: 15,  // Indicação consultou
-        operou: 30,     // Indicação operou
-        ganho: 30,      // Indicação fechou (igual a operou)
+        nova: 5,
+        em_contato: 5,
+        agendou: 15,
+        consultou: 15,
+        operou: 30,
+        ganho: 30,
       };
       
-      if (editingLead.team_id && COPA_POINTS[newStatus]) {
-        const points = COPA_POINTS[newStatus];
-        const reason = newStatus === 'operou' || newStatus === 'ganho' 
+      // Só atualiza pontos se a indicação estiver aprovada
+      if (editingLead.team_id && editingLead.approved && COPA_POINTS[newStatus]) {
+        const newPoints = COPA_POINTS[newStatus];
+        const reason = newPoints === 30 
           ? `Indicação operou: ${editingLead.referred_name}`
-          : `Indicação consultou: ${editingLead.referred_name}`;
+          : newPoints === 15 
+            ? `Indicação consultou: ${editingLead.referred_name}`
+            : `Indicação captada: ${editingLead.referred_name}`;
         
-        // Verificar se já não deu pontos para esse status
-        const { data: existingCard } = await supabase
-          .from('cards')
-          .select('id')
-          .eq('team_id', editingLead.team_id)
-          .eq('reason', reason)
-          .single();
-        
-        if (!existingCard) {
-          try {
-            await supabase.from('cards').insert({
-              team_id: editingLead.team_id,
-              type: 'bonus' as any,
-              points: points,
-              reason: reason,
-              applied_by: user.id,
-              date: new Date().toISOString().split('T')[0],
-            });
-            console.log(`🏆 Copa: +${points} pontos - ${reason}`);
-            toast({ 
-              title: `🏆 +${points} pontos na Copa!`, 
-              description: reason,
-            });
-          } catch (e) {
-            console.error('Erro ao registrar pontos Copa:', e);
+        try {
+          // Verificar se já existe card para esta indicação
+          const { data: existingCard } = await supabase
+            .from('cards')
+            .select('id, points')
+            .eq('referral_lead_id', editingLead.id)
+            .single();
+          
+          if (existingCard) {
+            // ATUALIZAR card existente (substituir pontos)
+            if (existingCard.points !== newPoints) {
+              await supabase.from('cards')
+                .update({
+                  points: newPoints,
+                  reason: reason,
+                  date: new Date().toISOString().split('T')[0],
+                })
+                .eq('id', existingCard.id);
+              
+              console.log(`🏆 Copa: Pontos atualizados de ${existingCard.points} para ${newPoints}`);
+              toast({ 
+                title: `🏆 Pontos atualizados para ${newPoints}!`, 
+                description: reason,
+              });
+            }
           }
+          // Se não existe card, não criar (será criado na aprovação)
+        } catch (e) {
+          console.error('Erro ao atualizar pontos Copa:', e);
         }
       }
 
@@ -647,6 +672,132 @@ const ReferralLeads = () => {
     fetchLeadHistory(lead.id);
   };
 
+  // 🔐 APROVAÇÃO: Aprovar indicação e dar pontos iniciais
+  const handleApproveLead = async (lead: ReferralLead) => {
+    if (!user) return;
+    setIsSaving(true);
+    
+    try {
+      // Atualizar lead como aprovada
+      const { error: updateError } = await supabase
+        .from("referral_leads")
+        .update({
+          approved: true,
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+          rejection_reason: null,
+        })
+        .eq("id", lead.id);
+      
+      if (updateError) throw updateError;
+      
+      // 🏆 COPA: Dar pontos baseado no status atual
+      const COPA_POINTS: Record<string, number> = {
+        nova: 5,
+        em_contato: 5,
+        agendou: 15,
+        consultou: 15,
+        operou: 30,
+        ganho: 30,
+      };
+      
+      const points = COPA_POINTS[lead.status] || 5;
+      const reason = points === 30 
+        ? `Indicação operou: ${lead.referred_name}`
+        : points === 15 
+          ? `Indicação consultou: ${lead.referred_name}`
+          : `Indicação captada: ${lead.referred_name}`;
+      
+      // Criar card com referral_lead_id para rastreamento
+      await supabase.from('cards').insert({
+        team_id: lead.team_id,
+        type: 'bonus' as any,
+        points: points,
+        reason: reason,
+        applied_by: user.id,
+        date: new Date().toISOString().split('T')[0],
+        referral_lead_id: lead.id,
+      });
+      
+      toast({ 
+        title: "✅ Indicação aprovada!", 
+        description: `+${points} pontos para o time`,
+      });
+      
+      fetchLeads();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 🔐 REJEIÇÃO: Rejeitar indicação
+  const handleRejectLead = async () => {
+    if (!user || !leadToReject) return;
+    setIsSaving(true);
+    
+    try {
+      const { error: updateError } = await supabase
+        .from("referral_leads")
+        .update({
+          approved: false,
+          rejection_reason: rejectionReason || "Indicação não validada",
+        })
+        .eq("id", leadToReject.id);
+      
+      if (updateError) throw updateError;
+      
+      toast({ 
+        title: "❌ Indicação rejeitada", 
+        description: rejectionReason || "Indicação não validada",
+        variant: "destructive",
+      });
+      
+      setShowRejectDialog(false);
+      setLeadToReject(null);
+      setRejectionReason("");
+      fetchLeads();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 🗑️ EXCLUSÃO: Excluir indicação (apenas admin)
+  const handleDeleteLead = async () => {
+    if (!user || !leadToDelete || role !== "admin") return;
+    setIsSaving(true);
+    
+    try {
+      // 1. Remover card de pontos associado (se existir)
+      await supabase.from('cards').delete().eq('referral_lead_id', leadToDelete.id);
+      
+      // 2. Remover histórico
+      await supabase.from('referral_lead_history').delete().eq('lead_id', leadToDelete.id);
+      
+      // 3. Remover a indicação
+      const { error } = await supabase.from('referral_leads').delete().eq('id', leadToDelete.id);
+      
+      if (error) throw error;
+      
+      toast({ 
+        title: "🗑️ Indicação excluída", 
+        description: `${leadToDelete.referred_name} foi removida`,
+      });
+      
+      setShowDeleteConfirm(false);
+      setLeadToDelete(null);
+      setEditingLead(null);
+      fetchLeads();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
       lead.referrer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -655,9 +806,24 @@ const ReferralLeads = () => {
       lead.referred_email?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
+    
+    // Filtro de aprovação
+    let matchesApproval = true;
+    if (approvalFilter === "pending") {
+      matchesApproval = !lead.approved && !lead.rejection_reason;
+    } else if (approvalFilter === "approved") {
+      matchesApproval = lead.approved === true;
+    } else if (approvalFilter === "rejected") {
+      matchesApproval = !lead.approved && !!lead.rejection_reason;
+    }
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesApproval;
   });
+
+  // Contadores para filtros
+  const pendingCount = leads.filter(l => !l.approved && !l.rejection_reason).length;
+  const approvedCount = leads.filter(l => l.approved === true).length;
+  const rejectedCount = leads.filter(l => !l.approved && !!l.rejection_reason).length;
 
   // Group by status for pipeline view
   const leadsByStatus = STATUS_ORDER.reduce((acc, status) => {
@@ -754,6 +920,34 @@ const ReferralLeads = () => {
               ))}
             </SelectContent>
           </Select>
+          
+          {/* Filtro de Aprovação - Apenas Admin */}
+          {role === "admin" && (
+            <Select value={approvalFilter} onValueChange={(v: any) => setApprovalFilter(v)}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-secondary border-border">
+                <Shield className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Filtrar aprovação" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="all">Todas ({leads.length})</SelectItem>
+                <SelectItem value="pending">
+                  <span className="flex items-center gap-2">
+                    🟡 Pendentes ({pendingCount})
+                  </span>
+                </SelectItem>
+                <SelectItem value="approved">
+                  <span className="flex items-center gap-2">
+                    ✅ Aprovadas ({approvedCount})
+                  </span>
+                </SelectItem>
+                <SelectItem value="rejected">
+                  <span className="flex items-center gap-2">
+                    ❌ Rejeitadas ({rejectedCount})
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Pipeline View - Horizontal scroll on mobile - NOW FIRST AND MORE PROMINENT */}
@@ -841,6 +1035,27 @@ const ReferralLeads = () => {
                             <Phone className="w-3 h-3" />
                             {lead.referred_phone}
                           </p>
+                        )}
+                        {/* Badge de aprovação */}
+                        {role === "admin" && (
+                          <div className="mt-1">
+                            {lead.approved ? (
+                              <Badge variant="outline" className="text-[10px] bg-green-500/20 border-green-500/30 text-green-400">
+                                <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
+                                Aprovada
+                              </Badge>
+                            ) : lead.rejection_reason ? (
+                              <Badge variant="outline" className="text-[10px] bg-red-500/20 border-red-500/30 text-red-400">
+                                <ShieldX className="w-2.5 h-2.5 mr-0.5" />
+                                Rejeitada
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] bg-yellow-500/20 border-yellow-500/30 text-yellow-400">
+                                <Shield className="w-2.5 h-2.5 mr-0.5" />
+                                Pendente
+                              </Badge>
+                            )}
+                          </div>
                         )}
                         {lead.registered_profile && (
                           <p className="text-xs text-primary/80 mt-1 truncate">
@@ -1145,6 +1360,81 @@ const ReferralLeads = () => {
                 </div>
               </div>
 
+              {/* Seção de Aprovação - Apenas Admin */}
+              {role === "admin" && (
+                <div className="border rounded-lg p-4 bg-secondary/30 border-border">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-foreground flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
+                      Status de Aprovação
+                    </Label>
+                    {editingLead.approved ? (
+                      <Badge className="bg-green-500/20 border-green-500/30 text-green-400">
+                        <ShieldCheck className="w-3 h-3 mr-1" />
+                        Aprovada
+                      </Badge>
+                    ) : editingLead.rejection_reason ? (
+                      <Badge className="bg-red-500/20 border-red-500/30 text-red-400">
+                        <ShieldX className="w-3 h-3 mr-1" />
+                        Rejeitada
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-yellow-500/20 border-yellow-500/30 text-yellow-400">
+                        <Shield className="w-3 h-3 mr-1" />
+                        Pendente
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {editingLead.rejection_reason && (
+                    <p className="text-sm text-red-400 bg-red-500/10 p-2 rounded mb-3">
+                      Motivo: {editingLead.rejection_reason}
+                    </p>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    {!editingLead.approved && (
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => handleApproveLead(editingLead)}
+                        disabled={isSaving}
+                      >
+                        <ShieldCheck className="w-4 h-4 mr-2" />
+                        Aprovar Indicação
+                      </Button>
+                    )}
+                    {!editingLead.rejection_reason && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 border-red-500/30 text-red-500 hover:bg-red-500/10"
+                        onClick={() => {
+                          setLeadToReject(editingLead);
+                          setShowRejectDialog(true);
+                        }}
+                        disabled={isSaving}
+                      >
+                        <ShieldX className="w-4 h-4 mr-2" />
+                        Rejeitar
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-500/50 text-red-500 hover:bg-red-500/20"
+                      onClick={() => {
+                        setLeadToDelete(editingLead);
+                        setShowDeleteConfirm(true);
+                      }}
+                      disabled={isSaving}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Quick Contact Buttons */}
               <div className="flex gap-2">
                 {editingLead.referred_phone && (
@@ -1378,6 +1668,65 @@ const ReferralLeads = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Excluir Indicação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A indicação "{leadToDelete?.referred_name}" será 
+              permanentemente removida, incluindo todos os pontos associados na Copa.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleDeleteLead}
+              disabled={isSaving}
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Rejeição */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Rejeitar Indicação</DialogTitle>
+            <DialogDescription>
+              Informe o motivo da rejeição de "{leadToReject?.referred_name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-foreground">Motivo da Rejeição</Label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Ex: Indicação não comprovada, dados inválidos..."
+                className="bg-secondary border-border resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)} className="border-border">
+              Cancelar
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleRejectLead}
+              disabled={isSaving}
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Rejeitar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

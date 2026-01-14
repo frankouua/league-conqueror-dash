@@ -1105,6 +1105,7 @@ export type Database = {
           id: string
           points: number
           reason: string
+          referral_lead_id: string | null
           team_id: string
           type: Database["public"]["Enums"]["card_type"]
         }
@@ -1115,6 +1116,7 @@ export type Database = {
           id?: string
           points: number
           reason: string
+          referral_lead_id?: string | null
           team_id: string
           type: Database["public"]["Enums"]["card_type"]
         }
@@ -1125,10 +1127,18 @@ export type Database = {
           id?: string
           points?: number
           reason?: string
+          referral_lead_id?: string | null
           team_id?: string
           type?: Database["public"]["Enums"]["card_type"]
         }
         Relationships: [
+          {
+            foreignKeyName: "cards_referral_lead_id_fkey"
+            columns: ["referral_lead_id"]
+            isOneToOne: false
+            referencedRelation: "referral_leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cards_team_id_fkey"
             columns: ["team_id"]
@@ -6218,6 +6228,9 @@ export type Database = {
       }
       referral_leads: {
         Row: {
+          approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
           assigned_to: string | null
           bonus_paid: boolean | null
           bonus_value: number | null
@@ -6236,6 +6249,7 @@ export type Database = {
           referrer_name: string
           referrer_phone: string | null
           registered_by: string
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["referral_lead_status"]
           surgery_date: string | null
           team_id: string
@@ -6243,6 +6257,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
           assigned_to?: string | null
           bonus_paid?: boolean | null
           bonus_value?: number | null
@@ -6261,6 +6278,7 @@ export type Database = {
           referrer_name: string
           referrer_phone?: string | null
           registered_by: string
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["referral_lead_status"]
           surgery_date?: string | null
           team_id: string
@@ -6268,6 +6286,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
           assigned_to?: string | null
           bonus_paid?: boolean | null
           bonus_value?: number | null
@@ -6286,6 +6307,7 @@ export type Database = {
           referrer_name?: string
           referrer_phone?: string | null
           registered_by?: string
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["referral_lead_status"]
           surgery_date?: string | null
           team_id?: string
