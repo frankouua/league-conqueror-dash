@@ -47,6 +47,10 @@ serve(async (req) => {
       { name: 'crossSell', fn: 'cross-sell-automation' },
       { name: 'birthday', fn: 'birthday-automation' },
       { name: 'goalAchievement', fn: 'goal-achievement-automation' },
+      { name: 'marketing', fn: 'marketing-automation' },
+      { name: 'intelligentFollowup', fn: 'intelligent-followup' },
+      { name: 'sellerPerformance', fn: 'seller-performance-automation' },
+      { name: 'pipeline', fn: 'pipeline-automation' },
     ];
 
     // Executar cada automação

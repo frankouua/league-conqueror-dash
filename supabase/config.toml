@@ -153,5 +153,17 @@ verify_jwt = false
 [functions.identify-recurrences]
 verify_jwt = false
 
+[functions.marketing-automation]
+verify_jwt = false
+
+[functions.intelligent-followup]
+verify_jwt = false
+
+[functions.seller-performance-automation]
+verify_jwt = false
+
+[functions.pipeline-automation]
+verify_jwt = false
+
 [functions.rollback-import]
 verify_jwt = false
