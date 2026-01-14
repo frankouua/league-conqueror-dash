@@ -529,6 +529,51 @@ export type Database = {
         }
         Relationships: []
       }
+      bulk_action_logs: {
+        Row: {
+          action_type: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          error_count: number | null
+          id: string
+          lead_ids: string[]
+          parameters: Json | null
+          started_at: string | null
+          status: string | null
+          success_count: number | null
+          total_leads: number | null
+        }
+        Insert: {
+          action_type: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_count?: number | null
+          id?: string
+          lead_ids: string[]
+          parameters?: Json | null
+          started_at?: string | null
+          status?: string | null
+          success_count?: number | null
+          total_leads?: number | null
+        }
+        Update: {
+          action_type?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_count?: number | null
+          id?: string
+          lead_ids?: string[]
+          parameters?: Json | null
+          started_at?: string | null
+          status?: string | null
+          success_count?: number | null
+          total_leads?: number | null
+        }
+        Relationships: []
+      }
       calendar_event_invitations: {
         Row: {
           created_at: string | null
@@ -1145,6 +1190,125 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_config: {
+        Row: {
+          api_key: string
+          api_url: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key: string
+          api_url?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      contract_templates: {
+        Row: {
+          contract_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          name: string
+          template_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          contract_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          name: string
+          template_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          contract_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          name?: string
+          template_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      coordinator_validation_checklist: {
+        Row: {
+          contracts_signed: boolean | null
+          created_at: string | null
+          entry_payment_received: boolean | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          patient_data_complete: boolean | null
+          payment_plan_confirmed: boolean | null
+          surgery_date_confirmed: boolean | null
+          updated_at: string | null
+          validated: boolean | null
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          contracts_signed?: boolean | null
+          created_at?: string | null
+          entry_payment_received?: boolean | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          patient_data_complete?: boolean | null
+          payment_plan_confirmed?: boolean | null
+          surgery_date_confirmed?: boolean | null
+          updated_at?: string | null
+          validated?: boolean | null
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          contracts_signed?: boolean | null
+          created_at?: string | null
+          entry_payment_received?: boolean | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          patient_data_complete?: boolean | null
+          payment_plan_confirmed?: boolean | null
+          surgery_date_confirmed?: boolean | null
+          updated_at?: string | null
+          validated?: boolean | null
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coordinator_validation_checklist_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2110,36 +2274,52 @@ export type Database = {
           ai_summary: string | null
           assigned_to: string | null
           authority_score: number | null
+          before_after_photo_delivered: boolean | null
           birth_date: string | null
           budget_score: number | null
           churn_analyzed_at: string | null
           churn_risk_level: string | null
           companion_info: Json | null
           contract_value: number | null
+          coordinator_validated: boolean | null
+          coordinator_validated_at: string | null
+          coordinator_validated_by: string | null
           cpf: string | null
           created_at: string
           created_by: string
           cross_sell_offered: boolean | null
           cross_sell_suggestions: string[] | null
+          current_weight: number | null
           custom_fields: Json | null
           days_in_stage: number | null
+          days_without_closing: number | null
           diet_restrictions: string | null
+          discharge_completed: boolean | null
+          discharge_completed_at: string | null
+          discharge_date: string | null
+          discount_projects_count: number | null
           email: string | null
           emergency_contact: Json | null
           escalated: boolean | null
           escalated_at: string | null
+          escalated_to: string | null
+          escalation_reason: string | null
           estimated_value: number | null
           feegow_data: Json | null
           feegow_id: string | null
           first_contact_at: string | null
+          future_letter_written: boolean | null
           gamification_points_total: number | null
+          google_review_requested: boolean | null
           help_score: number | null
           help_score_updated_at: string | null
           id: string
+          initial_weight: number | null
           interested_procedures: string[] | null
           is_priority: boolean | null
           is_recurrence_lead: boolean | null
           is_stale: boolean | null
+          landing_page: string | null
           last_activity_at: string | null
           last_feegow_sync: string | null
           last_nps_at: string | null
@@ -2152,6 +2332,8 @@ export type Database = {
           lost_reason_id: string | null
           name: string
           need_score: number | null
+          needs_travel: boolean | null
+          needs_weight_loss: boolean | null
           notes: string | null
           nps_category: string | null
           nps_score: number | null
@@ -2169,6 +2351,7 @@ export type Database = {
           recurrence_due_date: string | null
           recurrence_group: string | null
           referral_lead_id: string | null
+          referrer_url: string | null
           rfv_customer_id: string | null
           sla_violated: boolean | null
           source: string | null
@@ -2180,13 +2363,24 @@ export type Database = {
           surgery_location: string | null
           surgery_notes: string | null
           tags: string[] | null
+          target_weight: number | null
           team_id: string | null
           temperature: string | null
           temperature_updated_at: string | null
+          testimonial_collected: boolean | null
           timing_score: number | null
+          total_discount_percentage: number | null
           total_interactions: number | null
           travel_info: Json | null
+          travel_organized: boolean | null
+          unique_necklace_delivered: boolean | null
           updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          weight_loss_deadline: string | null
           whatsapp: string | null
           won_at: string | null
         }
@@ -2199,36 +2393,52 @@ export type Database = {
           ai_summary?: string | null
           assigned_to?: string | null
           authority_score?: number | null
+          before_after_photo_delivered?: boolean | null
           birth_date?: string | null
           budget_score?: number | null
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
           companion_info?: Json | null
           contract_value?: number | null
+          coordinator_validated?: boolean | null
+          coordinator_validated_at?: string | null
+          coordinator_validated_by?: string | null
           cpf?: string | null
           created_at?: string
           created_by: string
           cross_sell_offered?: boolean | null
           cross_sell_suggestions?: string[] | null
+          current_weight?: number | null
           custom_fields?: Json | null
           days_in_stage?: number | null
+          days_without_closing?: number | null
           diet_restrictions?: string | null
+          discharge_completed?: boolean | null
+          discharge_completed_at?: string | null
+          discharge_date?: string | null
+          discount_projects_count?: number | null
           email?: string | null
           emergency_contact?: Json | null
           escalated?: boolean | null
           escalated_at?: string | null
+          escalated_to?: string | null
+          escalation_reason?: string | null
           estimated_value?: number | null
           feegow_data?: Json | null
           feegow_id?: string | null
           first_contact_at?: string | null
+          future_letter_written?: boolean | null
           gamification_points_total?: number | null
+          google_review_requested?: boolean | null
           help_score?: number | null
           help_score_updated_at?: string | null
           id?: string
+          initial_weight?: number | null
           interested_procedures?: string[] | null
           is_priority?: boolean | null
           is_recurrence_lead?: boolean | null
           is_stale?: boolean | null
+          landing_page?: string | null
           last_activity_at?: string | null
           last_feegow_sync?: string | null
           last_nps_at?: string | null
@@ -2241,6 +2451,8 @@ export type Database = {
           lost_reason_id?: string | null
           name: string
           need_score?: number | null
+          needs_travel?: boolean | null
+          needs_weight_loss?: boolean | null
           notes?: string | null
           nps_category?: string | null
           nps_score?: number | null
@@ -2258,6 +2470,7 @@ export type Database = {
           recurrence_due_date?: string | null
           recurrence_group?: string | null
           referral_lead_id?: string | null
+          referrer_url?: string | null
           rfv_customer_id?: string | null
           sla_violated?: boolean | null
           source?: string | null
@@ -2269,13 +2482,24 @@ export type Database = {
           surgery_location?: string | null
           surgery_notes?: string | null
           tags?: string[] | null
+          target_weight?: number | null
           team_id?: string | null
           temperature?: string | null
           temperature_updated_at?: string | null
+          testimonial_collected?: boolean | null
           timing_score?: number | null
+          total_discount_percentage?: number | null
           total_interactions?: number | null
           travel_info?: Json | null
+          travel_organized?: boolean | null
+          unique_necklace_delivered?: boolean | null
           updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          weight_loss_deadline?: string | null
           whatsapp?: string | null
           won_at?: string | null
         }
@@ -2288,36 +2512,52 @@ export type Database = {
           ai_summary?: string | null
           assigned_to?: string | null
           authority_score?: number | null
+          before_after_photo_delivered?: boolean | null
           birth_date?: string | null
           budget_score?: number | null
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
           companion_info?: Json | null
           contract_value?: number | null
+          coordinator_validated?: boolean | null
+          coordinator_validated_at?: string | null
+          coordinator_validated_by?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string
           cross_sell_offered?: boolean | null
           cross_sell_suggestions?: string[] | null
+          current_weight?: number | null
           custom_fields?: Json | null
           days_in_stage?: number | null
+          days_without_closing?: number | null
           diet_restrictions?: string | null
+          discharge_completed?: boolean | null
+          discharge_completed_at?: string | null
+          discharge_date?: string | null
+          discount_projects_count?: number | null
           email?: string | null
           emergency_contact?: Json | null
           escalated?: boolean | null
           escalated_at?: string | null
+          escalated_to?: string | null
+          escalation_reason?: string | null
           estimated_value?: number | null
           feegow_data?: Json | null
           feegow_id?: string | null
           first_contact_at?: string | null
+          future_letter_written?: boolean | null
           gamification_points_total?: number | null
+          google_review_requested?: boolean | null
           help_score?: number | null
           help_score_updated_at?: string | null
           id?: string
+          initial_weight?: number | null
           interested_procedures?: string[] | null
           is_priority?: boolean | null
           is_recurrence_lead?: boolean | null
           is_stale?: boolean | null
+          landing_page?: string | null
           last_activity_at?: string | null
           last_feegow_sync?: string | null
           last_nps_at?: string | null
@@ -2330,6 +2570,8 @@ export type Database = {
           lost_reason_id?: string | null
           name?: string
           need_score?: number | null
+          needs_travel?: boolean | null
+          needs_weight_loss?: boolean | null
           notes?: string | null
           nps_category?: string | null
           nps_score?: number | null
@@ -2347,6 +2589,7 @@ export type Database = {
           recurrence_due_date?: string | null
           recurrence_group?: string | null
           referral_lead_id?: string | null
+          referrer_url?: string | null
           rfv_customer_id?: string | null
           sla_violated?: boolean | null
           source?: string | null
@@ -2358,13 +2601,24 @@ export type Database = {
           surgery_location?: string | null
           surgery_notes?: string | null
           tags?: string[] | null
+          target_weight?: number | null
           team_id?: string | null
           temperature?: string | null
           temperature_updated_at?: string | null
+          testimonial_collected?: boolean | null
           timing_score?: number | null
+          total_discount_percentage?: number | null
           total_interactions?: number | null
           travel_info?: Json | null
+          travel_organized?: boolean | null
+          unique_necklace_delivered?: boolean | null
           updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          weight_loss_deadline?: string | null
           whatsapp?: string | null
           won_at?: string | null
         }
@@ -3258,6 +3512,143 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_projects: {
+        Row: {
+          created_at: string | null
+          current_participants: number | null
+          description: string | null
+          discount_percentage: number | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          max_participants: number | null
+          name: string
+          start_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_participants?: number | null
+          description?: string | null
+          discount_percentage?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_participants?: number | null
+          name: string
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_participants?: number | null
+          description?: string | null
+          discount_percentage?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_participants?: number | null
+          name?: string
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      email_config: {
+        Row: {
+          api_key: string | null
+          created_at: string | null
+          from_email: string | null
+          from_name: string | null
+          id: string
+          is_active: boolean | null
+          provider: string
+          smtp_host: string | null
+          smtp_password: string | null
+          smtp_port: number | null
+          smtp_user: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_user?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_user?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      email_dispatch_queue: {
+        Row: {
+          body: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          template_id: string | null
+          to_email: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          template_id?: string | null
+          to_email: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          template_id?: string | null
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_dispatch_queue_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       executed_records: {
         Row: {
           amount: number
@@ -4041,6 +4432,126 @@ export type Database = {
           },
         ]
       }
+      lead_contracts: {
+        Row: {
+          cancelled_at: string | null
+          clicksign_document_key: string | null
+          created_at: string | null
+          created_by: string | null
+          document_url: string | null
+          id: string
+          lead_id: string | null
+          sent_at: string | null
+          signed_at: string | null
+          signed_document_url: string | null
+          signer_email: string | null
+          signer_phone: string | null
+          status: string | null
+          template_id: string | null
+          updated_at: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          clicksign_document_key?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document_url?: string | null
+          id?: string
+          lead_id?: string | null
+          sent_at?: string | null
+          signed_at?: string | null
+          signed_document_url?: string | null
+          signer_email?: string | null
+          signer_phone?: string | null
+          status?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          clicksign_document_key?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document_url?: string | null
+          id?: string
+          lead_id?: string | null
+          sent_at?: string | null
+          signed_at?: string | null
+          signed_document_url?: string | null
+          signer_email?: string | null
+          signer_phone?: string | null
+          status?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_contracts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_contracts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_projects: {
+        Row: {
+          committed_at: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          committed_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          committed_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_projects_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "discount_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_recurrence_history: {
         Row: {
           created_at: string
@@ -4117,6 +4628,222 @@ export type Database = {
             columns: ["task_created_id"]
             isOneToOne: false
             referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_spa_preferences: {
+        Row: {
+          aromatherapy_preference: string | null
+          created_at: string | null
+          dietary_restrictions: string | null
+          drinks_preference: string | null
+          favorite_foods: string | null
+          food_allergies: string | null
+          form_submitted: boolean | null
+          form_submitted_at: string | null
+          id: string
+          lead_id: string | null
+          massage_type: string | null
+          music_preference: string | null
+          room_temperature: string | null
+          spa_experience_notes: string | null
+          special_requests: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aromatherapy_preference?: string | null
+          created_at?: string | null
+          dietary_restrictions?: string | null
+          drinks_preference?: string | null
+          favorite_foods?: string | null
+          food_allergies?: string | null
+          form_submitted?: boolean | null
+          form_submitted_at?: string | null
+          id?: string
+          lead_id?: string | null
+          massage_type?: string | null
+          music_preference?: string | null
+          room_temperature?: string | null
+          spa_experience_notes?: string | null
+          special_requests?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aromatherapy_preference?: string | null
+          created_at?: string | null
+          dietary_restrictions?: string | null
+          drinks_preference?: string | null
+          favorite_foods?: string | null
+          food_allergies?: string | null
+          form_submitted?: boolean | null
+          form_submitted_at?: string | null
+          id?: string
+          lead_id?: string | null
+          massage_type?: string | null
+          music_preference?: string | null
+          room_temperature?: string | null
+          spa_experience_notes?: string | null
+          special_requests?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_spa_preferences_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_travel: {
+        Row: {
+          all_confirmed: boolean | null
+          arrival_date: string | null
+          arrival_flight: string | null
+          arrival_time: string | null
+          companion_name: string | null
+          companion_phone: string | null
+          companion_relationship: string | null
+          created_at: string | null
+          departure_date: string | null
+          departure_flight: string | null
+          departure_time: string | null
+          driver_confirmed: boolean | null
+          driver_name: string | null
+          driver_phone: string | null
+          has_companion: boolean | null
+          home_care_days: number | null
+          home_care_nurse: string | null
+          home_care_phone: string | null
+          hotel_address: string | null
+          hotel_check_in: string | null
+          hotel_check_out: string | null
+          hotel_confirmed: boolean | null
+          hotel_name: string | null
+          id: string
+          lead_id: string | null
+          needs_home_care: boolean | null
+          notes: string | null
+          origin_city: string | null
+          origin_state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          all_confirmed?: boolean | null
+          arrival_date?: string | null
+          arrival_flight?: string | null
+          arrival_time?: string | null
+          companion_name?: string | null
+          companion_phone?: string | null
+          companion_relationship?: string | null
+          created_at?: string | null
+          departure_date?: string | null
+          departure_flight?: string | null
+          departure_time?: string | null
+          driver_confirmed?: boolean | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          has_companion?: boolean | null
+          home_care_days?: number | null
+          home_care_nurse?: string | null
+          home_care_phone?: string | null
+          hotel_address?: string | null
+          hotel_check_in?: string | null
+          hotel_check_out?: string | null
+          hotel_confirmed?: boolean | null
+          hotel_name?: string | null
+          id?: string
+          lead_id?: string | null
+          needs_home_care?: boolean | null
+          notes?: string | null
+          origin_city?: string | null
+          origin_state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          all_confirmed?: boolean | null
+          arrival_date?: string | null
+          arrival_flight?: string | null
+          arrival_time?: string | null
+          companion_name?: string | null
+          companion_phone?: string | null
+          companion_relationship?: string | null
+          created_at?: string | null
+          departure_date?: string | null
+          departure_flight?: string | null
+          departure_time?: string | null
+          driver_confirmed?: boolean | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          has_companion?: boolean | null
+          home_care_days?: number | null
+          home_care_nurse?: string | null
+          home_care_phone?: string | null
+          hotel_address?: string | null
+          hotel_check_in?: string | null
+          hotel_check_out?: string | null
+          hotel_confirmed?: boolean | null
+          hotel_name?: string | null
+          id?: string
+          lead_id?: string | null
+          needs_home_care?: boolean | null
+          notes?: string | null
+          origin_city?: string | null
+          origin_state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_travel_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_weight_tracking: {
+        Row: {
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          target_weight: number | null
+          weight: number
+          weight_loss_goal: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
+          target_weight?: number | null
+          weight: number
+          weight_loss_goal?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
+          target_weight?: number | null
+          weight?: number
+          weight_loss_goal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_weight_tracking_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -5856,6 +6583,86 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_config: {
+        Row: {
+          api_key: string | null
+          api_secret: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          provider: string
+          sender_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          sender_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          sender_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sms_dispatch_queue: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          message: string
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          template_id: string | null
+          to_phone: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          message: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          to_phone: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          message?: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          to_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_dispatch_queue_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       special_events: {
         Row: {
           applied_by: string
@@ -5902,6 +6709,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_backups: {
+        Row: {
+          backup_type: string
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          started_at: string | null
+          status: string | null
+          tables_included: string[] | null
+        }
+        Insert: {
+          backup_type?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          started_at?: string | null
+          status?: string | null
+          tables_included?: string[] | null
+        }
+        Update: {
+          backup_type?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          started_at?: string | null
+          status?: string | null
+          tables_included?: string[] | null
+        }
+        Relationships: []
       }
       team_prizes: {
         Row: {
@@ -6694,6 +7540,48 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           report_data?: Json | null
+        }
+        Relationships: []
+      }
+      whatsapp_config: {
+        Row: {
+          api_key: string | null
+          api_url: string
+          connection_status: string | null
+          created_at: string | null
+          id: string
+          instance_id: string | null
+          is_active: boolean | null
+          last_connection_check: string | null
+          provider: string
+          updated_at: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_url: string
+          connection_status?: string | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean | null
+          last_connection_check?: string | null
+          provider?: string
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_url?: string
+          connection_status?: string | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean | null
+          last_connection_check?: string | null
+          provider?: string
+          updated_at?: string | null
+          webhook_url?: string | null
         }
         Relationships: []
       }
