@@ -219,25 +219,27 @@ export const CRMContactPoints = () => {
                   const Icon = config.icon;
                   const isOverdue = contact.status === 'pending' && new Date(contact.scheduledFor) < new Date();
                   
-                  return (
-                    <div 
-                      key={contact.id}
-                      className={`p-4 rounded-lg border transition-colors hover:bg-accent/50 ${
-                        isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-950/20' : ''
-                      }`}
-                    >
+                    return (
+                      <div 
+                        key={contact.id}
+                        className={`p-4 rounded-lg border transition-colors hover:bg-accent/50 ${
+                          isOverdue ? 'border-red-500/50 bg-red-500/10' : 'bg-card'
+                        }`}
+                      >
                       <div className="flex items-start gap-4">
                         <div className={`p-2 rounded-lg ${config.bg}`}>
                           <Icon className={`h-5 w-5 ${config.color}`} />
                         </div>
                         
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
                             <div className="flex items-center gap-2">
-                              <p className="font-medium">{contact.leadName}</p>
-                              <div className={`w-2 h-2 rounded-full ${getPriorityColor(contact.priority)}`} />
+                              <p className="font-medium text-foreground">{contact.leadName}</p>
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getPriorityColor(contact.priority)}`} />
                             </div>
-                            {getStatusBadge(contact.status)}
+                            <div className="flex-shrink-0">
+                              {getStatusBadge(contact.status)}
+                            </div>
                           </div>
                           
                           <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
@@ -303,15 +305,15 @@ export const CRMContactPoints = () => {
                   </div>
                 ) : (
                   urgentContacts.map(contact => (
-                    <div key={contact.id} className="flex items-center gap-3 p-2 rounded bg-red-500/10">
-                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{contact.leadName}</p>
+                    <div key={contact.id} className="flex items-center gap-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10">
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-foreground truncate">{contact.leadName}</p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(contact.scheduledFor), "HH:mm", { locale: ptBR })} • {contactTypeConfig[contact.type].label}
                         </p>
                       </div>
-                      <Button size="sm" variant="destructive">
+                      <Button size="sm" variant="destructive" className="flex-shrink-0">
                         Agir
                       </Button>
                     </div>
