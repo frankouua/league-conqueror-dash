@@ -1,7 +1,7 @@
 import { 
   LogIn, LogOut, User, Plus, Home, Shield,
   Menu, Trophy, Star, TrendingUp, ChevronDown,
-  Settings, Flame, Kanban, Briefcase, Rocket, Calendar
+  Settings, Flame, Kanban, Briefcase, Rocket, Calendar, BarChart3
 } from "lucide-react";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { Button } from "@/components/ui/button";
@@ -76,12 +76,13 @@ const Header = () => {
 
   const currentMonth = MONTH_NAMES[new Date().getMonth()];
 
-  // Main navigation items (simplified - 5 items only)
+  // Main navigation items (simplified - 6 items only)
   const mainNavLinks = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/crm", label: "CRM", icon: Kanban },
     { path: "/comercial", label: "Comercial", icon: Briefcase },
     { path: "/alavancas", label: "Alavancas", icon: Rocket },
+    { path: "/data-reports", label: "Relatórios", icon: BarChart3 },
     { path: "/register", label: "Registrar", icon: Plus },
   ];
 
