@@ -90,6 +90,10 @@ export interface CRMLead {
   surgery_notes: string | null;
   pre_surgery_checklist_completed: boolean | null;
   post_surgery_checklist_completed: boolean | null;
+  // Checklist counts
+  checklist_total: number | null;
+  checklist_completed: number | null;
+  checklist_overdue: number | null;
   // Joined data
   assigned_profile?: { full_name: string } | null;
   stage?: CRMStage | null;

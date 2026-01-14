@@ -2277,6 +2277,9 @@ export type Database = {
           before_after_photo_delivered: boolean | null
           birth_date: string | null
           budget_score: number | null
+          checklist_completed: number | null
+          checklist_overdue: number | null
+          checklist_total: number | null
           churn_analyzed_at: string | null
           churn_risk_level: string | null
           companion_info: Json | null
@@ -2396,6 +2399,9 @@ export type Database = {
           before_after_photo_delivered?: boolean | null
           birth_date?: string | null
           budget_score?: number | null
+          checklist_completed?: number | null
+          checklist_overdue?: number | null
+          checklist_total?: number | null
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
           companion_info?: Json | null
@@ -2515,6 +2521,9 @@ export type Database = {
           before_after_photo_delivered?: boolean | null
           birth_date?: string | null
           budget_score?: number | null
+          checklist_completed?: number | null
+          checklist_overdue?: number | null
+          checklist_total?: number | null
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
           companion_info?: Json | null
@@ -4428,6 +4437,82 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: true
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_checklist_items: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          is_completed: boolean
+          is_custom: boolean
+          is_overdue: boolean
+          lead_id: string
+          order_index: number
+          stage_id: string | null
+          template_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          is_completed?: boolean
+          is_custom?: boolean
+          is_overdue?: boolean
+          lead_id: string
+          order_index?: number
+          stage_id?: string | null
+          template_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          is_completed?: boolean
+          is_custom?: boolean
+          is_overdue?: boolean
+          lead_id?: string
+          order_index?: number
+          stage_id?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_checklist_items_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_checklist_items_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_checklist_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "stage_checklist_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -6706,6 +6791,53 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_checklist_templates: {
+        Row: {
+          created_at: string
+          deadline_hours: number | null
+          description: string | null
+          id: string
+          is_required: boolean
+          order_index: number
+          responsible_role: string | null
+          stage_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deadline_hours?: number | null
+          description?: string | null
+          id?: string
+          is_required?: boolean
+          order_index?: number
+          responsible_role?: string | null
+          stage_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deadline_hours?: number | null
+          description?: string | null
+          id?: string
+          is_required?: boolean
+          order_index?: number
+          responsible_role?: string | null
+          stage_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_checklist_templates_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
             referencedColumns: ["id"]
           },
         ]
