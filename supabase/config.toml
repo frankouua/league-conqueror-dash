@@ -1,5 +1,17 @@
 project_id = "mbnjjwatnqjjqxogmaju"
 
+[functions.execute-cadences]
+verify_jwt = false
+
+[functions.check-sla-alerts]
+verify_jwt = false
+
+[functions.award-gamification-points]
+verify_jwt = false
+
+[functions.surgery-checklist-automation]
+verify_jwt = false
+
 [functions.admin-reset-password]
 verify_jwt = true
 
