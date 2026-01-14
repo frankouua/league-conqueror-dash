@@ -2,28 +2,107 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <title>Copa Unique League 2026 | Gamificação Comercial Unique CPI</title>
     <meta name="description" content="Sistema de gamificação e ranking em tempo real para a competição interna Copa Unique League 2026 da clínica Unique CPI. Acompanhe o placar ao vivo!">
     <meta name="author" content="Unique CPI" />
     <meta name="theme-color" content="#D4AF37" />
-
     
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     
+    <!-- Performance: DNS Prefetch & Preconnect -->
+    <link rel="dns-prefetch" href="https://mbnjjwatnqjjqxogmaju.supabase.co" />
+    <link rel="preconnect" href="https://mbnjjwatnqjjqxogmaju.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Font preload for faster text rendering -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" />
+    
+    <!-- Mobile optimizations -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/l6pCiSSCyLa1QUElLF0kWnkXJny2/social-images/social-1766005717381-logo_copa_unique_league.png">
+    <meta property="og:title" content="Copa Unique League 2026 | Gamificação Comercial Unique CPI">
+    <meta property="og:description" content="Sistema de gamificação e ranking em tempo real para a competição interna Copa Unique League 2026 da clínica Unique CPI. Acompanhe o placar ao vivo!">
 
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@UniqueCPI" />
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/l6pCiSSCyLa1QUElLF0kWnkXJny2/social-images/social-1766005717381-logo_copa_unique_league.png">
-    <meta property="og:title" content="Copa Unique League 2026 | Gamificação Comercial Unique CPI">
-  <meta name="twitter:title" content="Copa Unique League 2026 | Gamificação Comercial Unique CPI">
-  <meta property="og:description" content="Sistema de gamificação e ranking em tempo real para a competição interna Copa Unique League 2026 da clínica Unique CPI. Acompanhe o placar ao vivo!">
-  <meta name="twitter:description" content="Sistema de gamificação e ranking em tempo real para a competição interna Copa Unique League 2026 da clínica Unique CPI. Acompanhe o placar ao vivo!">
-</head>
+    <meta name="twitter:title" content="Copa Unique League 2026 | Gamificação Comercial Unique CPI">
+    <meta name="twitter:description" content="Sistema de gamificação e ranking em tempo real para a competição interna Copa Unique League 2026 da clínica Unique CPI. Acompanhe o placar ao vivo!">
+    
+    <!-- Inline critical CSS for faster first paint -->
+    <style>
+      /* Critical CSS - Loading state */
+      #root {
+        min-height: 100vh;
+        min-height: 100dvh;
+        background: #0d0d0d;
+      }
+      
+      /* Prevent FOUC */
+      html {
+        background: #0d0d0d;
+        color: #fafafa;
+      }
+      
+      /* Fast loading spinner */
+      .app-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0d0d0d;
+        z-index: 9999;
+      }
+      
+      .app-loader-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #333;
+        border-top-color: #D4AF37;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Hide loader when app is ready */
+      .app-ready .app-loader {
+        display: none;
+      }
+    </style>
+  </head>
 
   <body>
+    <!-- Fast initial loader -->
+    <div class="app-loader">
+      <div class="app-loader-spinner"></div>
+    </div>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Remove loader when app is ready -->
+    <script>
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          document.body.classList.add('app-ready');
+        }, 100);
+      });
+    </script>
   </body>
 </html>

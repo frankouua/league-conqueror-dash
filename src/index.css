@@ -1,8 +1,50 @@
+/* Font loading with display swap for better performance */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================
+   CRITICAL PERFORMANCE & SECURITY STYLES
+   ============================================ */
+
+/* Prevent content layout shift */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Optimize rendering */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Image optimization */
+img, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Prevent text selection on interactive elements for mobile */
+button, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Fast touch response on mobile */
+a, button, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Content visibility optimization for off-screen content */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
 
 @layer base {
   :root {
