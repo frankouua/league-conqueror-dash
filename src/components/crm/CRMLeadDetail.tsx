@@ -53,6 +53,8 @@ import { CRMLeadDischarge } from './CRMLeadDischarge';
 import { CRMLostReasonDialog } from './CRMLostReasonDialog';
 import { CRMWonDialog } from './CRMWonDialog';
 import { CRMLeadSummary } from './CRMLeadSummary';
+import { CRMLeadActionsMenu } from './CRMLeadActionsMenu';
+import { CRMSalesCoachProactive } from './CRMSalesCoachProactive';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -293,15 +295,19 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
 
               {/* Quick Actions */}
               {lead && (
-                <div className="mt-4 flex items-center justify-between">
-                  <CRMQuickActions
-                    lead={lead}
-                    onTogglePriority={handleTogglePriority}
-                    onDelete={() => setShowDeleteDialog(true)}
-                    onTransfer={() => setShowTransferDialog(true)}
-                    onMarkWon={() => setShowWonDialog(true)}
-                    onMarkLost={() => setShowLostDialog(true)}
-                  />
+                <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <CRMQuickActions
+                      lead={lead}
+                      onTogglePriority={handleTogglePriority}
+                      onDelete={() => setShowDeleteDialog(true)}
+                      onTransfer={() => setShowTransferDialog(true)}
+                      onMarkWon={() => setShowWonDialog(true)}
+                      onMarkLost={() => setShowLostDialog(true)}
+                    />
+                    {/* Actions Menu - Indicação, Depoimento, NPS, Formulários, Protocolos */}
+                    <CRMLeadActionsMenu lead={lead} compact />
+                  </div>
                   
                   {/* Contact Info - Stack on mobile */}
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground">
@@ -411,6 +417,16 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                 {/* Use lead if available, otherwise use initialLead for immediate display */}
                 {(lead || initialLead) && (
                   <>
+                    {/* PROACTIVE SALES COACH - First and most important */}
+                    {lead && (
+                      <CRMSalesCoachProactive 
+                        lead={lead}
+                        stageName={currentStage?.name}
+                        history={history}
+                        tasks={tasks}
+                      />
+                    )}
+
                     {/* NEGOTIATION VALUE - HIGHLIGHTED */}
                     {lead ? (
                       <NegotiationValueCard lead={lead} />
