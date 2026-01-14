@@ -719,6 +719,30 @@ const ReferralLeads = () => {
         referral_lead_id: lead.id,
       });
       
+      // 🔔 NOTIFICAÇÃO: Avisar o time sobre a aprovação
+      try {
+        // Buscar membros do time para notificar
+        const { data: teamMembers } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("team_id", lead.team_id);
+        
+        if (teamMembers && teamMembers.length > 0) {
+          const notifications = teamMembers.map(member => ({
+            user_id: member.user_id,
+            team_id: lead.team_id,
+            type: "referral_approved",
+            title: "✅ Indicação Aprovada!",
+            message: `A indicação de ${lead.referred_name} (via ${lead.referrer_name}) foi aprovada! +${points} pontos para o time.`,
+            read: false,
+          }));
+          
+          await supabase.from("notifications").insert(notifications);
+        }
+      } catch (notifError) {
+        console.error("Erro ao enviar notificações:", notifError);
+      }
+      
       toast({ 
         title: "✅ Indicação aprovada!", 
         description: `+${points} pontos para o time`,
@@ -747,6 +771,31 @@ const ReferralLeads = () => {
         .eq("id", leadToReject.id);
       
       if (updateError) throw updateError;
+      
+      // 🔔 NOTIFICAÇÃO: Avisar o time sobre a rejeição
+      try {
+        // Buscar membros do time para notificar
+        const { data: teamMembers } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("team_id", leadToReject.team_id);
+        
+        if (teamMembers && teamMembers.length > 0) {
+          const reasonText = rejectionReason || "Indicação não validada";
+          const notifications = teamMembers.map(member => ({
+            user_id: member.user_id,
+            team_id: leadToReject.team_id,
+            type: "referral_rejected",
+            title: "❌ Indicação Rejeitada",
+            message: `A indicação de ${leadToReject.referred_name} (via ${leadToReject.referrer_name}) foi rejeitada. Motivo: ${reasonText}`,
+            read: false,
+          }));
+          
+          await supabase.from("notifications").insert(notifications);
+        }
+      } catch (notifError) {
+        console.error("Erro ao enviar notificações:", notifError);
+      }
       
       toast({ 
         title: "❌ Indicação rejeitada", 
