@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { 
   Play, 
-  Pause, 
   RefreshCw, 
   Clock, 
   CheckCircle2, 
@@ -20,7 +20,10 @@ import {
   Zap,
   Calendar,
   Activity,
-  Bot
+  Bot,
+  Eye,
+  Terminal,
+  Info
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,6 +55,8 @@ interface AutomationLog {
 export function AutomationsMonitor() {
   const queryClient = useQueryClient();
   const [runningFunction, setRunningFunction] = useState<string | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AutomationLog | null>(null);
+  const [executionLogs, setExecutionLogs] = useState<string[]>([]);
 
   const { data: schedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ['automation-schedules'],
@@ -97,9 +102,20 @@ export function AutomationsMonitor() {
 
   const runAutomation = async (functionName: string) => {
     setRunningFunction(functionName);
+    setExecutionLogs([`⏳ Iniciando ${functionName}...`]);
+    
     try {
+      const startTime = Date.now();
       const { data, error } = await supabase.functions.invoke(functionName);
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      
       if (error) throw error;
+      
+      setExecutionLogs(prev => [
+        ...prev,
+        `✅ Concluído em ${duration}s`,
+        `📊 Resultado: ${JSON.stringify(data?.message || data, null, 2)}`
+      ]);
       
       toast.success(`${functionName} executado com sucesso!`, {
         description: data?.message || "Automação concluída"
@@ -109,6 +125,7 @@ export function AutomationsMonitor() {
       queryClient.invalidateQueries({ queryKey: ['automation-schedules'] });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setExecutionLogs(prev => [...prev, `❌ Erro: ${errorMessage}`]);
       toast.error(`Erro ao executar ${functionName}`, {
         description: errorMessage
       });
@@ -119,9 +136,21 @@ export function AutomationsMonitor() {
 
   const runMasterAutomation = async () => {
     setRunningFunction('crm-master-automation');
+    setExecutionLogs([`🚀 Iniciando Orquestrador CRM...`, `⏳ Executando 27 automações...`]);
+    
     try {
+      const startTime = Date.now();
       const { data, error } = await supabase.functions.invoke('crm-master-automation');
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      
       if (error) throw error;
+      
+      setExecutionLogs(prev => [
+        ...prev,
+        `✅ Orquestrador finalizado em ${duration}s`,
+        `📊 Sucesso: ${data?.successful || 0}/${data?.total_automations || 0}`,
+        data?.failed > 0 ? `⚠️ Falhas: ${data?.failed}` : `✨ Sem erros!`
+      ]);
       
       toast.success("Orquestrador executado!", {
         description: `${data?.successful || 0}/${data?.total_automations || 0} automações com sucesso`
@@ -131,6 +160,7 @@ export function AutomationsMonitor() {
       queryClient.invalidateQueries({ queryKey: ['automation-schedules'] });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setExecutionLogs(prev => [...prev, `❌ Erro: ${errorMessage}`]);
       toast.error("Erro ao executar orquestrador", { description: errorMessage });
     } finally {
       setRunningFunction(null);
@@ -228,6 +258,10 @@ export function AutomationsMonitor() {
           <TabsTrigger value="logs" className="gap-2">
             <Activity className="h-4 w-4" />
             Histórico
+          </TabsTrigger>
+          <TabsTrigger value="execution" className="gap-2">
+            <Terminal className="h-4 w-4" />
+            Execução
           </TabsTrigger>
         </TabsList>
 
@@ -370,13 +404,13 @@ export function AutomationsMonitor() {
                               {duration !== null ? `${duration}s` : '-'}
                             </TableCell>
                             <TableCell>
-                              {log.errors && log.errors.length > 0 ? (
-                                <span className="text-xs text-red-500">
-                                  {log.errors.length} erro(s)
-                                </span>
-                              ) : (
-                                <span className="text-xs text-green-500">OK</span>
-                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setSelectedLog(log)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -388,7 +422,92 @@ export function AutomationsMonitor() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Live Execution Logs */}
+        <TabsContent value="execution">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Terminal className="h-5 w-5" />
+                Logs de Execução
+              </CardTitle>
+              <CardDescription>
+                Acompanhe a execução das automações em tempo real
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted/50 rounded-lg p-4 font-mono text-sm min-h-[300px] max-h-[500px] overflow-auto">
+                {executionLogs.length === 0 ? (
+                  <div className="text-muted-foreground text-center py-8">
+                    <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Execute uma automação para ver os logs aqui</p>
+                  </div>
+                ) : (
+                  executionLogs.map((log, i) => (
+                    <div key={i} className="py-1 border-b border-muted last:border-0">
+                      <span className="text-muted-foreground text-xs mr-2">
+                        [{format(new Date(), "HH:mm:ss")}]
+                      </span>
+                      {log}
+                    </div>
+                  ))
+                )}
+              </div>
+              {executionLogs.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setExecutionLogs([])}
+                >
+                  Limpar Logs
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Log Details Dialog */}
+      <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedLog && getStatusBadge(selectedLog.status)}
+              <span>{selectedLog?.automation_type}</span>
+            </DialogTitle>
+            <DialogDescription>
+              {selectedLog?.created_at && format(new Date(selectedLog.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedLog && (
+            <div className="space-y-4">
+              {selectedLog.results && (
+                <div>
+                  <h4 className="font-medium mb-2">Resultados:</h4>
+                  <pre className="bg-muted p-3 rounded-lg text-xs overflow-auto max-h-[200px]">
+                    {JSON.stringify(selectedLog.results, null, 2)}
+                  </pre>
+                </div>
+              )}
+              
+              {selectedLog.errors && selectedLog.errors.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2 text-red-500">Erros ({selectedLog.errors.length}):</h4>
+                  <div className="space-y-1">
+                    {selectedLog.errors.map((err, i) => (
+                      <div key={i} className="bg-red-50 dark:bg-red-950 p-2 rounded text-xs text-red-700 dark:text-red-300">
+                        {err}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
