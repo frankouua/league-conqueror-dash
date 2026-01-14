@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  User, Phone, Mail, MessageSquare, Clock, Calendar, Tag, Star,
-  Sparkles, AlertTriangle, CheckCircle2, Circle, Plus, Send,
-  ArrowRight, History, ListTodo, FileText, TrendingUp, Brain, Loader2,
-  Edit2, Trash2, X, ClipboardCheck, MessagesSquare, PhoneCall, UserCircle,
-  FileSignature, Plane, Scale, Folder, MapPin, ShieldCheck, Gift
+  User, Phone, Mail, Star, Sparkles, AlertTriangle, CheckCircle2, 
+  Circle, Plus, Send, History, ListTodo, FileText, TrendingUp, Brain, 
+  Loader2, Edit2, Trash2, ClipboardCheck, PhoneCall
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -14,9 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -36,26 +32,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { CRMLead, CRMStage, useCRMLeadDetail, useCRM, useCRMLeads, LeadTemperature } from '@/hooks/useCRM';
+import { CRMLead, useCRMLeadDetail, useCRM, useCRMLeads } from '@/hooks/useCRM';
 import { CRMLeadEditForm } from './CRMLeadEditForm';
-import { CRMBANTDisplay } from './CRMBANTDisplay';
 import { CRMQuickActions } from './CRMQuickActions';
 import { CRMTransferDialog } from './CRMTransferDialog';
 import { CRMLeadChecklist } from './CRMLeadChecklist';
 import { CRMLeadChecklistPanel } from './CRMLeadChecklistPanel';
-import { CRMTemperatureBadge, CRMTemperatureSelector } from './CRMTemperatureBadge';
+import { CRMTemperatureBadge } from './CRMTemperatureBadge';
 import { CRMInternalChat } from './CRMInternalChat';
 import { CRMLeadInteractions } from './CRMLeadInteractions';
 import { CRMLeadScriptSuggestions } from './CRMLeadScriptSuggestions';
 import { CRMRealtimeScriptSuggestions } from './CRMRealtimeScriptSuggestions';
-import { CRMProcedureRecommendations } from './CRMProcedureRecommendations';
-import { CRMCadenceAnalytics } from './CRMCadenceAnalytics';
 import { CRMLeadPersonalData } from './CRMLeadPersonalData';
 import { CRMJourneyProtocolSuggestions } from './CRMJourneyProtocolSuggestions';
 import { CRMLeadContracts } from './CRMLeadContracts';
 import { CRMLeadTravel } from './CRMLeadTravel';
-import { CRMLeadWeight } from './CRMLeadWeight';
-import { CRMLeadProjects } from './CRMLeadProjects';
 import { CRMLeadUTM } from './CRMLeadUTM';
 import { CRMCoordinatorValidation } from './CRMCoordinatorValidation';
 import { CRMLeadDischarge } from './CRMLeadDischarge';
@@ -269,130 +260,170 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                 )}
               </ScrollArea>
             ) : (
-              /* Content Tabs */
-              <Tabs defaultValue="perfil" className="flex-1 flex flex-col overflow-hidden">
-            <div className="mx-3 sm:mx-6 mt-3 sm:mt-4 space-y-2">
-              <TabsList className="grid grid-cols-8 w-full gap-0.5 sm:gap-1">
-                <TabsTrigger value="perfil" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <UserCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Perfil</span>
+              /* Content Tabs - SIMPLIFIED: Only 5 main tabs */
+              <Tabs defaultValue="resumo" className="flex-1 flex flex-col overflow-hidden">
+            <div className="mx-3 sm:mx-6 mt-3 sm:mt-4">
+              <TabsList className="grid grid-cols-5 w-full gap-1">
+                <TabsTrigger value="resumo" className="gap-1 text-xs px-2">
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Resumo</span>
                 </TabsTrigger>
-                <TabsTrigger value="checklist" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <ClipboardCheck className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Check</span>
+                <TabsTrigger value="checklist" className="gap-1 text-xs px-2">
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span className="hidden sm:inline">Ações</span>
                 </TabsTrigger>
-                <TabsTrigger value="overview" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Resumo</span>
+                <TabsTrigger value="contatos" className="gap-1 text-xs px-2">
+                  <PhoneCall className="h-4 w-4" />
+                  <span className="hidden sm:inline">Contatos</span>
                 </TabsTrigger>
-                <TabsTrigger value="interactions" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <PhoneCall className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Contatos</span>
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <MessagesSquare className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Chat</span>
-                </TabsTrigger>
-                <TabsTrigger value="tasks" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <ListTodo className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Tarefas</span>
+                <TabsTrigger value="tarefas" className="gap-1 text-xs px-2 relative">
+                  <ListTodo className="h-4 w-4" />
+                  <span className="hidden sm:inline">Tarefas</span>
                   {tasks.filter(t => !t.is_completed).length > 0 && (
-                    <Badge variant="secondary" className="ml-0.5 sm:ml-1 h-4 w-4 sm:h-5 sm:w-5 p-0 justify-center text-[8px] sm:text-[10px]">
+                    <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 justify-center text-[10px]">
                       {tasks.filter(t => !t.is_completed).length}
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="history" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <History className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Hist.</span>
-                </TabsTrigger>
-                <TabsTrigger value="ai" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">IA</span>
-                </TabsTrigger>
-              </TabsList>
-              
-              {/* Second row of tabs for additional features */}
-              <TabsList className="grid grid-cols-7 w-full gap-0.5 sm:gap-1">
-                <TabsTrigger value="contracts" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <FileSignature className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Contratos</span>
-                </TabsTrigger>
-                <TabsTrigger value="projects" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <Folder className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Projetos</span>
-                </TabsTrigger>
-                <TabsTrigger value="travel" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <Plane className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Viagem</span>
-                </TabsTrigger>
-                <TabsTrigger value="weight" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <Scale className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Peso</span>
-                </TabsTrigger>
-                <TabsTrigger value="validation" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <ShieldCheck className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Validação</span>
-                </TabsTrigger>
-                <TabsTrigger value="discharge" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <Gift className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Alta</span>
-                </TabsTrigger>
-                <TabsTrigger value="utm" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Origem</span>
+                <TabsTrigger value="mais" className="gap-1 text-xs px-2">
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">+ Info</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
             <ScrollArea className="flex-1 px-3 sm:px-6 py-3 sm:py-4">
-              {/* Perfil Tab - Dados Pessoais Completos */}
-              <TabsContent value="perfil" className="m-0">
-                {lead && (
-                  <CRMLeadPersonalData
-                    leadCpf={lead.cpf}
-                    leadProntuario={lead.prontuario}
-                    patientDataId={lead.patient_data_id}
-                    leadName={lead.name}
-                    leadEstimatedValue={lead.estimated_value}
-                  />
-                )}
-              </TabsContent>
-
-              {/* Checklist Tab */}
-              <TabsContent value="checklist" className="m-0 space-y-3 sm:space-y-4">
+              {/* RESUMO Tab - All key info in one place */}
+              <TabsContent value="resumo" className="m-0 space-y-4">
                 {lead && (
                   <>
-                    {/* New Stage-based Checklist Panel */}
-                    <CRMLeadChecklistPanel leadId={lead.id} />
-                    
-                    {/* Journey Protocol Suggestions */}
-                    <CRMJourneyProtocolSuggestions 
-                      lead={lead} 
-                      stageName={currentStage?.name}
-                      compact
-                    />
-                    
-                    {/* Script Suggestions based on stage */}
-                    <CRMLeadScriptSuggestions lead={lead} compact />
-                    
-                    {/* Legacy Checklist for backwards compatibility */}
-                    <CRMLeadChecklist 
-                      lead={lead} 
-                      stage={currentStage || null}
-                      onSurgeryDateChange={() => {
-                        // Refresh lead data
-                      }}
+                    {/* Quick Stats - Value, Score, Interactions */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+                        <CardContent className="p-3 text-center">
+                          <p className="text-xl font-bold text-green-600">
+                            {lead.estimated_value
+                              ? `R$ ${(lead.estimated_value / 1000).toFixed(0)}k`
+                              : '-'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Valor</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-3 text-center">
+                          <p className="text-xl font-bold">{lead.lead_score || 0}</p>
+                          <p className="text-xs text-muted-foreground">Score IA</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-3 text-center">
+                          <p className="text-xl font-bold">{lead.total_interactions || 0}</p>
+                          <p className="text-xs text-muted-foreground">Interações</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* AI Summary if available */}
+                    {lead.ai_summary && (
+                      <Card className="border-primary/30 bg-primary/5">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Resumo IA</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{lead.ai_summary}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Next Action from AI */}
+                    {lead.ai_next_action && (
+                      <Card className="border-yellow-500/30 bg-yellow-500/5">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-4 w-4 text-yellow-600" />
+                            <span className="text-sm font-medium">Próxima Ação</span>
+                          </div>
+                          <p className="text-sm">{lead.ai_next_action}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Procedures of Interest */}
+                    {lead.interested_procedures && lead.interested_procedures.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-2">Procedimentos</p>
+                        <div className="flex flex-wrap gap-2">
+                          {lead.interested_procedures.map((proc, i) => (
+                            <Badge key={i} variant="secondary">{proc}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes Section */}
+                    <Card>
+                      <CardContent className="p-3 space-y-2">
+                        <p className="text-sm font-medium">Notas</p>
+                        <div className="flex gap-2">
+                          <Textarea
+                            placeholder="Adicionar nota..."
+                            value={newNote}
+                            onChange={(e) => setNewNote(e.target.value)}
+                            className="min-h-[50px]"
+                          />
+                          <Button
+                            size="icon"
+                            onClick={handleAddNote}
+                            disabled={!newNote.trim() || addNote.isPending}
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {lead.notes && (
+                          <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded p-2 max-h-24 overflow-y-auto">
+                            {lead.notes}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Personal Data Link */}
+                    <CRMLeadPersonalData
+                      leadCpf={lead.cpf}
+                      leadProntuario={lead.prontuario}
+                      patientDataId={lead.patient_data_id}
+                      leadName={lead.name}
+                      leadEstimatedValue={lead.estimated_value}
                     />
                   </>
                 )}
               </TabsContent>
 
-              {/* Interactions Tab */}
-              <TabsContent value="interactions" className="m-0 space-y-4">
+              {/* CHECKLIST Tab - Actions and protocols */}
+              <TabsContent value="checklist" className="m-0 space-y-4">
                 {lead && (
                   <>
-                    {/* Real-time Script Suggestions */}
+                    <CRMLeadChecklistPanel leadId={lead.id} />
+                    <CRMJourneyProtocolSuggestions 
+                      lead={lead} 
+                      stageName={currentStage?.name}
+                      compact
+                    />
+                    <CRMLeadScriptSuggestions lead={lead} compact />
+                    <CRMLeadChecklist 
+                      lead={lead} 
+                      stage={currentStage || null}
+                      onSurgeryDateChange={() => {}}
+                    />
+                  </>
+                )}
+              </TabsContent>
+
+              {/* CONTATOS Tab - Interactions and chat */}
+              <TabsContent value="contatos" className="m-0 space-y-4">
+                {lead && (
+                  <>
                     <CRMRealtimeScriptSuggestions 
                       leadId={lead.id}
                       leadName={lead.name}
@@ -400,132 +431,16 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       stageKey={currentStage?.name?.toLowerCase().replace(/\s+/g, '_')}
                       temperature={lead.temperature}
                     />
-                    
                     <CRMLeadInteractions leadId={lead.id} leadName={lead.name} />
+                    <div className="h-[300px]">
+                      <CRMInternalChat leadId={lead.id} leadName={lead.name} />
+                    </div>
                   </>
                 )}
               </TabsContent>
 
-              {/* Chat Tab */}
-              <TabsContent value="chat" className="m-0 h-[350px] sm:h-[400px]">
-                {lead && (
-                  <CRMInternalChat leadId={lead.id} leadName={lead.name} />
-                )}
-              </TabsContent>
-
-              {/* Overview Tab */}
-              <TabsContent value="overview" className="m-0 space-y-3 sm:space-y-4">
-                {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  <Card>
-                    <CardContent className="p-2 sm:p-3 text-center">
-                      <p className="text-lg sm:text-2xl font-bold text-green-600">
-                        {lead?.estimated_value
-                          ? `R$ ${(lead.estimated_value / 1000).toFixed(0)}k`
-                          : '-'}
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Valor Est.</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-2 sm:p-3 text-center">
-                      <p className="text-lg sm:text-2xl font-bold">{lead?.lead_score || 0}</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Lead Score</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-2 sm:p-3 text-center">
-                      <p className="text-lg sm:text-2xl font-bold">{lead?.total_interactions || 0}</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Interações</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Cadence Analytics */}
-                {lead && (
-                  <CRMCadenceAnalytics leadId={lead.id} compact />
-                )}
-
-                {/* BANT Scores */}
-                {lead && (lead.budget_score || lead.authority_score || lead.need_score || lead.timing_score) && (
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Qualificação BANT</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CRMBANTDisplay
-                        scores={{
-                          budget: lead.budget_score || 0,
-                          authority: lead.authority_score || 0,
-                          need: lead.need_score || 0,
-                          timing: lead.timing_score || 0,
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Procedures of Interest */}
-                {lead?.interested_procedures && lead.interested_procedures.length > 0 && (
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Procedimentos de Interesse</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {lead.interested_procedures.map((proc, i) => (
-                          <Badge key={i} variant="outline">{proc}</Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Notes Section */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Notas</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex gap-2">
-                      <Textarea
-                        placeholder="Adicionar nota..."
-                        value={newNote}
-                        onChange={(e) => setNewNote(e.target.value)}
-                        className="min-h-[60px]"
-                      />
-                      <Button
-                        size="icon"
-                        onClick={handleAddNote}
-                        disabled={!newNote.trim() || addNote.isPending}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {lead?.notes && (
-                      <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
-                        {lead.notes}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Tags */}
-                {lead?.tags && lead.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {lead.tags.map((tag, i) => (
-                      <Badge key={i} variant="secondary" className="gap-1">
-                        <Tag className="h-3 w-3" />
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Tasks Tab */}
-              <TabsContent value="tasks" className="m-0 space-y-4">
-                {/* New Task Form */}
+              {/* TAREFAS Tab - Tasks */}
+              <TabsContent value="tarefas" className="m-0 space-y-4">
                 {showNewTask ? (
                   <Card>
                     <CardContent className="p-4 space-y-3">
@@ -545,7 +460,7 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                           value={newTask.priority}
                           onValueChange={(v) => setNewTask(prev => ({ ...prev, priority: v }))}
                         >
-                          <SelectTrigger className="w-32">
+                          <SelectTrigger className="w-28">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -558,7 +473,7 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       </div>
                       <div className="flex gap-2">
                         <Button onClick={handleCreateTask} disabled={createTask.isPending}>
-                          Criar Tarefa
+                          Criar
                         </Button>
                         <Button variant="outline" onClick={() => setShowNewTask(false)}>
                           Cancelar
@@ -573,7 +488,6 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                   </Button>
                 )}
 
-                {/* Task List */}
                 <div className="space-y-2">
                   {tasks.map(task => (
                     <Card key={task.id} className={cn(task.is_completed && "opacity-60")}>
@@ -601,254 +515,95 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                         <Badge
                           variant="outline"
                           className={cn(
+                            "text-xs",
                             task.priority === 'urgent' && "border-red-500 text-red-500",
-                            task.priority === 'high' && "border-orange-500 text-orange-500",
-                            task.priority === 'medium' && "border-yellow-500 text-yellow-500",
-                            task.priority === 'low' && "border-gray-500 text-gray-500"
+                            task.priority === 'high' && "border-orange-500 text-orange-500"
                           )}
                         >
-                          {task.priority}
+                          {task.priority === 'urgent' ? '🔥' : task.priority === 'high' ? '⚡' : ''}
                         </Badge>
                       </CardContent>
                     </Card>
                   ))}
                   {tasks.length === 0 && (
                     <p className="text-center text-muted-foreground py-8">
-                      Nenhuma tarefa criada
+                      Nenhuma tarefa
                     </p>
                   )}
                 </div>
               </TabsContent>
 
-              {/* History Tab */}
-              <TabsContent value="history" className="m-0">
-                <div className="relative pl-6 space-y-4">
-                  <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
-                  
-                  {history.map((entry, i) => (
-                    <div key={entry.id} className="relative">
-                      <div className="absolute -left-4 top-1 w-3 h-3 rounded-full bg-primary border-2 border-background" />
-                      <Card>
-                        <CardContent className="p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="font-medium text-sm">{entry.title}</p>
-                              {entry.description && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {entry.description}
-                                </p>
-                              )}
-                              {entry.action_type === 'stage_change' && entry.from_stage && entry.to_stage && (
-                                <div className="flex items-center gap-2 mt-2 text-xs">
-                                  <Badge variant="outline">{entry.from_stage.name}</Badge>
-                                  <ArrowRight className="h-3 w-3" />
-                                  <Badge variant="outline">{entry.to_stage.name}</Badge>
-                                </div>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {formatDistanceToNow(new Date(entry.created_at), {
-                                addSuffix: true,
-                                locale: ptBR,
-                              })}
-                            </span>
-                          </div>
-                          {entry.performed_by_profile && (
-                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {entry.performed_by_profile.full_name}
-                            </p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                  ))}
-                  
-                  {history.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">
-                      Nenhum histórico registrado
-                    </p>
-                  )}
-                </div>
-              </TabsContent>
-
-              {/* AI Tab */}
-              <TabsContent value="ai" className="m-0 space-y-4">
-                {lead?.ai_analyzed_at ? (
+              {/* MAIS Tab - Additional info collapsed */}
+              <TabsContent value="mais" className="m-0 space-y-3">
+                {lead && (
                   <>
-                    <Card className="border-primary/30 bg-primary/5">
-                      <CardHeader className="pb-2">
+                    {/* History */}
+                    <Card>
+                      <CardHeader className="pb-2 pt-3 px-3">
                         <CardTitle className="text-sm flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          Resumo da IA
+                          <History className="h-4 w-4" />
+                          Histórico
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <p className="text-sm">{lead.ai_summary}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Analisado {formatDistanceToNow(new Date(lead.ai_analyzed_at), {
-                            addSuffix: true,
-                            locale: ptBR,
-                          })}
-                        </p>
+                      <CardContent className="p-3 pt-0">
+                        <div className="max-h-40 overflow-y-auto space-y-2">
+                          {history.slice(0, 5).map((entry) => (
+                            <div key={entry.id} className="text-xs border-l-2 border-primary/30 pl-2">
+                              <p className="font-medium">{entry.title}</p>
+                              <p className="text-muted-foreground">
+                                {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true, locale: ptBR })}
+                              </p>
+                            </div>
+                          ))}
+                          {history.length === 0 && (
+                            <p className="text-muted-foreground text-center">Sem histórico</p>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
 
-                    {lead.ai_sentiment && (
-                      <Card>
-                        <CardContent className="p-4 flex items-center gap-3">
-                          <div className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center text-xl",
-                            lead.ai_sentiment === 'positive' && "bg-green-500/20",
-                            lead.ai_sentiment === 'neutral' && "bg-gray-500/20",
-                            lead.ai_sentiment === 'negative' && "bg-red-500/20",
-                            lead.ai_sentiment === 'mixed' && "bg-yellow-500/20"
-                          )}>
-                            {lead.ai_sentiment === 'positive' && '😊'}
-                            {lead.ai_sentiment === 'neutral' && '😐'}
-                            {lead.ai_sentiment === 'negative' && '😟'}
-                            {lead.ai_sentiment === 'mixed' && '🤔'}
-                          </div>
-                          <div>
-                            <p className="font-medium capitalize">{lead.ai_sentiment}</p>
-                            <p className="text-xs text-muted-foreground">Sentimento detectado</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                    {/* Contracts */}
+                    <CRMLeadContracts
+                      leadId={lead.id}
+                      leadName={lead.name}
+                      leadEmail={lead.email}
+                      leadPhone={lead.phone}
+                    />
 
-                    {lead.ai_intent && (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">Intenção Detectada</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm">{lead.ai_intent}</p>
-                        </CardContent>
-                      </Card>
-                    )}
+                    {/* Coordinator Validation */}
+                    <CRMCoordinatorValidation leadId={lead.id} leadName={lead.name} />
 
-                    {lead.ai_next_action && (
-                      <Card className="border-yellow-500/30 bg-yellow-500/5">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-yellow-600" />
-                            Próxima Ação Sugerida
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm">{lead.ai_next_action}</p>
-                        </CardContent>
-                      </Card>
-                    )}
+                    {/* Travel */}
+                    <CRMLeadTravel leadId={lead.id} />
 
-                    {/* Procedure Recommendations */}
-                    <CRMProcedureRecommendations 
+                    {/* Discharge */}
+                    <CRMLeadDischarge 
                       leadId={lead.id} 
                       leadName={lead.name}
+                      dischargeData={{
+                        future_letter_written: (lead as any).future_letter_written,
+                        before_after_photo_delivered: (lead as any).before_after_photo_delivered,
+                        unique_necklace_delivered: (lead as any).unique_necklace_delivered,
+                        testimonial_collected: (lead as any).testimonial_collected,
+                        google_review_requested: (lead as any).google_review_requested,
+                        discharge_completed: (lead as any).discharge_completed,
+                        discharge_completed_at: (lead as any).discharge_completed_at,
+                      }}
+                    />
+
+                    {/* UTM Origin */}
+                    <CRMLeadUTM 
+                      utmData={{
+                        utm_source: (lead as any).utm_source,
+                        utm_medium: (lead as any).utm_medium,
+                        utm_campaign: (lead as any).utm_campaign,
+                        utm_term: (lead as any).utm_term,
+                        utm_content: (lead as any).utm_content,
+                        landing_page: (lead as any).landing_page,
+                        referrer_url: (lead as any).referrer_url,
+                      }}
                     />
                   </>
-                ) : (
-                  <div className="text-center py-12">
-                    <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-medium mb-2">Lead ainda não analisado</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Clique em "Analisar com IA" para obter insights sobre este lead
-                    </p>
-                    <Button
-                      onClick={() => analyzeLead.mutate()}
-                      disabled={analyzeLead.isPending}
-                      className="gap-2"
-                    >
-                      {analyzeLead.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-4 w-4" />
-                      )}
-                      Analisar com IA
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Contracts Tab */}
-              <TabsContent value="contracts" className="m-0">
-                {lead && (
-                  <CRMLeadContracts
-                    leadId={lead.id}
-                    leadName={lead.name}
-                    leadEmail={lead.email}
-                    leadPhone={lead.phone}
-                  />
-                )}
-              </TabsContent>
-
-              {/* Projects Tab */}
-              <TabsContent value="projects" className="m-0">
-                {lead && (
-                  <CRMLeadProjects leadId={lead.id} />
-                )}
-              </TabsContent>
-
-              {/* Travel Tab */}
-              <TabsContent value="travel" className="m-0">
-                {lead && (
-                  <CRMLeadTravel leadId={lead.id} />
-                )}
-              </TabsContent>
-
-              {/* Weight Tab */}
-              <TabsContent value="weight" className="m-0">
-                {lead && (
-                  <CRMLeadWeight 
-                    leadId={lead.id} 
-                    initialWeight={(lead as any).initial_weight}
-                    targetWeight={(lead as any).target_weight}
-                    deadline={(lead as any).weight_loss_deadline}
-                  />
-                )}
-              </TabsContent>
-
-              {/* Validation Tab */}
-              <TabsContent value="validation" className="m-0">
-                {lead && (
-                  <CRMCoordinatorValidation leadId={lead.id} leadName={lead.name} />
-                )}
-              </TabsContent>
-
-              {/* Discharge Tab */}
-              <TabsContent value="discharge" className="m-0">
-                {lead && (
-                  <CRMLeadDischarge 
-                    leadId={lead.id} 
-                    leadName={lead.name}
-                    dischargeData={{
-                      future_letter_written: (lead as any).future_letter_written,
-                      before_after_photo_delivered: (lead as any).before_after_photo_delivered,
-                      unique_necklace_delivered: (lead as any).unique_necklace_delivered,
-                      testimonial_collected: (lead as any).testimonial_collected,
-                      google_review_requested: (lead as any).google_review_requested,
-                      discharge_completed: (lead as any).discharge_completed,
-                      discharge_completed_at: (lead as any).discharge_completed_at,
-                    }}
-                  />
-                )}
-              </TabsContent>
-
-              {/* UTM Tab */}
-              <TabsContent value="utm" className="m-0">
-                {lead && (
-                  <CRMLeadUTM 
-                    utmData={{
-                      utm_source: (lead as any).utm_source,
-                      utm_medium: (lead as any).utm_medium,
-                      utm_campaign: (lead as any).utm_campaign,
-                      utm_term: (lead as any).utm_term,
-                      utm_content: (lead as any).utm_content,
-                      landing_page: (lead as any).landing_page,
-                      referrer_url: (lead as any).referrer_url,
-                    }}
-                  />
                 )}
               </TabsContent>
             </ScrollArea>
