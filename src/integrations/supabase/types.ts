@@ -2110,6 +2110,7 @@ export type Database = {
           ai_summary: string | null
           assigned_to: string | null
           authority_score: number | null
+          birth_date: string | null
           budget_score: number | null
           churn_analyzed_at: string | null
           churn_risk_level: string | null
@@ -2118,11 +2119,15 @@ export type Database = {
           cpf: string | null
           created_at: string
           created_by: string
+          cross_sell_offered: boolean | null
+          cross_sell_suggestions: string[] | null
           custom_fields: Json | null
           days_in_stage: number | null
           diet_restrictions: string | null
           email: string | null
           emergency_contact: Json | null
+          escalated: boolean | null
+          escalated_at: string | null
           estimated_value: number | null
           feegow_data: Json | null
           feegow_id: string | null
@@ -2165,8 +2170,10 @@ export type Database = {
           recurrence_group: string | null
           referral_lead_id: string | null
           rfv_customer_id: string | null
+          sla_violated: boolean | null
           source: string | null
           source_detail: string | null
+          stage_changed_at: string | null
           stage_id: string
           stale_since: string | null
           surgery_date: string | null
@@ -2175,6 +2182,7 @@ export type Database = {
           tags: string[] | null
           team_id: string | null
           temperature: string | null
+          temperature_updated_at: string | null
           timing_score: number | null
           total_interactions: number | null
           travel_info: Json | null
@@ -2191,6 +2199,7 @@ export type Database = {
           ai_summary?: string | null
           assigned_to?: string | null
           authority_score?: number | null
+          birth_date?: string | null
           budget_score?: number | null
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
@@ -2199,11 +2208,15 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           created_by: string
+          cross_sell_offered?: boolean | null
+          cross_sell_suggestions?: string[] | null
           custom_fields?: Json | null
           days_in_stage?: number | null
           diet_restrictions?: string | null
           email?: string | null
           emergency_contact?: Json | null
+          escalated?: boolean | null
+          escalated_at?: string | null
           estimated_value?: number | null
           feegow_data?: Json | null
           feegow_id?: string | null
@@ -2246,8 +2259,10 @@ export type Database = {
           recurrence_group?: string | null
           referral_lead_id?: string | null
           rfv_customer_id?: string | null
+          sla_violated?: boolean | null
           source?: string | null
           source_detail?: string | null
+          stage_changed_at?: string | null
           stage_id: string
           stale_since?: string | null
           surgery_date?: string | null
@@ -2256,6 +2271,7 @@ export type Database = {
           tags?: string[] | null
           team_id?: string | null
           temperature?: string | null
+          temperature_updated_at?: string | null
           timing_score?: number | null
           total_interactions?: number | null
           travel_info?: Json | null
@@ -2272,6 +2288,7 @@ export type Database = {
           ai_summary?: string | null
           assigned_to?: string | null
           authority_score?: number | null
+          birth_date?: string | null
           budget_score?: number | null
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
@@ -2280,11 +2297,15 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           created_by?: string
+          cross_sell_offered?: boolean | null
+          cross_sell_suggestions?: string[] | null
           custom_fields?: Json | null
           days_in_stage?: number | null
           diet_restrictions?: string | null
           email?: string | null
           emergency_contact?: Json | null
+          escalated?: boolean | null
+          escalated_at?: string | null
           estimated_value?: number | null
           feegow_data?: Json | null
           feegow_id?: string | null
@@ -2327,8 +2348,10 @@ export type Database = {
           recurrence_group?: string | null
           referral_lead_id?: string | null
           rfv_customer_id?: string | null
+          sla_violated?: boolean | null
           source?: string | null
           source_detail?: string | null
+          stage_changed_at?: string | null
           stage_id?: string
           stale_since?: string | null
           surgery_date?: string | null
@@ -2337,6 +2360,7 @@ export type Database = {
           tags?: string[] | null
           team_id?: string | null
           temperature?: string | null
+          temperature_updated_at?: string | null
           timing_score?: number | null
           total_interactions?: number | null
           travel_info?: Json | null
@@ -2766,6 +2790,7 @@ export type Database = {
           created_by: string
           description: string | null
           due_date: string
+          escalated: boolean | null
           id: string
           is_completed: boolean | null
           is_overdue: boolean | null
@@ -2784,6 +2809,7 @@ export type Database = {
           created_by: string
           description?: string | null
           due_date: string
+          escalated?: boolean | null
           id?: string
           is_completed?: boolean | null
           is_overdue?: boolean | null
@@ -2802,6 +2828,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           due_date?: string
+          escalated?: boolean | null
           id?: string
           is_completed?: boolean | null
           is_overdue?: boolean | null
@@ -4588,6 +4615,8 @@ export type Database = {
           is_admin: boolean | null
           is_approved: boolean | null
           last_access_at: string | null
+          performance_score: number | null
+          performance_updated_at: string | null
           phone: string | null
           position: Database["public"]["Enums"]["position_type"] | null
           team_id: string | null
@@ -4608,6 +4637,8 @@ export type Database = {
           is_admin?: boolean | null
           is_approved?: boolean | null
           last_access_at?: string | null
+          performance_score?: number | null
+          performance_updated_at?: string | null
           phone?: string | null
           position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
@@ -4628,6 +4659,8 @@ export type Database = {
           is_admin?: boolean | null
           is_approved?: boolean | null
           last_access_at?: string | null
+          performance_score?: number | null
+          performance_updated_at?: string | null
           phone?: string | null
           position?: Database["public"]["Enums"]["position_type"] | null
           team_id?: string | null
@@ -5151,6 +5184,53 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_bonuses: {
+        Row: {
+          bonus_value: number | null
+          contract_value: number | null
+          created_at: string | null
+          id: string
+          paid_at: string | null
+          referral_id: string | null
+          referred_lead_id: string | null
+          referrer_name: string | null
+          referrer_phone: string | null
+          status: string | null
+        }
+        Insert: {
+          bonus_value?: number | null
+          contract_value?: number | null
+          created_at?: string | null
+          id?: string
+          paid_at?: string | null
+          referral_id?: string | null
+          referred_lead_id?: string | null
+          referrer_name?: string | null
+          referrer_phone?: string | null
+          status?: string | null
+        }
+        Update: {
+          bonus_value?: number | null
+          contract_value?: number | null
+          created_at?: string | null
+          id?: string
+          paid_at?: string | null
+          referral_id?: string | null
+          referred_lead_id?: string | null
+          referrer_name?: string | null
+          referrer_phone?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_bonuses_referred_lead_id_fkey"
+            columns: ["referred_lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_lead_history: {
         Row: {
           changed_by: string
@@ -5196,13 +5276,17 @@ export type Database = {
       referral_leads: {
         Row: {
           assigned_to: string | null
+          bonus_paid: boolean | null
+          bonus_value: number | null
           consultation_date: string | null
           created_at: string
+          crm_lead_id: string | null
           id: string
           last_contact_at: string | null
           loss_reason: string | null
           notes: string | null
           photo_url: string | null
+          processed_at: string | null
           referred_email: string | null
           referred_name: string
           referred_phone: string | null
@@ -5217,13 +5301,17 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          bonus_paid?: boolean | null
+          bonus_value?: number | null
           consultation_date?: string | null
           created_at?: string
+          crm_lead_id?: string | null
           id?: string
           last_contact_at?: string | null
           loss_reason?: string | null
           notes?: string | null
           photo_url?: string | null
+          processed_at?: string | null
           referred_email?: string | null
           referred_name: string
           referred_phone?: string | null
@@ -5238,13 +5326,17 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          bonus_paid?: boolean | null
+          bonus_value?: number | null
           consultation_date?: string | null
           created_at?: string
+          crm_lead_id?: string | null
           id?: string
           last_contact_at?: string | null
           loss_reason?: string | null
           notes?: string | null
           photo_url?: string | null
+          processed_at?: string | null
           referred_email?: string | null
           referred_name?: string
           referred_phone?: string | null
@@ -5258,6 +5350,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "referral_leads_crm_lead_id_fkey"
+            columns: ["crm_lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "referral_leads_team_id_fkey"
             columns: ["team_id"]
@@ -6571,6 +6670,30 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reports: {
+        Row: {
+          generated_at: string | null
+          id: string
+          period_end: string | null
+          period_start: string | null
+          report_data: Json | null
+        }
+        Insert: {
+          generated_at?: string | null
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          report_data?: Json | null
+        }
+        Update: {
+          generated_at?: string | null
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          report_data?: Json | null
         }
         Relationships: []
       }
