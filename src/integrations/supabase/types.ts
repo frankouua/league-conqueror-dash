@@ -1077,6 +1077,45 @@ export type Database = {
           },
         ]
       }
+      crm_alert_config: {
+        Row: {
+          alert_type: string
+          condition_config: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          message_template: string | null
+          notify_channels: string[] | null
+          notify_roles: string[] | null
+          priority: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          alert_type: string
+          condition_config?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message_template?: string | null
+          notify_channels?: string[] | null
+          notify_roles?: string[] | null
+          priority?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          alert_type?: string
+          condition_config?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message_template?: string | null
+          notify_channels?: string[] | null
+          notify_roles?: string[] | null
+          priority?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       crm_automation_logs: {
         Row: {
           actions_executed: Json | null
@@ -1191,6 +1230,138 @@ export type Database = {
           },
         ]
       }
+      crm_cadence_executions: {
+        Row: {
+          cadence_id: string | null
+          created_at: string | null
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          lead_id: string | null
+          result: Json | null
+          scheduled_at: string
+          status: string | null
+        }
+        Insert: {
+          cadence_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          lead_id?: string | null
+          result?: Json | null
+          scheduled_at: string
+          status?: string | null
+        }
+        Update: {
+          cadence_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          lead_id?: string | null
+          result?: Json | null
+          scheduled_at?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_cadence_executions_cadence_id_fkey"
+            columns: ["cadence_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cadences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_cadence_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_cadences: {
+        Row: {
+          action_type: string
+          channel: string
+          created_at: string | null
+          created_by: string | null
+          day_offset: number | null
+          description: string | null
+          escalation_rule: Json | null
+          id: string
+          is_active: boolean | null
+          message_template: string | null
+          message_variables: Json | null
+          name: string
+          order_index: number | null
+          pipeline_id: string | null
+          stage_id: string | null
+          time_of_day: string | null
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_type?: string
+          channel?: string
+          created_at?: string | null
+          created_by?: string | null
+          day_offset?: number | null
+          description?: string | null
+          escalation_rule?: Json | null
+          id?: string
+          is_active?: boolean | null
+          message_template?: string | null
+          message_variables?: Json | null
+          name: string
+          order_index?: number | null
+          pipeline_id?: string | null
+          stage_id?: string | null
+          time_of_day?: string | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          channel?: string
+          created_at?: string | null
+          created_by?: string | null
+          day_offset?: number | null
+          description?: string | null
+          escalation_rule?: Json | null
+          id?: string
+          is_active?: boolean | null
+          message_template?: string | null
+          message_variables?: Json | null
+          name?: string
+          order_index?: number | null
+          pipeline_id?: string | null
+          stage_id?: string | null
+          time_of_day?: string | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_cadences_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_cadences_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_chat_messages: {
         Row: {
           archived_at: string | null
@@ -1234,6 +1405,134 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_cross_sell_opportunities: {
+        Row: {
+          assigned_to: string | null
+          contacted_at: string | null
+          converted_at: string | null
+          created_at: string | null
+          estimated_value: number | null
+          id: string
+          lead_id: string | null
+          priority: string | null
+          source_procedure: string | null
+          status: string | null
+          suggested_procedure: string
+          suggestion_reason: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          contacted_at?: string | null
+          converted_at?: string | null
+          created_at?: string | null
+          estimated_value?: number | null
+          id?: string
+          lead_id?: string | null
+          priority?: string | null
+          source_procedure?: string | null
+          status?: string | null
+          suggested_procedure: string
+          suggestion_reason?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          contacted_at?: string | null
+          converted_at?: string | null
+          created_at?: string | null
+          estimated_value?: number | null
+          id?: string
+          lead_id?: string | null
+          priority?: string | null
+          source_procedure?: string | null
+          status?: string | null
+          suggested_procedure?: string
+          suggestion_reason?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_cross_sell_opportunities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_escalation_rules: {
+        Row: {
+          action_config: Json | null
+          action_type: string | null
+          condition_config: Json
+          condition_type: string
+          created_at: string | null
+          description: string | null
+          escalation_level: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notify_roles: string[] | null
+          notify_user_ids: string[] | null
+          pipeline_id: string | null
+          stage_id: string | null
+          threshold_hours: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_config?: Json | null
+          action_type?: string | null
+          condition_config?: Json
+          condition_type: string
+          created_at?: string | null
+          description?: string | null
+          escalation_level?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notify_roles?: string[] | null
+          notify_user_ids?: string[] | null
+          pipeline_id?: string | null
+          stage_id?: string | null
+          threshold_hours?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_config?: Json | null
+          action_type?: string | null
+          condition_config?: Json
+          condition_type?: string
+          created_at?: string | null
+          description?: string | null
+          escalation_level?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notify_roles?: string[] | null
+          notify_user_ids?: string[] | null
+          pipeline_id?: string | null
+          stage_id?: string | null
+          threshold_hours?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_escalation_rules_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_escalation_rules_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -1305,6 +1604,143 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_gamification_achievements: {
+        Row: {
+          badge_image_url: string | null
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          requirement_period: string | null
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number | null
+        }
+        Insert: {
+          badge_image_url?: string | null
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          requirement_period?: string | null
+          requirement_type: string
+          requirement_value: number
+          xp_reward?: number | null
+        }
+        Update: {
+          badge_image_url?: string | null
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          requirement_period?: string | null
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      crm_gamification_points: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          lead_id: string | null
+          multiplier: number | null
+          period_month: number
+          period_year: number
+          points: number
+          reference_id: string | null
+          reference_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          lead_id?: string | null
+          multiplier?: number | null
+          period_month: number
+          period_year: number
+          points?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          lead_id?: string | null
+          multiplier?: number | null
+          period_month?: number
+          period_year?: number
+          points?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_gamification_points_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_gamification_rules: {
+        Row: {
+          action_type: string
+          base_points: number
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          multiplier_conditions: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          base_points?: number
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          multiplier_conditions?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          base_points?: number
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          multiplier_conditions?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       crm_lead_checklist_progress: {
         Row: {
@@ -1484,6 +1920,60 @@ export type Database = {
           },
         ]
       }
+      crm_lead_surgery_checklist: {
+        Row: {
+          checklist_id: string | null
+          completed_at: string | null
+          completed_by: string | null
+          completed_items: Json | null
+          completion_percentage: number | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          checklist_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completed_items?: Json | null
+          completion_percentage?: number | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          checklist_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completed_items?: Json | null
+          completion_percentage?: number | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_surgery_checklist_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "crm_surgery_checklist"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_surgery_checklist_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_leads: {
         Row: {
           ai_analyzed_at: string | null
@@ -1497,17 +1987,21 @@ export type Database = {
           budget_score: number | null
           churn_analyzed_at: string | null
           churn_risk_level: string | null
+          companion_info: Json | null
           contract_value: number | null
           cpf: string | null
           created_at: string
           created_by: string
           custom_fields: Json | null
           days_in_stage: number | null
+          diet_restrictions: string | null
           email: string | null
+          emergency_contact: Json | null
           estimated_value: number | null
           feegow_data: Json | null
           feegow_id: string | null
           first_contact_at: string | null
+          gamification_points_total: number | null
           help_score: number | null
           help_score_updated_at: string | null
           id: string
@@ -1517,20 +2011,29 @@ export type Database = {
           is_stale: boolean | null
           last_activity_at: string | null
           last_feegow_sync: string | null
+          last_nps_at: string | null
           last_procedure_date: string | null
           last_procedure_name: string | null
+          last_recovery_at: string | null
           lead_score: number | null
           lost_at: string | null
           lost_reason: string | null
+          lost_reason_id: string | null
           name: string
           need_score: number | null
           notes: string | null
+          nps_category: string | null
+          nps_score: number | null
           patient_data_id: string | null
           phone: string | null
           pipeline_id: string
           post_surgery_checklist_completed: boolean | null
           pre_surgery_checklist_completed: boolean | null
+          preferred_contact_day: string | null
+          preferred_contact_time: string | null
           prontuario: string | null
+          recovery_attempts: number | null
+          recovery_status: string | null
           recurrence_days_overdue: number | null
           recurrence_due_date: string | null
           recurrence_group: string | null
@@ -1548,6 +2051,7 @@ export type Database = {
           temperature: string | null
           timing_score: number | null
           total_interactions: number | null
+          travel_info: Json | null
           updated_at: string
           whatsapp: string | null
           won_at: string | null
@@ -1564,17 +2068,21 @@ export type Database = {
           budget_score?: number | null
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
+          companion_info?: Json | null
           contract_value?: number | null
           cpf?: string | null
           created_at?: string
           created_by: string
           custom_fields?: Json | null
           days_in_stage?: number | null
+          diet_restrictions?: string | null
           email?: string | null
+          emergency_contact?: Json | null
           estimated_value?: number | null
           feegow_data?: Json | null
           feegow_id?: string | null
           first_contact_at?: string | null
+          gamification_points_total?: number | null
           help_score?: number | null
           help_score_updated_at?: string | null
           id?: string
@@ -1584,20 +2092,29 @@ export type Database = {
           is_stale?: boolean | null
           last_activity_at?: string | null
           last_feegow_sync?: string | null
+          last_nps_at?: string | null
           last_procedure_date?: string | null
           last_procedure_name?: string | null
+          last_recovery_at?: string | null
           lead_score?: number | null
           lost_at?: string | null
           lost_reason?: string | null
+          lost_reason_id?: string | null
           name: string
           need_score?: number | null
           notes?: string | null
+          nps_category?: string | null
+          nps_score?: number | null
           patient_data_id?: string | null
           phone?: string | null
           pipeline_id: string
           post_surgery_checklist_completed?: boolean | null
           pre_surgery_checklist_completed?: boolean | null
+          preferred_contact_day?: string | null
+          preferred_contact_time?: string | null
           prontuario?: string | null
+          recovery_attempts?: number | null
+          recovery_status?: string | null
           recurrence_days_overdue?: number | null
           recurrence_due_date?: string | null
           recurrence_group?: string | null
@@ -1615,6 +2132,7 @@ export type Database = {
           temperature?: string | null
           timing_score?: number | null
           total_interactions?: number | null
+          travel_info?: Json | null
           updated_at?: string
           whatsapp?: string | null
           won_at?: string | null
@@ -1631,17 +2149,21 @@ export type Database = {
           budget_score?: number | null
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
+          companion_info?: Json | null
           contract_value?: number | null
           cpf?: string | null
           created_at?: string
           created_by?: string
           custom_fields?: Json | null
           days_in_stage?: number | null
+          diet_restrictions?: string | null
           email?: string | null
+          emergency_contact?: Json | null
           estimated_value?: number | null
           feegow_data?: Json | null
           feegow_id?: string | null
           first_contact_at?: string | null
+          gamification_points_total?: number | null
           help_score?: number | null
           help_score_updated_at?: string | null
           id?: string
@@ -1651,20 +2173,29 @@ export type Database = {
           is_stale?: boolean | null
           last_activity_at?: string | null
           last_feegow_sync?: string | null
+          last_nps_at?: string | null
           last_procedure_date?: string | null
           last_procedure_name?: string | null
+          last_recovery_at?: string | null
           lead_score?: number | null
           lost_at?: string | null
           lost_reason?: string | null
+          lost_reason_id?: string | null
           name?: string
           need_score?: number | null
           notes?: string | null
+          nps_category?: string | null
+          nps_score?: number | null
           patient_data_id?: string | null
           phone?: string | null
           pipeline_id?: string
           post_surgery_checklist_completed?: boolean | null
           pre_surgery_checklist_completed?: boolean | null
+          preferred_contact_day?: string | null
+          preferred_contact_time?: string | null
           prontuario?: string | null
+          recovery_attempts?: number | null
+          recovery_status?: string | null
           recurrence_days_overdue?: number | null
           recurrence_due_date?: string | null
           recurrence_group?: string | null
@@ -1682,11 +2213,19 @@ export type Database = {
           temperature?: string | null
           timing_score?: number | null
           total_interactions?: number | null
+          travel_info?: Json | null
           updated_at?: string
           whatsapp?: string | null
           won_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_leads_lost_reason_id_fkey"
+            columns: ["lost_reason_id"]
+            isOneToOne: false
+            referencedRelation: "crm_lost_reasons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_leads_patient_data_id_fkey"
             columns: ["patient_data_id"]
@@ -1730,6 +2269,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_lost_reasons: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_recoverable: boolean | null
+          name: string
+          order_index: number | null
+          recovery_days: number | null
+          recovery_strategy: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_recoverable?: boolean | null
+          name: string
+          order_index?: number | null
+          recovery_days?: number | null
+          recovery_strategy?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_recoverable?: boolean | null
+          name?: string
+          order_index?: number | null
+          recovery_days?: number | null
+          recovery_strategy?: string | null
+        }
+        Relationships: []
       }
       crm_notifications: {
         Row: {
@@ -1788,6 +2366,62 @@ export type Database = {
           },
         ]
       }
+      crm_nps_responses: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          feedback: string | null
+          follow_up_by: string | null
+          follow_up_completed_at: string | null
+          follow_up_required: boolean | null
+          id: string
+          improvement_areas: Json | null
+          lead_id: string | null
+          patient_data_id: string | null
+          score: number
+          sentiment_ai: string | null
+          touchpoint: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          feedback?: string | null
+          follow_up_by?: string | null
+          follow_up_completed_at?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          improvement_areas?: Json | null
+          lead_id?: string | null
+          patient_data_id?: string | null
+          score: number
+          sentiment_ai?: string | null
+          touchpoint?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          feedback?: string | null
+          follow_up_by?: string | null
+          follow_up_completed_at?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          improvement_areas?: Json | null
+          lead_id?: string | null
+          patient_data_id?: string | null
+          score?: number
+          sentiment_ai?: string | null
+          touchpoint?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_nps_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_pipelines: {
         Row: {
           color: string | null
@@ -1826,6 +2460,69 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      crm_sla_config: {
+        Row: {
+          business_end: string | null
+          business_hours_only: boolean | null
+          business_start: string | null
+          created_at: string | null
+          critical_hours: number | null
+          exclude_weekends: boolean | null
+          id: string
+          is_active: boolean | null
+          max_hours: number
+          pipeline_id: string | null
+          stage_id: string | null
+          updated_at: string | null
+          warning_hours: number | null
+        }
+        Insert: {
+          business_end?: string | null
+          business_hours_only?: boolean | null
+          business_start?: string | null
+          created_at?: string | null
+          critical_hours?: number | null
+          exclude_weekends?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_hours?: number
+          pipeline_id?: string | null
+          stage_id?: string | null
+          updated_at?: string | null
+          warning_hours?: number | null
+        }
+        Update: {
+          business_end?: string | null
+          business_hours_only?: boolean | null
+          business_start?: string | null
+          created_at?: string | null
+          critical_hours?: number | null
+          exclude_weekends?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_hours?: number
+          pipeline_id?: string | null
+          stage_id?: string | null
+          updated_at?: string | null
+          warning_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_sla_config_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_sla_config_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_stages: {
         Row: {
@@ -1885,6 +2582,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_surgery_checklist: {
+        Row: {
+          auto_actions: Json | null
+          checklist_type: string
+          created_at: string | null
+          day_offset: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          items: Json
+          name: string
+          notify_team: boolean | null
+          order_index: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_actions?: Json | null
+          checklist_type: string
+          created_at?: string | null
+          day_offset: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          items?: Json
+          name: string
+          notify_team?: boolean | null
+          order_index?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_actions?: Json | null
+          checklist_type?: string
+          created_at?: string | null
+          day_offset?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          items?: Json
+          name?: string
+          notify_team?: boolean | null
+          order_index?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       crm_tasks: {
         Row: {
@@ -1951,6 +2696,80 @@ export type Database = {
           },
         ]
       }
+      crm_team_routine: {
+        Row: {
+          achievements: Json | null
+          completed_activities: Json | null
+          created_at: string | null
+          goals: Json | null
+          id: string
+          mood_score: number | null
+          notes: string | null
+          planned_activities: Json | null
+          productivity_score: number | null
+          routine_date: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          achievements?: Json | null
+          completed_activities?: Json | null
+          created_at?: string | null
+          goals?: Json | null
+          id?: string
+          mood_score?: number | null
+          notes?: string | null
+          planned_activities?: Json | null
+          productivity_score?: number | null
+          routine_date: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          achievements?: Json | null
+          completed_activities?: Json | null
+          created_at?: string | null
+          goals?: Json | null
+          id?: string
+          mood_score?: number | null
+          notes?: string | null
+          planned_activities?: Json | null
+          productivity_score?: number | null
+          routine_date?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      crm_user_achievements: {
+        Row: {
+          achievement_id: string | null
+          earned_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          achievement_id?: string | null
+          earned_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          achievement_id?: string | null
+          earned_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "crm_gamification_achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_webhooks: {
         Row: {
           created_at: string
@@ -2008,6 +2827,78 @@ export type Database = {
           {
             foreignKeyName: "crm_webhooks_default_stage_id_fkey"
             columns: ["default_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_whatsapp_templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          has_media: boolean | null
+          id: string
+          is_active: boolean | null
+          media_type: string | null
+          media_url: string | null
+          name: string
+          pipeline_id: string | null
+          stage_id: string | null
+          success_rate: number | null
+          template_text: string
+          updated_at: string | null
+          usage_count: number | null
+          variables: Json | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          has_media?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
+          name: string
+          pipeline_id?: string | null
+          stage_id?: string | null
+          success_rate?: number | null
+          template_text: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          has_media?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
+          name?: string
+          pipeline_id?: string | null
+          stage_id?: string | null
+          success_rate?: number | null
+          template_text?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_whatsapp_templates_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_whatsapp_templates_stage_id_fkey"
+            columns: ["stage_id"]
             isOneToOne: false
             referencedRelation: "crm_stages"
             referencedColumns: ["id"]
