@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Save, X, Target, FileText, Briefcase, Thermometer, Syringe, Package, Route, Search } from 'lucide-react';
+import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Save, X, Target, FileText, Briefcase, Thermometer, Syringe, Package, Route, Search, Sparkles, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,6 +67,30 @@ const PROTOCOL_TYPE_ICONS: Record<string, any> = {
   procedimento: Syringe,
   pacote: Package,
   jornada: Route,
+};
+
+// Predefined tags organized by category
+const PREDEFINED_TAGS = {
+  'Perfil': [
+    'VIP', 'Primeira consulta', 'Retorno', 'Indicação', 'Influenciador',
+    'Paciente antigo', 'Lead qualificado', 'Lead frio'
+  ],
+  'Interesse': [
+    'Interessado em cirurgia', 'Interessado em procedimentos', 'Pesquisando preços',
+    'Comparando clínicas', 'Urgente', 'Agendamento pendente'
+  ],
+  'Financeiro': [
+    'Orçamento aprovado', 'Aguardando financiamento', 'Pagamento à vista',
+    'Parcelamento', 'Restrição financeira', 'Alto valor'
+  ],
+  'Status': [
+    'Aguardando retorno', 'Sem resposta', 'Reagendar', 'Documentação pendente',
+    'Exames pendentes', 'Liberado para cirurgia', 'Pré-operatório'
+  ],
+  'Origem': [
+    'Instagram', 'Facebook', 'Google', 'Indicação médica', 'Indicação paciente',
+    'Evento', 'Parceiro'
+  ]
 };
 
 const formatCurrency = (value: number) => {
@@ -637,26 +661,18 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
           </div>
 
           {/* Tags */}
-          <div className="space-y-2 pt-2 border-t">
+          <div className="space-y-3 pt-2 border-t">
             <Label className="flex items-center gap-1.5">
               <Tag className="h-3.5 w-3.5" />
               Tags
             </Label>
-            <div className="flex gap-2">
-              <Input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Nova tag"
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-              />
-              <Button type="button" variant="outline" onClick={addTag}>
-                Adicionar
-              </Button>
-            </div>
+            
+            {/* Selected Tags */}
             {formData.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1.5 p-2 bg-muted/50 rounded-lg">
                 {formData.tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="gap-1">
+                  <Badge key={tag} variant="default" className="gap-1 py-1">
+                    <Check className="h-3 w-3" />
                     {tag}
                     <button onClick={() => removeTag(tag)} className="ml-1 hover:text-destructive">
                       <X className="h-3 w-3" />
@@ -665,6 +681,71 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
                 ))}
               </div>
             )}
+            
+            {/* AI Suggested Tags */}
+            {formData.interested_procedures.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Sparkles className="h-3 w-3 text-yellow-500" />
+                  Sugestões baseadas nos procedimentos
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {['Interessado em cirurgia', 'Lead qualificado', 'Orçamento aprovado'].map(tag => (
+                    !formData.tags.includes(tag) && (
+                      <Badge 
+                        key={tag}
+                        variant="outline" 
+                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors border-dashed border-yellow-500/50"
+                        onClick={() => setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }))}
+                      >
+                        <Sparkles className="h-3 w-3 mr-1 text-yellow-500" />
+                        {tag}
+                      </Badge>
+                    )
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Predefined Tags by Category */}
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {Object.entries(PREDEFINED_TAGS).map(([category, tags]) => {
+                const availableTags = tags.filter(t => !formData.tags.includes(t));
+                if (availableTags.length === 0) return null;
+                
+                return (
+                  <div key={category} className="space-y-1">
+                    <span className="text-xs text-muted-foreground font-medium">{category}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {availableTags.map(tag => (
+                        <Badge 
+                          key={tag}
+                          variant="outline" 
+                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors text-xs"
+                          onClick={() => setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }))}
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Custom Tag Input */}
+            <div className="flex gap-2 pt-2 border-t border-dashed">
+              <Input
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                placeholder="Criar tag personalizada..."
+                className="text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+              />
+              <Button type="button" variant="outline" size="sm" onClick={addTag}>
+                Adicionar
+              </Button>
+            </div>
           </div>
 
           {/* Notes */}
