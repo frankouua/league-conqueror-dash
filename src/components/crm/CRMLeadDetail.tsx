@@ -4,7 +4,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   User, Phone, Mail, Star, Sparkles, AlertTriangle, CheckCircle2,
   Circle, Plus, Send, History, ListTodo, FileText, TrendingUp, Brain,
-  Loader2, Edit2, Trash2, ClipboardCheck, PhoneCall
+  Loader2, Edit2, Trash2, ClipboardCheck, PhoneCall, Trophy, ThumbsDown
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -50,9 +50,13 @@ import { CRMLeadTravel } from './CRMLeadTravel';
 import { CRMLeadUTM } from './CRMLeadUTM';
 import { CRMCoordinatorValidation } from './CRMCoordinatorValidation';
 import { CRMLeadDischarge } from './CRMLeadDischarge';
+import { CRMLostReasonDialog } from './CRMLostReasonDialog';
+import { CRMWonDialog } from './CRMWonDialog';
+import { CRMLeadSummary } from './CRMLeadSummary';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 type PriceItem = { name: string; price: number | null; promotional_price: number | null };
 
@@ -117,6 +121,7 @@ interface CRMLeadDetailProps {
 
 export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetailProps) {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const { stages } = useCRM();
   const {
     lead,
@@ -137,6 +142,8 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [showWonDialog, setShowWonDialog] = useState(false);
+  const [showLostDialog, setShowLostDialog] = useState(false);
 
   const currentStage = stages.find(s => s.id === lead?.stage_id);
   const pipelineStages = stages.filter(s => s.pipeline_id === lead?.pipeline_id);
@@ -173,6 +180,53 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
     await deleteLead.mutateAsync(lead.id);
     setShowDeleteDialog(false);
     onClose();
+  };
+
+  // Handle marking lead as WON
+  const handleMarkWon = async (data: { contractValue: number; surgeryDate?: string; notes: string }) => {
+    if (!lead) return;
+    
+    await updateLead.mutateAsync({
+      id: lead.id,
+      won_at: new Date().toISOString(),
+      contract_value: data.contractValue,
+      surgery_date: data.surgeryDate || null,
+    });
+
+    // Log to history
+    await supabase.from('crm_lead_history').insert({
+      lead_id: lead.id,
+      action_type: 'won',
+      performed_by: profile?.user_id,
+      title: 'Venda Fechada!',
+      description: `Valor: R$ ${data.contractValue.toLocaleString('pt-BR')}${data.notes ? ` - ${data.notes}` : ''}`,
+    });
+
+    toast({ title: '🎉 Venda registrada com sucesso!' });
+    setShowWonDialog(false);
+  };
+
+  // Handle marking lead as LOST with reason
+  const handleMarkLost = async (reasonId: string, reasonText: string, notes: string) => {
+    if (!lead) return;
+    
+    await updateLead.mutateAsync({
+      id: lead.id,
+      lost_at: new Date().toISOString(),
+      lost_reason: reasonText,
+    });
+
+    // Log to history
+    await supabase.from('crm_lead_history').insert({
+      lead_id: lead.id,
+      action_type: 'lost',
+      performed_by: profile?.user_id,
+      title: 'Lead Perdido',
+      description: `Motivo: ${reasonText}${notes ? ` - ${notes}` : ''}`,
+    });
+
+    toast({ title: 'Lead marcado como perdido' });
+    setShowLostDialog(false);
   };
 
   if (!initialLead) return null;
@@ -245,6 +299,8 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                     onTogglePriority={handleTogglePriority}
                     onDelete={() => setShowDeleteDialog(true)}
                     onTransfer={() => setShowTransferDialog(true)}
+                    onMarkWon={() => setShowWonDialog(true)}
+                    onMarkLost={() => setShowLostDialog(true)}
                   />
                   
                   {/* Contact Info - Stack on mobile */}
@@ -754,6 +810,30 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
       open={showTransferDialog}
       onClose={() => setShowTransferDialog(false)}
     />
+
+    {/* Won Dialog */}
+    {lead && (
+      <CRMWonDialog
+        open={showWonDialog}
+        onClose={() => setShowWonDialog(false)}
+        leadId={lead.id}
+        leadName={lead.name}
+        currentValue={lead.estimated_value || 0}
+        procedures={lead.interested_procedures || []}
+        onConfirm={handleMarkWon}
+      />
+    )}
+
+    {/* Lost Reason Dialog */}
+    {lead && (
+      <CRMLostReasonDialog
+        open={showLostDialog}
+        onClose={() => setShowLostDialog(false)}
+        leadId={lead.id}
+        leadName={lead.name}
+        onConfirm={handleMarkLost}
+      />
+    )}
     </>
   );
 }
