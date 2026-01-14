@@ -773,10 +773,11 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                     {/* Travel */}
                     <CRMLeadTravel leadId={lead.id} />
 
-                    {/* Discharge */}
+                    {/* Discharge - D+90 CS Comercial 3 */}
                     <CRMLeadDischarge 
                       leadId={lead.id} 
                       leadName={lead.name}
+                      surgeryDate={lead.surgery_date}
                       dischargeData={{
                         future_letter_written: (lead as any).future_letter_written,
                         before_after_photo_delivered: (lead as any).before_after_photo_delivered,
