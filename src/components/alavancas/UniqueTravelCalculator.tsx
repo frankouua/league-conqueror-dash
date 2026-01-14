@@ -18,12 +18,12 @@ import uniqueTravelLogo from "@/assets/unique-travel-logo.png";
 const PRICES = {
   hospedagemPremium: 450,    // Residenciais Premium
   hospedagemBasic: 280,      // Residenciais Basic
-  motoristaExecutivo: 300,   // 4 trechos/dia
+  motoristaExecutivo: 360,   // 4 trechos/dia
   motoristaTransfer: 300,    // Transfer aero ida/volta (fixo)
   alimentacao2: 167,         // 2 refeições/dia
   alimentacao4: 315,         // 4 refeições/dia
-  enfermeira12h: 333,        // 12 horas/dia
-  enfermeira24h: 667,        // 24 horas/dia
+  enfermeira12h: 383,        // 12 horas/dia
+  enfermeira24h: 767,        // 24 horas/dia
   spaPremium: 300,           // Com banheira + acompanhante
   spaBasic: 150,             // Basic
   jantarGourmet: 538,        // Com acompanhante
@@ -32,6 +32,35 @@ const PRICES = {
   kitBoasVindas: 230,        // Presente boas-vindas
   surpresasUnique: 231,      // Surpresas Unique Experience
 };
+
+// ================ PRICE LIST FOR DISPLAY ================
+const PRICE_LIST = [
+  { category: "Hospedagem", items: [
+    { name: "Premium (Residenciais)", price: PRICES.hospedagemPremium, unit: "/dia" },
+    { name: "Basic (Residenciais)", price: PRICES.hospedagemBasic, unit: "/dia" },
+  ]},
+  { category: "Transporte", items: [
+    { name: "Motorista Executivo (4 trechos)", price: PRICES.motoristaExecutivo, unit: "/dia" },
+    { name: "Transfer Ida/Volta", price: PRICES.motoristaTransfer, unit: " (fixo)" },
+  ]},
+  { category: "Alimentação", items: [
+    { name: "2 Refeições/dia", price: PRICES.alimentacao2, unit: "/dia" },
+    { name: "4 Refeições/dia", price: PRICES.alimentacao4, unit: "/dia" },
+  ]},
+  { category: "Home Care", items: [
+    { name: "Enfermeira 12h", price: PRICES.enfermeira12h, unit: "/dia" },
+    { name: "Enfermeira 24h", price: PRICES.enfermeira24h, unit: "/dia" },
+  ]},
+  { category: "Experiências", items: [
+    { name: "Spa Premium (c/ acompanhante)", price: PRICES.spaPremium, unit: "" },
+    { name: "Spa Basic", price: PRICES.spaBasic, unit: "" },
+    { name: "Jantar Gourmet (c/ acompanhante)", price: PRICES.jantarGourmet, unit: "" },
+    { name: "Salão de Beleza", price: PRICES.salao, unit: "" },
+    { name: "Kit Medicamentos", price: PRICES.kitMedicamentos, unit: "" },
+    { name: "Kit Boas-Vindas", price: PRICES.kitBoasVindas, unit: "" },
+    { name: "Surpresas Unique", price: PRICES.surpresasUnique, unit: "" },
+  ]},
+];
 
 // ================ TYPES ================
 interface PackageResult {
@@ -103,6 +132,7 @@ const ServiceTooltip = ({ text }: { text: string }) => (
 const UniqueTravelCalculator = () => {
   const [days, setDays] = useState(7);
   const [showCustom, setShowCustom] = useState(false);
+  const [showPriceList, setShowPriceList] = useState(false);
   const [customPackage, setCustomPackage] = useState<CustomPackage>({
     hospedagem: "premium",
     motorista: "executivo",
@@ -324,6 +354,52 @@ Podemos reservar sua data? ✨`;
             </div>
           </CardContent>
         </Card>
+
+        {/* Price List Toggle */}
+        <div className="flex justify-center">
+          <Button
+            variant="ghost"
+            onClick={() => setShowPriceList(!showPriceList)}
+            className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 gap-2"
+          >
+            {showPriceList ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            Ver Lista de Preços
+          </Button>
+        </div>
+
+        {/* Price List */}
+        {showPriceList && (
+          <Card className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border-amber-500/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-amber-100 flex items-center gap-2">
+                <Star className="h-5 w-5 text-amber-400" />
+                Tabela de Preços - Unique Travel
+              </CardTitle>
+              <p className="text-amber-200/60 text-xs">Valores para pacotes (UT.PAC)</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {PRICE_LIST.map((category) => (
+                  <div key={category.category} className="space-y-2">
+                    <h4 className="text-amber-300 font-semibold text-sm uppercase tracking-wider border-b border-amber-500/30 pb-1">
+                      {category.category}
+                    </h4>
+                    <div className="space-y-1">
+                      {category.items.map((item) => (
+                        <div key={item.name} className="flex justify-between items-center text-sm">
+                          <span className="text-amber-200/70">{item.name}</span>
+                          <span className="text-amber-400 font-medium">
+                            {formatCurrency(item.price)}{item.unit}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Package Comparison */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
