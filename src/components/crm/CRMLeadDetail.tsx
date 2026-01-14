@@ -4,7 +4,8 @@ import { ptBR } from 'date-fns/locale';
 import {
   User, Phone, Mail, Star, Sparkles, AlertTriangle, CheckCircle2,
   Circle, Plus, Send, History, ListTodo, FileText, TrendingUp, Brain,
-  Loader2, Edit2, Trash2, ClipboardCheck, PhoneCall, Trophy, ThumbsDown
+  Loader2, Edit2, Trash2, ClipboardCheck, PhoneCall, Trophy, ThumbsDown,
+  ChevronDown, ChevronRight
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { CRMLead, useCRMLeadDetail, useCRM, useCRMLeads } from '@/hooks/useCRM';
 import { CRMLeadEditForm } from './CRMLeadEditForm';
@@ -55,9 +61,10 @@ import { CRMWonDialog } from './CRMWonDialog';
 import { CRMLeadSummary } from './CRMLeadSummary';
 import { CRMLeadActionsMenu } from './CRMLeadActionsMenu';
 import { CRMSalesCoachProactive } from './CRMSalesCoachProactive';
+import { CRMSurgeryDateEditor } from './CRMSurgeryDateEditor';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 
 type PriceItem = { name: string; price: number | null; promotional_price: number | null };
@@ -137,6 +144,7 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
   } = useCRMLeadDetail(initialLead?.id || null);
 
   const { updateLead, deleteLead } = useCRMLeads(initialLead?.pipeline_id);
+  const queryClient = useQueryClient();
 
   const [newNote, setNewNote] = useState('');
   const [newTask, setNewTask] = useState({ title: '', due_date: '', priority: 'medium' });
@@ -145,6 +153,16 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [showWonDialog, setShowWonDialog] = useState(false);
+  
+  // Collapsible sections state
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    history: false,
+    contracts: false,
+    validation: false,
+    travel: false,
+    discharge: false,
+    utm: false,
+  });
   const [showLostDialog, setShowLostDialog] = useState(false);
 
   const currentStage = stages.find(s => s.id === lead?.stage_id);
@@ -711,96 +729,234 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                 </div>
               </TabsContent>
 
-              {/* MAIS Tab - Additional info collapsed */}
+              {/* MAIS Tab - Additional info with collapsible sections */}
               <TabsContent value="mais" className="m-0 space-y-3">
                 {lead && (
                   <>
-                    {/* History - Agora mostra descrição das notas */}
-                    <Card>
-                      <CardHeader className="pb-2 pt-3 px-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <History className="h-4 w-4" />
-                          Histórico Completo
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-0">
-                        <div className="max-h-60 overflow-y-auto space-y-2">
-                          {history.map((entry) => (
-                            <div 
-                              key={entry.id} 
-                              className={cn(
-                                "text-xs border-l-2 pl-2 py-1",
-                                entry.action_type === 'note' 
-                                  ? "border-blue-500 bg-blue-500/5" 
-                                  : "border-primary/30"
-                              )}
-                            >
-                              <div className="flex items-center gap-1">
-                                {entry.action_type === 'note' && (
-                                  <FileText className="h-3 w-3 text-blue-500" />
-                                )}
-                                <p className="font-medium">{entry.title}</p>
-                              </div>
-                              {/* Mostrar descrição/conteúdo da nota */}
-                              {entry.description && (
-                                <p className="text-muted-foreground mt-1 whitespace-pre-wrap">
-                                  {entry.description}
-                                </p>
-                              )}
-                              <p className="text-muted-foreground/70 text-[10px] mt-1">
-                                {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true, locale: ptBR })}
-                              </p>
-                            </div>
-                          ))}
-                          {history.length === 0 && (
-                            <p className="text-muted-foreground text-center py-4">Sem histórico</p>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Contracts */}
-                    <CRMLeadContracts
+                    {/* SURGERY DATE - First and most important */}
+                    <CRMSurgeryDateEditor
                       leadId={lead.id}
                       leadName={lead.name}
-                      leadEmail={lead.email}
-                      leadPhone={lead.phone}
-                    />
-
-                    {/* Coordinator Validation */}
-                    <CRMCoordinatorValidation leadId={lead.id} leadName={lead.name} />
-
-                    {/* Travel */}
-                    <CRMLeadTravel leadId={lead.id} />
-
-                    {/* Discharge - D+90 CS Comercial 3 */}
-                    <CRMLeadDischarge 
-                      leadId={lead.id} 
-                      leadName={lead.name}
+                      pipelineId={lead.pipeline_id}
                       surgeryDate={lead.surgery_date}
-                      dischargeData={{
-                        future_letter_written: (lead as any).future_letter_written,
-                        before_after_photo_delivered: (lead as any).before_after_photo_delivered,
-                        unique_necklace_delivered: (lead as any).unique_necklace_delivered,
-                        testimonial_collected: (lead as any).testimonial_collected,
-                        google_review_requested: (lead as any).google_review_requested,
-                        discharge_completed: (lead as any).discharge_completed,
-                        discharge_completed_at: (lead as any).discharge_completed_at,
-                      }}
+                      onUpdate={() => queryClient.invalidateQueries({ queryKey: ['crm-lead-detail', lead.id] })}
                     />
 
-                    {/* UTM Origin */}
-                    <CRMLeadUTM 
-                      utmData={{
-                        utm_source: (lead as any).utm_source,
-                        utm_medium: (lead as any).utm_medium,
-                        utm_campaign: (lead as any).utm_campaign,
-                        utm_term: (lead as any).utm_term,
-                        utm_content: (lead as any).utm_content,
-                        landing_page: (lead as any).landing_page,
-                        referrer_url: (lead as any).referrer_url,
-                      }}
-                    />
+                    {/* Collapsible: Contracts */}
+                    <Collapsible
+                      open={openSections.contracts}
+                      onOpenChange={(open) => setOpenSections(prev => ({ ...prev, contracts: open }))}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardContent className="p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-sm">Contratos</span>
+                            </div>
+                            {openSections.contracts ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <CRMLeadContracts
+                          leadId={lead.id}
+                          leadName={lead.name}
+                          leadEmail={lead.email}
+                          leadPhone={lead.phone}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Collapsible: Coordinator Validation */}
+                    <Collapsible
+                      open={openSections.validation}
+                      onOpenChange={(open) => setOpenSections(prev => ({ ...prev, validation: open }))}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardContent className="p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <ClipboardCheck className="h-4 w-4 text-orange-500" />
+                              <span className="font-medium text-sm">Dupla Conferência (Coordenador)</span>
+                            </div>
+                            {openSections.validation ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <CRMCoordinatorValidation leadId={lead.id} leadName={lead.name} />
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Collapsible: Travel */}
+                    <Collapsible
+                      open={openSections.travel}
+                      onOpenChange={(open) => setOpenSections(prev => ({ ...prev, travel: open }))}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardContent className="p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-blue-500" />
+                              <span className="font-medium text-sm">Unique Travel</span>
+                            </div>
+                            {openSections.travel ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <CRMLeadTravel leadId={lead.id} />
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Collapsible: Discharge - D+90 CS Comercial 3 */}
+                    <Collapsible
+                      open={openSections.discharge}
+                      onOpenChange={(open) => setOpenSections(prev => ({ ...prev, discharge: open }))}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardContent className="p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Trophy className="h-4 w-4 text-green-500" />
+                              <span className="font-medium text-sm">Experiência de Alta (D+90)</span>
+                              <Badge variant="outline" className="text-xs">CS Comercial 3</Badge>
+                            </div>
+                            {openSections.discharge ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <CRMLeadDischarge 
+                          leadId={lead.id} 
+                          leadName={lead.name}
+                          surgeryDate={lead.surgery_date}
+                          dischargeData={{
+                            future_letter_written: (lead as any).future_letter_written,
+                            before_after_photo_delivered: (lead as any).before_after_photo_delivered,
+                            unique_necklace_delivered: (lead as any).unique_necklace_delivered,
+                            testimonial_collected: (lead as any).testimonial_collected,
+                            google_review_requested: (lead as any).google_review_requested,
+                            discharge_completed: (lead as any).discharge_completed,
+                            discharge_completed_at: (lead as any).discharge_completed_at,
+                          }}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Collapsible: History */}
+                    <Collapsible
+                      open={openSections.history}
+                      onOpenChange={(open) => setOpenSections(prev => ({ ...prev, history: open }))}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardContent className="p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <History className="h-4 w-4 text-purple-500" />
+                              <span className="font-medium text-sm">Histórico Completo</span>
+                              {history.length > 0 && (
+                                <Badge variant="secondary" className="text-xs">{history.length}</Badge>
+                              )}
+                            </div>
+                            {openSections.history ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <Card>
+                          <CardContent className="p-3">
+                            <div className="max-h-60 overflow-y-auto space-y-2">
+                              {history.map((entry) => (
+                                <div 
+                                  key={entry.id} 
+                                  className={cn(
+                                    "text-xs border-l-2 pl-2 py-1",
+                                    entry.action_type === 'note' 
+                                      ? "border-blue-500 bg-blue-500/5" 
+                                      : "border-primary/30"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    {entry.action_type === 'note' && (
+                                      <FileText className="h-3 w-3 text-blue-500" />
+                                    )}
+                                    <p className="font-medium">{entry.title}</p>
+                                  </div>
+                                  {entry.description && (
+                                    <p className="text-muted-foreground mt-1 whitespace-pre-wrap">
+                                      {entry.description}
+                                    </p>
+                                  )}
+                                  <p className="text-muted-foreground/70 text-[10px] mt-1">
+                                    {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true, locale: ptBR })}
+                                  </p>
+                                </div>
+                              ))}
+                              {history.length === 0 && (
+                                <p className="text-muted-foreground text-center py-4">Sem histórico</p>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Collapsible: UTM Origin */}
+                    <Collapsible
+                      open={openSections.utm}
+                      onOpenChange={(open) => setOpenSections(prev => ({ ...prev, utm: open }))}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardContent className="p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-cyan-500" />
+                              <span className="font-medium text-sm">Origem UTM</span>
+                            </div>
+                            {openSections.utm ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <CRMLeadUTM 
+                          utmData={{
+                            utm_source: (lead as any).utm_source,
+                            utm_medium: (lead as any).utm_medium,
+                            utm_campaign: (lead as any).utm_campaign,
+                            utm_term: (lead as any).utm_term,
+                            utm_content: (lead as any).utm_content,
+                            landing_page: (lead as any).landing_page,
+                            referrer_url: (lead as any).referrer_url,
+                          }}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
                   </>
                 )}
               </TabsContent>
