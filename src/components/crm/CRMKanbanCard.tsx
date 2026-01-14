@@ -101,6 +101,11 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
   const lastActivity = lead.last_activity_at 
     ? formatDistanceToNow(new Date(lead.last_activity_at), { addSuffix: true, locale: ptBR })
     : null;
+  
+  // Tempo parado na etapa / SLA
+  const daysInStage = lead.days_in_stage || 0;
+  const slaStatus = daysInStage >= 7 ? 'critical' : daysInStage >= 3 ? 'warning' : 'ok';
+  const isStale = lead.is_stale;
 
   const paymentLabels: Record<string, string> = {
     'pix': 'PIX',
@@ -291,6 +296,26 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
             {hasOverdueTasks && <AlertTriangle className="h-3 w-3" />}
             {pendingTasks > 0 ? `${pendingTasks} pend.` : '✓'}
           </span>
+        </div>
+      )}
+
+      {/* SLA / Tempo na Etapa - INDICADOR VISUAL */}
+      {(isStale || daysInStage >= 2) && (
+        <div className={cn(
+          "flex items-center gap-1.5 text-xs mb-2 px-2 py-1.5 rounded-md border",
+          slaStatus === 'critical' && "bg-red-500/10 text-red-600 border-red-500/30",
+          slaStatus === 'warning' && "bg-orange-500/10 text-orange-600 border-orange-500/30",
+          slaStatus === 'ok' && "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
+        )}>
+          <AlertTriangle className="h-3.5 w-3.5" />
+          <span className="font-medium">
+            {daysInStage === 1 ? '1 dia' : `${daysInStage} dias`} nesta etapa
+          </span>
+          {isStale && (
+            <Badge variant="outline" className="ml-auto text-[9px] py-0 h-4 border-current">
+              PARADO
+            </Badge>
+          )}
         </div>
       )}
 
