@@ -180,7 +180,41 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   
   // Ref para scroll automático ao mapeamento de colunas
   const columnMappingRef = useRef<HTMLDivElement>(null);
-  
+
+  // Controla tentativa de scroll após o upload (evita correr antes do render)
+  const [pendingScrollToMapping, setPendingScrollToMapping] = useState(false);
+
+  useEffect(() => {
+    if (!pendingScrollToMapping) return;
+    if (!showColumnMapping || availableColumns.length === 0) return;
+
+    // Tenta algumas vezes porque o DOM pode demorar a montar (tabs/dialog)
+    let tries = 0;
+    const maxTries = 10;
+
+    const tryScroll = () => {
+      tries += 1;
+      const el = columnMappingRef.current;
+
+      if (el) {
+        console.log('[Upload] Scroll confirmado para mapeamento (useEffect)');
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setPendingScrollToMapping(false);
+        return;
+      }
+
+      if (tries < maxTries) {
+        setTimeout(tryScroll, 150);
+      } else {
+        console.warn('[Upload] Não foi possível localizar o bloco de mapeamento para scroll.');
+        setPendingScrollToMapping(false);
+      }
+    };
+
+    // Próximo tick
+    setTimeout(tryScroll, 0);
+  }, [pendingScrollToMapping, showColumnMapping, availableColumns.length]);
+
   // Persist state to sessionStorage whenever key data changes
   useEffect(() => {
     if (parsedSales.length > 0 || metrics || importResults) {
@@ -561,18 +595,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         duration: 8000,
       });
       
-      // Scroll automático para o mapeamento de colunas
-      setTimeout(() => {
-        if (columnMappingRef.current) {
-          console.log('[Upload] Fazendo scroll para mapeamento...');
-          columnMappingRef.current.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-          });
-        } else {
-          console.warn('[Upload] Ref do mapeamento não encontrado!');
-        }
-      }, 300);
+      // Scroll automático para o mapeamento de colunas (após render)
+      setPendingScrollToMapping(true);
     } catch (error) {
       console.error('Error parsing Excel:', error);
       toast({
