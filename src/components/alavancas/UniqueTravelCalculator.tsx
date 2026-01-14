@@ -62,6 +62,82 @@ const PRICE_LIST = [
   ]},
 ];
 
+// ================ SCRIPTS DE VENDAS - UNIQUE TRAVEL ================
+const TRAVEL_SCRIPTS = [
+  {
+    id: "preco_hospedagem",
+    pergunta: "Quanto custa a hospedagem?",
+    categoria: "Preços",
+    script: `Temos opções para todos os perfis! 🏠\n\n✨ *Premium* (Residenciais exclusivas): R$ 450/dia - com todo conforto, privacidade e atendimento personalizado.\n\n🏡 *Basic* (Residenciais): R$ 280/dia - confortável e acolhedor, perfeito para sua recuperação.\n\nQual opção combina mais com você?`,
+    dica: "Destaque a privacidade e o conforto das residenciais"
+  },
+  {
+    id: "diferenca_pacotes",
+    pergunta: "Qual a diferença entre os pacotes?",
+    categoria: "Pacotes",
+    script: `Ótima pergunta! 🌟\n\n👑 *All Inclusive*: Você não precisa se preocupar com nada! Hospedagem Premium + Motorista Executivo diário + Alimentação + Enfermeira 12h + Spa + Jantar Gourmet + várias surpresas!\n\n📦 *Basic*: Perfeito para quem quer economia com qualidade - Hospedagem + Transfer aeroporto + Kit Boas-Vindas + Spa Basic.\n\n🎨 *Personalizado*: Monte exatamente o que você precisa!\n\nPosso calcular um orçamento para você?`,
+    dica: "Enfatize que no All Inclusive a paciente não se preocupa com nada"
+  },
+  {
+    id: "enfermeira",
+    pergunta: "Como funciona a enfermeira?",
+    categoria: "Home Care",
+    script: `Nossa equipe de enfermagem é especializada em pós-operatório estético! 💉👩‍⚕️\n\n⏰ *12 horas*: R$ 383/dia - Ideal para acompanhamento diurno, troca de curativos, medicações e cuidados essenciais.\n\n🌙 *24 horas*: R$ 767/dia - Assistência completa dia e noite, recomendado para primeiros dias pós-cirurgia.\n\nVocê escolhe quantos dias precisa! O mais comum é 3-5 dias de enfermeira 24h e depois passar para 12h. O que você prefere?`,
+    dica: "Sugira a combinação mais comum baseado no procedimento"
+  },
+  {
+    id: "motorista",
+    pergunta: "Como funciona o transporte?",
+    categoria: "Transporte",
+    script: `Cuidamos de toda sua locomoção! 🚗\n\n🌟 *Motorista Executivo*: R$ 360/dia - Disponível para 4 trechos por dia (consultas, retornos, farmácia, etc). Carro confortável e motorista exclusivo!\n\n✈️ *Transfer Aeroporto*: R$ 300 (ida e volta) - Perfeito se você só precisa do translado aeroporto-hospedagem.\n\nPara quantos dias você precisa?`,
+    dica: "Explique que o executivo vale mais a pena para quem tem vários retornos"
+  },
+  {
+    id: "alimentacao",
+    pergunta: "Como funciona a alimentação?",
+    categoria: "Alimentação",
+    script: `Nossa alimentação é preparada especialmente para sua recuperação! 🍽️\n\n🥗 *2 Refeições/dia*: R$ 167/dia - Almoço e jantar balanceados, nutritivos e deliciosos.\n\n🍳 *4 Refeições/dia*: R$ 315/dia - Café da manhã, almoço, lanche e jantar - cardápio completo!\n\nAs refeições são preparadas considerando sua dieta pós-operatória. Quer incluir no orçamento?`,
+    dica: "Destaque que é dieta específica para recuperação"
+  },
+  {
+    id: "quantos_dias",
+    pergunta: "Quantos dias preciso ficar?",
+    categoria: "Planejamento",
+    script: `Depende do seu procedimento! 📅\n\n✂️ *Procedimentos menores* (Lipo, mamas): 7-10 dias\n✂️ *Abdominoplastia*: 10-14 dias\n✂️ *Procedimentos combinados*: 14-21 dias\n\nO mais importante é você ter tempo de qualidade para recuperação! Qual procedimento você vai fazer? Posso calcular o tempo ideal!`,
+    dica: "Sempre confirme o procedimento antes de sugerir dias"
+  },
+  {
+    id: "acompanhante",
+    pergunta: "Posso levar acompanhante?",
+    categoria: "Acompanhante",
+    script: `Claro! Muitas pacientes vêm acompanhadas! 👯‍♀️\n\nNossas hospedagens acomodam acompanhante sem custo adicional de diária!\n\nAlguns extras já incluem o acompanhante:\n✨ Spa Premium - você E acompanhante!\n✨ Jantar Gourmet - você E acompanhante!\n\nQuer que eu calcule com ou sem acompanhante?`,
+    dica: "Destaque que spa e jantar já incluem acompanhante"
+  },
+  {
+    id: "formas_pagamento",
+    pergunta: "Quais as formas de pagamento?",
+    categoria: "Pagamento",
+    script: `Temos condições especiais! 💳\n\n💰 *PIX/Transferência*: Melhor condição, à vista\n💳 *Cartão de Crédito*: Parcelamos em até 12x\n📄 *Boleto*: À vista ou entrada + parcelas\n\nO Travel pode ser incluído no financiamento do procedimento também! Quer que eu envie o orçamento completo?`,
+    dica: "Mencione que pode incluir no financiamento do procedimento"
+  },
+  {
+    id: "vale_a_pena",
+    pergunta: "Vale a pena o Unique Travel?",
+    categoria: "Objeções",
+    script: `Com certeza! Vou te explicar por que: 🌟\n\n❌ *Sem Travel*: Você precisa se preocupar com hotel, Uber, comida, farmácia, emergências...\n\n✅ *Com Travel*: Você só foca na sua recuperação! Temos equipe 24h, enfermeiras especializadas, motorista exclusivo, alimentação adequada...\n\nPacientes que usam o Travel têm recuperação mais tranquila e resultados melhores. Sua única preocupação será ficar linda! 💫\n\nPosso montar um orçamento personalizado?`,
+    dica: "Foque na tranquilidade e segurança, não só no preço"
+  },
+  {
+    id: "muito_caro",
+    pergunta: "Está muito caro...",
+    categoria: "Objeções",
+    script: `Entendo sua preocupação! 💭\n\nVamos fazer uma conta rápida?\n\n🏨 Hotel bom em SP: R$ 300-400/dia\n🚗 Uber (vários trechos): R$ 150-200/dia\n🍽️ Alimentação fora: R$ 100-150/dia\n👩‍⚕️ Enfermeira particular: R$ 400-600/dia\n\nSoma: R$ 950-1.350/dia SEM a organização e exclusividade!\n\nNosso All Inclusive sai por cerca de R$ 1.360/dia com TUDO incluso + experiências premium. E o mais importante: você tem suporte 24h se precisar de qualquer coisa!\n\nQuer que eu monte um pacote mais econômico?`,
+    dica: "Compare com custos avulsos para mostrar o valor real"
+  }
+];
+
+const SCRIPT_CATEGORIES = ["Preços", "Pacotes", "Home Care", "Transporte", "Alimentação", "Planejamento", "Acompanhante", "Pagamento", "Objeções"];
+
 // ================ TYPES ================
 interface PackageResult {
   total: number;
@@ -133,6 +209,9 @@ const UniqueTravelCalculator = () => {
   const [days, setDays] = useState(7);
   const [showCustom, setShowCustom] = useState(false);
   const [showPriceList, setShowPriceList] = useState(false);
+  const [showScripts, setShowScripts] = useState(false);
+  const [selectedScriptCategory, setSelectedScriptCategory] = useState<string | null>(null);
+  const [expandedScript, setExpandedScript] = useState<string | null>(null);
   const [customPackage, setCustomPackage] = useState<CustomPackage>({
     hospedagem: "premium",
     motorista: "executivo",
@@ -146,6 +225,16 @@ const UniqueTravelCalculator = () => {
     kitMedicamentos: false,
     kitBoasVindas: false,
   });
+
+  // Copy script to clipboard
+  const copyScript = (script: string) => {
+    navigator.clipboard.writeText(script.replace(/\n/g, '\n'));
+    toast.success("Script copiado!");
+  };
+
+  const filteredScripts = selectedScriptCategory 
+    ? TRAVEL_SCRIPTS.filter(s => s.categoria === selectedScriptCategory)
+    : TRAVEL_SCRIPTS;
 
   // Calculate All Inclusive Package (usando alimentação 2 refeições como padrão)
   const calculateAllInclusive = useCallback((): PackageResult => {
@@ -356,7 +445,7 @@ Podemos reservar sua data? ✨`;
         </Card>
 
         {/* Price List Toggle */}
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-2 flex-wrap">
           <Button
             variant="ghost"
             onClick={() => setShowPriceList(!showPriceList)}
@@ -364,6 +453,14 @@ Podemos reservar sua data? ✨`;
           >
             {showPriceList ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             Ver Lista de Preços
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setShowScripts(!showScripts)}
+            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 gap-2"
+          >
+            {showScripts ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            Scripts de Vendas
           </Button>
         </div>
 
@@ -394,6 +491,102 @@ Podemos reservar sua data? ✨`;
                         </div>
                       ))}
                     </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Scripts de Vendas */}
+        {showScripts && (
+          <Card className="bg-gradient-to-br from-[#0d1f17] to-[#162e22] border-emerald-500/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-emerald-100 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-emerald-400" />
+                Scripts de Vendas - Unique Travel
+              </CardTitle>
+              <p className="text-emerald-200/60 text-xs">Respostas prontas para perguntas comuns</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Category Filter */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedScriptCategory(null)}
+                  className={cn(
+                    "text-xs",
+                    !selectedScriptCategory 
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50" 
+                      : "text-emerald-200/50 hover:text-emerald-300"
+                  )}
+                >
+                  Todos
+                </Button>
+                {SCRIPT_CATEGORIES.map((cat) => (
+                  <Button
+                    key={cat}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedScriptCategory(cat)}
+                    className={cn(
+                      "text-xs",
+                      selectedScriptCategory === cat 
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50" 
+                        : "text-emerald-200/50 hover:text-emerald-300"
+                    )}
+                  >
+                    {cat}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Scripts List */}
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                {filteredScripts.map((script) => (
+                  <div 
+                    key={script.id}
+                    className="bg-[#0a1510]/60 border border-emerald-500/20 rounded-lg overflow-hidden"
+                  >
+                    <button
+                      onClick={() => setExpandedScript(expandedScript === script.id ? null : script.id)}
+                      className="w-full p-3 flex items-center justify-between hover:bg-emerald-500/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 text-left">
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">
+                          {script.categoria}
+                        </Badge>
+                        <span className="text-emerald-100 text-sm font-medium">{script.pergunta}</span>
+                      </div>
+                      {expandedScript === script.id ? (
+                        <ChevronUp className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                      )}
+                    </button>
+                    
+                    {expandedScript === script.id && (
+                      <div className="p-4 pt-0 space-y-3 border-t border-emerald-500/20">
+                        <div className="bg-[#0d1f17] p-3 rounded-lg">
+                          <pre className="text-emerald-100 text-sm whitespace-pre-wrap font-sans leading-relaxed">
+                            {script.script}
+                          </pre>
+                        </div>
+                        <div className="flex items-start gap-2 text-xs text-emerald-300/70">
+                          <Sparkles className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                          <span><strong>Dica:</strong> {script.dica}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => copyScript(script.script)}
+                          className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 gap-2"
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copiar Script
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
