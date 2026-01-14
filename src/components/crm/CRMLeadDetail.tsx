@@ -352,55 +352,67 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
             <ScrollArea className="flex-1 px-3 sm:px-6 py-3 sm:py-4">
               {/* RESUMO Tab - All key info in one place */}
               <TabsContent value="resumo" className="m-0 space-y-4">
-                {lead && (
+                {/* Use lead if available, otherwise use initialLead for immediate display */}
+                {(lead || initialLead) && (
                   <>
                     {/* NEGOTIATION VALUE - HIGHLIGHTED */}
-                    <NegotiationValueCard lead={lead} />
+                    {lead ? (
+                      <NegotiationValueCard lead={lead} />
+                    ) : (
+                      <Card className="bg-muted/30 border-dashed">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <TrendingUp className="h-4 w-4" />
+                            <span className="text-sm">Carregando valor...</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
                     {/* Quick Stats - Score, Interactions */}
                     <div className="grid grid-cols-2 gap-3">
                       <Card>
                         <CardContent className="p-3 text-center">
-                          <p className="text-xl font-bold">{lead.lead_score || 0}</p>
+                          <p className="text-xl font-bold">{(lead || initialLead)?.lead_score || 0}</p>
                           <p className="text-xs text-muted-foreground">Score IA</p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardContent className="p-3 text-center">
-                          <p className="text-xl font-bold">{lead.total_interactions || 0}</p>
+                          <p className="text-xl font-bold">{(lead || initialLead)?.total_interactions || 0}</p>
                           <p className="text-xs text-muted-foreground">Interações</p>
                         </CardContent>
                       </Card>
                     </div>
 
                     {/* AI Summary if available */}
-                    {lead.ai_summary && (
+                    {(lead || initialLead)?.ai_summary && (
                       <Card className="border-primary/30 bg-primary/5">
                         <CardContent className="p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <Sparkles className="h-4 w-4 text-primary" />
                             <span className="text-sm font-medium">Resumo IA</span>
                           </div>
-                          <p className="text-sm text-muted-foreground">{lead.ai_summary}</p>
+                          <p className="text-sm text-muted-foreground">{(lead || initialLead)?.ai_summary}</p>
                         </CardContent>
                       </Card>
                     )}
 
                     {/* Next Action from AI */}
-                    {lead.ai_next_action && (
+                    {(lead || initialLead)?.ai_next_action && (
                       <Card className="border-yellow-500/30 bg-yellow-500/5">
                         <CardContent className="p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <TrendingUp className="h-4 w-4 text-yellow-600" />
                             <span className="text-sm font-medium">Próxima Ação</span>
                           </div>
-                          <p className="text-sm">{lead.ai_next_action}</p>
+                          <p className="text-sm">{(lead || initialLead)?.ai_next_action}</p>
                         </CardContent>
                       </Card>
                     )}
 
                     {/* Procedures of Interest - Now with prominence */}
-                    {lead.interested_procedures && lead.interested_procedures.length > 0 && (
+                    {(lead || initialLead)?.interested_procedures && (lead || initialLead)!.interested_procedures!.length > 0 && (
                       <Card className="border-primary/30">
                         <CardContent className="p-3">
                           <p className="text-sm font-semibold mb-2 flex items-center gap-2">
@@ -408,7 +420,7 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                             Procedimentos em Negociação
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {lead.interested_procedures.map((proc, i) => (
+                            {(lead || initialLead)!.interested_procedures!.map((proc, i) => (
                               <Badge key={i} className="bg-primary/10 text-primary border border-primary/30">
                                 {proc}
                               </Badge>
@@ -418,40 +430,68 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       </Card>
                     )}
 
-                    {/* Notes Section */}
-                    <Card>
+                    {/* Notes Section - ALWAYS VISIBLE with fallback to initialLead */}
+                    <Card className="border-2 border-primary/20">
                       <CardContent className="p-3 space-y-2">
-                        <p className="text-sm font-medium">Notas</p>
+                        <p className="text-sm font-medium flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" />
+                          Observações / Notas
+                        </p>
                         <div className="flex gap-2">
                           <Textarea
-                            placeholder="Adicionar nota..."
+                            placeholder="Adicionar observação..."
                             value={newNote}
                             onChange={(e) => setNewNote(e.target.value)}
-                            className="min-h-[50px]"
+                            className="min-h-[60px]"
                           />
                           <Button
                             size="icon"
                             onClick={handleAddNote}
-                            disabled={!newNote.trim() || addNote.isPending}
+                            disabled={!newNote.trim() || addNote.isPending || !lead}
+                            title={!lead ? "Aguarde carregar..." : "Enviar nota"}
                           >
-                            <Send className="h-4 w-4" />
+                            {addNote.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
                           </Button>
                         </div>
-                        {lead.notes && (
-                          <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded p-2 max-h-24 overflow-y-auto">
-                            {lead.notes}
+                        {(lead || initialLead)?.notes && (
+                          <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded p-2 max-h-32 overflow-y-auto border">
+                            {(lead || initialLead)?.notes}
+                          </div>
+                        )}
+                        {/* Recent notes from history */}
+                        {history.filter(h => h.action_type === 'note').length > 0 && (
+                          <div className="pt-2 space-y-2">
+                            <p className="text-xs text-muted-foreground font-medium">Notas recentes:</p>
+                            {history
+                              .filter(h => h.action_type === 'note')
+                              .slice(0, 3)
+                              .map((note) => (
+                                <div key={note.id} className="text-xs bg-blue-500/10 rounded p-2 border-l-2 border-blue-500">
+                                  <p className="font-medium text-blue-600">{note.title}</p>
+                                  {note.description && (
+                                    <p className="text-muted-foreground mt-1">{note.description}</p>
+                                  )}
+                                  <p className="text-muted-foreground/70 text-[10px] mt-1">
+                                    {formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: ptBR })}
+                                  </p>
+                                </div>
+                              ))}
                           </div>
                         )}
                       </CardContent>
                     </Card>
 
-                    {/* Personal Data Link */}
+                    {/* Personal Data - IMPORTANTE: NÃO passar leadEstimatedValue para evitar confusão */}
                     <CRMLeadPersonalData
-                      leadCpf={lead.cpf}
-                      leadProntuario={lead.prontuario}
-                      patientDataId={lead.patient_data_id}
-                      leadName={lead.name}
-                      leadEstimatedValue={lead.estimated_value}
+                      leadCpf={(lead || initialLead)?.cpf || null}
+                      leadProntuario={(lead || initialLead)?.prontuario || null}
+                      patientDataId={(lead || initialLead)?.patient_data_id || null}
+                      leadName={(lead || initialLead)?.name || ''}
+                      // NÃO passar leadEstimatedValue - isso é valor de NEGOCIAÇÃO, não de VENDAS
                     />
                   </>
                 )}
@@ -594,26 +634,45 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
               <TabsContent value="mais" className="m-0 space-y-3">
                 {lead && (
                   <>
-                    {/* History */}
+                    {/* History - Agora mostra descrição das notas */}
                     <Card>
                       <CardHeader className="pb-2 pt-3 px-3">
                         <CardTitle className="text-sm flex items-center gap-2">
                           <History className="h-4 w-4" />
-                          Histórico
+                          Histórico Completo
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-3 pt-0">
-                        <div className="max-h-40 overflow-y-auto space-y-2">
-                          {history.slice(0, 5).map((entry) => (
-                            <div key={entry.id} className="text-xs border-l-2 border-primary/30 pl-2">
-                              <p className="font-medium">{entry.title}</p>
-                              <p className="text-muted-foreground">
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                          {history.map((entry) => (
+                            <div 
+                              key={entry.id} 
+                              className={cn(
+                                "text-xs border-l-2 pl-2 py-1",
+                                entry.action_type === 'note' 
+                                  ? "border-blue-500 bg-blue-500/5" 
+                                  : "border-primary/30"
+                              )}
+                            >
+                              <div className="flex items-center gap-1">
+                                {entry.action_type === 'note' && (
+                                  <FileText className="h-3 w-3 text-blue-500" />
+                                )}
+                                <p className="font-medium">{entry.title}</p>
+                              </div>
+                              {/* Mostrar descrição/conteúdo da nota */}
+                              {entry.description && (
+                                <p className="text-muted-foreground mt-1 whitespace-pre-wrap">
+                                  {entry.description}
+                                </p>
+                              )}
+                              <p className="text-muted-foreground/70 text-[10px] mt-1">
                                 {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true, locale: ptBR })}
                               </p>
                             </div>
                           ))}
                           {history.length === 0 && (
-                            <p className="text-muted-foreground text-center">Sem histórico</p>
+                            <p className="text-muted-foreground text-center py-4">Sem histórico</p>
                           )}
                         </div>
                       </CardContent>
