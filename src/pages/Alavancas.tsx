@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   Megaphone, UserPlus, Target, ShieldAlert,
-  TrendingUp, ChevronLeft, ChevronRight, Users, Package, Dna, RefreshCw
+  TrendingUp, ChevronLeft, ChevronRight, Users, Package, Dna, RefreshCw, Plane
 } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ const ClientListContent = lazy(() => import("@/components/clients/ClientListDash
 const ProceduresContent = lazy(() => import("@/components/procedures/ProceduresList").then(m => ({ default: m.default })));
 const ProtocolsContent = lazy(() => import("@/components/protocols/ProtocolsJourneyManager").then(m => ({ default: m.default })));
 const RecurrenceContent = lazy(() => import("@/components/crm/CRMRecurrenceDashboard").then(m => ({ default: m.CRMRecurrenceDashboard })));
+const UniqueTravelContent = lazy(() => import("@/components/alavancas/UniqueTravelCalculator").then(m => ({ default: m.default })));
 
 const MiniLoader = () => (
   <div className="flex items-center justify-center py-20">
@@ -28,7 +29,7 @@ const MiniLoader = () => (
   </div>
 );
 
-type TabKey = "clientes" | "campanhas" | "procedimentos" | "protocolos" | "indicacoes" | "rfv" | "cancelamentos" | "recorrencias";
+type TabKey = "clientes" | "campanhas" | "procedimentos" | "protocolos" | "indicacoes" | "rfv" | "cancelamentos" | "recorrencias" | "travel";
 
 interface NavItem {
   key: TabKey;
@@ -47,6 +48,7 @@ const navItems: NavItem[] = [
   { key: "indicacoes", label: "Indicações", icon: UserPlus, description: "Leads de clientes indicados", color: "text-green-500" },
   { key: "rfv", label: "Clientes RFV", icon: Target, description: "Análise de recência, frequência e valor", color: "text-blue-500" },
   { key: "cancelamentos", label: "Cancelamentos", icon: ShieldAlert, description: "Gestão e retenção", color: "text-orange-500" },
+  { key: "travel", label: "Unique Travel", icon: Plane, description: "Calculadora de pacotes concierge", color: "text-amber-400" },
 ];
 
 const Alavancas = () => {
@@ -102,6 +104,12 @@ const Alavancas = () => {
         return (
           <Suspense fallback={<MiniLoader />}>
             <CancellationsContent />
+          </Suspense>
+        );
+      case "travel":
+        return (
+          <Suspense fallback={<MiniLoader />}>
+            <UniqueTravelContent />
           </Suspense>
         );
       default:
