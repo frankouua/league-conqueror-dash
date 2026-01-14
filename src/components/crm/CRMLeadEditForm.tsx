@@ -227,12 +227,18 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
   }
 
   const handleProcedureToggle = (procedure: string) => {
-    setFormData(prev => ({
-      ...prev,
-      interested_procedures: prev.interested_procedures.includes(procedure)
+    console.log('handleProcedureToggle called with:', procedure);
+    console.log('Current interested_procedures:', formData.interested_procedures);
+    setFormData(prev => {
+      const newProcedures = prev.interested_procedures.includes(procedure)
         ? prev.interested_procedures.filter(p => p !== procedure)
-        : [...prev.interested_procedures, procedure],
-    }));
+        : [...prev.interested_procedures, procedure];
+      console.log('New interested_procedures:', newProcedures);
+      return {
+        ...prev,
+        interested_procedures: newProcedures,
+      };
+    });
   };
 
   const addTag = () => {
