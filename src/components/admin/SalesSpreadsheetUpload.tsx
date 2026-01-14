@@ -79,6 +79,8 @@ interface ColumnMapping {
   amountSold: string;      // Valor Vendido
   amountPaid: string;      // Valor Pago/Recebido
   status: string;          // Situação (Quitado/Em aberto)
+  origem: string;          // Origem do lead
+  indicado: string;        // Nome de quem indicou
 }
 
 interface SalesMetrics {
@@ -148,6 +150,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     amountSold: '',
     amountPaid: '',
     status: '',
+    origem: '',
+    indicado: '',
   });
   const [showColumnMapping, setShowColumnMapping] = useState(false);
   const [rawData, setRawData] = useState<Record<string, any>[]>(savedState?.rawData || []);
@@ -501,6 +505,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         amountSold: '',
         amountPaid: '',
         status: '',
+        origem: '',
+        indicado: '',
       };
 
       // Feegow-specific column detection
@@ -590,6 +596,20 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             colLower === 'id paciente' || colLower === 'id_paciente' ||
             colLower === 'patient_id' || colLower.includes('id conta')) {
           if (!autoMapping.clientProntuario) autoMapping.clientProntuario = col;
+        }
+        
+        // Origem detection (lead source)
+        if (colLower === 'origem' || colLower.includes('origem') || 
+            colLower.includes('source') || colLower.includes('fonte') ||
+            colLower.includes('canal') || colLower.includes('como conheceu')) {
+          if (!autoMapping.origem) autoMapping.origem = col;
+        }
+        
+        // Indicado detection (referral)
+        if (colLower === 'indicado' || colLower.includes('indicado por') || 
+            colLower.includes('indicação') || colLower.includes('indicacao') ||
+            colLower.includes('quem indicou') || colLower.includes('referral')) {
+          if (!autoMapping.indicado) autoMapping.indicado = col;
         }
       }
 
@@ -2826,6 +2846,34 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">ID do paciente para integração Feegow</p>
+              </div>
+              <div>
+                <Label>🎯 Origem</Label>
+                <select
+                  value={columnMapping.origem}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, origem: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não incluir</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">De onde o cliente veio (Instagram, Indicação, etc.)</p>
+              </div>
+              <div>
+                <Label>👤 Indicado por</Label>
+                <select
+                  value={columnMapping.indicado}
+                  onChange={(e) => setColumnMapping(m => ({ ...m, indicado: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
+                >
+                  <option value="">Não incluir</option>
+                  {availableColumns.map(col => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Nome de quem indicou o cliente</p>
               </div>
             </div>
             
