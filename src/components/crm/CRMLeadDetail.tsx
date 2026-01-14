@@ -56,45 +56,32 @@ import { useQuery } from '@tanstack/react-query';
 
 type PriceItem = { name: string; price: number | null; promotional_price: number | null };
 
-function computeNegotiationValue(selected: string[], items: PriceItem[]) {
-  const normalize = (name: string) => name.replace(/^\s*Com\s*\d+\s*-\s*/i, '').trim();
-  const priceByName = new Map<string, number>();
-  for (const it of items) {
-    priceByName.set(it.name, (it.promotional_price ?? it.price ?? 0));
-  }
-  return selected.reduce((sum, name) => {
-    const raw = name.trim();
-    const val = priceByName.get(raw) ?? priceByName.get(normalize(raw)) ?? 0;
-    return sum + val;
-  }, 0);
-}
+const formatCurrencyValue = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
 
 function NegotiationValueCard({ lead }: { lead: CRMLead }) {
-  const selected = lead.interested_procedures || [];
+  // The estimated_value from the database is the source of truth
+  // It's properly synced with procedures in CRMLeadEditForm
+  const currentValue = lead.estimated_value || 0;
+  const proceduresCount = lead.interested_procedures?.length || 0;
+  const hasNegotiation = currentValue > 0 || proceduresCount > 0;
 
-  const { data: priceItems = [] } = useQuery({
-    queryKey: ['lead-negotiation-prices', lead.id, selected.join('|')],
-    queryFn: async () => {
-      if (!selected.length) return [] as PriceItem[];
-      const normalize = (name: string) => name.replace(/^\s*Com\s*\d+\s*-\s*/i, '').trim();
-      const candidates = Array.from(new Set(selected.flatMap(n => [n.trim(), normalize(n)]).filter(Boolean)));
-
-      const [protocolsRes, proceduresRes] = await Promise.all([
-        supabase.from('protocols').select('name, price, promotional_price').in('name', candidates),
-        supabase.from('procedures').select('name, price, promotional_price').in('name', candidates),
-      ]);
-
-      const merged: PriceItem[] = [
-        ...((protocolsRes.data as any[]) || []),
-        ...((proceduresRes.data as any[]) || []),
-      ];
-      return merged;
-    },
-    enabled: !!lead.id,
-  });
-
-  const computed = useMemo(() => computeNegotiationValue(selected, priceItems), [selected, priceItems]);
-  const valueToShow = computed > 0 ? computed : (lead.estimated_value || 0);
+  if (!hasNegotiation) {
+    return (
+      <Card className="bg-muted/30 border-dashed">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <TrendingUp className="h-4 w-4" />
+            <span className="text-sm">Nenhuma oportunidade configurada</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Edite o lead para adicionar procedimentos de interesse
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-gradient-to-r from-green-500/15 via-green-500/10 to-emerald-500/5 border-2 border-green-500/40">
@@ -104,11 +91,17 @@ function NegotiationValueCard({ lead }: { lead: CRMLead }) {
           <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">Valor da Negociação</span>
         </div>
         <p className="text-3xl font-black text-green-600">
-          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valueToShow)}
+          {formatCurrencyValue(currentValue)}
         </p>
-        {selected.length > 0 && (
+        {proceduresCount > 0 && (
           <p className="text-xs text-muted-foreground mt-1">
-            {selected.length} procedimento{selected.length > 1 ? 's' : ''} selecionado{selected.length > 1 ? 's' : ''}
+            {proceduresCount} procedimento{proceduresCount > 1 ? 's' : ''} selecionado{proceduresCount > 1 ? 's' : ''}
+          </p>
+        )}
+        {proceduresCount === 0 && currentValue > 0 && (
+          <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            Valor manual (sem procedimentos vinculados)
           </p>
         )}
       </CardContent>
