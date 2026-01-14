@@ -548,6 +548,13 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       setColumnMapping(autoMapping);
       setShowColumnMapping(true);
       
+      console.log('[Upload] Arquivo carregado:', {
+        linhas: jsonData.length,
+        colunas: columns.length,
+        showColumnMapping: true,
+        availableColumns: columns,
+      });
+      
       toast({
         title: "✅ Arquivo carregado com sucesso!",
         description: `${jsonData.length} linhas encontradas. Role para baixo e clique em "Processar Dados".`,
@@ -556,10 +563,15 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       
       // Scroll automático para o mapeamento de colunas
       setTimeout(() => {
-        columnMappingRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start' 
-        });
+        if (columnMappingRef.current) {
+          console.log('[Upload] Fazendo scroll para mapeamento...');
+          columnMappingRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        } else {
+          console.warn('[Upload] Ref do mapeamento não encontrado!');
+        }
       }, 300);
     } catch (error) {
       console.error('Error parsing Excel:', error);
@@ -2591,16 +2603,17 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
       {/* Column Mapping */}
       {showColumnMapping && availableColumns.length > 0 && (
-        <Card ref={columnMappingRef} className="border-primary/40 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-primary" />
-              Passo 2: Mapeamento de Colunas
-            </CardTitle>
-            <CardDescription>
-              Configure as colunas abaixo e clique em <strong>"Processar Dados"</strong> para continuar.
-            </CardDescription>
-          </CardHeader>
+        <div ref={columnMappingRef}>
+          <Card className="border-primary/40 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-primary" />
+                Passo 2: Mapeamento de Colunas
+              </CardTitle>
+              <CardDescription>
+                Configure as colunas abaixo e clique em <strong>"Processar Dados"</strong> para continuar.
+              </CardDescription>
+            </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div>
@@ -2819,6 +2832,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             </Button>
           </CardContent>
         </Card>
+        </div>
       )}
 
       {/* Metrics Dashboard */}
