@@ -438,10 +438,6 @@ const Index = () => {
               </div>
             )}
 
-            {/* Team Quality Comparison - Indicadores de Qualidade */}
-            <Suspense fallback={<MiniLoader />}>
-              <TeamQualityComparisonCard />
-            </Suspense>
 
             {/* Team Progress Table - Meta vs Vendido vs Esperado (R$) */}
             {teamsProgress.length > 0 && (
@@ -565,6 +561,11 @@ const Index = () => {
                 </CollapsibleContent>
               </Card>
             </Collapsible>
+
+            {/* Team Quality Comparison - Indicadores de Qualidade (Compacto) */}
+            <Suspense fallback={<MiniLoader />}>
+              <TeamQualityComparisonCard />
+            </Suspense>
           </TabsContent>
 
           {/* O QUE FALTA TAB - Department Goal Cards with Pace Analysis */}
