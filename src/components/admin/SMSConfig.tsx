@@ -206,13 +206,13 @@ export function SMSConfig() {
             />
           </div>
 
-          {/* From Number */}
+          {/* Sender ID */}
           <div className="space-y-2">
-            <Label>Número de Origem</Label>
+            <Label>Sender ID / Número de Origem</Label>
             <Input
-              value={formData.from_number}
-              onChange={(e) => setFormData({ ...formData, from_number: e.target.value })}
-              placeholder="+5534999999999"
+              value={formData.sender_id}
+              onChange={(e) => setFormData({ ...formData, sender_id: e.target.value })}
+              placeholder="+5534999999999 ou nome da empresa"
             />
           </div>
 

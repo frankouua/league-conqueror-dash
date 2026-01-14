@@ -6,11 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Plane, Hotel, Car, CheckCircle2, Clock, Loader2, Save, MapPin } from 'lucide-react';
+import { Plane, Hotel, Car, CheckCircle2, Clock, Loader2, Save, MapPin, Heart, Users } from 'lucide-react';
 
 interface LeadTravel {
   id: string;
@@ -23,21 +22,24 @@ interface LeadTravel {
   departure_date: string | null;
   departure_time: string | null;
   departure_flight: string | null;
+  has_companion: boolean;
+  companion_name: string | null;
+  companion_phone: string | null;
+  companion_relationship: string | null;
   hotel_name: string | null;
   hotel_address: string | null;
   hotel_check_in: string | null;
   hotel_check_out: string | null;
   hotel_confirmed: boolean;
-  driver_needed: boolean;
   driver_name: string | null;
   driver_phone: string | null;
   driver_confirmed: boolean;
-  companion_name: string | null;
-  companion_phone: string | null;
-  companion_relationship: string | null;
-  dietary_restrictions: string | null;
-  notes: string | null;
+  needs_home_care: boolean;
+  home_care_nurse: string | null;
+  home_care_phone: string | null;
+  home_care_days: number | null;
   all_confirmed: boolean;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,19 +61,22 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
     departure_date: '',
     departure_time: '',
     departure_flight: '',
+    has_companion: false,
+    companion_name: '',
+    companion_phone: '',
+    companion_relationship: '',
     hotel_name: '',
     hotel_address: '',
     hotel_check_in: '',
     hotel_check_out: '',
     hotel_confirmed: false,
-    driver_needed: false,
     driver_name: '',
     driver_phone: '',
     driver_confirmed: false,
-    companion_name: '',
-    companion_phone: '',
-    companion_relationship: '',
-    dietary_restrictions: '',
+    needs_home_care: false,
+    home_care_nurse: '',
+    home_care_phone: '',
+    home_care_days: null,
     notes: '',
   });
 
@@ -100,19 +105,22 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
         departure_date: travel.departure_date || '',
         departure_time: travel.departure_time || '',
         departure_flight: travel.departure_flight || '',
+        has_companion: travel.has_companion || false,
+        companion_name: travel.companion_name || '',
+        companion_phone: travel.companion_phone || '',
+        companion_relationship: travel.companion_relationship || '',
         hotel_name: travel.hotel_name || '',
         hotel_address: travel.hotel_address || '',
         hotel_check_in: travel.hotel_check_in || '',
         hotel_check_out: travel.hotel_check_out || '',
         hotel_confirmed: travel.hotel_confirmed || false,
-        driver_needed: travel.driver_needed || false,
         driver_name: travel.driver_name || '',
         driver_phone: travel.driver_phone || '',
         driver_confirmed: travel.driver_confirmed || false,
-        companion_name: travel.companion_name || '',
-        companion_phone: travel.companion_phone || '',
-        companion_relationship: travel.companion_relationship || '',
-        dietary_restrictions: travel.dietary_restrictions || '',
+        needs_home_care: travel.needs_home_care || false,
+        home_care_nurse: travel.home_care_nurse || '',
+        home_care_phone: travel.home_care_phone || '',
+        home_care_days: travel.home_care_days || null,
         notes: travel.notes || '',
       });
     }
@@ -125,11 +133,10 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
         formData.arrival_date && formData.arrival_time,
         formData.departure_date && formData.departure_time,
         formData.hotel_confirmed,
-        !formData.driver_needed || formData.driver_confirmed,
-        formData.companion_name,
+        formData.driver_confirmed || !formData.driver_name,
+        !formData.has_companion || formData.companion_name,
       ];
       const allConfirmed = items.every(Boolean);
-      
 
       if (travel?.id) {
         const { error } = await supabase
@@ -169,7 +176,6 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
       return <Badge className="gap-1 bg-green-500"><CheckCircle2 className="h-3 w-3" />Completo</Badge>;
     }
     return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Pendente</Badge>;
-    }
   };
 
   if (isLoading) {
@@ -199,9 +205,13 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
           {saveMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isEditing ? (
-            <Save className="h-4 w-4" />
-          ) : null}
-          {isEditing ? 'Salvar' : 'Editar'}
+            <>
+              <Save className="h-4 w-4" />
+              Salvar
+            </>
+          ) : (
+            'Editar'
+          )}
         </Button>
       </div>
 
@@ -235,76 +245,84 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
         </CardContent>
       </Card>
 
-      {/* Flight */}
+      {/* Arrival */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <Plane className="h-4 w-4" />
-            Voo
+            Chegada
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-muted-foreground">Chegada</h4>
-              <div className="space-y-2">
-                <Label>Data</Label>
-                <Input
-                  type="date"
-                  value={formData.arrival_date || ''}
-                  onChange={(e) => setFormData({ ...formData, arrival_date: e.target.value })}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Horário</Label>
-                <Input
-                  type="time"
-                  value={formData.arrival_time || ''}
-                  onChange={(e) => setFormData({ ...formData, arrival_time: e.target.value })}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Número do Voo</Label>
-                <Input
-                  value={formData.arrival_flight || ''}
-                  onChange={(e) => setFormData({ ...formData, arrival_flight: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="GOL 1234"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Data de Chegada</Label>
+              <Input
+                type="date"
+                value={formData.arrival_date || ''}
+                onChange={(e) => setFormData({ ...formData, arrival_date: e.target.value })}
+                disabled={!isEditing}
+              />
             </div>
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-muted-foreground">Partida</h4>
-              <div className="space-y-2">
-                <Label>Data</Label>
-                <Input
-                  type="date"
-                  value={formData.departure_date || ''}
-                  onChange={(e) => setFormData({ ...formData, departure_date: e.target.value })}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Horário</Label>
-                <Input
-                  type="time"
-                  value={formData.departure_time || ''}
-                  onChange={(e) => setFormData({ ...formData, departure_time: e.target.value })}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Número do Voo</Label>
-                <Input
-                  value={formData.departure_flight || ''}
-                  onChange={(e) => setFormData({ ...formData, departure_flight: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="GOL 5678"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Horário</Label>
+              <Input
+                type="time"
+                value={formData.arrival_time || ''}
+                onChange={(e) => setFormData({ ...formData, arrival_time: e.target.value })}
+                disabled={!isEditing}
+              />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Número do Voo</Label>
+            <Input
+              value={formData.arrival_flight || ''}
+              onChange={(e) => setFormData({ ...formData, arrival_flight: e.target.value })}
+              disabled={!isEditing}
+              placeholder="LA1234"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Departure */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Plane className="h-4 w-4 rotate-45" />
+            Partida
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data de Partida</Label>
+              <Input
+                type="date"
+                value={formData.departure_date || ''}
+                onChange={(e) => setFormData({ ...formData, departure_date: e.target.value })}
+                disabled={!isEditing}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Horário</Label>
+              <Input
+                type="time"
+                value={formData.departure_time || ''}
+                onChange={(e) => setFormData({ ...formData, departure_time: e.target.value })}
+                disabled={!isEditing}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Número do Voo</Label>
+            <Input
+              value={formData.departure_flight || ''}
+              onChange={(e) => setFormData({ ...formData, departure_flight: e.target.value })}
+              disabled={!isEditing}
+              placeholder="LA4321"
+            />
           </div>
         </CardContent>
       </Card>
@@ -318,31 +336,29 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Nome do Hotel</Label>
-              <Input
-                value={formData.hotel_name || ''}
-                onChange={(e) => setFormData({ ...formData, hotel_name: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Hotel Unique"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Endereço</Label>
-              <Input
-                value={formData.hotel_address || ''}
-                onChange={(e) => setFormData({ ...formData, hotel_address: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Av. Afonso Pena, 123"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Nome do Hotel</Label>
+            <Input
+              value={formData.hotel_name || ''}
+              onChange={(e) => setFormData({ ...formData, hotel_name: e.target.value })}
+              disabled={!isEditing}
+              placeholder="Hotel Exemplo"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Endereço</Label>
+            <Input
+              value={formData.hotel_address || ''}
+              onChange={(e) => setFormData({ ...formData, hotel_address: e.target.value })}
+              disabled={!isEditing}
+              placeholder="Rua Exemplo, 123"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Check-in</Label>
               <Input
-                type="datetime-local"
+                type="date"
                 value={formData.hotel_check_in || ''}
                 onChange={(e) => setFormData({ ...formData, hotel_check_in: e.target.value })}
                 disabled={!isEditing}
@@ -351,7 +367,7 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
             <div className="space-y-2">
               <Label>Check-out</Label>
               <Input
-                type="datetime-local"
+                type="date"
                 value={formData.hotel_check_out || ''}
                 onChange={(e) => setFormData({ ...formData, hotel_check_out: e.target.value })}
                 disabled={!isEditing}
@@ -378,81 +394,137 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={formData.driver_needed || false}
-              onCheckedChange={(checked) => setFormData({ ...formData, driver_needed: checked })}
-              disabled={!isEditing}
-            />
-            <Label>Precisa de Motorista</Label>
-          </div>
-          
-          {formData.driver_needed && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome do Motorista</Label>
-                  <Input
-                    value={formData.driver_name || ''}
-                    onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input
-                    value={formData.driver_phone || ''}
-                    onChange={(e) => setFormData({ ...formData, driver_phone: e.target.value })}
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={formData.driver_confirmed || false}
-                  onCheckedChange={(checked) => setFormData({ ...formData, driver_confirmed: checked })}
-                  disabled={!isEditing}
-                />
-                <Label>Motorista Confirmado</Label>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Companion */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Acompanhante</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nome</Label>
+              <Label>Nome do Motorista</Label>
               <Input
-                value={formData.companion_name || ''}
-                onChange={(e) => setFormData({ ...formData, companion_name: e.target.value })}
+                value={formData.driver_name || ''}
+                onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
             <div className="space-y-2">
               <Label>Telefone</Label>
               <Input
-                value={formData.companion_phone || ''}
-                onChange={(e) => setFormData({ ...formData, companion_phone: e.target.value })}
+                value={formData.driver_phone || ''}
+                onChange={(e) => setFormData({ ...formData, driver_phone: e.target.value })}
                 disabled={!isEditing}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Parentesco</Label>
-              <Input
-                value={formData.companion_relationship || ''}
-                onChange={(e) => setFormData({ ...formData, companion_relationship: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Mãe, Esposo, etc"
               />
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={formData.driver_confirmed || false}
+              onCheckedChange={(checked) => setFormData({ ...formData, driver_confirmed: checked })}
+              disabled={!isEditing}
+            />
+            <Label>Motorista Confirmado</Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Companion */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Acompanhante
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={formData.has_companion || false}
+              onCheckedChange={(checked) => setFormData({ ...formData, has_companion: checked })}
+              disabled={!isEditing}
+            />
+            <Label>Terá Acompanhante</Label>
+          </div>
+          
+          {formData.has_companion && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input
+                    value={formData.companion_name || ''}
+                    onChange={(e) => setFormData({ ...formData, companion_name: e.target.value })}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input
+                    value={formData.companion_phone || ''}
+                    onChange={(e) => setFormData({ ...formData, companion_phone: e.target.value })}
+                    disabled={!isEditing}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Parentesco/Relação</Label>
+                <Input
+                  value={formData.companion_relationship || ''}
+                  onChange={(e) => setFormData({ ...formData, companion_relationship: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="Mãe, Esposo(a), Amigo(a)..."
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Home Care */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Heart className="h-4 w-4" />
+            Home Care
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={formData.needs_home_care || false}
+              onCheckedChange={(checked) => setFormData({ ...formData, needs_home_care: checked })}
+              disabled={!isEditing}
+            />
+            <Label>Precisa de Enfermeira Home Care</Label>
+          </div>
+          
+          {formData.needs_home_care && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome da Enfermeira</Label>
+                  <Input
+                    value={formData.home_care_nurse || ''}
+                    onChange={(e) => setFormData({ ...formData, home_care_nurse: e.target.value })}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input
+                    value={formData.home_care_phone || ''}
+                    onChange={(e) => setFormData({ ...formData, home_care_phone: e.target.value })}
+                    disabled={!isEditing}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Dias de Acompanhamento</Label>
+                <Input
+                  type="number"
+                  value={formData.home_care_days || ''}
+                  onChange={(e) => setFormData({ ...formData, home_care_days: parseInt(e.target.value) || null })}
+                  disabled={!isEditing}
+                  placeholder="3"
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -462,15 +534,6 @@ export function CRMLeadTravel({ leadId }: CRMLeadTravelProps) {
           <CardTitle className="text-sm">Observações</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Restrições Alimentares</Label>
-            <Textarea
-              value={formData.dietary_restrictions || ''}
-              onChange={(e) => setFormData({ ...formData, dietary_restrictions: e.target.value })}
-              disabled={!isEditing}
-              placeholder="Vegetariano, sem glúten, etc"
-            />
-          </div>
           <div className="space-y-2">
             <Label>Notas Gerais</Label>
             <Textarea

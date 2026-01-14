@@ -5,7 +5,8 @@ import {
   User, Phone, Mail, MessageSquare, Clock, Calendar, Tag, Star,
   Sparkles, AlertTriangle, CheckCircle2, Circle, Plus, Send,
   ArrowRight, History, ListTodo, FileText, TrendingUp, Brain, Loader2,
-  Edit2, Trash2, X, ClipboardCheck, MessagesSquare, PhoneCall, UserCircle
+  Edit2, Trash2, X, ClipboardCheck, MessagesSquare, PhoneCall, UserCircle,
+  FileSignature, Plane, Scale, Folder, MapPin, ShieldCheck, Gift
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,13 @@ import { CRMProcedureRecommendations } from './CRMProcedureRecommendations';
 import { CRMCadenceAnalytics } from './CRMCadenceAnalytics';
 import { CRMLeadPersonalData } from './CRMLeadPersonalData';
 import { CRMJourneyProtocolSuggestions } from './CRMJourneyProtocolSuggestions';
+import { CRMLeadContracts } from './CRMLeadContracts';
+import { CRMLeadTravel } from './CRMLeadTravel';
+import { CRMLeadWeight } from './CRMLeadWeight';
+import { CRMLeadProjects } from './CRMLeadProjects';
+import { CRMLeadUTM } from './CRMLeadUTM';
+import { CRMCoordinatorValidation } from './CRMCoordinatorValidation';
+import { CRMLeadDischarge } from './CRMLeadDischarge';
 import { useToast } from '@/hooks/use-toast';
 
 interface CRMLeadDetailProps {
@@ -262,45 +270,79 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
             ) : (
               /* Content Tabs */
               <Tabs defaultValue="perfil" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="mx-3 sm:mx-6 mt-3 sm:mt-4 grid grid-cols-8 w-auto gap-0.5 sm:gap-1">
-              <TabsTrigger value="perfil" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                <UserCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Perfil</span>
-              </TabsTrigger>
-              <TabsTrigger value="checklist" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                <ClipboardCheck className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Check</span>
-              </TabsTrigger>
-              <TabsTrigger value="overview" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Resumo</span>
-              </TabsTrigger>
-              <TabsTrigger value="interactions" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                <PhoneCall className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Contatos</span>
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                <MessagesSquare className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Chat</span>
-              </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                <ListTodo className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Tarefas</span>
-                {tasks.filter(t => !t.is_completed).length > 0 && (
-                  <Badge variant="secondary" className="ml-0.5 sm:ml-1 h-4 w-4 sm:h-5 sm:w-5 p-0 justify-center text-[8px] sm:text-[10px]">
-                    {tasks.filter(t => !t.is_completed).length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="history" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                <History className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Hist.</span>
-              </TabsTrigger>
-              <TabsTrigger value="ai" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
-                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">IA</span>
-              </TabsTrigger>
-            </TabsList>
+            <div className="mx-3 sm:mx-6 mt-3 sm:mt-4 space-y-2">
+              <TabsList className="grid grid-cols-8 w-full gap-0.5 sm:gap-1">
+                <TabsTrigger value="perfil" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <UserCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Perfil</span>
+                </TabsTrigger>
+                <TabsTrigger value="checklist" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <ClipboardCheck className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Check</span>
+                </TabsTrigger>
+                <TabsTrigger value="overview" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Resumo</span>
+                </TabsTrigger>
+                <TabsTrigger value="interactions" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <PhoneCall className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Contatos</span>
+                </TabsTrigger>
+                <TabsTrigger value="chat" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <MessagesSquare className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Chat</span>
+                </TabsTrigger>
+                <TabsTrigger value="tasks" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <ListTodo className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Tarefas</span>
+                  {tasks.filter(t => !t.is_completed).length > 0 && (
+                    <Badge variant="secondary" className="ml-0.5 sm:ml-1 h-4 w-4 sm:h-5 sm:w-5 p-0 justify-center text-[8px] sm:text-[10px]">
+                      {tasks.filter(t => !t.is_completed).length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="history" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <History className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Hist.</span>
+                </TabsTrigger>
+                <TabsTrigger value="ai" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">IA</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Second row of tabs for additional features */}
+              <TabsList className="grid grid-cols-7 w-full gap-0.5 sm:gap-1">
+                <TabsTrigger value="contracts" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <FileSignature className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Contratos</span>
+                </TabsTrigger>
+                <TabsTrigger value="projects" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <Folder className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Projetos</span>
+                </TabsTrigger>
+                <TabsTrigger value="travel" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <Plane className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Viagem</span>
+                </TabsTrigger>
+                <TabsTrigger value="weight" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <Scale className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Peso</span>
+                </TabsTrigger>
+                <TabsTrigger value="validation" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <ShieldCheck className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Validação</span>
+                </TabsTrigger>
+                <TabsTrigger value="discharge" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <Gift className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Alta</span>
+                </TabsTrigger>
+                <TabsTrigger value="utm" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1 sm:px-2">
+                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Origem</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <ScrollArea className="flex-1 px-3 sm:px-6 py-3 sm:py-4">
               {/* Perfil Tab - Dados Pessoais Completos */}
@@ -721,6 +763,87 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       Analisar com IA
                     </Button>
                   </div>
+                )}
+              </TabsContent>
+
+              {/* Contracts Tab */}
+              <TabsContent value="contracts" className="m-0">
+                {lead && (
+                  <CRMLeadContracts
+                    leadId={lead.id}
+                    leadName={lead.name}
+                    leadEmail={lead.email}
+                    leadPhone={lead.phone}
+                  />
+                )}
+              </TabsContent>
+
+              {/* Projects Tab */}
+              <TabsContent value="projects" className="m-0">
+                {lead && (
+                  <CRMLeadProjects leadId={lead.id} />
+                )}
+              </TabsContent>
+
+              {/* Travel Tab */}
+              <TabsContent value="travel" className="m-0">
+                {lead && (
+                  <CRMLeadTravel leadId={lead.id} />
+                )}
+              </TabsContent>
+
+              {/* Weight Tab */}
+              <TabsContent value="weight" className="m-0">
+                {lead && (
+                  <CRMLeadWeight 
+                    leadId={lead.id} 
+                    initialWeight={(lead as any).initial_weight}
+                    targetWeight={(lead as any).target_weight}
+                    deadline={(lead as any).weight_loss_deadline}
+                  />
+                )}
+              </TabsContent>
+
+              {/* Validation Tab */}
+              <TabsContent value="validation" className="m-0">
+                {lead && (
+                  <CRMCoordinatorValidation leadId={lead.id} leadName={lead.name} />
+                )}
+              </TabsContent>
+
+              {/* Discharge Tab */}
+              <TabsContent value="discharge" className="m-0">
+                {lead && (
+                  <CRMLeadDischarge 
+                    leadId={lead.id} 
+                    leadName={lead.name}
+                    dischargeData={{
+                      future_letter_written: (lead as any).future_letter_written,
+                      before_after_photo_delivered: (lead as any).before_after_photo_delivered,
+                      unique_necklace_delivered: (lead as any).unique_necklace_delivered,
+                      testimonial_collected: (lead as any).testimonial_collected,
+                      google_review_requested: (lead as any).google_review_requested,
+                      discharge_completed: (lead as any).discharge_completed,
+                      discharge_completed_at: (lead as any).discharge_completed_at,
+                    }}
+                  />
+                )}
+              </TabsContent>
+
+              {/* UTM Tab */}
+              <TabsContent value="utm" className="m-0">
+                {lead && (
+                  <CRMLeadUTM 
+                    utmData={{
+                      utm_source: (lead as any).utm_source,
+                      utm_medium: (lead as any).utm_medium,
+                      utm_campaign: (lead as any).utm_campaign,
+                      utm_term: (lead as any).utm_term,
+                      utm_content: (lead as any).utm_content,
+                      landing_page: (lead as any).landing_page,
+                      referrer_url: (lead as any).referrer_url,
+                    }}
+                  />
                 )}
               </TabsContent>
             </ScrollArea>
