@@ -102,10 +102,18 @@ const TeamQualityComparisonCard = () => {
           const testimonialGold = teamTestimonials.filter(t => t.type === "gold").length;
 
           // Referrals from referral_leads table (Alavancas)
+          // IMPORTANT: Points are NOT cumulative - each referral counts only for its highest status
+          // - Just collected (novo/em_contato) = 5 pts
+          // - Became consultation (agendou) = 15 pts (not 5+15)
+          // - Became surgery (operou) = 30 pts (not 5+15+30)
           const teamReferrals = allReferralLeads?.filter(r => r.team_id === team.id) || [];
-          const referralsCollected = teamReferrals.length;
-          const referralsConsultation = teamReferrals.filter(r => r.status === "agendou" || r.status === "operou").length;
+          
+          // Count by EXCLUSIVE categories (each referral only in ONE category)
           const referralsSurgery = teamReferrals.filter(r => r.status === "operou").length;
+          const referralsConsultation = teamReferrals.filter(r => r.status === "agendou").length; // Only agendou, NOT operou
+          const referralsCollected = teamReferrals.filter(r => 
+            r.status !== "operou" && r.status !== "agendou"
+          ).length; // Only those that haven't progressed
 
           // Other indicators
           const teamIndicators = allIndicators?.filter(r => r.team_id === team.id) || [];
@@ -116,7 +124,9 @@ const TeamQualityComparisonCard = () => {
           // Calculate total points
           const npsPoints = nps9Count * 3 + nps10Count * 5 + npsCitations * 10;
           const testimonialPoints = testimonialWhatsapp * 5 + testimonialGoogle * 10 + testimonialVideo * 30 + testimonialGold * 50;
-          const referralPoints = referralsCollected * 5 + referralsConsultation * 20 + referralsSurgery * 50;
+          // Referral points: each referral only counts once for its highest status
+          // Collected (not progressed) = 5 pts, Consultation = 15 pts, Surgery = 30 pts
+          const referralPoints = referralsCollected * 5 + referralsConsultation * 15 + referralsSurgery * 30;
           const indicatorPoints = ambassadors * 50 + unilovers * 5 + instagramMentions * 2;
           const totalQualityPoints = npsPoints + testimonialPoints + referralPoints + indicatorPoints;
 
@@ -208,9 +218,9 @@ const TeamQualityComparisonCard = () => {
       color: "text-pink-500",
       bgColor: "bg-pink-500/10",
       items: [
-        { label: "→ Cirurgia", v1: team1.referralsSurgery, v2: team2.referralsSurgery, pts: 50 },
-        { label: "→ Consulta", v1: team1.referralsConsultation, v2: team2.referralsConsultation, pts: 20 },
-        { label: "Coletadas", v1: team1.referralsCollected, v2: team2.referralsCollected, pts: 5 },
+        { label: "→ Cirurgia", v1: team1.referralsSurgery, v2: team2.referralsSurgery, pts: 30 },
+        { label: "→ Consulta", v1: team1.referralsConsultation, v2: team2.referralsConsultation, pts: 15 },
+        { label: "Apenas Coletadas", v1: team1.referralsCollected, v2: team2.referralsCollected, pts: 5 },
       ],
     },
     {
