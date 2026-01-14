@@ -14,20 +14,23 @@ import {
 } from "lucide-react";
 import uniqueTravelLogo from "@/assets/unique-travel-logo.png";
 
-// ================ PRICING CONSTANTS ================
+// ================ PRICING CONSTANTS (UT.PAC - Pacote) ================
 const PRICES = {
-  hospedagemPremium: 450,
-  hospedagemBasic: 280,
-  motoristaExecutivo: 360,
-  motoristaTransfer: 300, // Fixed
-  alimentacao: 166.67,
-  enfermeira12h: 383,
-  enfermeira24h: 766.67,
-  spaPremium: 300, // Fixed
-  spaBasic: 150, // Fixed
-  jantarGourmet: 538.46, // Fixed
-  salao: 200, // Fixed
-  kitMedicamentos: 1000, // Fixed
+  hospedagemPremium: 450,    // Residenciais Premium
+  hospedagemBasic: 280,      // Residenciais Basic
+  motoristaExecutivo: 300,   // 4 trechos/dia
+  motoristaTransfer: 300,    // Transfer aero ida/volta (fixo)
+  alimentacao2: 167,         // 2 refeições/dia
+  alimentacao4: 315,         // 4 refeições/dia
+  enfermeira12h: 333,        // 12 horas/dia
+  enfermeira24h: 667,        // 24 horas/dia
+  spaPremium: 300,           // Com banheira + acompanhante
+  spaBasic: 150,             // Basic
+  jantarGourmet: 538,        // Com acompanhante
+  salao: 230,                // Salão de beleza
+  kitMedicamentos: 1000,     // Kit medicamentos
+  kitBoasVindas: 230,        // Presente boas-vindas
+  surpresasUnique: 231,      // Surpresas Unique Experience
 };
 
 // ================ TYPES ================
@@ -39,18 +42,20 @@ interface PackageResult {
 type HospedagemType = "premium" | "basic" | "none";
 type MotoristaType = "executivo" | "transfer" | "none";
 type EnfermeiraType = "12h" | "24h" | "none";
+type AlimentacaoType = "2refeicoes" | "4refeicoes" | "none";
 
 interface CustomPackage {
   hospedagem: HospedagemType;
   motorista: MotoristaType;
-  alimentacao: boolean;
+  alimentacao: AlimentacaoType;
   enfermeira: EnfermeiraType;
-  enfermeiraDias: number; // Dias específicos de enfermeira
+  enfermeiraDias: number;
   spaPremium: boolean;
   spaBasic: boolean;
   jantar: boolean;
   salao: boolean;
   kitMedicamentos: boolean;
+  kitBoasVindas: boolean;
 }
 
 // ================ UTILITY FUNCTIONS ================
@@ -101,19 +106,20 @@ const UniqueTravelCalculator = () => {
   const [customPackage, setCustomPackage] = useState<CustomPackage>({
     hospedagem: "premium",
     motorista: "executivo",
-    alimentacao: true,
+    alimentacao: "2refeicoes",
     enfermeira: "12h",
-    enfermeiraDias: 7, // Dias padrão de enfermeira
+    enfermeiraDias: 7,
     spaPremium: false,
     spaBasic: false,
     jantar: false,
     salao: false,
     kitMedicamentos: false,
+    kitBoasVindas: false,
   });
 
-  // Calculate All Inclusive Package
+  // Calculate All Inclusive Package (usando alimentação 2 refeições como padrão)
   const calculateAllInclusive = useCallback((): PackageResult => {
-    const dailyRate = PRICES.hospedagemPremium + PRICES.motoristaExecutivo + PRICES.alimentacao + PRICES.enfermeira12h;
+    const dailyRate = PRICES.hospedagemPremium + PRICES.motoristaExecutivo + PRICES.alimentacao2 + PRICES.enfermeira12h;
     const total = dailyRate * days;
     return { total, perDay: dailyRate };
   }, [days]);
@@ -140,7 +146,8 @@ const UniqueTravelCalculator = () => {
     if (customPackage.motorista === "transfer") fixedTotal += PRICES.motoristaTransfer;
 
     // Alimentação
-    if (customPackage.alimentacao) dailyTotal += PRICES.alimentacao;
+    if (customPackage.alimentacao === "2refeicoes") dailyTotal += PRICES.alimentacao2;
+    if (customPackage.alimentacao === "4refeicoes") dailyTotal += PRICES.alimentacao4;
 
     // Enfermeira (dias específicos, não multiplicado por dias totais)
     const enfermeiraDiasEfetivos = Math.min(customPackage.enfermeiraDias, days);
@@ -153,6 +160,7 @@ const UniqueTravelCalculator = () => {
     if (customPackage.jantar) fixedTotal += PRICES.jantarGourmet;
     if (customPackage.salao) fixedTotal += PRICES.salao;
     if (customPackage.kitMedicamentos) fixedTotal += PRICES.kitMedicamentos;
+    if (customPackage.kitBoasVindas) fixedTotal += PRICES.kitBoasVindas;
 
     const total = dailyTotal * days + fixedTotal + enfermeiraTotal;
     return { total, perDay: total / days };
@@ -213,7 +221,8 @@ Podemos reservar sua data? ✨`;
       if (customPackage.hospedagem === "basic") items.push("✅ Hospedagem Basic");
       if (customPackage.motorista === "executivo") items.push("✅ Motorista Executivo Diário");
       if (customPackage.motorista === "transfer") items.push("✅ Transfer Ida/Volta");
-      if (customPackage.alimentacao) items.push("✅ Alimentação Personalizada");
+      if (customPackage.alimentacao === "2refeicoes") items.push("✅ Alimentação 2 Refeições/dia");
+      if (customPackage.alimentacao === "4refeicoes") items.push("✅ Alimentação 4 Refeições/dia");
       const enfermeiraDiasEfetivos = Math.min(customPackage.enfermeiraDias, days);
       if (customPackage.enfermeira === "12h") items.push(`✅ Enfermeira 12h (${enfermeiraDiasEfetivos} dias)`);
       if (customPackage.enfermeira === "24h") items.push(`✅ Enfermeira 24h (${enfermeiraDiasEfetivos} dias)`);
@@ -222,6 +231,7 @@ Podemos reservar sua data? ✨`;
       if (customPackage.jantar) items.push("✅ Jantar Gourmet");
       if (customPackage.salao) items.push("✅ Salão de Beleza");
       if (customPackage.kitMedicamentos) items.push("✅ Kit Medicamentos");
+      if (customPackage.kitBoasVindas) items.push("✅ Kit Boas-Vindas");
 
       message = `🌟 *Orçamento Unique Travel Experience* 🌟
 
@@ -638,20 +648,25 @@ Podemos reservar sua data? ✨`;
                   )}
                 </div>
 
-                {/* Alimentação Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-lg bg-white/5">
-                  <div className="flex items-center gap-3">
-                    <Utensils className="h-5 w-5 text-amber-400" />
-                    <div>
-                      <p className="text-amber-100 font-medium">Alimentação Exclusiva</p>
-                      <p className="text-amber-200/50 text-xs">{formatCurrency(PRICES.alimentacao)}/dia</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={customPackage.alimentacao}
-                    onCheckedChange={(v) => setCustomPackage({ ...customPackage, alimentacao: v })}
-                    className="data-[state=checked]:bg-amber-500"
-                  />
+                {/* Alimentação Select */}
+                <div className="space-y-2">
+                  <label className="text-amber-200/70 text-sm flex items-center gap-2">
+                    <Utensils className="h-4 w-4" />
+                    Alimentação
+                  </label>
+                  <Select
+                    value={customPackage.alimentacao}
+                    onValueChange={(v) => setCustomPackage({ ...customPackage, alimentacao: v as AlimentacaoType })}
+                  >
+                    <SelectTrigger className="bg-white/5 border-amber-500/30 text-amber-100">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2refeicoes">2 Refeições/dia ({formatCurrency(PRICES.alimentacao2)}/dia)</SelectItem>
+                      <SelectItem value="4refeicoes">4 Refeições/dia ({formatCurrency(PRICES.alimentacao4)}/dia)</SelectItem>
+                      <SelectItem value="none">Sem alimentação</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -725,7 +740,7 @@ Podemos reservar sua data? ✨`;
                 </div>
 
                 {/* Kit Medicamentos */}
-                <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 md:col-span-2">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-white/5">
                   <div className="flex items-center gap-3">
                     <HeartHandshake className="h-5 w-5 text-amber-400" />
                     <div>
@@ -736,6 +751,22 @@ Podemos reservar sua data? ✨`;
                   <Switch
                     checked={customPackage.kitMedicamentos}
                     onCheckedChange={(v) => setCustomPackage({ ...customPackage, kitMedicamentos: v })}
+                    className="data-[state=checked]:bg-amber-500"
+                  />
+                </div>
+
+                {/* Kit Boas-Vindas */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-white/5">
+                  <div className="flex items-center gap-3">
+                    <Gift className="h-5 w-5 text-amber-400" />
+                    <div>
+                      <p className="text-amber-100 font-medium">Kit Boas-Vindas</p>
+                      <p className="text-amber-200/50 text-xs">{formatCurrency(PRICES.kitBoasVindas)}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={customPackage.kitBoasVindas}
+                    onCheckedChange={(v) => setCustomPackage({ ...customPackage, kitBoasVindas: v })}
                     className="data-[state=checked]:bg-amber-500"
                   />
                 </div>
