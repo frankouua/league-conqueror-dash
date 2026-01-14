@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, forwardRef } from 'react';
+import { useState, useRef, useEffect, forwardRef, memo } from 'react';
 import { MessageCircle, X, Send, Trash2, Sparkles, Target, TrendingUp, Lightbulb, Bot, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -225,7 +225,13 @@ const CommercialAssistantComponent = () => {
   );
 };
 
-// Simple wrapper export - no ref needed since this is a floating component
-export function CommercialAssistant() {
-  return <CommercialAssistantComponent />;
-}
+// Memoized and forwardRef-compatible export to prevent ref warnings
+export const CommercialAssistant = memo(forwardRef<HTMLDivElement, Record<string, never>>((_, ref) => {
+  return (
+    <div ref={ref}>
+      <CommercialAssistantComponent />
+    </div>
+  );
+}));
+
+CommercialAssistant.displayName = 'CommercialAssistant';

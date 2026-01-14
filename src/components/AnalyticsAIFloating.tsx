@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, forwardRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, X, Send, Trash2, User, TrendingUp, BarChart3, PieChart, Target, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -75,7 +75,7 @@ const formatMarkdown = (text: string): string => {
   return `<div class="prose prose-invert max-w-none text-xs"><p class="mb-2 text-xs">${formatted}</p></div>`;
 };
 
-export function AnalyticsAIFloating() {
+const AnalyticsAIFloatingComponent = memo(function AnalyticsAIFloatingInner() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -416,4 +416,15 @@ export function AnalyticsAIFloating() {
       )}
     </>
   );
-}
+});
+
+// ForwardRef-compatible export to prevent ref warnings in App.tsx
+export const AnalyticsAIFloating = memo(forwardRef<HTMLDivElement, Record<string, never>>((_, ref) => {
+  return (
+    <div ref={ref}>
+      <AnalyticsAIFloatingComponent />
+    </div>
+  );
+}));
+
+AnalyticsAIFloating.displayName = 'AnalyticsAIFloating';

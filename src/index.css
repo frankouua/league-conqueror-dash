@@ -317,4 +317,131 @@
   .kanban-column-scroll::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--primary) / 0.7);
   }
+
+  /* ============================================
+     RESPONSIVE UTILITIES
+     ============================================ */
+  
+  /* Mobile-first container padding */
+  .container-responsive {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Responsive card grid */
+  .grid-responsive {
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  /* Responsive text sizing */
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-base {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-lg {
+    @apply text-base sm:text-lg lg:text-xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl lg:text-2xl xl:text-3xl;
+  }
+
+  /* Responsive spacing */
+  .space-responsive {
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+  }
+
+  .gap-responsive {
+    @apply gap-3 sm:gap-4 lg:gap-6;
+  }
+
+  /* Touch-friendly targets for mobile */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Hide on mobile, show on larger screens */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+
+  /* Show on mobile, hide on larger screens */
+  .show-mobile {
+    @apply block sm:hidden;
+  }
+
+  /* Adaptive padding for cards */
+  .card-padding-responsive {
+    @apply p-3 sm:p-4 lg:p-6;
+  }
+
+  /* ============================================
+     PERFORMANCE OPTIMIZATIONS
+     ============================================ */
+
+  /* GPU acceleration for animations */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Smooth scrolling */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Optimized transitions */
+  .transition-optimized {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  /* Skeleton loading animation */
+  .skeleton-loading {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  /* ============================================
+     TABLET SPECIFIC STYLES
+     ============================================ */
+
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .tablet-grid-2 {
+      @apply grid-cols-2;
+    }
+
+    .tablet-padding {
+      @apply p-4;
+    }
+  }
+
+  /* ============================================
+     LARGE SCREEN / TV DISPLAY OPTIMIZATIONS
+     ============================================ */
+
+  @media (min-width: 1920px) {
+    .tv-text-scale {
+      font-size: 1.25rem;
+    }
+
+    .tv-padding {
+      @apply p-8;
+    }
+  }
 }
