@@ -361,10 +361,10 @@ export function useCRMLeads(pipelineId?: string) {
       toPipelineId?: string;
       note?: string;
     }) => {
-      // Get current lead data
+      // Get current lead data including surgery_date
       const { data: currentLead } = await supabase
         .from('crm_leads')
-        .select('stage_id, pipeline_id')
+        .select('stage_id, pipeline_id, assigned_to, surgery_date')
         .eq('id', leadId)
         .single();
 
@@ -400,10 +400,44 @@ export function useCRMLeads(pipelineId?: string) {
         performed_by: user!.id,
       });
 
+      // ===== AUTOMAÇÕES DE MUDANÇA DE ESTÁGIO =====
+      
+      // 1. Criar tarefas automáticas do checklist para o novo estágio
+      try {
+        await supabase.functions.invoke('create-stage-tasks', {
+          body: {
+            lead_id: leadId,
+            stage_id: toStageId,
+            pipeline_id: toPipelineId || currentLead?.pipeline_id,
+            surgery_date: currentLead?.surgery_date,
+            assigned_to: currentLead?.assigned_to,
+          }
+        });
+        console.log('✅ Tarefas do checklist criadas para o lead', leadId);
+      } catch (taskError) {
+        console.error('Erro ao criar tarefas do checklist:', taskError);
+      }
+
+      // 2. Executar automações de mudança de estágio (tags, notificações, etc.)
+      try {
+        await supabase.functions.invoke('stage-change-automation', {
+          body: {
+            lead_id: leadId,
+            old_stage_id: currentLead?.stage_id,
+            new_stage_id: toStageId,
+            performed_by: user!.id,
+          }
+        });
+        console.log('✅ Automações de estágio executadas para o lead', leadId);
+      } catch (automationError) {
+        console.error('Erro nas automações de estágio:', automationError);
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-lead-tasks'] });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao mover lead', description: error.message, variant: 'destructive' });
