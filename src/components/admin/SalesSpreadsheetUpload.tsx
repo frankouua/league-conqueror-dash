@@ -221,13 +221,38 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   };
 
   // Function to refresh all dashboard data - invalidates ALL queries across the system
-  const refreshAllDashboards = () => {
-    // NUCLEAR OPTION: Invalidate ALL queries in the entire cache
-    // This guarantees no stale data remains after upload/deletion
-    queryClient.invalidateQueries();
+  const refreshAllDashboards = async () => {
+    console.log('[Upload] Refreshing all dashboards...');
     
-    // Also clear the cache to force fresh fetches
-    queryClient.clear();
+    // Invalidate specific query keys first for immediate update
+    const keysToInvalidate = [
+      'revenue_records',
+      'executed_records',
+      'sales_upload_logs',
+      'dashboard',
+      'goals',
+      'metrics',
+      'team',
+      'seller',
+      'consolidated',
+      'trends',
+    ];
+    
+    // Invalidate each key
+    for (const key of keysToInvalidate) {
+      queryClient.invalidateQueries({ queryKey: [key] });
+    }
+    
+    // Small delay to ensure invalidation processes
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Then invalidate ALL queries to catch anything we missed
+    await queryClient.invalidateQueries();
+    
+    // Force refetch all active queries
+    await queryClient.refetchQueries({ type: 'active' });
+    
+    console.log('[Upload] Dashboard refresh complete');
     
     toast({
       title: "✅ Todos os Dashboards Atualizados!",
@@ -1310,6 +1335,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     let skipped = 0;
     let deleted = 0;
     let lockedSkipped = 0;
+    let uploadId: string | undefined; // Declare here for error handling access
     const errors: { sale: ParsedSale; error: string }[] = [];
 
     try {
@@ -1364,11 +1390,15 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       const dateRangeStart = dates[0];
       const dateRangeEnd = dates[dates.length - 1];
       
+      console.log(`[Upload] Processing ${unlockedSales.length} sales from ${dateRangeStart} to ${dateRangeEnd}`);
+      
       // If "replace" mode, delete existing records for this date range first
       // But only for unlocked periods!
       if (importMode === 'replace' && dateRangeStart && dateRangeEnd) {
         // Get unique user IDs from the sales we're about to import
         const userIds = [...new Set(unlockedSales.map(s => s.matchedUserId).filter(Boolean))];
+        
+        console.log(`[Upload] Replace mode: deleting existing records for ${userIds.length} users in date range`);
         
         // Build date conditions excluding locked periods
         let deleteQuery = supabase
@@ -1381,10 +1411,10 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         const { data: deletedData, error: deleteError } = await deleteQuery.select('id');
         
         if (deleteError) {
-          console.error('Error deleting existing records:', deleteError);
+          console.error('[Upload] Error deleting existing records:', deleteError);
         } else {
           deleted = deletedData?.length || 0;
-          console.log(`Deleted ${deleted} existing records for date range ${dateRangeStart} to ${dateRangeEnd}`);
+          console.log(`[Upload] Deleted ${deleted} existing records for date range ${dateRangeStart} to ${dateRangeEnd}`);
         }
       }
       
@@ -1425,7 +1455,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         throw new Error('Não foi possível criar o log de upload');
       }
       
-      const uploadId = uploadLogData.id;
+      uploadId = uploadLogData.id;
       
       // Batch insert for better performance - prepare records first
       const recordsToInsert: any[] = [];
@@ -1527,6 +1557,8 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       }
       
       // Insert in large batches for maximum performance
+      console.log(`[Upload] Starting insertion of ${recordsToInsert.length} records in batches of ${BATCH_SIZE}`);
+      
       for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
         const batch = recordsToInsert.slice(i, i + BATCH_SIZE);
         const batchWithoutMeta = batch.map(({ _originalSale, ...rest }) => rest);
@@ -1534,16 +1566,18 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         // Update progress
         setImportProgress({ current: Math.min(i + batch.length, recordsToInsert.length), total: recordsToInsert.length });
         
-        const { error } = await supabase.from(tableName).insert(batchWithoutMeta);
+        const { data: insertedData, error } = await supabase.from(tableName).insert(batchWithoutMeta).select('id');
         
         if (error) {
-          console.error(`Error inserting batch ${uploadType}:`, error);
+          console.error(`[Upload] Error inserting batch ${i / BATCH_SIZE + 1}:`, error);
           for (const record of batch) {
             failed++;
             errors.push({ sale: record._originalSale, error: error.message || 'Erro desconhecido' });
           }
         } else {
-          success += batch.length;
+          const inserted = insertedData?.length || batch.length;
+          success += inserted;
+          console.log(`[Upload] Batch ${i / BATCH_SIZE + 1}: inserted ${inserted} records`);
         }
       }
       
@@ -1573,8 +1607,10 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       setImportProgress(null);
       setShowSuccessModal(true); // Show success modal
       
-      // Automatically refresh all dashboard caches
-      refreshAllDashboards();
+      console.log(`[Upload] Import completed: ${success} success, ${failed} failed, ${skipped} skipped`);
+      
+      // Automatically refresh all dashboard caches - await to ensure completion
+      await refreshAllDashboards();
       
       // Play success sound if available
       try {
@@ -1589,8 +1625,25 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         duration: 10000, // Show for 10 seconds
       });
     } catch (error) {
-      console.error('Error importing sales:', error);
+      console.error('[Upload] Error importing sales:', error);
       setImportProgress(null);
+      
+      // If we have an uploadId, mark it as failed
+      if (typeof uploadId !== 'undefined') {
+        try {
+          await supabase
+            .from('sales_upload_logs')
+            .update({
+              status: 'failed',
+              error_rows: failed,
+              imported_rows: success,
+            })
+            .eq('id', uploadId);
+        } catch (logError) {
+          console.error('[Upload] Failed to update upload log status:', logError);
+        }
+      }
+      
       toast({
         title: "Erro na importação",
         description: error instanceof Error ? error.message : "Ocorreu um erro durante a importação.",
@@ -1600,6 +1653,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
 
     setIsImporting(false);
   };
+
 
   // Function to update RFV customers based on sales data
   const updateRFVCustomers = async (sales: ParsedSale[]) => {

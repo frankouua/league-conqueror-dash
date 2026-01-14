@@ -41,18 +41,17 @@ const Comercial = lazy(() => import("./pages/Comercial"));
 const Alavancas = lazy(() => import("./pages/Alavancas"));
 const Calendario = lazy(() => import("./pages/Calendario"));
 
-// Optimized QueryClient with aggressive caching for maximum performance
+// Optimized QueryClient with balanced caching for performance and freshness
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 3, // 3 minutes - data considered fresh
-      gcTime: 1000 * 60 * 15,   // 15 minutes - cache retention
-      refetchOnWindowFocus: false, // Don't refetch on tab focus
-      refetchOnMount: false,   // Use cache if available
+      staleTime: 1000 * 60 * 2, // 2 minutes - data considered fresh
+      gcTime: 1000 * 60 * 10,   // 10 minutes - cache retention
+      refetchOnWindowFocus: true, // Refetch on tab focus for fresh data
+      refetchOnMount: 'always',   // Always check if data is stale on mount
       refetchOnReconnect: true, // Refetch when connection restored
-      retry: 1,                 // Reduce retry attempts
+      retry: 2,                 // Allow 2 retries for reliability
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-      networkMode: 'offlineFirst', // Use cache first for instant responses
     },
     mutations: {
       retry: 1,
