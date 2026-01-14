@@ -63,10 +63,30 @@ interface Protocol {
   is_active: boolean;
 }
 
+interface Procedure {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  promotional_price: number | null;
+}
+
 const PROTOCOL_TYPE_ICONS: Record<string, any> = {
   procedimento: Syringe,
   pacote: Package,
   jornada: Route,
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  cirurgia: 'Cirurgias',
+  consulta: 'Consultas',
+  genetica: 'Genética',
+  implantes: 'Implantes',
+  injetaveis: 'Injetáveis',
+  soroterapia: 'Soroterapia',
+  laser: 'Laser',
+  estetica: 'Estética',
+  outros: 'Outros',
 };
 
 // Predefined tags organized by category
@@ -121,6 +141,22 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
       
       if (error) throw error;
       return data as Protocol[];
+    },
+  });
+
+  // Fetch individual procedures from database
+  const { data: procedures = [], isLoading: loadingProcedures } = useQuery({
+    queryKey: ['procedures-for-crm'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('procedures')
+        .select('id, name, category, price, promotional_price')
+        .eq('is_active', true)
+        .order('category')
+        .order('name');
+      
+      if (error) throw error;
+      return data as Procedure[];
     },
   });
   
@@ -550,7 +586,7 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
             <Label className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Procedimentos de Interesse
-              {loadingProtocols && <Loader2 className="h-3 w-3 animate-spin" />}
+              {(loadingProtocols || loadingProcedures) && <Loader2 className="h-3 w-3 animate-spin" />}
             </Label>
             
             {/* Search/Filter Input */}
@@ -564,65 +600,128 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
               />
             </div>
             
-            {protocols.length === 0 && !loadingProtocols ? (
+            {(protocols.length === 0 && procedures.length === 0) && !loadingProtocols && !loadingProcedures ? (
               <p className="text-sm text-muted-foreground">
-                Nenhum procedimento cadastrado. Cadastre em Admin → Protocolos.
+                Nenhum procedimento cadastrado.
               </p>
             ) : (
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-2 scrollbar-thin">
-                {/* Group by type */}
-                {['procedimento', 'pacote', 'jornada'].map(type => {
-                  const typeProtocols = protocols.filter(p => 
-                    p.protocol_type === type && 
-                    p.name.toLowerCase().includes(procedureSearch.toLowerCase())
-                  );
-                  if (typeProtocols.length === 0) return null;
-                  
-                  const TypeIcon = PROTOCOL_TYPE_ICONS[type] || FileText;
-                  const typeLabel = type === 'procedimento' ? 'Procedimentos' : 
-                                   type === 'pacote' ? 'Pacotes' : 'Jornadas';
-                  
-                  return (
-                    <div key={type} className="space-y-2">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium sticky top-0 bg-card py-1">
-                        <TypeIcon className="h-3 w-3" />
-                        {typeLabel} ({typeProtocols.length})
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {typeProtocols.map(protocol => {
-                          const isSelected = formData.interested_procedures.includes(protocol.name);
-                          const displayPrice = protocol.promotional_price || protocol.price;
-                          const hasPromo = protocol.promotional_price && protocol.promotional_price < protocol.price;
-                          
-                          return (
-                            <Badge
-                              key={protocol.id}
-                              variant={isSelected ? "default" : "outline"}
-                              className={cn(
-                                "cursor-pointer transition-all hover:scale-105 gap-1.5 py-1.5",
-                                isSelected && "ring-2 ring-primary/50"
-                              )}
-                              onClick={() => handleProcedureToggle(protocol.name)}
-                            >
-                              <span className="font-medium">{protocol.name}</span>
-                              <span className={cn(
-                                "text-[10px]",
-                                isSelected ? "text-primary-foreground/80" : "text-muted-foreground",
-                                hasPromo && "text-green-500"
-                              )}>
-                                {hasPromo && <span className="line-through mr-1 text-muted-foreground/50">{formatCurrency(protocol.price)}</span>}
-                                {formatCurrency(displayPrice)}
-                              </span>
-                            </Badge>
-                          );
-                        })}
-                      </div>
+              <div className="space-y-4 max-h-80 overflow-y-auto pr-2 scrollbar-thin">
+                {/* Individual Procedures by Category */}
+                {procedures.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="text-xs font-semibold text-primary uppercase tracking-wide">
+                      Procedimentos Individuais ({procedures.filter(p => p.name.toLowerCase().includes(procedureSearch.toLowerCase())).length})
                     </div>
-                  );
-                })}
+                    {Object.keys(CATEGORY_LABELS).map(category => {
+                      const categoryProcedures = procedures.filter(p => 
+                        p.category === category && 
+                        p.name.toLowerCase().includes(procedureSearch.toLowerCase())
+                      );
+                      if (categoryProcedures.length === 0) return null;
+                      
+                      return (
+                        <div key={category} className="space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium sticky top-0 bg-card py-1">
+                            <Syringe className="h-3 w-3" />
+                            {CATEGORY_LABELS[category] || category} ({categoryProcedures.length})
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {categoryProcedures.map(proc => {
+                              const isSelected = formData.interested_procedures.includes(proc.name);
+                              const displayPrice = proc.promotional_price || proc.price;
+                              const hasPromo = proc.promotional_price && proc.promotional_price < proc.price;
+                              
+                              return (
+                                <Badge
+                                  key={proc.id}
+                                  variant={isSelected ? "default" : "outline"}
+                                  className={cn(
+                                    "cursor-pointer transition-all hover:scale-105 gap-1.5 py-1.5",
+                                    isSelected && "ring-2 ring-primary/50"
+                                  )}
+                                  onClick={() => handleProcedureToggle(proc.name)}
+                                >
+                                  <span className="font-medium">{proc.name}</span>
+                                  <span className={cn(
+                                    "text-[10px]",
+                                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground",
+                                    hasPromo && "text-green-500"
+                                  )}>
+                                    {hasPromo && <span className="line-through mr-1 text-muted-foreground/50">{formatCurrency(proc.price)}</span>}
+                                    {formatCurrency(displayPrice)}
+                                  </span>
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Protocols/Packages Section */}
+                {protocols.length > 0 && (
+                  <div className="space-y-3 pt-3 border-t">
+                    <div className="text-xs font-semibold text-primary uppercase tracking-wide">
+                      Pacotes & Protocolos ({protocols.filter(p => p.name.toLowerCase().includes(procedureSearch.toLowerCase())).length})
+                    </div>
+                    {['procedimento', 'pacote', 'jornada'].map(type => {
+                      const typeProtocols = protocols.filter(p => 
+                        p.protocol_type === type && 
+                        p.name.toLowerCase().includes(procedureSearch.toLowerCase())
+                      );
+                      if (typeProtocols.length === 0) return null;
+                      
+                      const TypeIcon = PROTOCOL_TYPE_ICONS[type] || FileText;
+                      const typeLabel = type === 'procedimento' ? 'Protocolos' : 
+                                       type === 'pacote' ? 'Pacotes' : 'Jornadas';
+                      
+                      return (
+                        <div key={type} className="space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium sticky top-0 bg-card py-1">
+                            <TypeIcon className="h-3 w-3" />
+                            {typeLabel} ({typeProtocols.length})
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {typeProtocols.map(protocol => {
+                              const isSelected = formData.interested_procedures.includes(protocol.name);
+                              const displayPrice = protocol.promotional_price || protocol.price;
+                              const hasPromo = protocol.promotional_price && protocol.promotional_price < protocol.price;
+                              
+                              return (
+                                <Badge
+                                  key={protocol.id}
+                                  variant={isSelected ? "default" : "outline"}
+                                  className={cn(
+                                    "cursor-pointer transition-all hover:scale-105 gap-1.5 py-1.5",
+                                    isSelected && "ring-2 ring-primary/50"
+                                  )}
+                                  onClick={() => handleProcedureToggle(protocol.name)}
+                                >
+                                  <span className="font-medium">{protocol.name}</span>
+                                  <span className={cn(
+                                    "text-[10px]",
+                                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground",
+                                    hasPromo && "text-green-500"
+                                  )}>
+                                    {hasPromo && <span className="line-through mr-1 text-muted-foreground/50">{formatCurrency(protocol.price)}</span>}
+                                    {formatCurrency(displayPrice)}
+                                  </span>
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 
                 {/* No results message */}
-                {procedureSearch && protocols.filter(p => p.name.toLowerCase().includes(procedureSearch.toLowerCase())).length === 0 && (
+                {procedureSearch && 
+                  protocols.filter(p => p.name.toLowerCase().includes(procedureSearch.toLowerCase())).length === 0 &&
+                  procedures.filter(p => p.name.toLowerCase().includes(procedureSearch.toLowerCase())).length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     Nenhum procedimento encontrado para "{procedureSearch}"
                   </p>
@@ -637,7 +736,12 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
                   <span className="font-medium">{formData.interested_procedures.length} procedimento(s) selecionado(s)</span>
                   <span className="text-primary font-bold">
                     {formatCurrency(
+                      // Sum from protocols
                       protocols
+                        .filter(p => formData.interested_procedures.includes(p.name))
+                        .reduce((sum, p) => sum + (p.promotional_price || p.price), 0) +
+                      // Sum from procedures
+                      procedures
                         .filter(p => formData.interested_procedures.includes(p.name))
                         .reduce((sum, p) => sum + (p.promotional_price || p.price), 0)
                     )}
