@@ -789,16 +789,17 @@ export function ClientProfileDrawer({ open, onClose, clientId, clientSource }: C
                         Contato e Endereço
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-3 text-sm">
+                      <CardContent className="grid grid-cols-2 gap-3 text-sm">
                       <InfoRow label="Telefone" value={profile.phone} copyable />
                       <InfoRow label="WhatsApp" value={profile.whatsapp} copyable />
                       <InfoRow label="Email" value={profile.email} copyable />
                       <InfoRow label="Instagram" value={profile.instagram_handle} />
+                      <InfoRow label="País" value={profile.country} />
+                      <InfoRow label="Estado" value={profile.state} />
+                      <InfoRow label="Cidade" value={profile.city} />
+                      <InfoRow label="Bairro" value={profile.neighborhood} />
                       <div className="col-span-2">
-                        <InfoRow 
-                          label="Endereço" 
-                          value={[profile.address, profile.neighborhood, profile.city, profile.state].filter(Boolean).join(', ') || null} 
-                        />
+                        <InfoRow label="Endereço" value={profile.address} />
                       </div>
                       <InfoRow label="CEP" value={profile.cep} />
                     </CardContent>

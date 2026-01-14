@@ -19,7 +19,7 @@ import {
   ChevronDown, ChevronUp, MoreHorizontal, Loader2, 
   Calendar, DollarSign, TrendingUp, History, CheckCircle,
   Target, Sparkles, ArrowUpDown, Check, Eye, Bot, 
-  Flame, Thermometer, Snowflake, Shield, Building2
+  Flame, Thermometer, Snowflake, Shield, Building2, MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -60,6 +60,10 @@ interface CRMClient {
   // Values
   estimated_value: number;
   contract_value: number | null;
+  // Location
+  city: string | null;
+  state: string | null;
+  country: string | null;
   // RFV data
   rfv_segment: string | null;
   rfv_score_r: number | null;
@@ -332,10 +336,11 @@ export function ClientListDashboard() {
               pipeline_id, stage_id, temperature, is_priority,
               ai_intent, ai_next_action, ai_summary, ai_analyzed_at,
               is_recurrence_lead, recurrence_due_date, recurrence_days_overdue, recurrence_group,
-              created_at, last_activity_at, source, tags,
+              created_at, last_activity_at, source, tags, patient_data_id,
               teams:team_id (name),
               pipelines:pipeline_id (name),
               stages:stage_id (name),
+              patient_data:patient_data_id (city, state, country),
               rfv_customer:rfv_customer_id (
                 segment, recency_score, frequency_score, value_score,
                 total_value, total_purchases, days_since_last_purchase, last_purchase_date
@@ -389,6 +394,9 @@ export function ClientListDashboard() {
           assigned_name: null, // assigned_to doesn't have FK to users
           estimated_value: lead.estimated_value || rfv?.total_value || 0,
           contract_value: lead.contract_value,
+          city: lead.patient_data?.city || null,
+          state: lead.patient_data?.state || null,
+          country: lead.patient_data?.country || null,
           rfv_segment: rfv?.segment || null,
           rfv_score_r: rfv?.recency_score || null,
           rfv_score_f: rfv?.frequency_score || null,
@@ -941,6 +949,11 @@ export function ClientListDashboard() {
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 {client.phone && <span>{client.phone}</span>}
                                 {client.prontuario && <span>• #{client.prontuario}</span>}
+                                {client.city && (
+                                  <span className="flex items-center gap-0.5">
+                                    • <MapPin className="h-3 w-3" /> {client.city}{client.state && `/${client.state}`}
+                                  </span>
+                                )}
                               </div>
                             </button>
                           </TableCell>
