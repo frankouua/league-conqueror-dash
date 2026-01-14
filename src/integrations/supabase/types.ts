@@ -1077,6 +1077,60 @@ export type Database = {
           },
         ]
       }
+      crm_achievements: {
+        Row: {
+          badge_level: string | null
+          category: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_hidden: boolean | null
+          name: string
+          points_reward: number | null
+          requirement_period: string | null
+          requirement_type: string
+          requirement_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          badge_level?: string | null
+          category: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_hidden?: boolean | null
+          name: string
+          points_reward?: number | null
+          requirement_period?: string | null
+          requirement_type: string
+          requirement_value: number
+          updated_at?: string | null
+        }
+        Update: {
+          badge_level?: string | null
+          category?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_hidden?: boolean | null
+          name?: string
+          points_reward?: number | null
+          requirement_period?: string | null
+          requirement_type?: string
+          requirement_value?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       crm_alert_config: {
         Row: {
           alert_type: string
