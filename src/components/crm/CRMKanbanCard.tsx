@@ -131,10 +131,17 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
 
       {/* ===== CURRENT OPPORTUNITY - HIGHLIGHTED ===== */}
       <div className="mb-2 p-2.5 bg-gradient-to-r from-green-500/15 via-green-500/10 to-emerald-500/5 rounded-lg border-2 border-green-500/30">
-        {/* Label */}
-        <div className="flex items-center gap-1 mb-1.5">
-          <TrendingUp className="h-3 w-3 text-green-600" />
-          <span className="text-[10px] font-semibold text-green-600 uppercase tracking-wide">Oportunidade Atual</span>
+        {/* Label + MAIN VALUE - ALWAYS VISIBLE */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1">
+            <TrendingUp className="h-3 w-3 text-green-600" />
+            <span className="text-[10px] font-semibold text-green-600 uppercase tracking-wide">Oportunidade Atual</span>
+          </div>
+          {/* VALUE ALWAYS PROMINENT */}
+          <div className="flex items-center gap-1 bg-green-600 px-2 py-0.5 rounded-md">
+            <DollarSign className="h-3.5 w-3.5 text-white" />
+            <span className="font-black text-white text-sm">{formatCurrency(currentValue)}</span>
+          </div>
         </div>
         
         {/* Procedure */}
@@ -150,25 +157,17 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
           </div>
         )}
         
-        {/* MAIN VALUE - BIG AND PROMINENT */}
-        {currentValue > 0 && (
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-1.5">
-              <DollarSign className="h-4 w-4 text-green-500" />
-              <span className="font-black text-green-500 text-lg">{formatCurrency(currentValue)}</span>
-            </div>
-            {hasDiscount && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-0.5 text-[10px] font-bold text-orange-600 bg-orange-500/20 px-2 py-0.5 rounded-full">
-                    <Percent className="h-3 w-3" />
-                    {discountPercent > 0 ? `${discountPercent}%` : formatCurrencyCompact(discountAmount)}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>Desconto aplicado</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
+        {/* Discount Badge */}
+        {hasDiscount && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-600 bg-orange-500/20 px-2 py-0.5 rounded-full mt-1">
+                <Percent className="h-3 w-3" />
+                Desconto: {discountPercent > 0 ? `${discountPercent}%` : formatCurrencyCompact(discountAmount)}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Desconto aplicado</TooltipContent>
+          </Tooltip>
         )}
         
         {/* Payment Method */}
