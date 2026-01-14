@@ -5,7 +5,7 @@ import {
   Phone, Calendar, DollarSign, AlertTriangle, 
   Clock, Star, Flame, Snowflake, ThermometerSun,
   FileText, Percent, CreditCard, Brain, ArrowRight,
-  History, TrendingUp
+  History, TrendingUp, Zap
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -85,6 +85,10 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
   const aiScore = (lead as any).ai_score;
   const aiProbability = (lead as any).ai_conversion_probability;
   
+  // Lead Score (MQL) - from marketing forms
+  const leadScore = (lead as any).lead_score || 0;
+  const isHighPriorityLead = leadScore >= 70;
+  
   // Next action
   const nextAction = (lead as any).next_action;
   const nextActionDate = (lead as any).next_action_date;
@@ -114,9 +118,38 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
         "bg-card border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
         isDragging && "shadow-lg rotate-2 opacity-90",
         lead.is_priority && "border-l-4 border-l-yellow-500",
-        hasOverdueTasks && "border-l-4 border-l-destructive"
+        hasOverdueTasks && "border-l-4 border-l-destructive",
+        isHighPriorityLead && "ring-2 ring-purple-500/50"
       )}
     >
+      {/* Lead Score MQL Badge - HIGH PRIORITY */}
+      {leadScore > 0 && (
+        <div className={cn(
+          "flex items-center justify-between mb-2 px-2 py-1.5 rounded-md",
+          isHighPriorityLead 
+            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" 
+            : "bg-muted/50"
+        )}>
+          <div className="flex items-center gap-1.5">
+            <Zap className={cn("h-3.5 w-3.5", isHighPriorityLead ? "text-yellow-300 fill-yellow-300" : "text-muted-foreground")} />
+            <span className={cn("text-[10px] font-bold uppercase tracking-wide", !isHighPriorityLead && "text-muted-foreground")}>
+              Lead Score
+            </span>
+          </div>
+          <div className={cn(
+            "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black",
+            isHighPriorityLead 
+              ? "bg-white/20 text-white" 
+              : leadScore >= 50 
+                ? "bg-yellow-500/20 text-yellow-600"
+                : "bg-muted text-muted-foreground"
+          )}>
+            {leadScore}
+            {isHighPriorityLead && <span className="text-[9px] font-medium ml-0.5">MQL</span>}
+          </div>
+        </div>
+      )}
+
       {/* Header: Name + Temperature + AI Score */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
