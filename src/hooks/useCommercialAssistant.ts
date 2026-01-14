@@ -292,6 +292,12 @@ export function useCommercialAssistant() {
     };
 
     try {
+      // Build messages array including the current user message
+      const allMessages = [...messages, userMsg].map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/commercial-ai-assistant`,
         {
@@ -301,7 +307,7 @@ export function useCommercialAssistant() {
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
-            messages: [...messages, userMsg],
+            messages: allMessages,
             context: sellerContext,
           }),
         }
