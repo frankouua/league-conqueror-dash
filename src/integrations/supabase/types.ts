@@ -2268,8 +2268,10 @@ export type Database = {
         Row: {
           ai_analyzed_at: string | null
           ai_churn_probability: number | null
+          ai_conversion_probability: number | null
           ai_intent: string | null
           ai_next_action: string | null
+          ai_score: number | null
           ai_sentiment: string | null
           ai_summary: string | null
           assigned_to: string | null
@@ -2300,6 +2302,8 @@ export type Database = {
           discharge_completed: boolean | null
           discharge_completed_at: string | null
           discharge_date: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
           discount_projects_count: number | null
           email: string | null
           emergency_contact: Json | null
@@ -2337,10 +2341,15 @@ export type Database = {
           need_score: number | null
           needs_travel: boolean | null
           needs_weight_loss: boolean | null
+          next_action: string | null
+          next_action_date: string | null
           notes: string | null
           nps_category: string | null
           nps_score: number | null
+          original_value: number | null
           patient_data_id: string | null
+          payment_installments: number | null
+          payment_method: string | null
           phone: string | null
           pipeline_id: string
           post_surgery_checklist_completed: boolean | null
@@ -2390,8 +2399,10 @@ export type Database = {
         Insert: {
           ai_analyzed_at?: string | null
           ai_churn_probability?: number | null
+          ai_conversion_probability?: number | null
           ai_intent?: string | null
           ai_next_action?: string | null
+          ai_score?: number | null
           ai_sentiment?: string | null
           ai_summary?: string | null
           assigned_to?: string | null
@@ -2422,6 +2433,8 @@ export type Database = {
           discharge_completed?: boolean | null
           discharge_completed_at?: string | null
           discharge_date?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
           discount_projects_count?: number | null
           email?: string | null
           emergency_contact?: Json | null
@@ -2459,10 +2472,15 @@ export type Database = {
           need_score?: number | null
           needs_travel?: boolean | null
           needs_weight_loss?: boolean | null
+          next_action?: string | null
+          next_action_date?: string | null
           notes?: string | null
           nps_category?: string | null
           nps_score?: number | null
+          original_value?: number | null
           patient_data_id?: string | null
+          payment_installments?: number | null
+          payment_method?: string | null
           phone?: string | null
           pipeline_id: string
           post_surgery_checklist_completed?: boolean | null
@@ -2512,8 +2530,10 @@ export type Database = {
         Update: {
           ai_analyzed_at?: string | null
           ai_churn_probability?: number | null
+          ai_conversion_probability?: number | null
           ai_intent?: string | null
           ai_next_action?: string | null
+          ai_score?: number | null
           ai_sentiment?: string | null
           ai_summary?: string | null
           assigned_to?: string | null
@@ -2544,6 +2564,8 @@ export type Database = {
           discharge_completed?: boolean | null
           discharge_completed_at?: string | null
           discharge_date?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
           discount_projects_count?: number | null
           email?: string | null
           emergency_contact?: Json | null
@@ -2581,10 +2603,15 @@ export type Database = {
           need_score?: number | null
           needs_travel?: boolean | null
           needs_weight_loss?: boolean | null
+          next_action?: string | null
+          next_action_date?: string | null
           notes?: string | null
           nps_category?: string | null
           nps_score?: number | null
+          original_value?: number | null
           patient_data_id?: string | null
+          payment_installments?: number | null
+          payment_method?: string | null
           phone?: string | null
           pipeline_id?: string
           post_surgery_checklist_completed?: boolean | null

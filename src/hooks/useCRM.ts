@@ -94,6 +94,16 @@ export interface CRMLead {
   checklist_total: number | null;
   checklist_completed: number | null;
   checklist_overdue: number | null;
+  // New enhanced card fields
+  discount_percentage: number | null;
+  discount_amount: number | null;
+  original_value: number | null;
+  payment_method: string | null;
+  payment_installments: number | null;
+  ai_score: number | null;
+  ai_conversion_probability: number | null;
+  next_action: string | null;
+  next_action_date: string | null;
   // Joined data
   assigned_profile?: { full_name: string } | null;
   stage?: CRMStage | null;

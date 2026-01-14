@@ -58,6 +58,8 @@ import { CRMRecurrenceDashboard } from "@/components/crm/CRMRecurrenceDashboard"
 import { CRMGamificationWidget } from "@/components/crm/CRMGamificationWidget";
 import { CRMSLADashboard } from "@/components/crm/CRMSLADashboard";
 import { CRMCadencesManager } from "@/components/crm/CRMCadencesManager";
+import { CRMDailyRoutineWidget } from "@/components/crm/CRMDailyRoutineWidget";
+import { CRMCommercialReports } from "@/components/crm/CRMCommercialReports";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -329,6 +331,17 @@ const CRM = () => {
 
         {/* Collapsible Daily Overview - smaller and toggleable */}
         {viewMode === 'kanban' && <CRMDailyOverview />}
+        
+        {/* Daily Routine Widget - Tasks for today */}
+        {viewMode === 'kanban' && (
+          <CRMDailyRoutineWidget 
+            pipelineId={selectedPipeline} 
+            onLeadClick={(leadId) => {
+              const lead = leads?.find(l => l.id === leadId);
+              if (lead) setSelectedLead(lead);
+            }}
+          />
+        )}
 
         {/* Pipeline Journey - Highlighted Pipeline Selection */}
         {['kanban', 'metrics'].includes(viewMode) && (
@@ -504,6 +517,10 @@ const CRM = () => {
 
         {viewMode === 'vendedores-kpis' && (
           <CRMVendedoresKPIsDashboard />
+        )}
+
+        {viewMode === 'reports' && (
+          <CRMCommercialReports pipelineId={selectedPipeline} />
         )}
 
         {viewMode === 'integrations' && (
