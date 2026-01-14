@@ -18,6 +18,7 @@ import uniqueLogo from "@/assets/logo-unique-cpa.png";
 
 // Lazy load heavy components for faster initial render
 const TeamRankingCard = lazy(() => import("@/components/TeamRankingCard"));
+const TeamQualityComparisonCard = lazy(() => import("@/components/TeamQualityComparisonCard"));
 const DepartmentGoalsCard = lazy(() => import("@/components/DepartmentGoalsCard"));
 const RecentAchievements = lazy(() => import("@/components/RecentAchievements"));
 const TimeCounters = lazy(() => import("@/components/TimeCounters"));
@@ -436,6 +437,11 @@ const Index = () => {
                 </p>
               </div>
             )}
+
+            {/* Team Quality Comparison - Indicadores de Qualidade */}
+            <Suspense fallback={<MiniLoader />}>
+              <TeamQualityComparisonCard />
+            </Suspense>
 
             {/* Team Progress Table - Meta vs Vendido vs Esperado (R$) */}
             {teamsProgress.length > 0 && (
