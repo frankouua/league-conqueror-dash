@@ -173,3 +173,18 @@ verify_jwt = false
 
 [functions.sync-feegow-cron]
 verify_jwt = false
+
+[functions.feegow-sync]
+verify_jwt = false
+
+[functions.figo-webhook]
+verify_jwt = false
+
+[functions.send-whatsapp]
+verify_jwt = false
+
+[functions.daily-report]
+verify_jwt = false
+
+[functions.check-recurrence]
+verify_jwt = false
