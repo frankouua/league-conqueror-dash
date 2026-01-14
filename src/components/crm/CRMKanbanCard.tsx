@@ -163,57 +163,71 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
       </div>
 
       {/* ===== CURRENT OPPORTUNITY - HIGHLIGHTED ===== */}
-      <div className="mb-2 p-2.5 bg-gradient-to-r from-green-500/15 via-green-500/10 to-emerald-500/5 rounded-lg border-2 border-green-500/30">
-        {/* Label + MAIN VALUE - ALWAYS VISIBLE */}
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-1">
-            <TrendingUp className="h-3 w-3 text-green-600" />
-            <span className="text-[10px] font-semibold text-green-600 uppercase tracking-wide">Oportunidade Atual</span>
+      {(currentValue > 0 || mainProcedure) ? (
+        <div className="mb-2 p-2.5 bg-gradient-to-r from-green-500/15 via-green-500/10 to-emerald-500/5 rounded-lg border-2 border-green-500/30">
+          {/* Label + MAIN VALUE - ALWAYS VISIBLE */}
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <span className="text-[10px] font-semibold text-green-600 uppercase tracking-wide">Oportunidade Atual</span>
+            </div>
+            {/* VALUE ALWAYS PROMINENT */}
+            <div className="flex items-center gap-1 bg-green-600 px-2 py-0.5 rounded-md">
+              <DollarSign className="h-3.5 w-3.5 text-white" />
+              <span className="font-black text-white text-sm">{formatCurrency(currentValue)}</span>
+            </div>
           </div>
-          {/* VALUE ALWAYS PROMINENT */}
-          <div className="flex items-center gap-1 bg-green-600 px-2 py-0.5 rounded-md">
-            <DollarSign className="h-3.5 w-3.5 text-white" />
-            <span className="font-black text-white text-sm">{formatCurrency(currentValue)}</span>
-          </div>
+          
+          {/* Procedure */}
+          {mainProcedure && (
+            <div className="flex items-center gap-1.5 text-xs mb-1.5">
+              <FileText className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+              <span className="truncate font-bold text-foreground">{mainProcedure}</span>
+              {additionalProcedures > 0 && (
+                <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-600">
+                  +{additionalProcedures}
+                </Badge>
+              )}
+            </div>
+          )}
+          
+          {/* Warning if value but no procedures */}
+          {currentValue > 0 && !mainProcedure && (
+            <div className="flex items-center gap-1 text-[10px] text-yellow-600">
+              <AlertTriangle className="h-3 w-3" />
+              <span>Valor manual</span>
+            </div>
+          )}
+          
+          {/* Discount Badge */}
+          {hasDiscount && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-600 bg-orange-500/20 px-2 py-0.5 rounded-full mt-1">
+                  <Percent className="h-3 w-3" />
+                  Desconto: {discountPercent > 0 ? `${discountPercent}%` : formatCurrencyCompact(discountAmount)}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Desconto aplicado</TooltipContent>
+            </Tooltip>
+          )}
+          
+          {/* Payment Method */}
+          {paymentMethod && (
+            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-green-500/20 text-[11px] text-muted-foreground">
+              <CreditCard className="h-3 w-3" />
+              <span>{paymentLabels[paymentMethod] || paymentMethod}</span>
+              {paymentInstallments && paymentInstallments > 1 && (
+                <span className="font-medium">{paymentInstallments}x</span>
+              )}
+            </div>
+          )}
         </div>
-        
-        {/* Procedure */}
-        {mainProcedure && (
-          <div className="flex items-center gap-1.5 text-xs mb-1.5">
-            <FileText className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
-            <span className="truncate font-bold text-foreground">{mainProcedure}</span>
-            {additionalProcedures > 0 && (
-              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-600">
-                +{additionalProcedures}
-              </Badge>
-            )}
-          </div>
-        )}
-        
-        {/* Discount Badge */}
-        {hasDiscount && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-600 bg-orange-500/20 px-2 py-0.5 rounded-full mt-1">
-                <Percent className="h-3 w-3" />
-                Desconto: {discountPercent > 0 ? `${discountPercent}%` : formatCurrencyCompact(discountAmount)}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Desconto aplicado</TooltipContent>
-          </Tooltip>
-        )}
-        
-        {/* Payment Method */}
-        {paymentMethod && (
-          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-green-500/20 text-[11px] text-muted-foreground">
-            <CreditCard className="h-3 w-3" />
-            <span>{paymentLabels[paymentMethod] || paymentMethod}</span>
-            {paymentInstallments && paymentInstallments > 1 && (
-              <span className="font-medium">{paymentInstallments}x</span>
-            )}
-          </div>
-        )}
-      </div>
+      ) : (
+        <div className="mb-2 p-2 bg-muted/30 rounded-lg border border-dashed text-center">
+          <span className="text-[10px] text-muted-foreground">Sem oportunidade</span>
+        </div>
+      )}
 
       {/* Surgery Date */}
       {lead.surgery_date && (
