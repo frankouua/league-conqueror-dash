@@ -725,6 +725,7 @@ export function useCRMLeadDetail(leadId: string | null) {
       });
 
       if (error) throw error;
+      if (!data) throw new Error('Resposta vazia da IA');
 
       // Update lead with AI analysis
       await supabase
@@ -755,10 +756,15 @@ export function useCRMLeadDetail(leadId: string | null) {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['crm-lead', leadId] });
       queryClient.invalidateQueries({ queryKey: ['crm-lead-history', leadId] });
-      toast({ title: 'Lead analisado pela IA!' });
+      
+      // Show detailed success toast with AI summary
+      toast({ 
+        title: '✨ Lead analisado pela IA!',
+        description: data?.summary || 'Análise concluída com sucesso',
+      });
     },
     onError: (error: any) => {
       toast({ title: 'Erro na análise', description: error.message, variant: 'destructive' });
