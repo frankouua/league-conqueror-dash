@@ -167,3 +167,9 @@ verify_jwt = false
 
 [functions.rollback-import]
 verify_jwt = false
+
+[functions.recurrence-cron]
+verify_jwt = false
+
+[functions.sync-feegow-cron]
+verify_jwt = false
