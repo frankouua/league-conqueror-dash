@@ -55,9 +55,26 @@ interface RoutineProgressRecord {
 interface CRMDailyRoutineWidgetProps {
   onLeadClick?: (leadId: string) => void;
   pipelineId?: string;
+  pipelineType?: string;
 }
 
-// Map position types to POSITION_DETAILS keys
+// Map pipeline types to position keys for routine (prioritized over profile.position)
+const PIPELINE_TO_POSITION_MAP: Record<string, string> = {
+  'sdr': 'sdr',
+  'social_selling': 'comercial_1_captacao',
+  'inbound': 'comercial_1_captacao',
+  'closer': 'comercial_2_closer',
+  'vendas': 'comercial_2_closer',
+  'cs': 'comercial_3_experiencia',
+  'pos_venda': 'comercial_3_experiencia',
+  'farmer': 'comercial_4_farmer',
+  'recovery': 'comercial_4_farmer',
+  'rfv_matrix': 'comercial_4_farmer',
+  'coordinator': 'coordenador',
+  'gerente': 'gerente',
+};
+
+// Map profile position types to POSITION_DETAILS keys (fallback)
 const POSITION_MAP: Record<string, string> = {
   'sdr': 'sdr',
   'comercial_1': 'comercial_1_captacao',
@@ -90,7 +107,7 @@ const getCategoryIcon = (activity: string) => {
   return Calendar;
 };
 
-export function CRMDailyRoutineWidget({ onLeadClick, pipelineId }: CRMDailyRoutineWidgetProps) {
+export function CRMDailyRoutineWidget({ onLeadClick, pipelineId, pipelineType }: CRMDailyRoutineWidgetProps) {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [isRoutineOpen, setIsRoutineOpen] = useState(true);
@@ -98,9 +115,15 @@ export function CRMDailyRoutineWidget({ onLeadClick, pipelineId }: CRMDailyRouti
   const endToday = endOfDay(new Date());
   const todayStr = format(today, 'yyyy-MM-dd');
 
-  // Get user's position and daily schedule
-  const userPosition = profile?.position || 'sdr';
-  const positionKey = POSITION_MAP[userPosition] || 'sdr';
+  // Determine position based on pipeline type first, then fallback to user profile
+  const positionKey = useMemo(() => {
+    if (pipelineType && PIPELINE_TO_POSITION_MAP[pipelineType]) {
+      return PIPELINE_TO_POSITION_MAP[pipelineType];
+    }
+    const userPosition = profile?.position || 'sdr';
+    return POSITION_MAP[userPosition] || 'sdr';
+  }, [pipelineType, profile?.position]);
+
   const positionInfo = POSITION_DETAILS[positionKey];
   const dailySchedule = positionInfo?.dailySchedule || [];
 

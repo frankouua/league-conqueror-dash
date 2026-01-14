@@ -59,6 +59,7 @@ import { CRMGamificationWidget } from "@/components/crm/CRMGamificationWidget";
 import { CRMSLADashboard } from "@/components/crm/CRMSLADashboard";
 import { CRMCadencesManager } from "@/components/crm/CRMCadencesManager";
 import { CRMDailyRoutineWidget } from "@/components/crm/CRMDailyRoutineWidget";
+import { CRMRoutineCompactBar } from "@/components/crm/CRMRoutineCompactBar";
 import { CRMCommercialReports } from "@/components/crm/CRMCommercialReports";
 import { useCRM, useCRMLeads, CRMLead } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
@@ -332,14 +333,12 @@ const CRM = () => {
         {/* Collapsible Daily Overview - smaller and toggleable */}
         {viewMode === 'kanban' && <CRMDailyOverview />}
         
-        {/* Daily Routine Widget - Tasks for today */}
+        {/* Compact Routine Bar - replaces full widget in Kanban view */}
         {viewMode === 'kanban' && (
-          <CRMDailyRoutineWidget 
-            pipelineId={selectedPipeline} 
-            onLeadClick={(leadId) => {
-              const lead = leads?.find(l => l.id === leadId);
-              if (lead) setSelectedLead(lead);
-            }}
+          <CRMRoutineCompactBar 
+            pipelineId={selectedPipeline}
+            pipelineType={pipelines.find(p => p.id === selectedPipeline)?.pipeline_type}
+            onViewDetails={() => setViewMode('routine')}
           />
         )}
 
@@ -418,7 +417,19 @@ const CRM = () => {
         )}
 
         {viewMode === 'routine' && (
-          <CRMTeamRoutine />
+          <div className="space-y-6">
+            {/* Full Daily Routine Widget with pipeline-based mapping */}
+            <CRMDailyRoutineWidget 
+              pipelineId={selectedPipeline}
+              pipelineType={pipelines.find(p => p.id === selectedPipeline)?.pipeline_type}
+              onLeadClick={(leadId) => {
+                const lead = leads?.find(l => l.id === leadId);
+                if (lead) setSelectedLead(lead);
+              }}
+            />
+            {/* Team Routine */}
+            <CRMTeamRoutine />
+          </div>
         )}
 
         {viewMode === 'chat' && (
