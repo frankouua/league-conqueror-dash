@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell, History } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell, History, Bot } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +22,7 @@ import { AnalyticsAI } from "@/components/admin/AnalyticsAI";
 import AlertsManager from "@/components/admin/AlertsManager";
 import { FeegowEnrichment } from "@/components/admin/FeegowEnrichment";
 import HistoricalDataImport from "@/components/admin/HistoricalDataImport";
+import { AutomationsMonitor } from "@/components/admin/AutomationsMonitor";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -199,6 +200,13 @@ const Admin = () => {
                 <History className="w-4 h-4" />
                 <span className="text-xs font-medium">Histórico</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="automations"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
+              >
+                <Bot className="w-4 h-4" />
+                <span className="text-xs font-medium">Automações</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -267,6 +275,10 @@ const Admin = () => {
 
           <TabsContent value="historical-import" className="animate-scale-in">
             <HistoricalDataImport />
+          </TabsContent>
+
+          <TabsContent value="automations" className="animate-scale-in">
+            <AutomationsMonitor />
           </TabsContent>
         </Tabs>
 
