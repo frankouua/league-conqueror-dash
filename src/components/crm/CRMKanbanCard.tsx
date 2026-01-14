@@ -5,7 +5,7 @@ import {
   Phone, Calendar, DollarSign, AlertTriangle, 
   Clock, Star, Flame, Snowflake, ThermometerSun,
   FileText, Percent, CreditCard, Brain, ArrowRight,
-  TrendingUp, Tag
+  History, TrendingUp
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -61,41 +61,18 @@ const AIScoreBadge = ({ score, probability }: { score?: number | null; probabili
   );
 };
 
-const PaymentBadge = ({ method, installments }: { method?: string | null; installments?: number | null }) => {
-  if (!method) return null;
-  
-  const paymentLabels: Record<string, string> = {
-    'pix': 'PIX',
-    'credit_card': 'Cartão',
-    'debit': 'Débito',
-    'cash': 'À vista',
-    'financing': 'Financ.',
-    'installment': 'Parcelado',
-  };
-  
-  const label = paymentLabels[method] || method;
-  const installmentText = installments && installments > 1 ? ` ${installments}x` : '';
-  
-  return (
-    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-      <CreditCard className="h-3 w-3" />
-      <span>{label}{installmentText}</span>
-    </div>
-  );
-};
-
 export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDragging }: CRMKanbanCardProps) {
   const hasOverdueTasks = (lead.checklist_overdue || 0) > 0;
   const completedTasks = lead.checklist_completed || 0;
   const totalTasks = lead.checklist_total || 0;
   const pendingTasks = totalTasks - completedTasks;
   
-  // Get procedures
+  // Current opportunity - NEW negotiation
   const mainProcedure = lead.interested_procedures?.[0];
   const additionalProcedures = (lead.interested_procedures?.length || 0) - 1;
+  const currentValue = lead.estimated_value || 0;
   
-  // Calculate discount
-  const originalValue = (lead as any).original_value;
+  // Discount info
   const discountPercent = (lead as any).discount_percentage;
   const discountAmount = (lead as any).discount_amount;
   const hasDiscount = discountPercent > 0 || discountAmount > 0;
@@ -112,10 +89,23 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
   const nextAction = (lead as any).next_action;
   const nextActionDate = (lead as any).next_action_date;
   
+  // Historical data (past purchases) - MINIMIZED
+  const historicalTotal = (lead as any).historical_total_value || 0;
+  const historicalProcedures = (lead as any).historical_procedures_count || 0;
+  
   // Last activity
   const lastActivity = lead.last_activity_at 
     ? formatDistanceToNow(new Date(lead.last_activity_at), { addSuffix: true, locale: ptBR })
     : null;
+
+  const paymentLabels: Record<string, string> = {
+    'pix': 'PIX',
+    'credit_card': 'Cartão',
+    'debit': 'Débito',
+    'cash': 'À vista',
+    'financing': 'Financ.',
+    'installment': 'Parcelado',
+  };
 
   return (
     <div
@@ -139,41 +129,43 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
         </div>
       </div>
 
-      {/* Procedure + Value Box - HIGHLIGHTED */}
-      <div className="mb-2 p-2 bg-gradient-to-r from-primary/10 to-primary/5 rounded-md border border-primary/20">
+      {/* ===== CURRENT OPPORTUNITY - HIGHLIGHTED ===== */}
+      <div className="mb-2 p-2.5 bg-gradient-to-r from-green-500/15 via-green-500/10 to-emerald-500/5 rounded-lg border-2 border-green-500/30">
+        {/* Label */}
+        <div className="flex items-center gap-1 mb-1.5">
+          <TrendingUp className="h-3 w-3 text-green-600" />
+          <span className="text-[10px] font-semibold text-green-600 uppercase tracking-wide">Oportunidade Atual</span>
+        </div>
+        
         {/* Procedure */}
         {mainProcedure && (
           <div className="flex items-center gap-1.5 text-xs mb-1.5">
-            <FileText className="h-3 w-3 text-primary flex-shrink-0" />
-            <span className="truncate font-semibold text-primary">{mainProcedure}</span>
+            <FileText className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+            <span className="truncate font-bold text-foreground">{mainProcedure}</span>
             {additionalProcedures > 0 && (
-              <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-600">
                 +{additionalProcedures}
               </Badge>
             )}
           </div>
         )}
         
-        {/* Value + Discount */}
-        {lead.estimated_value && (
-          <div className="flex items-center justify-between">
+        {/* MAIN VALUE - BIG AND PROMINENT */}
+        {currentValue > 0 && (
+          <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-1.5">
-              <DollarSign className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-              <span className="font-bold text-green-600 text-sm">{formatCurrency(lead.estimated_value)}</span>
+              <DollarSign className="h-4 w-4 text-green-500" />
+              <span className="font-black text-green-500 text-lg">{formatCurrency(currentValue)}</span>
             </div>
             {hasDiscount && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-0.5 text-[10px] font-medium text-orange-600 bg-orange-500/10 px-1.5 py-0.5 rounded">
-                    <Percent className="h-2.5 w-2.5" />
-                    {discountPercent > 0 ? `${discountPercent}%` : formatCurrencyCompact(discountAmount)} desc.
+                  <div className="flex items-center gap-0.5 text-[10px] font-bold text-orange-600 bg-orange-500/20 px-2 py-0.5 rounded-full">
+                    <Percent className="h-3 w-3" />
+                    {discountPercent > 0 ? `${discountPercent}%` : formatCurrencyCompact(discountAmount)}
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
-                  {originalValue && (
-                    <span>Valor original: {formatCurrency(originalValue)}</span>
-                  )}
-                </TooltipContent>
+                <TooltipContent>Desconto aplicado</TooltipContent>
               </Tooltip>
             )}
           </div>
@@ -181,27 +173,31 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
         
         {/* Payment Method */}
         {paymentMethod && (
-          <div className="mt-1.5 pt-1.5 border-t border-primary/10">
-            <PaymentBadge method={paymentMethod} installments={paymentInstallments} />
+          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-green-500/20 text-[11px] text-muted-foreground">
+            <CreditCard className="h-3 w-3" />
+            <span>{paymentLabels[paymentMethod] || paymentMethod}</span>
+            {paymentInstallments && paymentInstallments > 1 && (
+              <span className="font-medium">{paymentInstallments}x</span>
+            )}
           </div>
         )}
       </div>
 
       {/* Surgery Date */}
       {lead.surgery_date && (
-        <div className="flex items-center gap-1.5 text-xs mb-2 px-2 py-1 bg-primary/10 rounded text-primary font-medium">
-          <Calendar className="h-3 w-3" />
+        <div className="flex items-center gap-1.5 text-xs mb-2 px-2 py-1.5 bg-primary/10 rounded-md text-primary font-semibold">
+          <Calendar className="h-3.5 w-3.5" />
           <span>Cirurgia: {format(new Date(lead.surgery_date), "dd/MM/yyyy", { locale: ptBR })}</span>
         </div>
       )}
 
-      {/* Next Action - HIGHLIGHTED if exists */}
+      {/* Next Action */}
       {nextAction && (
         <div className={cn(
-          "flex items-center gap-1.5 text-xs mb-2 px-2 py-1.5 rounded",
+          "flex items-center gap-1.5 text-xs mb-2 px-2 py-1.5 rounded-md",
           nextActionDate && new Date(nextActionDate) < new Date() 
-            ? "bg-destructive/10 text-destructive" 
-            : "bg-blue-500/10 text-blue-600"
+            ? "bg-destructive/10 text-destructive border border-destructive/30" 
+            : "bg-blue-500/10 text-blue-600 border border-blue-500/20"
         )}>
           <ArrowRight className="h-3 w-3 flex-shrink-0" />
           <span className="truncate font-medium">{nextAction}</span>
@@ -211,6 +207,23 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
             </span>
           )}
         </div>
+      )}
+
+      {/* ===== HISTORICAL DATA - MINIMIZED ===== */}
+      {(historicalTotal > 0 || historicalProcedures > 0) && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground/70 mb-2 px-1.5 py-1 bg-muted/30 rounded">
+              <History className="h-3 w-3" />
+              <span>Histórico: {historicalProcedures} proc. • {formatCurrencyCompact(historicalTotal)}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Compras anteriores do cliente</p>
+            <p className="text-xs text-muted-foreground">{historicalProcedures} procedimentos realizados</p>
+            <p className="text-xs font-medium">Total: {formatCurrency(historicalTotal)}</p>
+          </TooltipContent>
+        </Tooltip>
       )}
 
       {/* Checklist Progress - Compact */}
@@ -230,13 +243,13 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
             hasOverdueTasks ? "text-destructive" : "text-muted-foreground"
           )}>
             {hasOverdueTasks && <AlertTriangle className="h-3 w-3" />}
-            {pendingTasks > 0 ? `${pendingTasks} pendente${pendingTasks > 1 ? 's' : ''}` : '✓'}
+            {pendingTasks > 0 ? `${pendingTasks} pend.` : '✓'}
           </span>
         </div>
       )}
 
       {/* Footer: Last interaction + Quick Contact */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-2 border-t">
         <div className="flex items-center gap-1">
           <Clock className="h-3 w-3" />
           <span>{lastActivity || 'Sem interação'}</span>
@@ -253,22 +266,6 @@ export const CRMKanbanCard = memo(function CRMKanbanCard({ lead, onClick, isDrag
           </Tooltip>
         )}
       </div>
-
-      {/* Tags (max 2) */}
-      {lead.tags && lead.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t">
-          {lead.tags.slice(0, 2).map((tag, i) => (
-            <Badge key={i} variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-              {tag}
-            </Badge>
-          ))}
-          {lead.tags.length > 2 && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-              +{lead.tags.length - 2}
-            </Badge>
-          )}
-        </div>
-      )}
     </div>
   );
 });
