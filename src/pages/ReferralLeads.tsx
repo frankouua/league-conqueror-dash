@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,6 +27,9 @@ import {
   ShieldCheck,
   ShieldX,
   Trash2,
+  Upload,
+  Image,
+  Eye,
 } from "lucide-react";
 import { ReferralConversionReport } from "@/components/ReferralConversionReport";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,6 +96,7 @@ interface ReferralLead {
   approved_by: string | null;
   approved_at: string | null;
   rejection_reason: string | null;
+  evidence_url: string | null;
   assigned_profile?: { full_name: string } | null;
   registered_profile?: { full_name: string } | null;
 }
@@ -239,6 +243,14 @@ const ReferralLeads = () => {
     notes: "",
     team_id: "", // For admins without team_id
   });
+  
+  // Evidence upload
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [evidencePreview, setEvidencePreview] = useState<string | null>(null);
+  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showEvidenceViewer, setShowEvidenceViewer] = useState(false);
+  const [viewingEvidenceUrl, setViewingEvidenceUrl] = useState<string | null>(null);
 
   // Edit lead dialog
   const [editingLead, setEditingLead] = useState<ReferralLead | null>(null);
@@ -255,6 +267,7 @@ const ReferralLeads = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [leadToReject, setLeadToReject] = useState<ReferralLead | null>(null);
+  
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -387,6 +400,54 @@ const ReferralLeads = () => {
     }
   };
 
+  // Handle evidence file selection
+  const handleEvidenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({ title: "Erro", description: "Selecione apenas imagens (JPG, PNG, etc.)", variant: "destructive" });
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Erro", description: "Imagem muito grande. Máximo 5MB.", variant: "destructive" });
+        return;
+      }
+      setEvidenceFile(file);
+      setEvidencePreview(URL.createObjectURL(file));
+    }
+  };
+  
+  // Upload evidence to storage
+  const uploadEvidence = async (leadId: string): Promise<string | null> => {
+    if (!evidenceFile || !user) return null;
+    
+    setIsUploadingEvidence(true);
+    try {
+      const fileExt = evidenceFile.name.split('.').pop();
+      const fileName = `${user.id}/${leadId}_${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('referral-evidence')
+        .upload(fileName, evidenceFile);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('referral-evidence')
+        .getPublicUrl(fileName);
+      
+      return urlData.publicUrl;
+    } catch (error: any) {
+      console.error("Error uploading evidence:", error);
+      toast({ title: "Aviso", description: "Erro ao enviar evidência, mas a indicação foi salva.", variant: "destructive" });
+      return null;
+    } finally {
+      setIsUploadingEvidence(false);
+    }
+  };
+
   const handleCreateLead = async () => {
     if (!user) return;
     
@@ -422,6 +483,16 @@ const ReferralLeads = () => {
 
       if (error) throw error;
 
+      // Upload evidence if provided
+      if (data && evidenceFile) {
+        const evidenceUrl = await uploadEvidence(data.id);
+        if (evidenceUrl) {
+          await supabase.from("referral_leads")
+            .update({ evidence_url: evidenceUrl })
+            .eq("id", data.id);
+        }
+      }
+
       // 🏆 COPA: Pontos só são dados APÓS aprovação do admin
       // Não dar pontos na criação - será dado quando admin aprovar
 
@@ -449,6 +520,8 @@ const ReferralLeads = () => {
         notes: "",
         team_id: "",
       });
+      setEvidenceFile(null);
+      setEvidencePreview(null);
       fetchLeads();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -1085,27 +1158,40 @@ const ReferralLeads = () => {
                             {lead.referred_phone}
                           </p>
                         )}
-                        {/* Badge de aprovação */}
-                        {role === "admin" && (
-                          <div className="mt-1">
-                            {lead.approved ? (
-                              <Badge variant="outline" className="text-[10px] bg-green-500/20 border-green-500/30 text-green-400">
-                                <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
-                                Aprovada
-                              </Badge>
-                            ) : lead.rejection_reason ? (
-                              <Badge variant="outline" className="text-[10px] bg-red-500/20 border-red-500/30 text-red-400">
-                                <ShieldX className="w-2.5 h-2.5 mr-0.5" />
-                                Rejeitada
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-[10px] bg-yellow-500/20 border-yellow-500/30 text-yellow-400">
-                                <Shield className="w-2.5 h-2.5 mr-0.5" />
-                                Pendente
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                        {/* Badges de aprovação e evidência */}
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          {role === "admin" && (
+                            <>
+                              {lead.approved ? (
+                                <Badge variant="outline" className="text-[10px] bg-green-500/20 border-green-500/30 text-green-400">
+                                  <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
+                                  Aprovada
+                                </Badge>
+                              ) : lead.rejection_reason ? (
+                                <Badge variant="outline" className="text-[10px] bg-red-500/20 border-red-500/30 text-red-400">
+                                  <ShieldX className="w-2.5 h-2.5 mr-0.5" />
+                                  Rejeitada
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] bg-yellow-500/20 border-yellow-500/30 text-yellow-400">
+                                  <Shield className="w-2.5 h-2.5 mr-0.5" />
+                                  Pendente
+                                </Badge>
+                              )}
+                            </>
+                          )}
+                          {lead.evidence_url ? (
+                            <Badge variant="outline" className="text-[10px] bg-blue-500/20 border-blue-500/30 text-blue-400">
+                              <Image className="w-2.5 h-2.5 mr-0.5" />
+                              Print
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] bg-gray-500/20 border-gray-500/30 text-gray-400">
+                              <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                              Sem print
+                            </Badge>
+                          )}
+                        </div>
                         {lead.registered_profile && (
                           <p className="text-xs text-primary/80 mt-1 truncate">
                             Coletado por: {lead.registered_profile.full_name.split(" ")[0]}
@@ -1337,6 +1423,73 @@ const ReferralLeads = () => {
                 rows={3}
               />
             </div>
+
+            {/* Evidence Upload */}
+            <div className="border-t border-border pt-4">
+              <Label className="text-foreground flex items-center gap-2 mb-2">
+                <Image className="w-4 h-4 text-primary" />
+                Evidência (Print WhatsApp) *
+              </Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Anexe o print da conversa do WhatsApp que mostra que você estimulou a indicação ativamente. Isso é necessário para aprovação.
+              </p>
+              
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleEvidenceFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+              
+              {evidencePreview ? (
+                <div className="relative">
+                  <img 
+                    src={evidencePreview} 
+                    alt="Preview da evidência" 
+                    className="w-full max-h-48 object-contain rounded-lg border border-border"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEvidenceFile(null);
+                        setEvidencePreview(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                      className="flex-1"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Remover
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Upload className="w-4 h-4 mr-1" />
+                      Trocar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-24 border-dashed border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/5"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <Upload className="w-6 h-6 text-primary" />
+                    <span className="text-sm">Clique para anexar o print</span>
+                  </div>
+                </Button>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewDialog(false)} className="border-border">
@@ -1408,6 +1561,51 @@ const ReferralLeads = () => {
                   )}
                 </div>
               </div>
+
+              {/* Evidência - Print WhatsApp */}
+              {editingLead.evidence_url && (
+                <div className="border rounded-lg p-4 bg-secondary/30 border-border">
+                  <Label className="text-foreground flex items-center gap-2 mb-3">
+                    <Image className="w-4 h-4 text-primary" />
+                    Evidência (Print WhatsApp)
+                  </Label>
+                  <div className="relative">
+                    <img 
+                      src={editingLead.evidence_url} 
+                      alt="Evidência da indicação" 
+                      className="w-full max-h-48 object-contain rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => {
+                        setViewingEvidenceUrl(editingLead.evidence_url);
+                        setShowEvidenceViewer(true);
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="absolute top-2 right-2 bg-card/80"
+                      onClick={() => {
+                        setViewingEvidenceUrl(editingLead.evidence_url);
+                        setShowEvidenceViewer(true);
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Ampliar
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {!editingLead.evidence_url && role === "admin" && (
+                <div className="border rounded-lg p-4 bg-yellow-500/10 border-yellow-500/30">
+                  <div className="flex items-center gap-2 text-yellow-500">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="text-sm font-medium">Sem evidência anexada</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Esta indicação foi registrada sem print de WhatsApp comprovando a origem.
+                  </p>
+                </div>
+              )}
 
               {/* Seção de Aprovação - Apenas Admin */}
               {role === "admin" && (
@@ -1775,6 +1973,39 @@ const ReferralLeads = () => {
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Rejeitar"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Dialog de Visualização de Evidência */}
+      <Dialog open={showEvidenceViewer} onOpenChange={setShowEvidenceViewer}>
+        <DialogContent className="bg-card border-border max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Image className="w-5 h-5 text-primary" />
+              Evidência da Indicação
+            </DialogTitle>
+          </DialogHeader>
+          {viewingEvidenceUrl && (
+            <div className="flex justify-center">
+              <img 
+                src={viewingEvidenceUrl} 
+                alt="Evidência em tamanho completo" 
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEvidenceViewer(false)}>
+              Fechar
+            </Button>
+            {viewingEvidenceUrl && (
+              <Button
+                onClick={() => window.open(viewingEvidenceUrl, "_blank")}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Abrir em nova aba
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

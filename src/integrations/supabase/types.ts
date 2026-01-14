@@ -6237,6 +6237,7 @@ export type Database = {
           consultation_date: string | null
           created_at: string
           crm_lead_id: string | null
+          evidence_url: string | null
           id: string
           last_contact_at: string | null
           loss_reason: string | null
@@ -6266,6 +6267,7 @@ export type Database = {
           consultation_date?: string | null
           created_at?: string
           crm_lead_id?: string | null
+          evidence_url?: string | null
           id?: string
           last_contact_at?: string | null
           loss_reason?: string | null
@@ -6295,6 +6297,7 @@ export type Database = {
           consultation_date?: string | null
           created_at?: string
           crm_lead_id?: string | null
+          evidence_url?: string | null
           id?: string
           last_contact_at?: string | null
           loss_reason?: string | null
