@@ -119,17 +119,23 @@ export function CRMProtocolIntegration({ selectedLead, onOfferSent }: CRMProtoco
       if (!currentProcedures.includes(protocol.name)) {
         const nextProcedures = [...currentProcedures, protocol.name];
 
-        // Recalculate negotiation value as SUM of all selected items
-        // (Protocols + Procedures), instead of overwriting with only the last offered item.
+        const normalizeName = (name: string) =>
+          name.replace(/^\s*Com\s*\d+\s*-\s*/i, '').trim();
+
+        // Query both raw and normalized names to cover labels with/without "Com XXX -"
+        const nameCandidates = Array.from(
+          new Set(nextProcedures.flatMap(n => [n.trim(), normalizeName(n)]).filter(Boolean))
+        );
+
         const [protocolsRes, proceduresRes] = await Promise.all([
           supabase
             .from('protocols')
             .select('name, price, promotional_price')
-            .in('name', nextProcedures),
+            .in('name', nameCandidates),
           supabase
             .from('procedures')
             .select('name, price, promotional_price')
-            .in('name', nextProcedures),
+            .in('name', nameCandidates),
         ]);
 
         if (protocolsRes.error) throw protocolsRes.error;
@@ -140,16 +146,16 @@ export function CRMProtocolIntegration({ selectedLead, onOfferSent }: CRMProtoco
           priceByName.set(p.name, p.promotional_price ?? p.price ?? 0);
         }
         for (const p of (proceduresRes.data || [])) {
-          // Avoid double-counting if a name exists in both tables
           if (!priceByName.has(p.name)) {
             priceByName.set(p.name, p.promotional_price ?? p.price ?? 0);
           }
         }
 
-        const computedEstimatedValue = nextProcedures.reduce(
-          (sum, name) => sum + (priceByName.get(name) ?? 0),
-          0
-        );
+        const getPrice = (name: string) =>
+          priceByName.get(name) ?? priceByName.get(normalizeName(name)) ?? 0;
+
+        const computedEstimatedValue = nextProcedures.reduce((sum, name) => sum + getPrice(name), 0);
+
 
         await supabase
           .from('crm_leads')

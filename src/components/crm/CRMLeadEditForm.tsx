@@ -226,24 +226,29 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
     );
   }
 
-  // Helper to get procedure price by name
+  // Normalize labels like "Com 100 - Abdominoplastia" -> "Abdominoplastia"
+  const normalizeProcedureName = (name: string) =>
+    name.replace(/^\s*Com\s*\d+\s*-\s*/i, '').trim();
+
+  // Helper to get procedure price by name (supports names with/without "Com XXX - " prefix)
   const getProcedurePrice = (procedureName: string): number => {
-    // Check in individual procedures first
-    const proc = procedures.find(p => p.name === procedureName);
-    if (proc) return proc.promotional_price || proc.price;
-    
-    // Check in protocols
-    const protocol = protocols.find(p => p.name === procedureName);
-    if (protocol) return protocol.promotional_price || protocol.price;
-    
-    return 0;
+    const raw = procedureName.trim();
+    const normalized = normalizeProcedureName(raw);
+
+    const matchByName = (name: string) => {
+      const proc = procedures.find(p => p.name === name);
+      if (proc) return proc.promotional_price || proc.price;
+      const protocol = protocols.find(p => p.name === name);
+      if (protocol) return protocol.promotional_price || protocol.price;
+      return null;
+    };
+
+    return matchByName(raw) ?? matchByName(normalized) ?? 0;
   };
 
   // Calculate total value from selected procedures
   const calculateTotalValue = (selectedProcedures: string[]): number => {
-    return selectedProcedures.reduce((total, procName) => {
-      return total + getProcedurePrice(procName);
-    }, 0);
+    return selectedProcedures.reduce((total, procName) => total + getProcedurePrice(procName), 0);
   };
 
   const handleProcedureToggle = (procedure: string) => {
@@ -251,14 +256,15 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
       const newProcedures = prev.interested_procedures.includes(procedure)
         ? prev.interested_procedures.filter(p => p !== procedure)
         : [...prev.interested_procedures, procedure];
-      
+
       // AUTO-CALCULATE negotiation value
       const newValue = calculateTotalValue(newProcedures);
-      
+
       return {
         ...prev,
         interested_procedures: newProcedures,
-        estimated_value: newValue > 0 ? newValue.toString() : prev.estimated_value,
+        // Always reflect what is selected (computed value)
+        estimated_value: newValue.toString(),
       };
     });
   };

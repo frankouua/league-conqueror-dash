@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  User, Phone, Mail, Star, Sparkles, AlertTriangle, CheckCircle2, 
-  Circle, Plus, Send, History, ListTodo, FileText, TrendingUp, Brain, 
+  User, Phone, Mail, Star, Sparkles, AlertTriangle, CheckCircle2,
+  Circle, Plus, Send, History, ListTodo, FileText, TrendingUp, Brain,
   Loader2, Edit2, Trash2, ClipboardCheck, PhoneCall
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -51,6 +51,70 @@ import { CRMLeadUTM } from './CRMLeadUTM';
 import { CRMCoordinatorValidation } from './CRMCoordinatorValidation';
 import { CRMLeadDischarge } from './CRMLeadDischarge';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+
+type PriceItem = { name: string; price: number | null; promotional_price: number | null };
+
+function computeNegotiationValue(selected: string[], items: PriceItem[]) {
+  const normalize = (name: string) => name.replace(/^\s*Com\s*\d+\s*-\s*/i, '').trim();
+  const priceByName = new Map<string, number>();
+  for (const it of items) {
+    priceByName.set(it.name, (it.promotional_price ?? it.price ?? 0));
+  }
+  return selected.reduce((sum, name) => {
+    const raw = name.trim();
+    const val = priceByName.get(raw) ?? priceByName.get(normalize(raw)) ?? 0;
+    return sum + val;
+  }, 0);
+}
+
+function NegotiationValueCard({ lead }: { lead: CRMLead }) {
+  const selected = lead.interested_procedures || [];
+
+  const { data: priceItems = [] } = useQuery({
+    queryKey: ['lead-negotiation-prices', lead.id, selected.join('|')],
+    queryFn: async () => {
+      if (!selected.length) return [] as PriceItem[];
+      const normalize = (name: string) => name.replace(/^\s*Com\s*\d+\s*-\s*/i, '').trim();
+      const candidates = Array.from(new Set(selected.flatMap(n => [n.trim(), normalize(n)]).filter(Boolean)));
+
+      const [protocolsRes, proceduresRes] = await Promise.all([
+        supabase.from('protocols').select('name, price, promotional_price').in('name', candidates),
+        supabase.from('procedures').select('name, price, promotional_price').in('name', candidates),
+      ]);
+
+      const merged: PriceItem[] = [
+        ...((protocolsRes.data as any[]) || []),
+        ...((proceduresRes.data as any[]) || []),
+      ];
+      return merged;
+    },
+    enabled: !!lead.id,
+  });
+
+  const computed = useMemo(() => computeNegotiationValue(selected, priceItems), [selected, priceItems]);
+  const valueToShow = computed > 0 ? computed : (lead.estimated_value || 0);
+
+  return (
+    <Card className="bg-gradient-to-r from-green-500/15 via-green-500/10 to-emerald-500/5 border-2 border-green-500/40">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp className="h-4 w-4 text-green-600" />
+          <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">Valor da Negociação</span>
+        </div>
+        <p className="text-3xl font-black text-green-600">
+          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valueToShow)}
+        </p>
+        {selected.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {selected.length} procedimento{selected.length > 1 ? 's' : ''} selecionado{selected.length > 1 ? 's' : ''}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 interface CRMLeadDetailProps {
   lead: CRMLead | null;
@@ -298,24 +362,7 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                 {lead && (
                   <>
                     {/* NEGOTIATION VALUE - HIGHLIGHTED */}
-                    <Card className="bg-gradient-to-r from-green-500/15 via-green-500/10 to-emerald-500/5 border-2 border-green-500/40">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                          <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">Valor da Negociação</span>
-                        </div>
-                        <p className="text-3xl font-black text-green-600">
-                          {lead.estimated_value
-                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_value)
-                            : 'R$ 0'}
-                        </p>
-                        {lead.interested_procedures && lead.interested_procedures.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {lead.interested_procedures.length} procedimento{lead.interested_procedures.length > 1 ? 's' : ''} selecionado{lead.interested_procedures.length > 1 ? 's' : ''}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <NegotiationValueCard lead={lead} />
 
                     {/* Quick Stats - Score, Interactions */}
                     <div className="grid grid-cols-2 gap-3">
