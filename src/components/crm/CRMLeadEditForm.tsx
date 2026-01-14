@@ -393,14 +393,14 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
             <div className="space-y-2">
               <Label>Responsável</Label>
               <Select
-                value={formData.assigned_to}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, assigned_to: v }))}
+                value={formData.assigned_to || '__none__'}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, assigned_to: v === '__none__' ? '' : v }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem responsável</SelectItem>
+                  <SelectItem value="__none__">Sem responsável</SelectItem>
                   {teamMembers.map(member => (
                     <SelectItem key={member.user_id} value={member.user_id}>
                       {member.full_name}
