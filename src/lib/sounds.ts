@@ -218,3 +218,40 @@ export const playDefeatSound = () => {
     console.warn("Defeat sound failed:", error);
   }
 };
+
+// 🔔 Notification sound for urgent referrals - attention-grabbing but not annoying
+export const playNotificationSound = () => {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    // Two-tone notification chime (like WhatsApp/iMessage)
+    playNote(ctx, 880, now, 0.08, "sine", 0.25);        // A5 - first ping
+    playNote(ctx, 1318.51, now + 0.1, 0.12, "sine", 0.2); // E6 - second higher ping
+    
+    // Subtle harmonic underneath
+    playNote(ctx, 440, now + 0.05, 0.15, "triangle", 0.08);
+  } catch (error) {
+    console.warn("Notification sound failed:", error);
+  }
+};
+
+// 🚨 Urgent alert sound for important notifications
+export const playUrgentAlertSound = () => {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    // Three ascending chimes - more attention-grabbing
+    playNote(ctx, 659.25, now, 0.1, "sine", 0.3);         // E5
+    playNote(ctx, 830.61, now + 0.12, 0.1, "sine", 0.3);  // Ab5
+    playNote(ctx, 1046.50, now + 0.24, 0.15, "sine", 0.35); // C6
+    
+    // Quick second burst after a pause
+    playNote(ctx, 659.25, now + 0.5, 0.08, "sine", 0.25);
+    playNote(ctx, 830.61, now + 0.58, 0.08, "sine", 0.25);
+    playNote(ctx, 1046.50, now + 0.66, 0.12, "sine", 0.3);
+  } catch (error) {
+    console.warn("Urgent alert sound failed:", error);
+  }
+};
