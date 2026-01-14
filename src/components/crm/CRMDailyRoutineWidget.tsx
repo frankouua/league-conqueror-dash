@@ -212,14 +212,14 @@ export function CRMDailyRoutineWidget({ onLeadClick, pipelineId, pipelineType }:
       const { data, error } = await supabase
         .from('lead_checklist_items')
         .select(`
-          id, title, due_date, is_completed, is_overdue, priority, task_type,
+          id, title, description, due_at, is_completed, is_overdue, order_index,
           lead:crm_leads!lead_checklist_items_lead_id_fkey(
             id, name, estimated_value, interested_procedures, assigned_to, pipeline_id
           )
         `)
-        .gte('due_date', today.toISOString())
-        .lte('due_date', addDays(endToday, 1).toISOString())
-        .order('due_date', { ascending: true });
+        .gte('due_at', today.toISOString())
+        .lte('due_at', addDays(endToday, 1).toISOString())
+        .order('due_at', { ascending: true });
 
       if (error) throw error;
 
@@ -235,11 +235,11 @@ export function CRMDailyRoutineWidget({ onLeadClick, pipelineId, pipelineType }:
           lead_id: item.lead?.id,
           lead_name: item.lead?.name || 'Lead',
           title: item.title,
-          due_date: item.due_date,
+          due_date: item.due_at,
           is_completed: item.is_completed,
-          is_overdue: item.is_overdue,
-          priority: item.priority || 'medium',
-          task_type: item.task_type || 'follow_up',
+          is_overdue: item.is_overdue || (item.due_at && isPast(new Date(item.due_at)) && !item.is_completed),
+          priority: 'medium',
+          task_type: 'checklist',
           estimated_value: item.lead?.estimated_value,
           procedure: item.lead?.interested_procedures?.[0],
         })) as DailyTask[];
