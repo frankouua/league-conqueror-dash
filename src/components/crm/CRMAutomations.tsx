@@ -77,8 +77,8 @@ export function CRMAutomations() {
     description: '',
     trigger_type: 'lead_created',
     trigger_config: {} as Record<string, any>,
-    pipeline_id: '',
-    stage_id: '',
+    pipeline_id: 'all',
+    stage_id: 'all',
     actions: [] as { type: string; config: Record<string, any> }[],
   });
 
@@ -104,8 +104,8 @@ export function CRMAutomations() {
         description: data.description || null,
         trigger_type: data.trigger_type,
         trigger_config: data.trigger_config,
-        pipeline_id: data.pipeline_id || null,
-        stage_id: data.stage_id || null,
+        pipeline_id: data.pipeline_id === 'all' ? null : data.pipeline_id,
+        stage_id: data.stage_id === 'all' ? null : data.stage_id,
         actions: data.actions,
         created_by: user?.id || '',
         is_active: true,
@@ -171,8 +171,8 @@ export function CRMAutomations() {
       description: '',
       trigger_type: 'lead_created',
       trigger_config: {},
-      pipeline_id: '',
-      stage_id: '',
+      pipeline_id: 'all',
+      stage_id: 'all',
       actions: [],
     });
   };
@@ -184,8 +184,8 @@ export function CRMAutomations() {
       description: automation.description || '',
       trigger_type: automation.trigger_type,
       trigger_config: automation.trigger_config || {},
-      pipeline_id: automation.pipeline_id || '',
-      stage_id: automation.stage_id || '',
+      pipeline_id: automation.pipeline_id || 'all',
+      stage_id: automation.stage_id || 'all',
       actions: (automation.actions as any) || [],
     });
     setShowCreateDialog(true);
@@ -435,13 +435,13 @@ export function CRMAutomations() {
                 <Label>Pipeline (opcional)</Label>
                 <Select
                   value={formData.pipeline_id}
-                  onValueChange={(v) => setFormData({ ...formData, pipeline_id: v })}
+                  onValueChange={(v) => setFormData({ ...formData, pipeline_id: v, stage_id: 'all' })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     {pipelines.map((p) => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
@@ -458,9 +458,9 @@ export function CRMAutomations() {
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     {stages
-                      .filter(s => !formData.pipeline_id || s.pipeline_id === formData.pipeline_id)
+                      .filter(s => formData.pipeline_id === 'all' || s.pipeline_id === formData.pipeline_id)
                       .map((s) => (
                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                       ))}
