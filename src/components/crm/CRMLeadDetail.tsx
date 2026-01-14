@@ -541,6 +541,15 @@ export function CRMLeadDetail({ lead: initialLead, open, onClose }: CRMLeadDetai
                       </CardContent>
                     </Card>
 
+                    {/* SUMMARY COMPONENT - Complete history and summary */}
+                    {lead && (
+                      <CRMLeadSummary 
+                        lead={lead} 
+                        history={history} 
+                        tasks={tasks} 
+                      />
+                    )}
+
                     {/* Personal Data - IMPORTANTE: NÃO passar leadEstimatedValue para evitar confusão */}
                     <CRMLeadPersonalData
                       leadCpf={(lead || initialLead)?.cpf || null}
