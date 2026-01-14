@@ -152,8 +152,8 @@ const Admin = () => {
                 value="history"
                 className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-gold data-[state=active]:text-primary-foreground rounded-lg whitespace-nowrap"
               >
-                <Shield className="w-4 h-4" />
-                <span className="text-xs font-medium">Histórico</span>
+                <Award className="w-4 h-4" />
+                <span className="text-xs font-medium">Hist. Cartões</span>
               </TabsTrigger>
               <TabsTrigger
                 value="users"
@@ -202,7 +202,7 @@ const Admin = () => {
                 className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-yellow-600 data-[state=active]:text-white rounded-lg whitespace-nowrap"
               >
                 <History className="w-4 h-4" />
-                <span className="text-xs font-medium">Histórico</span>
+                <span className="text-xs font-medium">Importar Histórico</span>
               </TabsTrigger>
               <TabsTrigger
                 value="automations"
