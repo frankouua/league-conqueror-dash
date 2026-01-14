@@ -1,9 +1,8 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Plus, CheckSquare, Square } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { CRMLead, CRMStage, useCRMLeads } from '@/hooks/useCRM';
@@ -22,9 +21,45 @@ export function CRMKanban({ pipelineId, stages, onLeadClick, onNewLead, filtered
   const { leads: allLeads, moveLead } = useCRMLeads(pipelineId);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
   
   // Use filtered leads if provided, otherwise use all leads
   const leads = filteredLeads ?? allLeads;
+
+  // Check scroll position
+  const checkScrollPosition = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      setCanScrollLeft(container.scrollLeft > 10);
+      setCanScrollRight(container.scrollLeft < container.scrollWidth - container.clientWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      checkScrollPosition();
+      container.addEventListener('scroll', checkScrollPosition);
+      window.addEventListener('resize', checkScrollPosition);
+      return () => {
+        container.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
+    }
+  }, [checkScrollPosition, stages]);
+
+  const scrollKanban = useCallback((direction: 'left' | 'right') => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const scrollAmount = 340; // Width of one column + gap
+      const targetScroll = direction === 'left' 
+        ? container.scrollLeft - scrollAmount 
+        : container.scrollLeft + scrollAmount;
+      container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+    }
+  }, []);
 
   // Group leads by stage
   const leadsByStage = useMemo(() => {
@@ -109,126 +144,155 @@ export function CRMKanban({ pipelineId, stages, onLeadClick, onNewLead, filtered
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <ScrollArea className="w-full">
-          <div className="flex gap-3 sm:gap-4 p-2 sm:p-4 min-w-max">
-            {stages.map((stage, index) => (
-              <div
-                key={stage.id}
-                className="w-72 sm:w-80 flex-shrink-0"
-              >
-                {/* Stage Header */}
+        <div className="relative w-full">
+          {/* Left Navigation Arrow */}
+          {canScrollLeft && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full shadow-lg bg-background/95 backdrop-blur border-2 border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all"
+              onClick={() => scrollKanban('left')}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+          )}
+
+          {/* Right Navigation Arrow */}
+          {canScrollRight && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full shadow-lg bg-background/95 backdrop-blur border-2 border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all"
+              onClick={() => scrollKanban('right')}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+          )}
+
+          {/* Scrollable Kanban Container */}
+          <div 
+            ref={scrollContainerRef}
+            className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent px-8"
+          >
+            <div className="flex gap-3 sm:gap-4 p-2 sm:p-4 min-w-max">
+              {stages.map((stage, index) => (
                 <div
-                  className="rounded-t-lg px-4 py-3 flex items-center justify-between"
-                  style={{ backgroundColor: `${stage.color}20`, borderTop: `3px solid ${stage.color}` }}
+                  key={stage.id}
+                  className="w-72 sm:w-80 flex-shrink-0"
                 >
-                  <div className="flex items-center gap-2">
-                    {/* Stage Selection Checkbox */}
-                    {(leadsByStage[stage.id] || []).length > 0 && (
-                      <Checkbox
-                        checked={isStageFullySelected(stage.id)}
-                        className={cn(
-                          "border-muted-foreground/50",
-                          isStagePartiallySelected(stage.id) && "opacity-50"
-                        )}
-                        onCheckedChange={() => toggleStageSelection(stage.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    )}
-                    <span className="font-semibold text-foreground">{stage.name}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {(leadsByStage[stage.id] || []).length}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {getStageValue(stage.id) > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        R$ {(getStageValue(stage.id) / 1000).toFixed(0)}k
-                      </span>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => onNewLead(stage.id)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Stage Cards - with internal scroll */}
-                <Droppable droppableId={stage.id}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={cn(
-                        "h-[calc(100vh-320px)] sm:h-[calc(100vh-280px)] rounded-b-lg p-1.5 sm:p-2 transition-colors overflow-y-auto overflow-x-hidden",
-                        "bg-muted/30 border border-t-0 border-border/50 kanban-column-scroll",
-                        snapshot.isDraggingOver && "bg-primary/5 border-primary/30"
+                  {/* Stage Header */}
+                  <div
+                    className="rounded-t-lg px-4 py-3 flex items-center justify-between"
+                    style={{ backgroundColor: `${stage.color}20`, borderTop: `3px solid ${stage.color}` }}
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* Stage Selection Checkbox */}
+                      {(leadsByStage[stage.id] || []).length > 0 && (
+                        <Checkbox
+                          checked={isStageFullySelected(stage.id)}
+                          className={cn(
+                            "border-muted-foreground/50",
+                            isStagePartiallySelected(stage.id) && "opacity-50"
+                          )}
+                          onCheckedChange={() => toggleStageSelection(stage.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       )}
-                    >
-                      <div className="space-y-2 pb-2">
-                        {(leadsByStage[stage.id] || []).map((lead, leadIndex) => (
-                          <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                style={{
-                                  ...provided.draggableProps.style,
-                                  transform: snapshot.isDragging 
-                                    ? provided.draggableProps.style?.transform 
-                                    : 'none',
-                                }}
-                                className="relative group"
-                              >
-                                {/* Selection Checkbox */}
-                                <div 
-                                  className={cn(
-                                    "absolute top-2 left-2 z-10 transition-opacity",
-                                    isSelectionMode || selectedLeads.has(lead.id) 
-                                      ? "opacity-100" 
-                                      : "opacity-0 group-hover:opacity-100"
-                                  )}
-                                  onClick={(e) => toggleLeadSelection(lead.id, e)}
-                                >
-                                  <Checkbox
-                                    checked={selectedLeads.has(lead.id)}
-                                    className="bg-background shadow-sm"
-                                  />
-                                </div>
-
-                                <div className={cn(
-                                  selectedLeads.has(lead.id) && "ring-2 ring-primary ring-offset-1 rounded-lg"
-                                )}>
-                                  <CRMKanbanCard
-                                    lead={lead}
-                                    onClick={() => {
-                                      if (isSelectionMode) {
-                                        toggleLeadSelection(lead.id, { stopPropagation: () => {} } as any);
-                                      } else {
-                                        onLeadClick(lead);
-                                      }
-                                    }}
-                                    isDragging={snapshot.isDragging}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                      </div>
-                      {provided.placeholder}
+                      <span className="font-semibold text-foreground">{stage.name}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {(leadsByStage[stage.id] || []).length}
+                      </Badge>
                     </div>
-                  )}
-                </Droppable>
-              </div>
-            ))}
+                    <div className="flex items-center gap-1">
+                      {getStageValue(stage.id) > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          R$ {(getStageValue(stage.id) / 1000).toFixed(0)}k
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => onNewLead(stage.id)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Stage Cards - with internal scroll */}
+                  <Droppable droppableId={stage.id}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={cn(
+                          "h-[calc(100vh-320px)] sm:h-[calc(100vh-280px)] rounded-b-lg p-1.5 sm:p-2 transition-colors overflow-y-auto overflow-x-hidden",
+                          "bg-muted/30 border border-t-0 border-border/50 kanban-column-scroll",
+                          snapshot.isDraggingOver && "bg-primary/5 border-primary/30"
+                        )}
+                      >
+                        <div className="space-y-2 pb-2">
+                          {(leadsByStage[stage.id] || []).map((lead, leadIndex) => (
+                            <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  style={{
+                                    ...provided.draggableProps.style,
+                                    transform: snapshot.isDragging 
+                                      ? provided.draggableProps.style?.transform 
+                                      : 'none',
+                                  }}
+                                  className="relative group"
+                                >
+                                  {/* Selection Checkbox */}
+                                  <div 
+                                    className={cn(
+                                      "absolute top-2 left-2 z-10 transition-opacity",
+                                      isSelectionMode || selectedLeads.has(lead.id) 
+                                        ? "opacity-100" 
+                                        : "opacity-0 group-hover:opacity-100"
+                                    )}
+                                    onClick={(e) => toggleLeadSelection(lead.id, e)}
+                                  >
+                                    <Checkbox
+                                      checked={selectedLeads.has(lead.id)}
+                                      className="bg-background shadow-sm"
+                                    />
+                                  </div>
+
+                                  <div className={cn(
+                                    selectedLeads.has(lead.id) && "ring-2 ring-primary ring-offset-1 rounded-lg"
+                                  )}>
+                                    <CRMKanbanCard
+                                      lead={lead}
+                                      onClick={() => {
+                                        if (isSelectionMode) {
+                                          toggleLeadSelection(lead.id, { stopPropagation: () => {} } as any);
+                                        } else {
+                                          onLeadClick(lead);
+                                        }
+                                      }}
+                                      isDragging={snapshot.isDragging}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                        </div>
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
+              ))}
+            </div>
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
       </DragDropContext>
 
       {/* Bulk Toolbar */}
