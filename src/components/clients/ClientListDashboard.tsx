@@ -731,7 +731,6 @@ export function ClientListDashboard() {
                 <div>
                   <p className="text-sm text-muted-foreground">{teamName}</p>
                   <p className="text-xl font-bold">{data.count.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">{formatCurrency(data.value)}</p>
                 </div>
               </div>
             </CardContent>
