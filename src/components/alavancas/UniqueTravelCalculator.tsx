@@ -45,6 +45,7 @@ interface CustomPackage {
   motorista: MotoristaType;
   alimentacao: boolean;
   enfermeira: EnfermeiraType;
+  enfermeiraDias: number; // Dias específicos de enfermeira
   spaPremium: boolean;
   spaBasic: boolean;
   jantar: boolean;
@@ -102,6 +103,7 @@ const UniqueTravelCalculator = () => {
     motorista: "executivo",
     alimentacao: true,
     enfermeira: "12h",
+    enfermeiraDias: 7, // Dias padrão de enfermeira
     spaPremium: false,
     spaBasic: false,
     jantar: false,
@@ -127,6 +129,7 @@ const UniqueTravelCalculator = () => {
   const calculateCustom = useCallback((): PackageResult => {
     let dailyTotal = 0;
     let fixedTotal = 0;
+    let enfermeiraTotal = 0;
 
     // Hospedagem
     if (customPackage.hospedagem === "premium") dailyTotal += PRICES.hospedagemPremium;
@@ -139,9 +142,10 @@ const UniqueTravelCalculator = () => {
     // Alimentação
     if (customPackage.alimentacao) dailyTotal += PRICES.alimentacao;
 
-    // Enfermeira
-    if (customPackage.enfermeira === "12h") dailyTotal += PRICES.enfermeira12h;
-    if (customPackage.enfermeira === "24h") dailyTotal += PRICES.enfermeira24h;
+    // Enfermeira (dias específicos, não multiplicado por dias totais)
+    const enfermeiraDiasEfetivos = Math.min(customPackage.enfermeiraDias, days);
+    if (customPackage.enfermeira === "12h") enfermeiraTotal = PRICES.enfermeira12h * enfermeiraDiasEfetivos;
+    if (customPackage.enfermeira === "24h") enfermeiraTotal = PRICES.enfermeira24h * enfermeiraDiasEfetivos;
 
     // Extras (Fixed)
     if (customPackage.spaPremium) fixedTotal += PRICES.spaPremium;
@@ -150,7 +154,7 @@ const UniqueTravelCalculator = () => {
     if (customPackage.salao) fixedTotal += PRICES.salao;
     if (customPackage.kitMedicamentos) fixedTotal += PRICES.kitMedicamentos;
 
-    const total = dailyTotal * days + fixedTotal;
+    const total = dailyTotal * days + fixedTotal + enfermeiraTotal;
     return { total, perDay: total / days };
   }, [days, customPackage]);
 
@@ -210,8 +214,9 @@ Podemos reservar sua data? ✨`;
       if (customPackage.motorista === "executivo") items.push("✅ Motorista Executivo Diário");
       if (customPackage.motorista === "transfer") items.push("✅ Transfer Ida/Volta");
       if (customPackage.alimentacao) items.push("✅ Alimentação Personalizada");
-      if (customPackage.enfermeira === "12h") items.push("✅ Enfermeira 12h");
-      if (customPackage.enfermeira === "24h") items.push("✅ Enfermeira 24h");
+      const enfermeiraDiasEfetivos = Math.min(customPackage.enfermeiraDias, days);
+      if (customPackage.enfermeira === "12h") items.push(`✅ Enfermeira 12h (${enfermeiraDiasEfetivos} dias)`);
+      if (customPackage.enfermeira === "24h") items.push(`✅ Enfermeira 24h (${enfermeiraDiasEfetivos} dias)`);
       if (customPackage.spaPremium) items.push("✅ Spa Premium");
       if (customPackage.spaBasic) items.push("✅ Spa Basic");
       if (customPackage.jantar) items.push("✅ Jantar Gourmet");
@@ -586,6 +591,51 @@ Podemos reservar sua data? ✨`;
                       <SelectItem value="none">Sem enfermeira</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {/* Dias de Enfermeira - só mostra se enfermeira != none */}
+                  {customPackage.enfermeira !== "none" && (
+                    <div className="mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                      <label className="text-amber-200/70 text-xs uppercase tracking-wider block mb-2">
+                        Quantos dias de enfermeira?
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setCustomPackage({ 
+                            ...customPackage, 
+                            enfermeiraDias: Math.max(1, customPackage.enfermeiraDias - 1) 
+                          })}
+                          className="border-amber-500/50 bg-transparent hover:bg-amber-500/10 text-amber-400 h-8 w-8"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <div className="text-center min-w-[60px]">
+                          <span className="text-2xl font-bold text-amber-400">
+                            {Math.min(customPackage.enfermeiraDias, days)}
+                          </span>
+                          <p className="text-amber-200/50 text-xs">de {days} dias</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setCustomPackage({ 
+                            ...customPackage, 
+                            enfermeiraDias: Math.min(days, customPackage.enfermeiraDias + 1) 
+                          })}
+                          className="border-amber-500/50 bg-transparent hover:bg-amber-500/10 text-amber-400 h-8 w-8"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-amber-200/60 text-xs mt-2">
+                        Custo enfermeira: {formatCurrency(
+                          (customPackage.enfermeira === "12h" ? PRICES.enfermeira12h : PRICES.enfermeira24h) * 
+                          Math.min(customPackage.enfermeiraDias, days)
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Alimentação Toggle */}
