@@ -174,6 +174,10 @@ export function CRMLeadPersonalData({
               <InfoRow label="WhatsApp" value={patientData?.whatsapp} icon={Phone} showEmpty />
               <InfoRow label="Email" value={patientData?.email} icon={Mail} showEmpty />
               <InfoRow label="Instagram" value={patientData?.instagram_handle} icon={Instagram} showEmpty />
+              <InfoRow label="País" value={patientData?.country} icon={Globe} showEmpty />
+              <InfoRow label="Estado" value={patientData?.state} showEmpty />
+              <InfoRow label="Cidade" value={patientData?.city} icon={MapPin} showEmpty />
+              <InfoRow label="Bairro" value={patientData?.neighborhood} showEmpty />
               <InfoRow label="Endereço" value={patientData?.address} icon={MapPin} showEmpty />
               <InfoRow label="CEP" value={patientData?.cep} showEmpty />
             </div>
