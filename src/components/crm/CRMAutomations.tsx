@@ -69,7 +69,7 @@ const ACTION_TYPES = [
 export function CRMAutomations() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { pipelines, stages } = useCRM();
+  const { pipelines = [], stages = [], pipelinesLoading, stagesLoading } = useCRM();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingAutomation, setEditingAutomation] = useState<Automation | null>(null);
   const [formData, setFormData] = useState({
@@ -83,7 +83,7 @@ export function CRMAutomations() {
   });
 
   // Fetch automations
-  const { data: automations = [], isLoading } = useQuery({
+  const { data: automations = [], isLoading, error } = useQuery({
     queryKey: ['crm-automations'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -93,6 +93,7 @@ export function CRMAutomations() {
       if (error) throw error;
       return data as Automation[];
     },
+    enabled: !!user,
   });
 
   // Create/Update mutation
@@ -221,6 +222,34 @@ export function CRMAutomations() {
     return ACTION_TYPES.find(a => a.value === type) || ACTION_TYPES[0];
   };
 
+  // Error handling
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              Automações
+            </h3>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h3 className="font-semibold mb-2">Erro ao carregar automações</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              {(error as Error).message}
+            </p>
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['crm-automations'] })}>
+              Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -267,7 +296,7 @@ export function CRMAutomations() {
       </div>
 
       {/* Automations List */}
-      {isLoading ? (
+      {isLoading || pipelinesLoading || stagesLoading ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
