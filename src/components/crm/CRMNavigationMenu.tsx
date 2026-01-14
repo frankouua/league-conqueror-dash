@@ -111,17 +111,12 @@ const MENU_GROUPS: MenuGroup[] = [
   },
   {
     id: 'analytics',
-    label: 'Análises & IA',
-    icon: Brain,
+    label: 'Análises',
+    icon: BarChart3,
     items: [
       { value: 'metrics', label: 'Métricas', icon: BarChart3 },
       { value: 'reports', label: 'Relatórios', icon: FileText, color: 'text-emerald-500' },
       { value: 'cadence', label: 'Cadência', icon: Timer, color: 'text-teal-500' },
-      { value: 'funnel', label: 'Funil', icon: Filter, color: 'text-pink-500' },
-      { value: 'sentiment', label: 'Sentimentos', icon: Smile, color: 'text-green-500' },
-      { value: 'predictive', label: 'IA Preditiva', icon: Brain, color: 'text-violet-500' },
-      { value: 'rfv', label: 'RFV', icon: Target },
-      { value: 'rfv-matrix', label: 'Matriz RFV', icon: LayoutGrid, color: 'text-cyan-500' },
     ]
   },
   {
