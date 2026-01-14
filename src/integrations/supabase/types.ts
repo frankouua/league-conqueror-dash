@@ -8113,7 +8113,7 @@ export type Database = {
         | "cancelled_with_fine"
         | "cancelled_no_fine"
         | "credit_used"
-      card_type: "blue" | "white" | "yellow" | "red"
+      card_type: "blue" | "white" | "yellow" | "red" | "bonus" | "green"
       contestation_status: "pending" | "approved" | "rejected"
       department_type:
         | "comercial"
@@ -8290,7 +8290,7 @@ export const Constants = {
         "cancelled_no_fine",
         "credit_used",
       ],
-      card_type: ["blue", "white", "yellow", "red"],
+      card_type: ["blue", "white", "yellow", "red", "bonus", "green"],
       contestation_status: ["pending", "approved", "rejected"],
       department_type: [
         "comercial",

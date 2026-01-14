@@ -394,6 +394,23 @@ const ReferralLeads = () => {
 
       if (error) throw error;
 
+      // 🏆 COPA: +5 pontos por captar indicação
+      if (data && teamId) {
+        try {
+          await supabase.from('cards').insert({
+            team_id: teamId,
+            type: 'bonus' as any, // Tipo adicionado para pontuação Copa
+            points: 5,
+            reason: `Indicação captada: ${newLead.referred_name}`,
+            applied_by: user.id,
+            date: new Date().toISOString().split('T')[0],
+          });
+          console.log('🏆 Copa: +5 pontos por captar indicação');
+        } catch (e) {
+          console.error('Erro ao registrar pontos Copa:', e);
+        }
+      }
+
       // Send notification for new lead
       if (data) {
         sendLeadNotification("new_lead", {
@@ -461,6 +478,48 @@ const ReferralLeads = () => {
         });
 
       if (historyError) console.error("History error:", historyError);
+
+      // 🏆 COPA: Pontos por evolução da indicação
+      const COPA_POINTS: Record<string, number> = {
+        consultou: 15,  // Indicação consultou
+        operou: 30,     // Indicação operou
+        ganho: 30,      // Indicação fechou (igual a operou)
+      };
+      
+      if (editingLead.team_id && COPA_POINTS[newStatus]) {
+        const points = COPA_POINTS[newStatus];
+        const reason = newStatus === 'operou' || newStatus === 'ganho' 
+          ? `Indicação operou: ${editingLead.referred_name}`
+          : `Indicação consultou: ${editingLead.referred_name}`;
+        
+        // Verificar se já não deu pontos para esse status
+        const { data: existingCard } = await supabase
+          .from('cards')
+          .select('id')
+          .eq('team_id', editingLead.team_id)
+          .eq('reason', reason)
+          .single();
+        
+        if (!existingCard) {
+          try {
+            await supabase.from('cards').insert({
+              team_id: editingLead.team_id,
+              type: 'bonus' as any,
+              points: points,
+              reason: reason,
+              applied_by: user.id,
+              date: new Date().toISOString().split('T')[0],
+            });
+            console.log(`🏆 Copa: +${points} pontos - ${reason}`);
+            toast({ 
+              title: `🏆 +${points} pontos na Copa!`, 
+              description: reason,
+            });
+          } catch (e) {
+            console.error('Erro ao registrar pontos Copa:', e);
+          }
+        }
+      }
 
       // Send notification for status change
       sendLeadNotification("status_change", {

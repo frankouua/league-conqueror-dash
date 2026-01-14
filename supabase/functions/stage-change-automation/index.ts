@@ -17,6 +17,20 @@ interface StageChangePayload {
   performed_by?: string;
 }
 
+// Configuração de pontuação para indicações na Copa
+const REFERRAL_POINTS = {
+  // Estágios que dão pontos quando lead de indicação chega
+  CONSULTA_REALIZADA: 15, // "Consulta Realizada/Negociação"
+  CIRURGIA_REALIZADA: 30, // "Cirurgia Realizada"
+};
+
+// Nomes de estágios que dão pontos (case insensitive matching)
+const CONSULTA_STAGE_NAMES = ['consulta realizada', 'negociação', 'consulta realizada/negociação'];
+const CIRURGIA_STAGE_NAMES = ['cirurgia realizada', 'operou', 'ganho (transferência)'];
+
+// Fontes que identificam um lead como indicação
+const REFERRAL_SOURCES = ['indicação', 'indicacao', '[1.6] indicação de paciente'];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -34,7 +48,7 @@ serve(async (req) => {
 
     // Buscar informações do lead e stages
     const [leadResult, newStageResult, oldStageResult] = await Promise.all([
-      supabase.from('crm_leads').select('*, assigned_to, team_id, pipeline_id').eq('id', lead_id).single(),
+      supabase.from('crm_leads').select('*, assigned_to, team_id, pipeline_id, source').eq('id', lead_id).single(),
       supabase.from('crm_stages').select('*, pipeline:crm_pipelines(*)').eq('id', new_stage_id).single(),
       old_stage_id ? supabase.from('crm_stages').select('*').eq('id', old_stage_id).single() : null,
     ]);
@@ -50,6 +64,77 @@ serve(async (req) => {
     const actions: string[] = [];
     const notifications: any[] = [];
     const tags: string[] = [];
+
+    // ======== PONTUAÇÃO COPA - INDICAÇÕES ========
+    // Verifica se é um lead de indicação e dá pontos ao time
+    const isReferralLead = lead.source && 
+      REFERRAL_SOURCES.some(src => lead.source.toLowerCase().includes(src));
+    
+    if (isReferralLead && lead.team_id) {
+      const newStageLower = newStage.name.toLowerCase();
+      let copaPoints = 0;
+      let copaReason = '';
+      
+      // Verifica se chegou em Consulta Realizada
+      if (CONSULTA_STAGE_NAMES.some(name => newStageLower.includes(name))) {
+        // Verificar se já não deu pontos para esse lead nesse estágio
+        const { data: existingCard } = await supabase
+          .from('cards')
+          .select('id')
+          .eq('team_id', lead.team_id)
+          .eq('reason', `Indicação consultou: ${lead.name}`)
+          .single();
+        
+        if (!existingCard) {
+          copaPoints = REFERRAL_POINTS.CONSULTA_REALIZADA;
+          copaReason = `Indicação consultou: ${lead.name}`;
+        }
+      }
+      
+      // Verifica se chegou em Cirurgia Realizada
+      if (CIRURGIA_STAGE_NAMES.some(name => newStageLower.includes(name))) {
+        const { data: existingCard } = await supabase
+          .from('cards')
+          .select('id')
+          .eq('team_id', lead.team_id)
+          .eq('reason', `Indicação operou: ${lead.name}`)
+          .single();
+        
+        if (!existingCard) {
+          copaPoints = REFERRAL_POINTS.CIRURGIA_REALIZADA;
+          copaReason = `Indicação operou: ${lead.name}`;
+        }
+      }
+      
+      // Registrar pontos na tabela cards
+      if (copaPoints > 0 && copaReason) {
+        const { error: cardError } = await supabase
+          .from('cards')
+          .insert({
+            team_id: lead.team_id,
+            type: 'bonus', // Tipo bonus adicionado ao enum card_type
+            points: copaPoints,
+            reason: copaReason,
+            applied_by: performed_by || lead.assigned_to || '00000000-0000-0000-0000-000000000000',
+            date: new Date().toISOString().split('T')[0],
+          });
+        
+        if (!cardError) {
+          actions.push(`🏆 Copa: +${copaPoints} pontos para o time (${copaReason})`);
+          console.log(`🏆 Copa points awarded: ${copaPoints} for ${copaReason}`);
+          
+          // Notificar o time
+          notifications.push({
+            user_id: lead.assigned_to,
+            title: `🏆 +${copaPoints} Pontos na Copa!`,
+            message: copaReason,
+            type: 'copa_points',
+          });
+        } else {
+          console.error('Erro ao registrar pontos Copa:', cardError);
+        }
+      }
+    }
 
     // ======== AUTOMAÇÕES POR STAGE (Tags, Notificações, Updates) ========
     // Nota: As tarefas do checklist são criadas automaticamente pela create-stage-tasks
