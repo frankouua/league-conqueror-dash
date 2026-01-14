@@ -870,6 +870,24 @@ export function CRMLeadEditForm({ lead, stages, onClose }: CRMLeadEditFormProps)
           </div>
         </CardContent>
       </Card>
+
+      {/* Sticky actions (mobile-friendly) */}
+      <div className="sticky bottom-0 z-20 -mx-4 mt-2 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+        <div className="mx-auto flex max-w-3xl items-center justify-end gap-2 px-4 py-3">
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
+            <X className="h-4 w-4 mr-1" />
+            Cancelar
+          </Button>
+          <Button size="sm" onClick={handleSubmit} disabled={saving}>
+            {saving ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-1" />
+            )}
+            Salvar alterações
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
