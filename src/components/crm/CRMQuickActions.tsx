@@ -10,7 +10,9 @@ import {
   ExternalLink,
   UserPlus,
   ArrowRightLeft,
-  Flag
+  Flag,
+  Trophy,
+  ThumbsDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +32,8 @@ interface CRMQuickActionsProps {
   onTogglePriority: () => void;
   onDelete: () => void;
   onTransfer: () => void;
+  onMarkWon?: () => void;
+  onMarkLost?: () => void;
   vertical?: boolean;
 }
 
@@ -38,6 +42,8 @@ export function CRMQuickActions({
   onTogglePriority, 
   onDelete, 
   onTransfer,
+  onMarkWon,
+  onMarkLost,
   vertical = false 
 }: CRMQuickActionsProps) {
   const { toast } = useToast();
@@ -99,6 +105,9 @@ export function CRMQuickActions({
     },
   ];
 
+  // Check if lead is already won or lost
+  const isFinalized = lead.won_at || lead.lost_at;
+
   return (
     <div className={cn(
       "flex gap-1",
@@ -127,6 +136,42 @@ export function CRMQuickActions({
           </TooltipContent>
         </Tooltip>
       ))}
+
+      {/* Won/Lost Quick Buttons - Only show if not finalized */}
+      {!isFinalized && onMarkWon && onMarkLost && (
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-green-600 hover:bg-green-500/10"
+                onClick={onMarkWon}
+              >
+                <Trophy className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side={vertical ? "right" : "bottom"}>
+              Marcar como Ganho
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                onClick={onMarkLost}
+              >
+                <ThumbsDown className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side={vertical ? "right" : "bottom"}>
+              Marcar como Perdido
+            </TooltipContent>
+          </Tooltip>
+        </>
+      )}
 
       {/* More Actions Dropdown */}
       <DropdownMenu>
@@ -157,6 +202,31 @@ export function CRMQuickActions({
             <ArrowRightLeft className="h-4 w-4 mr-2" />
             Transferir Lead
           </DropdownMenuItem>
+          
+          {!isFinalized && (
+            <>
+              <DropdownMenuSeparator />
+              {onMarkWon && (
+                <DropdownMenuItem 
+                  onClick={onMarkWon}
+                  className="text-green-600 focus:text-green-600"
+                >
+                  <Trophy className="h-4 w-4 mr-2" />
+                  Marcar como Ganho
+                </DropdownMenuItem>
+              )}
+              {onMarkLost && (
+                <DropdownMenuItem 
+                  onClick={onMarkLost}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <ThumbsDown className="h-4 w-4 mr-2" />
+                  Marcar como Perdido
+                </DropdownMenuItem>
+              )}
+            </>
+          )}
+          
           <DropdownMenuSeparator />
           <DropdownMenuItem 
             onClick={onDelete}
