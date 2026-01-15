@@ -40,6 +40,7 @@ const PatientForm = lazy(() => import("./pages/PatientForm"));
 const Comercial = lazy(() => import("./pages/Comercial"));
 const Alavancas = lazy(() => import("./pages/Alavancas"));
 const Calendario = lazy(() => import("./pages/Calendario"));
+const ProposalAnalytics = lazy(() => import("./pages/ProposalAnalytics"));
 
 // Optimized QueryClient with balanced caching for performance and freshness
 const queryClient = new QueryClient({
