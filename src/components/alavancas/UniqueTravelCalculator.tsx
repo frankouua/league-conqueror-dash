@@ -20,8 +20,8 @@ const PRICES = {
   hospedagemBasic: 280,      // Residenciais Basic
   motoristaExecutivo: 360,   // 4 trechos/dia
   motoristaTransfer: 300,    // Transfer aero ida/volta (fixo)
-  alimentacao2: 167,         // 2 refeições/dia
-  alimentacao4: 315,         // 4 refeições/dia
+  alimentacao2: 192,         // 2 refeições/dia
+  alimentacao4: 362,         // 4 refeições/dia
   enfermeira12h: 383,        // 12 horas/dia
   enfermeira24h: 767,        // 24 horas/dia
   spaPremium: 300,           // Com banheira + acompanhante
@@ -96,7 +96,7 @@ const TRAVEL_SCRIPTS = [
     id: "alimentacao",
     pergunta: "Como funciona a alimentação?",
     categoria: "Alimentação",
-    script: `Nossa alimentação é preparada especialmente para sua recuperação! 🍽️\n\n🥗 *2 Refeições/dia*: R$ 167/dia - Almoço e jantar balanceados, nutritivos e deliciosos.\n\n🍳 *4 Refeições/dia*: R$ 315/dia - Café da manhã, almoço, lanche e jantar - cardápio completo!\n\nAs refeições são preparadas considerando sua dieta pós-operatória. Quer incluir no orçamento?`,
+    script: `Nossa alimentação é preparada especialmente para sua recuperação! 🍽️\n\n🥗 *2 Refeições/dia*: R$ 192/dia - Almoço e jantar balanceados, nutritivos e deliciosos.\n\n🍳 *4 Refeições/dia*: R$ 362/dia - Café da manhã, almoço, lanche e jantar - cardápio completo!\n\nAs refeições são preparadas considerando sua dieta pós-operatória. Quer incluir no orçamento?`,
     dica: "Destaque que é dieta específica para recuperação"
   },
   {
