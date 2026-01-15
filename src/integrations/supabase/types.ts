@@ -1158,6 +1158,124 @@ export type Database = {
           },
         ]
       }
+      contact_rfv_metrics: {
+        Row: {
+          average_ticket: number | null
+          churn_risk: string | null
+          contact_id: string
+          created_at: string | null
+          days_since_last_purchase: number | null
+          first_purchase_date: string | null
+          frequency_score: number
+          last_calculated_at: string | null
+          last_purchase_date: string | null
+          recency_score: number
+          rfv_score: number | null
+          segment: string
+          segment_priority: number | null
+          total_purchases: number | null
+          total_value: number | null
+          updated_at: string | null
+          value_score: number
+        }
+        Insert: {
+          average_ticket?: number | null
+          churn_risk?: string | null
+          contact_id: string
+          created_at?: string | null
+          days_since_last_purchase?: number | null
+          first_purchase_date?: string | null
+          frequency_score?: number
+          last_calculated_at?: string | null
+          last_purchase_date?: string | null
+          recency_score?: number
+          rfv_score?: number | null
+          segment?: string
+          segment_priority?: number | null
+          total_purchases?: number | null
+          total_value?: number | null
+          updated_at?: string | null
+          value_score?: number
+        }
+        Update: {
+          average_ticket?: number | null
+          churn_risk?: string | null
+          contact_id?: string
+          created_at?: string | null
+          days_since_last_purchase?: number | null
+          first_purchase_date?: string | null
+          frequency_score?: number
+          last_calculated_at?: string | null
+          last_purchase_date?: string | null
+          recency_score?: number
+          rfv_score?: number | null
+          segment?: string
+          segment_priority?: number | null
+          total_purchases?: number | null
+          total_value?: number | null
+          updated_at?: string | null
+          value_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_rfv_metrics_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_timeline: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          description: string | null
+          event_subtype: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          performed_by: string | null
+          reference_id: string | null
+          reference_table: string | null
+          title: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          description?: string | null
+          event_subtype?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          performed_by?: string | null
+          reference_id?: string | null
+          reference_table?: string | null
+          title: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          description?: string | null
+          event_subtype?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          performed_by?: string | null
+          reference_id?: string | null
+          reference_table?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_timeline_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           address: string | null
