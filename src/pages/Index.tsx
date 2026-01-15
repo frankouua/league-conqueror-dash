@@ -8,6 +8,7 @@ import { useTeamScores } from "@/hooks/useTeamScores";
 import { useTeamProgressData } from "@/hooks/useTeamProgressData";
 import { usePredefinedGoals } from "@/hooks/usePredefinedGoals";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProposalAnalytics } from "@/hooks/useProposalAnalytics";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -51,6 +52,13 @@ const MonthlyTeamRankingChart = lazy(() => import("@/components/MonthlyTeamRanki
 const ConsolidatedTrendsPanel = lazy(() => import("@/components/ConsolidatedTrendsPanel"));
 const MultiPeriodGoalTracker = lazy(() => import("@/components/MultiPeriodGoalTracker").then(m => ({ default: m.MultiPeriodGoalTracker })));
 const MyPeriodGoalTracker = lazy(() => import("@/components/MyPeriodGoalTracker").then(m => ({ default: m.MyPeriodGoalTracker })));
+
+// Proposal Analytics Components
+const ProposalKPICards = lazy(() => import("@/components/proposals/ProposalKPICards").then(m => ({ default: m.ProposalKPICards })));
+const ProposalSellerRanking = lazy(() => import("@/components/proposals/ProposalSellerRanking").then(m => ({ default: m.ProposalSellerRanking })));
+const ProposalOriginChart = lazy(() => import("@/components/proposals/ProposalOriginChart").then(m => ({ default: m.ProposalOriginChart })));
+const ProposalTimeAnalysis = lazy(() => import("@/components/proposals/ProposalTimeAnalysis").then(m => ({ default: m.ProposalTimeAnalysis })));
+const ProposalYearComparison = lazy(() => import("@/components/proposals/ProposalYearComparison").then(m => ({ default: m.ProposalYearComparison })));
 
 
 // Mini loading component for lazy loaded content
@@ -106,6 +114,15 @@ const Index = () => {
   );
   const { teamsProgress, teamsQuantity } = useTeamProgressData(selectedMonth, selectedYear);
   const { pendingGoal } = usePredefinedGoals();
+  
+  // Proposal Analytics Data
+  const { 
+    kpis: proposalKpis, 
+    sellerStats: proposalSellerStats, 
+    originStats: proposalOriginStats,
+    yearlyStats: proposalYearlyStats,
+    isLoading: isLoadingProposals 
+  } = useProposalAnalytics({ year: selectedYear });
 
   // Memoized calculations
   const currentDay = useMemo(() => 
@@ -630,7 +647,7 @@ const Index = () => {
             </Suspense>
           </TabsContent>
 
-          {/* HISTÓRICO TAB - ENRICHED with MonthlyTeamRankingChart and EvolutionChart */}
+          {/* HISTÓRICO TAB - ENRICHED with MonthlyTeamRankingChart, EvolutionChart and Proposal Analytics */}
           <TabsContent value="historico" className="space-y-6 animate-fade-in">
             {/* Monthly Team Ranking Chart - Moved from Times */}
             <Suspense fallback={<MiniLoader />}>
@@ -650,6 +667,41 @@ const Index = () => {
             <Suspense fallback={<MiniLoader />}>
               <HistoricalComparison />
             </Suspense>
+
+            {/* Proposal Analytics Section */}
+            {proposalKpis && proposalKpis.totalProposals > 0 && (
+              <div className="space-y-6 pt-6 border-t border-border">
+                <div className="flex items-center gap-2 text-lg font-semibold">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <span>Análise de Propostas Comerciais</span>
+                </div>
+                
+                <Suspense fallback={<MiniLoader />}>
+                  <ProposalKPICards kpis={proposalKpis} />
+                </Suspense>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Suspense fallback={<MiniLoader />}>
+                    <ProposalSellerRanking sellerStats={proposalSellerStats} />
+                  </Suspense>
+                  <Suspense fallback={<MiniLoader />}>
+                    <ProposalTimeAnalysis 
+                      avgConsultationToContract={proposalKpis.avgConsultationToContract}
+                      avgContractToExecution={proposalKpis.avgContractToExecution}
+                      avgClosingTime={proposalKpis.avgClosingTime}
+                    />
+                  </Suspense>
+                </div>
+
+                <Suspense fallback={<MiniLoader />}>
+                  <ProposalOriginChart originStats={proposalOriginStats} />
+                </Suspense>
+
+                <Suspense fallback={<MiniLoader />}>
+                  <ProposalYearComparison yearlyStats={proposalYearlyStats} />
+                </Suspense>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
