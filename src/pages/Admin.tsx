@@ -27,6 +27,7 @@ import { WhatsAppConfig } from "@/components/admin/WhatsAppConfig";
 import { EmailConfig } from "@/components/admin/EmailConfig";
 import { SMSConfig } from "@/components/admin/SMSConfig";
 import { ClickSignConfig } from "@/components/admin/ClickSignConfig";
+import { ProposalUpload } from "@/components/proposals/ProposalUpload";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -263,6 +264,7 @@ const Admin = () => {
           <TabsContent value="data-import" className="animate-scale-in">
             <div className="space-y-6">
               <ComprehensiveDataImport />
+              <ProposalUpload />
               <FeegowEnrichment />
               <RFVContactSync />
             </div>
