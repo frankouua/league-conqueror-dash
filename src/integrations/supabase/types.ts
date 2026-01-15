@@ -5631,6 +5631,161 @@ export type Database = {
           },
         ]
       }
+      proposal_control: {
+        Row: {
+          campaign_name: string | null
+          consultation_date: string | null
+          contract_date: string | null
+          contract_value: number | null
+          cpf: string | null
+          created_at: string | null
+          crm_lead_id: string | null
+          email: string | null
+          estimated_value: number | null
+          execution_date: string | null
+          feegow_id: string | null
+          id: string
+          import_batch_id: string | null
+          influencer_name: string | null
+          month: number | null
+          negotiation_status: string | null
+          notes: string | null
+          origin: string | null
+          origin_category: string | null
+          origin_detail: string | null
+          patient_name: string
+          phone: string | null
+          prontuario: string | null
+          seller_id: string | null
+          seller_name: string | null
+          stage: string | null
+          updated_at: string | null
+          year: number | null
+        }
+        Insert: {
+          campaign_name?: string | null
+          consultation_date?: string | null
+          contract_date?: string | null
+          contract_value?: number | null
+          cpf?: string | null
+          created_at?: string | null
+          crm_lead_id?: string | null
+          email?: string | null
+          estimated_value?: number | null
+          execution_date?: string | null
+          feegow_id?: string | null
+          id?: string
+          import_batch_id?: string | null
+          influencer_name?: string | null
+          month?: number | null
+          negotiation_status?: string | null
+          notes?: string | null
+          origin?: string | null
+          origin_category?: string | null
+          origin_detail?: string | null
+          patient_name: string
+          phone?: string | null
+          prontuario?: string | null
+          seller_id?: string | null
+          seller_name?: string | null
+          stage?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Update: {
+          campaign_name?: string | null
+          consultation_date?: string | null
+          contract_date?: string | null
+          contract_value?: number | null
+          cpf?: string | null
+          created_at?: string | null
+          crm_lead_id?: string | null
+          email?: string | null
+          estimated_value?: number | null
+          execution_date?: string | null
+          feegow_id?: string | null
+          id?: string
+          import_batch_id?: string | null
+          influencer_name?: string | null
+          month?: number | null
+          negotiation_status?: string | null
+          notes?: string | null
+          origin?: string | null
+          origin_category?: string | null
+          origin_detail?: string | null
+          patient_name?: string
+          phone?: string | null
+          prontuario?: string | null
+          seller_id?: string | null
+          seller_name?: string | null
+          stage?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_control_crm_lead_id_fkey"
+            columns: ["crm_lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_control_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_import_logs: {
+        Row: {
+          batch_id: string
+          column_mapping: Json | null
+          created_at: string | null
+          error_rows: number | null
+          errors: Json | null
+          file_name: string | null
+          id: string
+          imported_by: string | null
+          imported_rows: number | null
+          total_rows: number | null
+        }
+        Insert: {
+          batch_id: string
+          column_mapping?: Json | null
+          created_at?: string | null
+          error_rows?: number | null
+          errors?: Json | null
+          file_name?: string | null
+          id?: string
+          imported_by?: string | null
+          imported_rows?: number | null
+          total_rows?: number | null
+        }
+        Update: {
+          batch_id?: string
+          column_mapping?: Json | null
+          created_at?: string | null
+          error_rows?: number | null
+          errors?: Json | null
+          file_name?: string | null
+          id?: string
+          imported_by?: string | null
+          imported_rows?: number | null
+          total_rows?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_import_logs_imported_by_fkey"
+            columns: ["imported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       protocol_offers: {
         Row: {
           converted_at: string | null
