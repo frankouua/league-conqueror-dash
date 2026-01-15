@@ -991,6 +991,7 @@ export type Database = {
         Row: {
           apply_fine: boolean
           cancellation_request_date: string
+          contact_id: string | null
           contract_signed: boolean | null
           contract_url: string | null
           contract_value: number
@@ -1024,6 +1025,7 @@ export type Database = {
         Insert: {
           apply_fine?: boolean
           cancellation_request_date?: string
+          contact_id?: string | null
           contract_signed?: boolean | null
           contract_url?: string | null
           contract_value: number
@@ -1057,6 +1059,7 @@ export type Database = {
         Update: {
           apply_fine?: boolean
           cancellation_request_date?: string
+          contact_id?: string | null
           contract_signed?: boolean | null
           contract_url?: string | null
           contract_value?: number
@@ -1088,6 +1091,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cancellations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cancellations_team_id_fkey"
             columns: ["team_id"]
@@ -1147,6 +1157,102 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contacts: {
+        Row: {
+          address: string | null
+          became_client_at: string | null
+          birth_date: string | null
+          city: string | null
+          country: string | null
+          cpf: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          email: string | null
+          first_contact_at: string | null
+          gender: string | null
+          id: string
+          last_activity_at: string | null
+          lifecycle_stage: string | null
+          name: string
+          nationality: string | null
+          phone: string | null
+          prontuario: string | null
+          source_id: string | null
+          source_table: string | null
+          state: string | null
+          status: string
+          total_lifetime_value: number | null
+          total_procedures_executed: number | null
+          total_transactions: number | null
+          updated_at: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          became_client_at?: string | null
+          birth_date?: string | null
+          city?: string | null
+          country?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string | null
+          first_contact_at?: string | null
+          gender?: string | null
+          id?: string
+          last_activity_at?: string | null
+          lifecycle_stage?: string | null
+          name: string
+          nationality?: string | null
+          phone?: string | null
+          prontuario?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          state?: string | null
+          status?: string
+          total_lifetime_value?: number | null
+          total_procedures_executed?: number | null
+          total_transactions?: number | null
+          updated_at?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          became_client_at?: string | null
+          birth_date?: string | null
+          city?: string | null
+          country?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string | null
+          first_contact_at?: string | null
+          gender?: string | null
+          id?: string
+          last_activity_at?: string | null
+          lifecycle_stage?: string | null
+          name?: string
+          nationality?: string | null
+          phone?: string | null
+          prontuario?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          state?: string | null
+          status?: string
+          total_lifetime_value?: number | null
+          total_procedures_executed?: number | null
+          total_transactions?: number | null
+          updated_at?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
       }
       contestations: {
         Row: {
@@ -2399,6 +2505,7 @@ export type Database = {
           churn_analyzed_at: string | null
           churn_risk_level: string | null
           companion_info: Json | null
+          contact_id: string | null
           contract_value: number | null
           coordinator_validated: boolean | null
           coordinator_validated_at: string | null
@@ -2530,6 +2637,7 @@ export type Database = {
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
           companion_info?: Json | null
+          contact_id?: string | null
           contract_value?: number | null
           coordinator_validated?: boolean | null
           coordinator_validated_at?: string | null
@@ -2661,6 +2769,7 @@ export type Database = {
           churn_analyzed_at?: string | null
           churn_risk_level?: string | null
           companion_info?: Json | null
+          contact_id?: string | null
           contract_value?: number | null
           coordinator_validated?: boolean | null
           coordinator_validated_at?: string | null
@@ -2773,6 +2882,13 @@ export type Database = {
           won_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_leads_lost_reason_id_fkey"
             columns: ["lost_reason_id"]
@@ -3803,6 +3919,7 @@ export type Database = {
         Row: {
           amount: number
           attributed_to_user_id: string | null
+          contact_id: string | null
           counts_for_individual: boolean
           created_at: string
           date: string
@@ -3828,6 +3945,7 @@ export type Database = {
         Insert: {
           amount: number
           attributed_to_user_id?: string | null
+          contact_id?: string | null
           counts_for_individual?: boolean
           created_at?: string
           date: string
@@ -3853,6 +3971,7 @@ export type Database = {
         Update: {
           amount?: number
           attributed_to_user_id?: string | null
+          contact_id?: string | null
           counts_for_individual?: boolean
           created_at?: string
           date?: string
@@ -3876,6 +3995,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "executed_records_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "executed_records_team_id_fkey"
             columns: ["team_id"]
@@ -5073,6 +5199,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      migration_backup_2025_01: {
+        Row: {
+          backup_type: string
+          created_at: string | null
+          data: Json
+          id: string
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          backup_type: string
+          created_at?: string | null
+          data: Json
+          id?: string
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          backup_type?: string
+          created_at?: string | null
+          data?: Json
+          id?: string
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -6396,6 +6549,7 @@ export type Database = {
           bonus_paid: boolean | null
           bonus_value: number | null
           consultation_date: string | null
+          contact_id: string | null
           created_at: string
           crm_lead_id: string | null
           evidence_url: string | null
@@ -6426,6 +6580,7 @@ export type Database = {
           bonus_paid?: boolean | null
           bonus_value?: number | null
           consultation_date?: string | null
+          contact_id?: string | null
           created_at?: string
           crm_lead_id?: string | null
           evidence_url?: string | null
@@ -6456,6 +6611,7 @@ export type Database = {
           bonus_paid?: boolean | null
           bonus_value?: number | null
           consultation_date?: string | null
+          contact_id?: string | null
           created_at?: string
           crm_lead_id?: string | null
           evidence_url?: string | null
@@ -6479,6 +6635,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "referral_leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "referral_leads_crm_lead_id_fkey"
             columns: ["crm_lead_id"]
@@ -6552,6 +6715,7 @@ export type Database = {
         Row: {
           amount: number
           attributed_to_user_id: string | null
+          contact_id: string | null
           counts_for_individual: boolean
           created_at: string
           date: string
@@ -6578,6 +6742,7 @@ export type Database = {
         Insert: {
           amount: number
           attributed_to_user_id?: string | null
+          contact_id?: string | null
           counts_for_individual?: boolean
           created_at?: string
           date: string
@@ -6604,6 +6769,7 @@ export type Database = {
         Update: {
           amount?: number
           attributed_to_user_id?: string | null
+          contact_id?: string | null
           counts_for_individual?: boolean
           created_at?: string
           date?: string
@@ -6628,6 +6794,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "revenue_records_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "revenue_records_team_id_fkey"
             columns: ["team_id"]
@@ -8275,10 +8448,14 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_admin_user: { Args: never; Returns: boolean }
       is_approved_user: { Args: never; Returns: boolean }
+      normalize_cpf: { Args: { p_cpf: string }; Returns: string }
+      normalize_phone: { Args: { p_phone: string }; Returns: string }
       reject_user: {
         Args: { _reason?: string; _user_id: string }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_last_access: { Args: never; Returns: undefined }
     }
     Enums: {
