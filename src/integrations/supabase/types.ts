@@ -5634,9 +5634,11 @@ export type Database = {
       proposal_control: {
         Row: {
           campaign_name: string | null
+          city: string | null
           consultation_date: string | null
           contract_date: string | null
           contract_value: number | null
+          country: string | null
           cpf: string | null
           created_at: string | null
           crm_lead_id: string | null
@@ -5664,9 +5666,11 @@ export type Database = {
         }
         Insert: {
           campaign_name?: string | null
+          city?: string | null
           consultation_date?: string | null
           contract_date?: string | null
           contract_value?: number | null
+          country?: string | null
           cpf?: string | null
           created_at?: string | null
           crm_lead_id?: string | null
@@ -5694,9 +5698,11 @@ export type Database = {
         }
         Update: {
           campaign_name?: string | null
+          city?: string | null
           consultation_date?: string | null
           contract_date?: string | null
           contract_value?: number | null
+          country?: string | null
           cpf?: string | null
           created_at?: string | null
           crm_lead_id?: string | null

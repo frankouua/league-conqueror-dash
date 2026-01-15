@@ -25,6 +25,8 @@ export interface ProposalData {
   seller_name: string | null;
   crm_lead_id: string | null;
   feegow_id: string | null;
+  country: string | null;
+  city: string | null;
   notes: string | null;
   import_batch_id: string | null;
   year: number | null;
@@ -69,6 +71,23 @@ export interface YearlyStats {
   proposals: number;
   closedValue: number;
   conversionRate: number;
+}
+
+export interface CountryStats {
+  country: string;
+  count: number;
+  closedCount: number;
+  conversionRate: number;
+  totalValue: number;
+}
+
+export interface CityStats {
+  city: string;
+  country: string;
+  count: number;
+  closedCount: number;
+  conversionRate: number;
+  totalValue: number;
 }
 
 export function useProposalAnalytics(filters: ProposalFilters = {}) {
@@ -307,6 +326,83 @@ export function useProposalAnalytics(filters: ProposalFilters = {}) {
     return Array.from(origins).sort();
   }, [proposals]);
 
+  // Stats by country
+  const countryStats = useMemo((): CountryStats[] => {
+    const countryMap = new Map<string, ProposalData[]>();
+
+    proposals.forEach(p => {
+      const key = p.country || 'Não informado';
+      if (!countryMap.has(key)) {
+        countryMap.set(key, []);
+      }
+      countryMap.get(key)!.push(p);
+    });
+
+    return Array.from(countryMap.entries()).map(([country, items]) => {
+      const closed = items.filter(p => 
+        p.contract_date && (p.negotiation_status?.toLowerCase().includes('fechad') || 
+                            p.negotiation_status?.toLowerCase().includes('ganho') ||
+                            p.negotiation_status?.toLowerCase().includes('won'))
+      );
+
+      return {
+        country,
+        count: items.length,
+        closedCount: closed.length,
+        conversionRate: items.length > 0 ? (closed.length / items.length) * 100 : 0,
+        totalValue: closed.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+      };
+    }).sort((a, b) => b.count - a.count);
+  }, [proposals]);
+
+  // Stats by city
+  const cityStats = useMemo((): CityStats[] => {
+    const cityMap = new Map<string, { country: string; items: ProposalData[] }>();
+
+    proposals.forEach(p => {
+      const cityKey = p.city || 'Não informada';
+      if (!cityMap.has(cityKey)) {
+        cityMap.set(cityKey, { country: p.country || 'Não informado', items: [] });
+      }
+      cityMap.get(cityKey)!.items.push(p);
+    });
+
+    return Array.from(cityMap.entries()).map(([city, { country, items }]) => {
+      const closed = items.filter(p => 
+        p.contract_date && (p.negotiation_status?.toLowerCase().includes('fechad') || 
+                            p.negotiation_status?.toLowerCase().includes('ganho') ||
+                            p.negotiation_status?.toLowerCase().includes('won'))
+      );
+
+      return {
+        city,
+        country,
+        count: items.length,
+        closedCount: closed.length,
+        conversionRate: items.length > 0 ? (closed.length / items.length) * 100 : 0,
+        totalValue: closed.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+      };
+    }).sort((a, b) => b.count - a.count);
+  }, [proposals]);
+
+  // Unique countries for filter
+  const uniqueCountries = useMemo(() => {
+    const countries = new Set<string>();
+    proposals.forEach(p => {
+      if (p.country) countries.add(p.country);
+    });
+    return Array.from(countries).sort();
+  }, [proposals]);
+
+  // Unique cities for filter
+  const uniqueCities = useMemo(() => {
+    const cities = new Set<string>();
+    proposals.forEach(p => {
+      if (p.city) cities.add(p.city);
+    });
+    return Array.from(cities).sort();
+  }, [proposals]);
+
   return {
     proposals,
     isLoading,
@@ -315,8 +411,12 @@ export function useProposalAnalytics(filters: ProposalFilters = {}) {
     sellerStats,
     originStats,
     yearlyStats,
+    countryStats,
+    cityStats,
     uniqueStatuses,
-    uniqueOrigins
+    uniqueOrigins,
+    uniqueCountries,
+    uniqueCities
   };
 }
 

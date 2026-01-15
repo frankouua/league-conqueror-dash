@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   FileText, TrendingUp, DollarSign, Clock, 
-  ArrowUp, ArrowDown, Minus 
+  ArrowUp, ArrowDown, Minus, Globe 
 } from 'lucide-react';
 
 interface KPIs {
@@ -18,6 +18,8 @@ interface KPIs {
 interface ProposalKPICardsProps {
   kpis: KPIs;
   previousKpis?: KPIs;
+  totalCountries?: number;
+  totalCities?: number;
 }
 
 function formatCurrency(value: number): string {
@@ -59,7 +61,7 @@ function TrendIndicator({ current, previous }: { current: number; previous?: num
   );
 }
 
-export function ProposalKPICards({ kpis, previousKpis }: ProposalKPICardsProps) {
+export function ProposalKPICards({ kpis, previousKpis, totalCountries, totalCities }: ProposalKPICardsProps) {
   const cards = [
     {
       title: 'Total Propostas',
@@ -98,10 +100,19 @@ export function ProposalKPICards({ kpis, previousKpis }: ProposalKPICardsProps) 
       previousValue: previousKpis?.avgClosingTime,
       invertTrend: true, // Lower is better
     },
+    ...(totalCountries !== undefined ? [{
+      title: 'Alcance Global',
+      value: `${totalCountries} países`,
+      subtitle: `${totalCities || 0} cidades`,
+      icon: Globe,
+      color: 'text-cyan-500',
+      bgColor: 'bg-cyan-500/10',
+      previousValue: undefined,
+    }] : []),
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       {cards.map((card) => (
         <Card key={card.title} className="relative overflow-hidden">
           <CardContent className="p-6">
