@@ -59,7 +59,7 @@ const ProposalSellerRanking = lazy(() => import("@/components/proposals/Proposal
 const ProposalOriginChart = lazy(() => import("@/components/proposals/ProposalOriginChart").then(m => ({ default: m.ProposalOriginChart })));
 const ProposalTimeAnalysis = lazy(() => import("@/components/proposals/ProposalTimeAnalysis").then(m => ({ default: m.ProposalTimeAnalysis })));
 const ProposalYearComparison = lazy(() => import("@/components/proposals/ProposalYearComparison").then(m => ({ default: m.ProposalYearComparison })));
-
+const ProposalGeographyChart = lazy(() => import("@/components/proposals/ProposalGeographyChart").then(m => ({ default: m.ProposalGeographyChart })));
 
 // Mini loading component for lazy loaded content
 const MiniLoader = memo(() => (
@@ -121,6 +121,8 @@ const Index = () => {
     sellerStats: proposalSellerStats, 
     originStats: proposalOriginStats,
     yearlyStats: proposalYearlyStats,
+    countryStats: proposalCountryStats,
+    cityStats: proposalCityStats,
     isLoading: isLoadingProposals 
   } = useProposalAnalytics({ year: selectedYear });
 
@@ -677,7 +679,11 @@ const Index = () => {
                 </div>
                 
                 <Suspense fallback={<MiniLoader />}>
-                  <ProposalKPICards kpis={proposalKpis} />
+                  <ProposalKPICards 
+                    kpis={proposalKpis} 
+                    totalCountries={proposalCountryStats?.filter(c => c.country !== 'Não informado').length}
+                    totalCities={proposalCityStats?.filter(c => c.city !== 'Não informada').length}
+                  />
                 </Suspense>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -696,6 +702,16 @@ const Index = () => {
                 <Suspense fallback={<MiniLoader />}>
                   <ProposalOriginChart originStats={proposalOriginStats} />
                 </Suspense>
+
+                {/* Geographic Analysis */}
+                {proposalCountryStats && proposalCountryStats.length > 0 && (
+                  <Suspense fallback={<MiniLoader />}>
+                    <ProposalGeographyChart 
+                      countryStats={proposalCountryStats} 
+                      cityStats={proposalCityStats || []} 
+                    />
+                  </Suspense>
+                )}
 
                 <Suspense fallback={<MiniLoader />}>
                   <ProposalYearComparison yearlyStats={proposalYearlyStats} />

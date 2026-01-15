@@ -38,6 +38,8 @@ const PROPOSAL_FIELDS = {
   origin_detail: { label: 'Detalhe Origem', possibleNames: ['Campanha', 'Detalhe Origem', 'Blogueira', 'Influencer', 'Nome Campanha'] },
   contract_value: { label: 'Valor Contrato', possibleNames: ['Valor Contrato', 'Valor', 'Valor Fechado', 'Valor Total'] },
   seller_name: { label: 'Vendedor', possibleNames: ['Vendedor', 'Responsável', 'Consultor', 'Vendedora', 'Atendente'] },
+  country: { label: 'País', possibleNames: ['País', 'Pais', 'Country', 'Nacionalidade', 'País de Origem'] },
+  city: { label: 'Cidade', possibleNames: ['Cidade', 'City', 'Município', 'Municipio', 'Cidade do Paciente'] },
   notes: { label: 'Observações', possibleNames: ['Observações', 'Obs', 'Notas', 'Observação', 'Comentários'] },
 };
 
@@ -259,6 +261,8 @@ export function ProposalUpload({ onSuccess }: { onSuccess?: () => void }) {
               contract_value: columnMapping.contract_value ? parseValue(row[columnMapping.contract_value]) : null,
               seller_id: sellerId || null,
               seller_name: sellerName ? String(sellerName) : null,
+              country: columnMapping.country ? String(row[columnMapping.country] || '') : null,
+              city: columnMapping.city ? String(row[columnMapping.city] || '') : null,
               notes: columnMapping.notes ? String(row[columnMapping.notes] || '') : null,
               import_batch_id: batchId,
               year: consultDate ? new Date(consultDate).getFullYear() : null,
