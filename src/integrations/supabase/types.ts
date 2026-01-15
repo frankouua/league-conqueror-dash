@@ -152,6 +152,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "action_dispatches_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "action_dispatches_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -210,6 +217,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1099,6 +1113,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cancellations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_rfv"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cancellations_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
@@ -1224,6 +1245,13 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contact_rfv_metrics_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "v_contacts_with_rfv"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contact_timeline: {
@@ -1272,6 +1300,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_timeline_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_rfv"
             referencedColumns: ["id"]
           },
         ]
@@ -1545,6 +1580,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "coordinator_validation_checklist_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       crm_achievements: {
@@ -1683,6 +1725,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crm_automation_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       crm_automations: {
@@ -1801,6 +1850,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_cadence_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1931,6 +1987,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crm_chat_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       crm_cross_sell_opportunities: {
@@ -1985,6 +2048,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_cross_sell_opportunities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2127,6 +2197,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crm_form_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       crm_gamification_achievements: {
@@ -2225,6 +2302,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crm_gamification_points_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       crm_gamification_rules: {
@@ -2308,6 +2392,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crm_lead_checklist_progress_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       crm_lead_history: {
@@ -2379,6 +2470,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_lead_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "crm_lead_history_to_pipeline_id_fkey"
             columns: ["to_pipeline_id"]
             isOneToOne: false
@@ -2442,6 +2540,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crm_lead_interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       crm_lead_surgery_checklist: {
@@ -2494,6 +2599,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_surgery_checklist_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2587,6 +2699,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "crm_lead_tasks_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -2637,6 +2756,8 @@ export type Database = {
           custom_fields: Json | null
           days_in_stage: number | null
           days_without_closing: number | null
+          deleted_at: string | null
+          deleted_by: string | null
           diet_restrictions: string | null
           discharge_completed: boolean | null
           discharge_completed_at: string | null
@@ -2769,6 +2890,8 @@ export type Database = {
           custom_fields?: Json | null
           days_in_stage?: number | null
           days_without_closing?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           diet_restrictions?: string | null
           discharge_completed?: boolean | null
           discharge_completed_at?: string | null
@@ -2901,6 +3024,8 @@ export type Database = {
           custom_fields?: Json | null
           days_in_stage?: number | null
           days_without_closing?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           diet_restrictions?: string | null
           discharge_completed?: boolean | null
           discharge_completed_at?: string | null
@@ -3005,6 +3130,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_rfv"
             referencedColumns: ["id"]
           },
           {
@@ -3146,6 +3278,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_notifications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "crm_notifications_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
@@ -3206,6 +3345,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_nps_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -3483,6 +3629,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -4031,6 +4184,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "email_dispatch_queue_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       executed_records: {
@@ -4057,6 +4217,7 @@ export type Database = {
           registered_by_admin: boolean
           source_fingerprint: string | null
           team_id: string
+          updated_at: string | null
           upload_id: string | null
           user_id: string
         }
@@ -4083,6 +4244,7 @@ export type Database = {
           registered_by_admin?: boolean
           source_fingerprint?: string | null
           team_id: string
+          updated_at?: string | null
           upload_id?: string | null
           user_id: string
         }
@@ -4109,6 +4271,7 @@ export type Database = {
           registered_by_admin?: boolean
           source_fingerprint?: string | null
           team_id?: string
+          updated_at?: string | null
           upload_id?: string | null
           user_id?: string
         }
@@ -4118,6 +4281,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "executed_records_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_rfv"
             referencedColumns: ["id"]
           },
           {
@@ -4296,6 +4466,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "form_links_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "form_links_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -4377,6 +4554,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
           {
@@ -4824,6 +5008,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_action_stats_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_checklist_items: {
@@ -4884,6 +5075,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_checklist_items_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
           {
@@ -4966,6 +5164,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_contracts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_contracts_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -5011,6 +5216,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_projects_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
           {
@@ -5077,6 +5289,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recurrence_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
           {
@@ -5163,6 +5382,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: true
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_spa_preferences_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -5272,6 +5498,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_travel_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_weight_tracking: {
@@ -5314,6 +5547,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_weight_tracking_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -6008,6 +6248,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposal_control_crm_lead_id_fkey"
+            columns: ["crm_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "proposal_control_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
@@ -6184,6 +6431,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "protocol_recurrence_tracking_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "protocol_recurrence_tracking_protocol_id_fkey"
             columns: ["protocol_id"]
             isOneToOne: false
@@ -6245,10 +6499,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "protocol_referrals_referred_lead_id_fkey"
+            columns: ["referred_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "protocol_referrals_referrer_lead_id_fkey"
             columns: ["referrer_lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_referrals_referrer_lead_id_fkey"
+            columns: ["referrer_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -6308,6 +6576,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_suggestions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
           {
@@ -6614,6 +6889,13 @@ export type Database = {
             referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "referral_bonuses_referred_lead_id_fkey"
+            columns: ["referred_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       referral_lead_history: {
@@ -6761,10 +7043,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "referral_leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_rfv"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "referral_leads_crm_lead_id_fkey"
             columns: ["crm_lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_leads_crm_lead_id_fkey"
+            columns: ["crm_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
           {
@@ -6854,6 +7150,7 @@ export type Database = {
           source_fingerprint: string | null
           team_id: string
           total_value: number | null
+          updated_at: string | null
           upload_id: string | null
           user_id: string
         }
@@ -6881,6 +7178,7 @@ export type Database = {
           source_fingerprint?: string | null
           team_id: string
           total_value?: number | null
+          updated_at?: string | null
           upload_id?: string | null
           user_id: string
         }
@@ -6908,6 +7206,7 @@ export type Database = {
           source_fingerprint?: string | null
           team_id?: string
           total_value?: number | null
+          updated_at?: string | null
           upload_id?: string | null
           user_id?: string
         }
@@ -6917,6 +7216,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_records_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_rfv"
             referencedColumns: ["id"]
           },
           {
@@ -7352,6 +7658,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_dispatch_queue_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -8396,7 +8709,519 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_active_leads: {
+        Row: {
+          ai_analyzed_at: string | null
+          ai_churn_probability: number | null
+          ai_conversion_probability: number | null
+          ai_intent: string | null
+          ai_next_action: string | null
+          ai_score: number | null
+          ai_sentiment: string | null
+          ai_summary: string | null
+          assigned_to: string | null
+          authority_score: number | null
+          before_after_photo_delivered: boolean | null
+          birth_date: string | null
+          budget_score: number | null
+          checklist_completed: number | null
+          checklist_overdue: number | null
+          checklist_total: number | null
+          churn_analyzed_at: string | null
+          churn_risk_level: string | null
+          companion_info: Json | null
+          contact_id: string | null
+          contract_value: number | null
+          coordinator_validated: boolean | null
+          coordinator_validated_at: string | null
+          coordinator_validated_by: string | null
+          cpf: string | null
+          created_at: string | null
+          created_by: string | null
+          cross_sell_offered: boolean | null
+          cross_sell_suggestions: string[] | null
+          current_weight: number | null
+          custom_fields: Json | null
+          days_in_stage: number | null
+          days_without_closing: number | null
+          deleted_at: string | null
+          deleted_by: string | null
+          diet_restrictions: string | null
+          discharge_completed: boolean | null
+          discharge_completed_at: string | null
+          discharge_date: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          discount_projects_count: number | null
+          email: string | null
+          emergency_contact: Json | null
+          escalated: boolean | null
+          escalated_at: string | null
+          escalated_to: string | null
+          escalation_reason: string | null
+          estimated_value: number | null
+          feegow_data: Json | null
+          feegow_id: string | null
+          first_contact_at: string | null
+          future_letter_written: boolean | null
+          gamification_points_total: number | null
+          google_review_requested: boolean | null
+          help_score: number | null
+          help_score_updated_at: string | null
+          id: string | null
+          initial_weight: number | null
+          interested_procedures: string[] | null
+          is_priority: boolean | null
+          is_recurrence_lead: boolean | null
+          is_stale: boolean | null
+          landing_page: string | null
+          last_activity_at: string | null
+          last_feegow_sync: string | null
+          last_nps_at: string | null
+          last_procedure_date: string | null
+          last_procedure_name: string | null
+          last_recovery_at: string | null
+          lead_score: number | null
+          lost_at: string | null
+          lost_reason: string | null
+          lost_reason_id: string | null
+          name: string | null
+          need_score: number | null
+          needs_travel: boolean | null
+          needs_weight_loss: boolean | null
+          next_action: string | null
+          next_action_date: string | null
+          notes: string | null
+          nps_category: string | null
+          nps_score: number | null
+          original_value: number | null
+          patient_data_id: string | null
+          payment_installments: number | null
+          payment_method: string | null
+          phone: string | null
+          pipeline_id: string | null
+          post_surgery_checklist_completed: boolean | null
+          pre_surgery_checklist_completed: boolean | null
+          preferred_contact_day: string | null
+          preferred_contact_time: string | null
+          prontuario: string | null
+          recovery_attempts: number | null
+          recovery_status: string | null
+          recurrence_days_overdue: number | null
+          recurrence_due_date: string | null
+          recurrence_group: string | null
+          referral_lead_id: string | null
+          referrer_url: string | null
+          rfv_customer_id: string | null
+          sla_violated: boolean | null
+          source: string | null
+          source_detail: string | null
+          stage_changed_at: string | null
+          stage_id: string | null
+          stale_since: string | null
+          surgery_date: string | null
+          surgery_location: string | null
+          surgery_notes: string | null
+          tags: string[] | null
+          target_weight: number | null
+          team_id: string | null
+          temperature: string | null
+          temperature_updated_at: string | null
+          testimonial_collected: boolean | null
+          timing_score: number | null
+          total_discount_percentage: number | null
+          total_interactions: number | null
+          travel_info: Json | null
+          travel_organized: boolean | null
+          unique_necklace_delivered: boolean | null
+          updated_at: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          weight_loss_deadline: string | null
+          whatsapp: string | null
+          won_at: string | null
+        }
+        Insert: {
+          ai_analyzed_at?: string | null
+          ai_churn_probability?: number | null
+          ai_conversion_probability?: number | null
+          ai_intent?: string | null
+          ai_next_action?: string | null
+          ai_score?: number | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          authority_score?: number | null
+          before_after_photo_delivered?: boolean | null
+          birth_date?: string | null
+          budget_score?: number | null
+          checklist_completed?: number | null
+          checklist_overdue?: number | null
+          checklist_total?: number | null
+          churn_analyzed_at?: string | null
+          churn_risk_level?: string | null
+          companion_info?: Json | null
+          contact_id?: string | null
+          contract_value?: number | null
+          coordinator_validated?: boolean | null
+          coordinator_validated_at?: string | null
+          coordinator_validated_by?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cross_sell_offered?: boolean | null
+          cross_sell_suggestions?: string[] | null
+          current_weight?: number | null
+          custom_fields?: Json | null
+          days_in_stage?: number | null
+          days_without_closing?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          diet_restrictions?: string | null
+          discharge_completed?: boolean | null
+          discharge_completed_at?: string | null
+          discharge_date?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          discount_projects_count?: number | null
+          email?: string | null
+          emergency_contact?: Json | null
+          escalated?: boolean | null
+          escalated_at?: string | null
+          escalated_to?: string | null
+          escalation_reason?: string | null
+          estimated_value?: number | null
+          feegow_data?: Json | null
+          feegow_id?: string | null
+          first_contact_at?: string | null
+          future_letter_written?: boolean | null
+          gamification_points_total?: number | null
+          google_review_requested?: boolean | null
+          help_score?: number | null
+          help_score_updated_at?: string | null
+          id?: string | null
+          initial_weight?: number | null
+          interested_procedures?: string[] | null
+          is_priority?: boolean | null
+          is_recurrence_lead?: boolean | null
+          is_stale?: boolean | null
+          landing_page?: string | null
+          last_activity_at?: string | null
+          last_feegow_sync?: string | null
+          last_nps_at?: string | null
+          last_procedure_date?: string | null
+          last_procedure_name?: string | null
+          last_recovery_at?: string | null
+          lead_score?: number | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          lost_reason_id?: string | null
+          name?: string | null
+          need_score?: number | null
+          needs_travel?: boolean | null
+          needs_weight_loss?: boolean | null
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          nps_category?: string | null
+          nps_score?: number | null
+          original_value?: number | null
+          patient_data_id?: string | null
+          payment_installments?: number | null
+          payment_method?: string | null
+          phone?: string | null
+          pipeline_id?: string | null
+          post_surgery_checklist_completed?: boolean | null
+          pre_surgery_checklist_completed?: boolean | null
+          preferred_contact_day?: string | null
+          preferred_contact_time?: string | null
+          prontuario?: string | null
+          recovery_attempts?: number | null
+          recovery_status?: string | null
+          recurrence_days_overdue?: number | null
+          recurrence_due_date?: string | null
+          recurrence_group?: string | null
+          referral_lead_id?: string | null
+          referrer_url?: string | null
+          rfv_customer_id?: string | null
+          sla_violated?: boolean | null
+          source?: string | null
+          source_detail?: string | null
+          stage_changed_at?: string | null
+          stage_id?: string | null
+          stale_since?: string | null
+          surgery_date?: string | null
+          surgery_location?: string | null
+          surgery_notes?: string | null
+          tags?: string[] | null
+          target_weight?: number | null
+          team_id?: string | null
+          temperature?: string | null
+          temperature_updated_at?: string | null
+          testimonial_collected?: boolean | null
+          timing_score?: number | null
+          total_discount_percentage?: number | null
+          total_interactions?: number | null
+          travel_info?: Json | null
+          travel_organized?: boolean | null
+          unique_necklace_delivered?: boolean | null
+          updated_at?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          weight_loss_deadline?: string | null
+          whatsapp?: string | null
+          won_at?: string | null
+        }
+        Update: {
+          ai_analyzed_at?: string | null
+          ai_churn_probability?: number | null
+          ai_conversion_probability?: number | null
+          ai_intent?: string | null
+          ai_next_action?: string | null
+          ai_score?: number | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          authority_score?: number | null
+          before_after_photo_delivered?: boolean | null
+          birth_date?: string | null
+          budget_score?: number | null
+          checklist_completed?: number | null
+          checklist_overdue?: number | null
+          checklist_total?: number | null
+          churn_analyzed_at?: string | null
+          churn_risk_level?: string | null
+          companion_info?: Json | null
+          contact_id?: string | null
+          contract_value?: number | null
+          coordinator_validated?: boolean | null
+          coordinator_validated_at?: string | null
+          coordinator_validated_by?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cross_sell_offered?: boolean | null
+          cross_sell_suggestions?: string[] | null
+          current_weight?: number | null
+          custom_fields?: Json | null
+          days_in_stage?: number | null
+          days_without_closing?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          diet_restrictions?: string | null
+          discharge_completed?: boolean | null
+          discharge_completed_at?: string | null
+          discharge_date?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          discount_projects_count?: number | null
+          email?: string | null
+          emergency_contact?: Json | null
+          escalated?: boolean | null
+          escalated_at?: string | null
+          escalated_to?: string | null
+          escalation_reason?: string | null
+          estimated_value?: number | null
+          feegow_data?: Json | null
+          feegow_id?: string | null
+          first_contact_at?: string | null
+          future_letter_written?: boolean | null
+          gamification_points_total?: number | null
+          google_review_requested?: boolean | null
+          help_score?: number | null
+          help_score_updated_at?: string | null
+          id?: string | null
+          initial_weight?: number | null
+          interested_procedures?: string[] | null
+          is_priority?: boolean | null
+          is_recurrence_lead?: boolean | null
+          is_stale?: boolean | null
+          landing_page?: string | null
+          last_activity_at?: string | null
+          last_feegow_sync?: string | null
+          last_nps_at?: string | null
+          last_procedure_date?: string | null
+          last_procedure_name?: string | null
+          last_recovery_at?: string | null
+          lead_score?: number | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          lost_reason_id?: string | null
+          name?: string | null
+          need_score?: number | null
+          needs_travel?: boolean | null
+          needs_weight_loss?: boolean | null
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          nps_category?: string | null
+          nps_score?: number | null
+          original_value?: number | null
+          patient_data_id?: string | null
+          payment_installments?: number | null
+          payment_method?: string | null
+          phone?: string | null
+          pipeline_id?: string | null
+          post_surgery_checklist_completed?: boolean | null
+          pre_surgery_checklist_completed?: boolean | null
+          preferred_contact_day?: string | null
+          preferred_contact_time?: string | null
+          prontuario?: string | null
+          recovery_attempts?: number | null
+          recovery_status?: string | null
+          recurrence_days_overdue?: number | null
+          recurrence_due_date?: string | null
+          recurrence_group?: string | null
+          referral_lead_id?: string | null
+          referrer_url?: string | null
+          rfv_customer_id?: string | null
+          sla_violated?: boolean | null
+          source?: string | null
+          source_detail?: string | null
+          stage_changed_at?: string | null
+          stage_id?: string | null
+          stale_since?: string | null
+          surgery_date?: string | null
+          surgery_location?: string | null
+          surgery_notes?: string | null
+          tags?: string[] | null
+          target_weight?: number | null
+          team_id?: string | null
+          temperature?: string | null
+          temperature_updated_at?: string | null
+          testimonial_collected?: boolean | null
+          timing_score?: number | null
+          total_discount_percentage?: number | null
+          total_interactions?: number | null
+          travel_info?: Json | null
+          travel_organized?: boolean | null
+          unique_necklace_delivered?: boolean | null
+          updated_at?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          weight_loss_deadline?: string | null
+          whatsapp?: string | null
+          won_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_rfv"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_lost_reason_id_fkey"
+            columns: ["lost_reason_id"]
+            isOneToOne: false
+            referencedRelation: "crm_lost_reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_patient_data_id_fkey"
+            columns: ["patient_data_id"]
+            isOneToOne: false
+            referencedRelation: "patient_data"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_referral_lead_id_fkey"
+            columns: ["referral_lead_id"]
+            isOneToOne: false
+            referencedRelation: "referral_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_rfv_customer_id_fkey"
+            columns: ["rfv_customer_id"]
+            isOneToOne: false
+            referencedRelation: "rfv_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_contacts_with_rfv: {
+        Row: {
+          address: string | null
+          average_ticket: number | null
+          became_client_at: string | null
+          birth_date: string | null
+          churn_risk: string | null
+          city: string | null
+          country: string | null
+          cpf: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          email: string | null
+          first_contact_at: string | null
+          first_purchase_date: string | null
+          frequency_score: number | null
+          gender: string | null
+          id: string | null
+          last_activity_at: string | null
+          last_purchase_date: string | null
+          lifecycle_stage: string | null
+          name: string | null
+          nationality: string | null
+          phone: string | null
+          prontuario: string | null
+          recency_score: number | null
+          rfv_score: number | null
+          segment: string | null
+          segment_priority: number | null
+          source_id: string | null
+          source_table: string | null
+          state: string | null
+          status: string | null
+          total_lifetime_value: number | null
+          total_procedures_executed: number | null
+          total_transactions: number | null
+          updated_at: string | null
+          value_score: number | null
+          whatsapp: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_training_xp: {
@@ -8454,6 +9279,21 @@ export type Database = {
           ticket_medio: number
           user_id: string
           vendas_mes: number
+        }[]
+      }
+      get_contact_profile: { Args: { p_contact_id: string }; Returns: Json }
+      get_contact_timeline: {
+        Args: { p_contact_id: string; p_limit?: number }
+        Returns: {
+          created_at: string
+          description: string
+          event_subtype: string
+          event_type: string
+          id: string
+          metadata: Json
+          reference_id: string
+          reference_table: string
+          title: string
         }[]
       }
       get_interaction_hour_distribution: {
@@ -8568,6 +9408,10 @@ export type Database = {
       is_approved_user: { Args: never; Returns: boolean }
       normalize_cpf: { Args: { p_cpf: string }; Returns: string }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      recalculate_contact_rfv: {
+        Args: { p_contact_id: string }
+        Returns: undefined
+      }
       reject_user: {
         Args: { _reason?: string; _user_id: string }
         Returns: undefined
