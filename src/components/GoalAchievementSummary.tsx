@@ -32,7 +32,7 @@ const GoalAchievementSummary = ({ month, year }: GoalAchievementSummaryProps) =>
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-  // Fetch predefined goals with matched users
+  // Fetch predefined goals with matched users (deduped by matched_user_id)
   const { data: sellerGoals } = useQuery({
     queryKey: ["seller-goals-summary", month, year],
     queryFn: async () => {
@@ -43,21 +43,36 @@ const GoalAchievementSummary = ({ month, year }: GoalAchievementSummaryProps) =>
         .eq("year", year)
         .not("matched_user_id", "is", null);
       if (goalsError) throw goalsError;
-      
-      // Fetch profiles separately
-      const userIds = goals?.map(g => g.matched_user_id).filter(Boolean) || [];
-      if (userIds.length === 0) return goals;
-      
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-      
-      // Merge profile names into goals
-      return goals?.map(g => ({
-        ...g,
-        full_name: profiles?.find(p => p.user_id === g.matched_user_id)?.full_name || g.first_name
-      }));
+
+      const userIds = goals?.map(g => g.matched_user_id).filter(Boolean) as string[];
+      const uniqueUserIds = Array.from(new Set(userIds));
+
+      const { data: profiles, error: profilesError } = uniqueUserIds.length
+        ? await supabase
+            .from("profiles")
+            .select("user_id, full_name")
+            .in("user_id", uniqueUserIds)
+        : { data: [], error: null };
+      if (profilesError) throw profilesError;
+
+      // Aggregate: if there are multiple goal rows for the same seller, sum metas
+      const byUser = new Map<string, { matched_user_id: string; full_name: string; meta1_goal: number; meta2_goal: number; meta3_goal: number }>();
+
+      (goals || []).forEach((g) => {
+        const userId = g.matched_user_id as string;
+        const current = byUser.get(userId);
+        const fullName = profiles?.find(p => p.user_id === userId)?.full_name || (g.first_name as string) || "Sem nome";
+
+        byUser.set(userId, {
+          matched_user_id: userId,
+          full_name: fullName,
+          meta1_goal: (current?.meta1_goal || 0) + Number(g.meta1_goal || 0),
+          meta2_goal: (current?.meta2_goal || 0) + Number(g.meta2_goal || 0),
+          meta3_goal: (current?.meta3_goal || 0) + Number(g.meta3_goal || 0),
+        });
+      });
+
+      return Array.from(byUser.values());
     },
   });
 
@@ -139,21 +154,25 @@ const GoalAchievementSummary = ({ month, year }: GoalAchievementSummaryProps) =>
 
   // Calculate seller achievements
   const sellerAchievements: SellerAchievement[] = (sellerGoals || []).map((goal: any) => {
+    const meta1 = Number(goal.meta1_goal || 0);
+    const meta2 = Number(goal.meta2_goal || 0);
+    const meta3 = Number(goal.meta3_goal || 0);
+
     const userRevenue = (revenueByUser || [])
       .filter(r => r.attributed_to_user_id === goal.matched_user_id)
       .reduce((sum, r) => sum + Number(r.amount), 0);
-    
+
     let achievedLevel: 0 | 1 | 2 | 3 = 0;
-    if (userRevenue >= Number(goal.meta3_goal)) achievedLevel = 3;
-    else if (userRevenue >= Number(goal.meta2_goal)) achievedLevel = 2;
-    else if (userRevenue >= Number(goal.meta1_goal)) achievedLevel = 1;
+    if (meta3 > 0 && userRevenue >= meta3) achievedLevel = 3;
+    else if (meta2 > 0 && userRevenue >= meta2) achievedLevel = 2;
+    else if (meta1 > 0 && userRevenue >= meta1) achievedLevel = 1;
 
     return {
-      name: goal.full_name || goal.first_name,
+      name: goal.full_name || "Sem nome",
       revenue: userRevenue,
-      meta1: Number(goal.meta1_goal),
-      meta2: Number(goal.meta2_goal),
-      meta3: Number(goal.meta3_goal),
+      meta1,
+      meta2,
+      meta3,
       achievedLevel,
     };
   }).sort((a, b) => b.achievedLevel - a.achievedLevel || b.revenue - a.revenue);
