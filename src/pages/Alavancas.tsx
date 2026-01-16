@@ -214,7 +214,7 @@ const Alavancas = () => {
           <AlavancasKPIWidget />
 
           {/* Content Header */}
-          <div className="sticky top-[73px] z-10 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4">
+          <div className="sticky top-[117px] z-10 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-3">
             <div className="flex items-center gap-3">
               {activeItem && (
                 <>

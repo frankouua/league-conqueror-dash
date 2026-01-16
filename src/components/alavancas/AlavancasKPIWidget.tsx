@@ -1,11 +1,10 @@
 import { memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Users, RefreshCw, UserPlus, Target, ShieldAlert, 
-  DollarSign, TrendingUp, Loader2
+  DollarSign, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -152,30 +151,24 @@ function AlavancasKPIWidgetComponent() {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 px-6 py-4 bg-gradient-to-r from-card/80 to-card border-b">
+    <div className="sticky top-[73px] z-20 flex items-center justify-between gap-2 px-4 py-2 bg-card/95 backdrop-blur-sm border-b border-border">
       {kpis.map((kpi, idx) => {
         const Icon = kpi.icon;
         return (
-          <Card key={idx} className="border-0 shadow-none bg-transparent">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-3">
-                <div className={cn("p-2 rounded-lg", kpi.bgColor)}>
-                  <Icon className={cn("h-4 w-4", kpi.color)} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground truncate">{kpi.label}</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold">{kpi.value}</p>
-                    {kpi.badge && (
-                      <Badge className={cn("text-[10px] px-1.5 py-0", kpi.badge.color)}>
-                        {kpi.badge.label}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+          <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/30 transition-colors">
+            <Icon className={cn("h-4 w-4 shrink-0", kpi.color)} />
+            <div className="flex flex-col">
+              <span className="text-[10px] text-muted-foreground leading-tight">{kpi.label}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold leading-tight">{kpi.value}</span>
+                {kpi.badge && (
+                  <Badge className={cn("text-[9px] px-1 py-0 h-4", kpi.badge.color)}>
+                    {kpi.badge.label}
+                  </Badge>
+                )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         );
       })}
     </div>
