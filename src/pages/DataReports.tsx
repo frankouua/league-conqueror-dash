@@ -267,14 +267,29 @@ const DataReports = () => {
     });
   }, [unifiedRecords, selectedTeam, selectedType, selectedUser, startDate, endDate]);
 
-  // Get unique users who have registered records
+  // Get unique users who have registered records (only sellers with position and team)
   const usersWithRecords = useMemo(() => {
     const userIds = new Set(unifiedRecords.map(r => r.user_id));
     return profiles?.filter(p => userIds.has(p.user_id)) || [];
   }, [unifiedRecords, profiles]);
 
-  // Calculate statistics per person based on filtered records
+  // Define seller positions (exclude managers/coordinators)
+  const sellerPositions = ['sdr', 'comercial_1_captacao', 'comercial_2_closer', 'comercial_3_experiencia', 'comercial_4_farmer'];
+
+  // Get only sellers (people with position and team_id)
+  const getSellersOnly = () => {
+    return profiles?.filter(p => 
+      p.position && 
+      p.team_id && 
+      sellerPositions.includes(p.position)
+    ) || [];
+  };
+
+  // Calculate statistics per person based on filtered records - ONLY FOR SELLERS
   const userStats = useMemo(() => {
+    const sellers = getSellersOnly();
+    const sellerUserIds = new Set(sellers.map(s => s.user_id));
+    
     const stats: Record<string, {
       name: string;
       team_name: string;
@@ -287,51 +302,65 @@ const DataReports = () => {
       other_count: number;
     }> = {};
 
+    // Initialize stats for all sellers (even those without records)
+    sellers.forEach(seller => {
+      const team = teams?.find(t => t.id === seller.team_id);
+      stats[seller.user_id] = {
+        name: seller.full_name || "Sem nome",
+        team_name: team?.name || "Sem equipe",
+        total_records: 0,
+        revenue_count: 0,
+        revenue_total: 0,
+        nps_count: 0,
+        testimonial_count: 0,
+        referral_count: 0,
+        other_count: 0,
+      };
+    });
+
+    // Process filtered records - only count for sellers and use attributed_to when available
     filteredRecords.forEach((record) => {
-      if (!stats[record.user_id]) {
-        stats[record.user_id] = {
-          name: record.registered_by_name,
-          team_name: record.team_name,
-          total_records: 0,
-          revenue_count: 0,
-          revenue_total: 0,
-          nps_count: 0,
-          testimonial_count: 0,
-          referral_count: 0,
-          other_count: 0,
-        };
-      }
-
-      stats[record.user_id].total_records++;
-
-      switch (record.type) {
-        case "revenue":
-          stats[record.user_id].revenue_count++;
-          // Extract numeric value from "R$ X.XXX"
+      // For revenue, use attributed_to if available
+      if (record.type === "revenue") {
+        const revenueRecord = revenueRecords?.find(r => r.id === record.id);
+        const targetUserId = revenueRecord?.attributed_to_user_id || record.user_id;
+        
+        if (sellerUserIds.has(targetUserId) && stats[targetUserId]) {
+          stats[targetUserId].total_records++;
+          stats[targetUserId].revenue_count++;
           const numValue = parseFloat(record.value.replace(/[R$\s.]/g, '').replace(',', '.'));
           if (!isNaN(numValue)) {
-            stats[record.user_id].revenue_total += numValue;
+            stats[targetUserId].revenue_total += numValue;
           }
-          break;
-        case "nps":
-          stats[record.user_id].nps_count++;
-          break;
-        case "testimonial":
-          stats[record.user_id].testimonial_count++;
-          break;
-        case "referral":
-          stats[record.user_id].referral_count++;
-          break;
-        case "other":
-          stats[record.user_id].other_count++;
-          break;
+        }
+      } else {
+        // For other record types, check if user is a seller
+        if (!sellerUserIds.has(record.user_id) || !stats[record.user_id]) return;
+
+        stats[record.user_id].total_records++;
+
+        switch (record.type) {
+          case "nps":
+            stats[record.user_id].nps_count++;
+            break;
+          case "testimonial":
+            stats[record.user_id].testimonial_count++;
+            break;
+          case "referral":
+            stats[record.user_id].referral_count++;
+            break;
+          case "other":
+            stats[record.user_id].other_count++;
+            break;
+        }
       }
     });
 
     return Object.entries(stats)
       .map(([userId, data]) => ({ userId, ...data }))
+      .filter(s => s.total_records > 0) // Only show sellers with records
       .sort((a, b) => b.total_records - a.total_records);
-  }, [filteredRecords]);
+  }, [filteredRecords, profiles, teams, revenueRecords]);
 
   const exportToExcel = () => {
     const exportData = filteredRecords.map((record) => ({
@@ -414,41 +443,82 @@ const DataReports = () => {
   const formatCurrency = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   const calculateMemberPerformance = (userId: string) => {
-    const userRevenue = revenueRecords?.filter(r => r.user_id === userId && r.date >= reportStartDate && r.date <= reportEndDate).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    // Use attributed_to_user_id for revenue attribution
+    const userRevenue = revenueRecords?.filter(r => 
+      (r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) && 
+      r.date >= reportStartDate && 
+      r.date <= reportEndDate
+    ).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    
     const revenuePoints = Math.floor(userRevenue / 10000);
-    const userNps = npsRecords?.filter(r => r.user_id === userId && r.date >= reportStartDate && r.date <= reportEndDate) || [];
+    
+    const userNps = npsRecords?.filter(r => 
+      (r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) && 
+      r.date >= reportStartDate && 
+      r.date <= reportEndDate
+    ) || [];
     let npsPoints = 0;
     userNps.forEach(n => {
       if (n.score === 9) npsPoints += 3;
       if (n.score === 10) npsPoints += 5;
       if (n.cited_member) npsPoints += 10;
     });
-    const userTestimonials = testimonialRecords?.filter(r => r.user_id === userId && r.date >= reportStartDate && r.date <= reportEndDate) || [];
+    
+    const userTestimonials = testimonialRecords?.filter(r => 
+      (r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) && 
+      r.date >= reportStartDate && 
+      r.date <= reportEndDate
+    ) || [];
     let testimonialPoints = 0;
     userTestimonials.forEach(t => {
       if (t.type === "google") testimonialPoints += 10;
       if (t.type === "video") testimonialPoints += 20;
       if (t.type === "gold") testimonialPoints += 40;
     });
-    const userReferrals = referralRecords?.filter(r => r.user_id === userId && r.date >= reportStartDate && r.date <= reportEndDate) || [];
+    
+    const userReferrals = referralRecords?.filter(r => 
+      (r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) && 
+      r.date >= reportStartDate && 
+      r.date <= reportEndDate
+    ) || [];
     let referralPoints = 0;
     userReferrals.forEach(r => {
       referralPoints += r.collected * 5;
       referralPoints += r.to_consultation * 15;
       referralPoints += r.to_surgery * 30;
     });
-    const userOther = otherIndicators?.filter(r => r.user_id === userId && r.date >= reportStartDate && r.date <= reportEndDate) || [];
+    
+    const userOther = otherIndicators?.filter(r => 
+      (r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) && 
+      r.date >= reportStartDate && 
+      r.date <= reportEndDate
+    ) || [];
     let otherPoints = 0;
     userOther.forEach(o => {
       otherPoints += o.unilovers * 5;
       otherPoints += o.ambassadors * 50;
       otherPoints += o.instagram_mentions * 2;
     });
-    return { revenue: userRevenue, revenuePoints, npsPoints, testimonialPoints, referralPoints, otherPoints, totalPoints: revenuePoints + npsPoints + testimonialPoints + referralPoints + otherPoints };
+    
+    return { 
+      revenue: userRevenue, 
+      revenuePoints, 
+      npsPoints, 
+      testimonialPoints, 
+      referralPoints, 
+      otherPoints, 
+      totalPoints: revenuePoints + npsPoints + testimonialPoints + referralPoints + otherPoints 
+    };
   };
 
   const calculateTeamPerformance = (teamId: string) => {
-    const teamMembers = profiles?.filter(p => p.team_id === teamId) || [];
+    // Only include team members with seller positions
+    const teamMembers = profiles?.filter(p => 
+      p.team_id === teamId && 
+      p.position && 
+      sellerPositions.includes(p.position)
+    ) || [];
+    
     let totalRevenue = 0, totalRevenuePoints = 0, totalNpsPoints = 0, totalTestimonialPoints = 0, totalReferralPoints = 0, totalOtherPoints = 0;
     teamMembers.forEach(member => {
       const perf = calculateMemberPerformance(member.user_id);
