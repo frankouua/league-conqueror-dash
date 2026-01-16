@@ -95,7 +95,7 @@ const SellerDepartmentProgress = ({ userId, userName, month, year }: SellerDepar
       const { data, error } = await supabase
         .from("revenue_records")
         .select("department, amount")
-        .eq("user_id", userId)
+        .eq("attributed_to_user_id", userId)
         .gte("date", startDate)
         .lte("date", endDate);
       if (error) throw error;

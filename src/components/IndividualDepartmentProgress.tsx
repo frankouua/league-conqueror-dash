@@ -59,32 +59,20 @@ const IndividualDepartmentProgress = () => {
   const currentDay = now.getDate();
   const totalDaysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
-  // Fetch department goals (revenue)
-  const { data: departmentGoals = [] } = useQuery({
-    queryKey: ["department-goals", currentMonth, currentYear],
+  // Fetch individual seller department goals (metas individuais)
+  const { data: sellerDeptGoals = [] } = useQuery({
+    queryKey: ["seller-department-goals", user?.id, currentMonth, currentYear],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("department_goals")
+        .from("seller_department_goals")
         .select("*")
+        .eq("user_id", user?.id)
         .eq("month", currentMonth)
         .eq("year", currentYear);
       if (error) throw error;
-      return data;
+      return data || [];
     },
-  });
-
-  // Fetch quantity goals
-  const { data: quantityGoals = [] } = useQuery({
-    queryKey: ["department-quantity-goals", currentMonth, currentYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("department_quantity_goals")
-        .select("*")
-        .eq("month", currentMonth)
-        .eq("year", currentYear);
-      if (error) throw error;
-      return data;
-    },
+    enabled: !!user?.id,
   });
 
   // Fetch user's revenue records
@@ -106,19 +94,6 @@ const IndividualDepartmentProgress = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch count of team members to calculate individual share
-  const { data: teamMemberCount = 1 } = useQuery({
-    queryKey: ["team-member-count"],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .not("team_id", "is", null);
-      if (error) throw error;
-      return count || 1;
-    },
-  });
-
   // Process revenue data by department
   const revenueByDept: Record<string, number> = {};
   const countByDept: Record<string, number> = {};
@@ -132,28 +107,21 @@ const IndividualDepartmentProgress = () => {
     }
   });
 
-  // Calculate individual share of goals (clinic goal / number of sellers)
-  // Assuming around 10 sellers total if not available
-  const numSellers = Math.max(teamMemberCount, 1);
-  const individualShareDivisor = numSellers;
-
-  // Build revenue department data
-  const revenueDepartments: DepartmentData[] = departmentGoals.map((dg) => {
-    const individualGoal = dg.meta1_goal / individualShareDivisor;
+  // Build revenue department data using individual seller goals
+  const revenueDepartments: DepartmentData[] = sellerDeptGoals.map((sdg) => {
     return {
-      name: SHORT_NAMES[dg.department_name] || dg.department_name,
-      goal: individualGoal,
-      sold: revenueByDept[dg.department_name] || 0,
+      name: SHORT_NAMES[sdg.department_name] || sdg.department_name,
+      goal: sdg.meta1_goal || 0,
+      sold: revenueByDept[sdg.department_name] || 0,
     };
   }).filter(d => d.goal > 0);
 
-  // Build quantity department data
-  const quantityDepartments: DepartmentData[] = quantityGoals.map((qg) => {
-    const individualGoal = Math.ceil(qg.quantity_goal / individualShareDivisor);
+  // Build quantity department data using individual seller goals
+  const quantityDepartments: DepartmentData[] = sellerDeptGoals.map((sdg) => {
     return {
-      name: SHORT_NAMES[qg.department_name] || qg.department_name,
-      goal: individualGoal,
-      sold: countByDept[qg.department_name] || 0,
+      name: SHORT_NAMES[sdg.department_name] || sdg.department_name,
+      goal: sdg.meta1_qty || 0,
+      sold: countByDept[sdg.department_name] || 0,
     };
   }).filter(d => d.goal > 0);
 
@@ -186,7 +154,7 @@ const IndividualDepartmentProgress = () => {
     return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{diff.toFixed(0)}%</Badge>;
   };
 
-  if (departmentGoals.length === 0 && quantityGoals.length === 0) {
+  if (sellerDeptGoals.length === 0) {
     return null;
   }
 

@@ -139,22 +139,28 @@ const MyGoalsDashboard = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch predefined goals
-  const { data: predefinedGoal } = useQuery({
-    queryKey: ["my-predefined-goal", user?.id, currentMonth, currentYear],
+  // Fetch predefined goals (all departments)
+  const { data: predefinedGoals = [] } = useQuery({
+    queryKey: ["my-predefined-goals", user?.id, currentMonth, currentYear],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("predefined_goals")
         .select("*")
         .eq("matched_user_id", user?.id)
         .eq("month", currentMonth)
-        .eq("year", currentYear)
-        .single();
-      if (error && error.code !== "PGRST116") throw error;
-      return data;
+        .eq("year", currentYear);
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!user?.id,
   });
+  
+  // Sum all department goals for total
+  const predefinedGoal = predefinedGoals.length > 0 ? {
+    meta1_goal: predefinedGoals.reduce((sum, g) => sum + (g.meta1_goal || 0), 0),
+    meta2_goal: predefinedGoals.reduce((sum, g) => sum + (g.meta2_goal || 0), 0),
+    meta3_goal: predefinedGoals.reduce((sum, g) => sum + (g.meta3_goal || 0), 0),
+  } : null;
 
   // Fetch revenue records for current month
   const { data: revenueRecords = [] } = useQuery({
