@@ -190,27 +190,6 @@ const Alavancas = () => {
               })}
             </nav>
 
-            {/* Stats Footer - Compact */}
-            <div className={cn(
-              "border-t border-border",
-              sidebarCollapsed ? "p-1.5" : "p-2"
-            )}>
-              <div className={cn(
-                "grid gap-1 text-center",
-                sidebarCollapsed ? "grid-cols-1" : "grid-cols-2"
-              )}>
-                <div className="p-1.5 rounded bg-muted/50">
-                  <p className={cn("font-bold text-primary", sidebarCollapsed ? "text-sm" : "text-base")}>8</p>
-                  {!sidebarCollapsed && <p className="text-[9px] text-muted-foreground">Alavancas</p>}
-                </div>
-                {!sidebarCollapsed && (
-                  <div className="p-1.5 rounded bg-muted/50">
-                    <p className="text-base font-bold text-green-500">↑</p>
-                    <p className="text-[9px] text-muted-foreground">Crescimento</p>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </aside>
 
