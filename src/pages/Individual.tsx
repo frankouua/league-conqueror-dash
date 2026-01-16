@@ -137,13 +137,13 @@ const Individual = () => {
     const teamMap = new Map(teams.map(t => [t.id, t.name]));
     
     return profiles.map(profile => {
-      // Revenue
-      const userRevenue = revenueRecords?.filter(r => r.user_id === profile.user_id) || [];
+      // Revenue - using attributed_to_user_id for proper attribution
+      const userRevenue = revenueRecords?.filter(r => r.attributed_to_user_id === profile.user_id || (!r.attributed_to_user_id && r.user_id === profile.user_id)) || [];
       const revenue = userRevenue.reduce((sum, r) => sum + Number(r.amount), 0);
       const revenuePoints = Math.floor(revenue / 10000);
 
       // NPS
-      const userNps = npsRecords?.filter(r => r.user_id === profile.user_id) || [];
+      const userNps = npsRecords?.filter(r => r.attributed_to_user_id === profile.user_id || (!r.attributed_to_user_id && r.user_id === profile.user_id)) || [];
       let npsPoints = 0;
       userNps.forEach(n => {
         if (n.score === 9) npsPoints += 3;
@@ -152,7 +152,7 @@ const Individual = () => {
       });
 
       // Testimonials
-      const userTestimonials = testimonialRecords?.filter(r => r.user_id === profile.user_id) || [];
+      const userTestimonials = testimonialRecords?.filter(r => r.attributed_to_user_id === profile.user_id || (!r.attributed_to_user_id && r.user_id === profile.user_id)) || [];
       let testimonialPoints = 0;
       userTestimonials.forEach(t => {
         if (t.type === "google") testimonialPoints += 10;
@@ -161,7 +161,7 @@ const Individual = () => {
       });
 
       // Referrals
-      const userReferrals = referralRecords?.filter(r => r.user_id === profile.user_id) || [];
+      const userReferrals = referralRecords?.filter(r => r.attributed_to_user_id === profile.user_id || (!r.attributed_to_user_id && r.user_id === profile.user_id)) || [];
       let referralPoints = 0;
       userReferrals.forEach(r => {
         referralPoints += r.collected * 5;
@@ -170,7 +170,7 @@ const Individual = () => {
       });
 
       // Other indicators
-      const userOther = otherIndicators?.filter(r => r.user_id === profile.user_id) || [];
+      const userOther = otherIndicators?.filter(r => r.attributed_to_user_id === profile.user_id || (!r.attributed_to_user_id && r.user_id === profile.user_id)) || [];
       let otherPoints = 0;
       userOther.forEach(o => {
         otherPoints += o.unilovers * 5;

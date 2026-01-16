@@ -259,15 +259,18 @@ export default function SellerDashboard({
 
     return filteredProfiles
       .map((profile) => {
-        const goal = predefinedGoals.find((g) => g.matched_user_id === profile.user_id);
+        // Aggregate goals for this user (may have multiple rows per department)
+        const userGoals = predefinedGoals.filter((g) => g.matched_user_id === profile.user_id);
+        const meta1Goal = userGoals.reduce((sum, g) => sum + Number(g.meta1_goal || 0), 0);
+        const meta2Goal = userGoals.reduce((sum, g) => sum + Number(g.meta2_goal || 0), 0);
+        const meta3Goal = userGoals.reduce((sum, g) => sum + Number(g.meta3_goal || 0), 0);
+        const confirmed = userGoals.some((g) => g.confirmed);
+        
+        // Use attributed_to_user_id for revenue attribution
         const userRevenue =
           revenueRecords
-            ?.filter((r) => r.user_id === profile.user_id)
+            ?.filter((r) => r.attributed_to_user_id === profile.user_id || (!r.attributed_to_user_id && r.user_id === profile.user_id))
             .reduce((sum, r) => sum + Number(r.amount), 0) || 0;
-
-        const meta1Goal = goal?.meta1_goal ? Number(goal.meta1_goal) : 0;
-        const meta2Goal = goal?.meta2_goal ? Number(goal.meta2_goal) : 0;
-        const meta3Goal = goal?.meta3_goal ? Number(goal.meta3_goal) : 0;
 
         return {
           userId: profile.user_id,
@@ -283,7 +286,7 @@ export default function SellerDashboard({
           meta1Actual: userRevenue,
           meta1Percent: meta1Goal > 0 ? Math.round((userRevenue / meta1Goal) * 100) : 0,
           meta1Remaining: Math.max(0, meta1Goal - userRevenue),
-          confirmed: goal?.confirmed ?? false,
+          confirmed,
           position_label: profile.position ? POSITION_LABELS[profile.position] || profile.position : "Não definido",
         };
       })
@@ -318,16 +321,17 @@ export default function SellerDashboard({
 
       const revenue =
         allRevenueRecords
-          ?.filter((r) => r.user_id === userId && r.date >= monthStart && r.date <= monthEnd)
+          ?.filter((r) => (r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) && r.date >= monthStart && r.date <= monthEnd)
           .reduce((sum, r) => sum + Number(r.amount), 0) || 0;
 
-      const goal = allPredefinedGoals?.find(
+      // Aggregate all goals for this user/month/year
+      const userGoals = allPredefinedGoals?.filter(
         (g) => g.matched_user_id === userId && g.month === m && g.year === y
-      );
+      ) || [];
 
-      const meta1 = goal?.meta1_goal ? Number(goal.meta1_goal) : 0;
-      const meta2 = goal?.meta2_goal ? Number(goal.meta2_goal) : 0;
-      const meta3 = goal?.meta3_goal ? Number(goal.meta3_goal) : 0;
+      const meta1 = userGoals.reduce((sum, g) => sum + Number(g.meta1_goal || 0), 0);
+      const meta2 = userGoals.reduce((sum, g) => sum + Number(g.meta2_goal || 0), 0);
+      const meta3 = userGoals.reduce((sum, g) => sum + Number(g.meta3_goal || 0), 0);
 
       let metaBatida = "Nenhuma";
       if (revenue >= meta3) metaBatida = "Meta 3";

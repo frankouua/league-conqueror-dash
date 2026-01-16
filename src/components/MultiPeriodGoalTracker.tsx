@@ -279,13 +279,13 @@ export function MultiPeriodGoalTracker() {
   const monthStart = format(startOfMonth(today), 'yyyy-MM-dd');
   const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd');
 
-  // Fetch all revenue for the month (all sellers)
+  // Fetch all revenue for the month (all sellers) - using attributed_to_user_id
   const { data: allRevenueData } = useQuery({
     queryKey: ['all-period-revenue', currentMonth, currentYear],
     queryFn: async () => {
       const { data } = await supabase
         .from('revenue_records')
-        .select('date, amount, user_id')
+        .select('date, amount, attributed_to_user_id, user_id')
         .gte('date', monthStart)
         .lte('date', monthEnd);
       return data || [];
@@ -341,7 +341,7 @@ export function MultiPeriodGoalTracker() {
       if (!profile) return;
 
       const sellerRevenue = allRevenueData
-        .filter(r => r.user_id === goal.user_id)
+        .filter(r => (r.attributed_to_user_id === goal.user_id) || (!r.attributed_to_user_id && r.user_id === goal.user_id))
         .map(r => ({ date: r.date, amount: r.amount || 0 }));
 
       const result = calculatePeriods(meta3, sellerRevenue, today);

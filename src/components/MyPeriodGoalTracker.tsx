@@ -98,7 +98,7 @@ export function MyPeriodGoalTracker() {
       const { data } = await supabase
         .from('revenue_records')
         .select('date, amount')
-        .eq('user_id', user.id)
+        .or(`attributed_to_user_id.eq.${user.id}`)
         .gte('date', monthStart)
         .lte('date', monthEnd);
 
