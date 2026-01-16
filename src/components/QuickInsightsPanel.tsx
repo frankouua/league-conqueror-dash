@@ -128,15 +128,17 @@ export default function QuickInsightsPanel({ month, year }: QuickInsightsProps) 
 
     return profiles
       .map((profile) => {
-        const goal = predefinedGoals.find((g) => g.matched_user_id === profile.user_id);
-        if (!goal) return null;
+        // Aggregate goals for this user (may have multiple rows per department)
+        const userGoals = predefinedGoals.filter((g) => g.matched_user_id === profile.user_id);
+        if (userGoals.length === 0) return null;
 
+        // Use attributed_to_user_id for revenue attribution
         const userRevenue =
           revenueRecords
-            ?.filter((r) => r.user_id === profile.user_id)
+            ?.filter((r) => r.attributed_to_user_id === profile.user_id || (!r.attributed_to_user_id && r.user_id === profile.user_id))
             .reduce((sum, r) => sum + Number(r.amount), 0) || 0;
 
-        const meta1Goal = Number(goal.meta1_goal);
+        const meta1Goal = userGoals.reduce((sum, g) => sum + Number(g.meta1_goal || 0), 0);
         const remaining = Math.max(0, meta1Goal - userRevenue);
         const percent = meta1Goal > 0 ? Math.round((userRevenue / meta1Goal) * 100) : 0;
         const dailyNeeded = daysRemaining > 0 ? remaining / daysRemaining : remaining;

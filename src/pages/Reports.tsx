@@ -135,10 +135,10 @@ const Reports = () => {
   };
 
   const calculateMemberPerformance = (userId: string) => {
-    const userRevenue = revenueRecords?.filter(r => r.user_id === userId).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    const userRevenue = revenueRecords?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
     const revenuePoints = Math.floor(userRevenue / 10000);
 
-    const userNps = npsRecords?.filter(r => r.user_id === userId) || [];
+    const userNps = npsRecords?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) || [];
     let npsPoints = 0;
     userNps.forEach(n => {
       if (n.score === 9) npsPoints += 3;
@@ -146,7 +146,7 @@ const Reports = () => {
       if (n.cited_member) npsPoints += 10;
     });
 
-    const userTestimonials = testimonialRecords?.filter(r => r.user_id === userId) || [];
+    const userTestimonials = testimonialRecords?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) || [];
     let testimonialPoints = 0;
     userTestimonials.forEach(t => {
       if (t.type === "google") testimonialPoints += 10;
@@ -154,7 +154,7 @@ const Reports = () => {
       if (t.type === "gold") testimonialPoints += 40;
     });
 
-    const userReferrals = referralRecords?.filter(r => r.user_id === userId) || [];
+    const userReferrals = referralRecords?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) || [];
     let referralPoints = 0;
     userReferrals.forEach(r => {
       referralPoints += r.collected * 5;
@@ -162,7 +162,7 @@ const Reports = () => {
       referralPoints += r.to_surgery * 30;
     });
 
-    const userOther = otherIndicators?.filter(r => r.user_id === userId) || [];
+    const userOther = otherIndicators?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)) || [];
     let otherPoints = 0;
     userOther.forEach(o => {
       otherPoints += o.unilovers * 5;

@@ -216,12 +216,12 @@ const Goals = () => {
     },
   });
 
-  // Calculate individual progress
+  // Calculate individual progress - using attributed_to_user_id for proper attribution
   const calculateProgress = (userId: string) => {
-    const userRevenue = revenueRecords?.filter(r => r.user_id === userId).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
-    const userNps = npsRecords?.filter(r => r.user_id === userId).length || 0;
-    const userTestimonials = testimonialRecords?.filter(r => r.user_id === userId).length || 0;
-    const userReferrals = referralRecords?.filter(r => r.user_id === userId).reduce((sum, r) => sum + r.collected + r.to_consultation + r.to_surgery, 0) || 0;
+    const userRevenue = revenueRecords?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)).reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    const userNps = npsRecords?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)).length || 0;
+    const userTestimonials = testimonialRecords?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)).length || 0;
+    const userReferrals = referralRecords?.filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId)).reduce((sum, r) => sum + r.collected + r.to_consultation + r.to_surgery, 0) || 0;
 
     return { revenue: userRevenue, nps: userNps, testimonials: userTestimonials, referrals: userReferrals };
   };

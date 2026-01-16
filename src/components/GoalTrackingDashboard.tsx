@@ -178,11 +178,11 @@ const GoalTrackingDashboard = ({ month, year }: GoalTrackingDashboardProps) => {
     return matchingRecords.reduce((sum, r) => sum + Number(r.amount), 0);
   };
 
-  // Calculate revenue by user
+  // Calculate revenue by user - using attributed_to_user_id for proper attribution
   const getRevenueByUser = (userId: string) => {
     if (!revenueRecords) return 0;
     return revenueRecords
-      .filter(r => r.user_id === userId)
+      .filter(r => r.attributed_to_user_id === userId || (!r.attributed_to_user_id && r.user_id === userId))
       .reduce((sum, r) => sum + Number(r.amount), 0);
   };
 
