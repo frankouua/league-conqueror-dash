@@ -1,5 +1,8 @@
 project_id = "mbnjjwatnqjjqxogmaju"
 
+[functions.export-table-data]
+verify_jwt = false
+
 [functions.execute-cadences]
 verify_jwt = false
 
