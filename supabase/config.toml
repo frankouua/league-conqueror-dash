@@ -1,5 +1,8 @@
 project_id = "mbnjjwatnqjjqxogmaju"
 
+[functions.migrate-to-external]
+verify_jwt = false
+
 [functions.export-table-data]
 verify_jwt = false
 
