@@ -9406,6 +9406,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_admin_user: { Args: never; Returns: boolean }
       is_approved_user: { Args: never; Returns: boolean }
+      is_migration_mode: { Args: never; Returns: boolean }
       normalize_cpf: { Args: { p_cpf: string }; Returns: string }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
       recalculate_contact_rfv: {
