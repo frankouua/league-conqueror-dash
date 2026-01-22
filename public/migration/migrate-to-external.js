@@ -17,7 +17,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 // ORIGEM: Lovable Cloud (não precisa mudar)
 const SOURCE_URL = 'https://mbnjjwatnqjjqxogmaju.supabase.co';
-const SOURCE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ibmpqd2F0bnFqanF4b2dtYWp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NzkxNTMsImV4cCI6MjA4MTU1NTE1M30.ZBR4ujq5Bfw0EP4WFS6xQccEqLp2WA-zl7EUSyS5zl4';
+const SOURCE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ibmpqd2F0bnFqanF4b2dtYWp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NzkxNTMsImV4cCI6MjA4MTU1NTE1M30.ZBR4ujq5Bfw0IP4WFS6xQccEqLp2WA-zl7EUSyS5zl4';
 
 // DESTINO: Seu Supabase Externo (PREENCHA AQUI!)
 const DEST_URL = 'https://SEU_PROJECT_ID.supabase.co'; // ← ALTERE
