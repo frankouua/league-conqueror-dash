@@ -87,7 +87,7 @@ export function CRMGlobalSearch({
     { label: 'Overview', value: 'overview', shortcut: 'O' },
     { label: 'Automações', value: 'automations', shortcut: 'A' },
     { label: 'Ranking', value: 'leaderboard', shortcut: 'R' },
-    { label: 'WhatsApp IA', value: 'whatsapp', shortcut: 'W' },
+    { label: 'Chats', value: 'whatsapp', shortcut: 'W' },
     { label: 'Chat Equipe', value: 'chat', shortcut: 'C' },
     { label: 'Métricas', value: 'metrics', shortcut: 'M' },
     { label: 'Marketing', value: 'marketing', shortcut: '' },
