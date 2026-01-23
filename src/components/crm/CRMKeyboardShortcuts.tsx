@@ -34,7 +34,7 @@ const shortcuts: KeyboardShortcut[] = [
   { key: 'A', description: 'Ir para Automações', icon: Zap, category: 'navigation' },
   { key: 'R', description: 'Ir para Ranking', icon: Trophy, category: 'navigation' },
   { key: 'C', description: 'Ir para Chat', icon: MessageSquare, category: 'navigation' },
-  { key: 'W', description: 'Ir para WhatsApp IA', icon: Phone, category: 'navigation' },
+  { key: 'W', description: 'Ir para Chats', icon: Phone, category: 'navigation' },
   
   // Actions
   { key: 'N', description: 'Novo Lead', icon: Plus, category: 'actions' },

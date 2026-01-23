@@ -92,7 +92,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Comunicação',
     icon: MessageSquare,
     items: [
-      { value: 'whatsapp', label: 'WhatsApp IA', icon: Bot, color: 'text-green-500' },
+      { value: 'whatsapp', label: 'Chats', icon: Bot, color: 'text-green-500' },
       { value: 'templates', label: 'Templates', icon: FileText, color: 'text-green-600' },
       { value: 'contacts', label: 'Contatos', icon: Phone },
       { value: 'chat', label: 'Chat Equipe', icon: MessageSquare },
