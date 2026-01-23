@@ -180,19 +180,10 @@ verify_jwt = false
 [functions.sync-feegow-cron]
 verify_jwt = false
 
-[functions.feegow-sync]
-verify_jwt = false
-
-[functions.figo-webhook]
-verify_jwt = false
-
 [functions.send-whatsapp]
 verify_jwt = false
 
 [functions.daily-report]
-verify_jwt = false
-
-[functions.check-recurrence]
 verify_jwt = false
 
 [functions.send-whatsapp-real]
@@ -219,8 +210,8 @@ verify_jwt = false
 [functions.bulk-actions]
 verify_jwt = false
 
-[functions.escalation-automation]
+[functions.daily-backup]
 verify_jwt = false
 
-[functions.daily-backup]
+[functions.whatsapp-webhook]
 verify_jwt = false
