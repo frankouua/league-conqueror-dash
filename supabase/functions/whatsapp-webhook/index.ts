@@ -29,7 +29,26 @@ async function getOrCreateChat(
   }
 
   if (existingChat) {
-    return existingChat;
+    // ✅ Regra: se o chat já existir, atualizar timestamp e unread_count ANTES de inserir a mensagem
+    const nextUnreadCount = fromMe ? (existingChat.unread_count ?? 0) : (existingChat.unread_count ?? 0) + 1;
+
+    const { data: updatedChat, error: updateError } = await supabaseClient
+      .from('whatsapp_chats')
+      .update({
+        last_message_timestamp: messageTimestamp,
+        unread_count: nextUnreadCount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingChat.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('❌ Erro ao atualizar chat existente:', updateError);
+      throw new Error(`FAILED_TO_UPDATE_CHAT: ${updateError.message}`);
+    }
+
+    return updatedChat;
   }
 
   // Criar novo chat com organization_id, timestamp e unread_count
@@ -205,29 +224,6 @@ serve(async (req) => {
         console.error('❌ Erro crítico ao salvar mensagem:', messageError);
         return new Response(
           JSON.stringify({ success: false, error: 'FAILED_TO_SAVE_MESSAGE' }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-        );
-      }
-
-      // Atualizar timestamp da última mensagem e contador de não lidas
-      const updateData: any = {
-        last_message_timestamp: messageTimestamp,
-        updated_at: new Date().toISOString()
-      };
-
-      if (!fromMe) {
-        updateData.unread_count = (chatRecord.unread_count || 0) + 1;
-      }
-
-      const { error: updateChatError } = await supabaseClient
-        .from('whatsapp_chats')
-        .update(updateData)
-        .eq('id', chatRecord.id);
-
-      if (updateChatError) {
-        console.error('❌ Erro crítico ao atualizar chat:', updateChatError);
-        return new Response(
-          JSON.stringify({ success: false, error: 'FAILED_TO_UPDATE_CHAT' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
         );
       }
