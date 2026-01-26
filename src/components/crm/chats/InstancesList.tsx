@@ -1,4 +1,5 @@
-import { MessageCircle, Shield, Crown, Users, Smartphone } from 'lucide-react';
+import { Shield, Crown, Users, Smartphone } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -50,7 +51,7 @@ export function InstancesList({
       <div className="w-52 border-r bg-card flex flex-col shrink-0">
         <div className="p-3 border-b">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <MessageCircle className="w-3.5 h-3.5 text-green-500" />
+            <WhatsAppIcon className="w-3.5 h-3.5 text-green-500" />
             WhatsApp
           </h3>
         </div>
@@ -68,7 +69,7 @@ export function InstancesList({
       <div className="w-52 border-r bg-card flex flex-col shrink-0">
         <div className="p-3 border-b">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <MessageCircle className="w-3.5 h-3.5 text-green-500" />
+            <WhatsAppIcon className="w-3.5 h-3.5 text-green-500" />
             WhatsApp
           </h3>
         </div>
@@ -87,7 +88,7 @@ export function InstancesList({
       <div className="p-3 border-b">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <MessageCircle className="w-3.5 h-3.5 text-green-500" />
+            <WhatsAppIcon className="w-3.5 h-3.5 text-green-500" />
             WhatsApp
           </h3>
           <Badge variant="secondary" className="text-[10px] h-5">
