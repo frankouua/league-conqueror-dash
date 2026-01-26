@@ -1,15 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  ResizablePanelGroup, 
-  ResizablePanel, 
-  ResizableHandle 
-} from '@/components/ui/resizable';
 import { 
   MessageSquare, 
   Search, 
@@ -27,9 +22,12 @@ import { useWhatsAppMessages } from '@/hooks/useWhatsAppMessages';
 import { useMyWhatsAppInstances } from '@/hooks/useMyWhatsAppInstances';
 import { useWhatsAppSendMessage } from '@/hooks/useWhatsAppSendMessage';
 import { useMarkChatAsRead } from '@/hooks/useMarkChatAsRead';
-import { InstanceSelector } from '@/components/crm/chats/InstanceSelector';
+import { ChannelsSidebar } from '@/components/crm/chats/ChannelsSidebar';
+import { InstancesList } from '@/components/crm/chats/InstancesList';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+type Channel = 'whatsapp' | 'instagram' | 'facebook';
 
 function formatTimestamp(timestamp: string | null): string {
   if (!timestamp) return '';
@@ -41,6 +39,8 @@ function formatTimestamp(timestamp: string | null): string {
 }
 
 export function CRMChatsModule() {
+  // Channel & Instance State
+  const [activeChannel, setActiveChannel] = useState<Channel>('whatsapp');
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,6 +73,16 @@ export function CRMChatsModule() {
   // Check if user can send messages in the current context
   const canSend = selectedInstanceId && selectedConversation && canSendMessage(selectedInstanceId);
   const isInputDisabled = !selectedConversation || !canSend || sending;
+
+  // Handle channel selection
+  const handleSelectChannel = (channel: Channel) => {
+    setActiveChannel(channel);
+    // Reset state when changing channels
+    if (channel !== 'whatsapp') {
+      setSelectedInstanceId(null);
+      setSelectedConversation(null);
+    }
+  };
 
   // Handle instance selection with security check
   const handleSelectInstance = (instanceId: string) => {
@@ -133,138 +143,139 @@ export function CRMChatsModule() {
     return name.includes(query) || number.includes(query);
   });
 
-  // Show instance selector when no instance is selected
-  const showInstanceSelector = !selectedInstanceId || instances.length > 1;
-
   return (
     <div className="h-[calc(100vh-220px)] min-h-[500px]">
-      <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border bg-card">
-        {/* Left Column - Conversations List */}
-        <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
-          <div className="flex flex-col h-full">
-            {/* Instance Selector & Search Header */}
-            <div className="p-3 border-b space-y-3">
-              {/* Instance Selector */}
-              <InstanceSelector
-                instances={instances}
-                selectedInstanceId={selectedInstanceId}
-                onSelectInstance={handleSelectInstance}
-                loading={instancesLoading}
-              />
-              
-              {/* Current role indicator */}
-              {currentRole && (
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-primary" />
-                    Conversas
-                  </h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {chats.length}
-                  </Badge>
-                </div>
-              )}
-              
+      <div className="h-full rounded-lg border bg-card flex overflow-hidden">
+        {/* Column 1 - Channels Sidebar */}
+        <ChannelsSidebar
+          activeChannel={activeChannel}
+          onSelectChannel={handleSelectChannel}
+        />
+
+        {/* Column 2 - Instances List (WhatsApp only) */}
+        {activeChannel === 'whatsapp' && (
+          <InstancesList
+            instances={instances}
+            selectedInstanceId={selectedInstanceId}
+            onSelectInstance={handleSelectInstance}
+            loading={instancesLoading}
+          />
+        )}
+
+        {/* Column 3 - Conversations List */}
+        <div className="w-72 border-r bg-card flex flex-col shrink-0">
+          {/* Search Header */}
+          <div className="p-3 border-b space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                Conversas
+              </h3>
               {selectedInstanceId && (
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar conversas..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-8 text-sm"
-                  />
-                </div>
+                <Badge variant="secondary" className="text-xs">
+                  {chats.length}
+                </Badge>
               )}
             </div>
-
-            {/* Conversations List */}
-            <ScrollArea className="flex-1">
-              {!selectedInstanceId ? (
-                <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <ShieldAlert className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <h4 className="font-medium text-sm text-foreground mb-1">
-                    Selecione uma instância
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Escolha uma instância WhatsApp para ver as conversas
-                  </p>
-                </div>
-              ) : chatsLoading ? (
-                <div className="p-3 space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <Skeleton className="w-10 h-10 rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-1/2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : filteredChats.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <Inbox className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <h4 className="font-medium text-sm text-foreground mb-1">
-                    Nenhuma conversa
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    As conversas aparecerão aqui quando conectadas
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {filteredChats.map((chat) => (
-                    <button
-                      key={chat.id}
-                      onClick={() => handleSelectConversation(chat.id)}
-                      className={cn(
-                        "w-full p-3 text-left hover:bg-muted/50 transition-colors",
-                        selectedConversation === chat.id && "bg-muted"
-                      )}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <User className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="font-medium text-sm truncate">
-                              {chat.contact_name || chat.contact_number || 'Sem nome'}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatTimestamp(chat.last_message_timestamp)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {chat.contact_number || chat.remote_jid}
-                          </p>
-                        </div>
-                        {(chat.unread_count ?? 0) > 0 && (
-                          <Badge className="h-5 min-w-5 flex items-center justify-center">
-                            {chat.unread_count}
-                          </Badge>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
+            
+            {selectedInstanceId && (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar conversas..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 h-8 text-sm"
+                />
+              </div>
+            )}
           </div>
-        </ResizablePanel>
 
-        <ResizableHandle withHandle />
+          {/* Conversations List */}
+          <ScrollArea className="flex-1">
+            {!selectedInstanceId ? (
+              <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <ShieldAlert className="w-7 h-7 text-muted-foreground" />
+                </div>
+                <h4 className="font-medium text-sm text-foreground mb-1">
+                  Selecione uma instância
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Escolha uma instância à esquerda
+                </p>
+              </div>
+            ) : chatsLoading ? (
+              <div className="p-3 space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredChats.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <Inbox className="w-7 h-7 text-muted-foreground" />
+                </div>
+                <h4 className="font-medium text-sm text-foreground mb-1">
+                  Nenhuma conversa
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  As conversas aparecerão aqui
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredChats.map((chat) => (
+                  <button
+                    key={chat.id}
+                    onClick={() => handleSelectConversation(chat.id)}
+                    className={cn(
+                      "w-full p-3 text-left hover:bg-muted/50 transition-colors",
+                      selectedConversation === chat.id && "bg-muted"
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <User className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="font-medium text-sm truncate">
+                            {chat.contact_name || chat.contact_number || 'Sem nome'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatTimestamp(chat.last_message_timestamp)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {chat.contact_number || chat.remote_jid}
+                        </p>
+                      </div>
+                      {(chat.unread_count ?? 0) > 0 && (
+                        <Badge className="h-5 min-w-5 flex items-center justify-center">
+                          {chat.unread_count}
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
 
-        {/* Center Column - Messages Area */}
-        <ResizablePanel defaultSize={50} minSize={35}>
-          <div className="flex flex-col h-full">
+        {/* Column 4 - Messages + Details */}
+        <div className="flex-1 flex min-w-0">
+          {/* Messages Area */}
+          <div className="flex-1 flex flex-col min-w-0">
             {/* Chat Header */}
-            <div className="p-3 border-b flex items-center justify-between">
+            <div className="p-3 border-b flex items-center justify-between shrink-0">
               {selectedConversation ? (
                 <>
                   <div className="flex items-center gap-3">
@@ -305,10 +316,10 @@ export function CRMChatsModule() {
                     <MessageSquare className="w-10 h-10 text-muted-foreground" />
                   </div>
                   <h4 className="font-medium text-foreground mb-2">
-                    Bem-vindo ao Chats
+                    Bem-vindo ao Hub de Chats
                   </h4>
                   <p className="text-sm text-muted-foreground max-w-xs">
-                    Selecione uma conversa à esquerda para ver as mensagens
+                    Selecione um canal, instância e conversa para começar
                   </p>
                 </div>
               ) : messagesLoading ? (
@@ -367,7 +378,7 @@ export function CRMChatsModule() {
             </ScrollArea>
 
             {/* Message Input */}
-            <div className="p-3 border-t">
+            <div className="p-3 border-t shrink-0">
               <div className="flex items-center gap-2">
                 <Input
                   placeholder={
@@ -406,15 +417,11 @@ export function CRMChatsModule() {
               )}
             </div>
           </div>
-        </ResizablePanel>
 
-        <ResizableHandle withHandle />
-
-        {/* Right Column - Details Panel */}
-        <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
-          <div className="flex flex-col h-full">
+          {/* Details Panel */}
+          <div className="w-64 border-l bg-card flex flex-col shrink-0">
             {/* Panel Header */}
-            <div className="p-3 border-b">
+            <div className="p-3 border-b shrink-0">
               <h3 className="font-semibold text-sm flex items-center gap-2">
                 <User className="w-4 h-4 text-primary" />
                 Detalhes
@@ -426,35 +433,35 @@ export function CRMChatsModule() {
               {!selectedConversation ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <p className="text-sm text-muted-foreground">
-                    Selecione uma conversa para ver os detalhes
+                    Selecione uma conversa
                   </p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-5">
                   {/* Contact Info */}
                   <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                      <User className="w-8 h-8 text-primary" />
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                      <User className="w-7 h-7 text-primary" />
                     </div>
-                    <h4 className="font-medium">
+                    <h4 className="font-medium text-sm">
                       {selectedChat?.contact_name || 'Sem nome'}
                     </h4>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {selectedChat?.contact_number || selectedChat?.remote_jid}
                     </p>
                   </div>
 
                   {/* Instance Info */}
                   {currentInstance && (
-                    <div className="space-y-2">
-                      <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <div className="space-y-1.5">
+                      <h5 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                         Instância
                       </h5>
                       <Card className="bg-muted/50">
-                        <CardContent className="p-3">
-                          <p className="text-sm font-medium">{currentInstance.instance_name}</p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            Seu papel: {currentRole}
+                        <CardContent className="p-2.5">
+                          <p className="text-xs font-medium">{currentInstance.instance_name}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">
+                            Papel: {currentRole}
                           </p>
                         </CardContent>
                       </Card>
@@ -462,18 +469,18 @@ export function CRMChatsModule() {
                   )}
 
                   {/* Quick Actions */}
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <div className="space-y-1.5">
+                    <h5 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                       Ações Rápidas
                     </h5>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" className="h-8 text-xs" disabled>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <Button variant="outline" size="sm" className="h-7 text-[10px]" disabled>
                         Ver Lead
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="h-8 text-xs" 
+                        className="h-7 text-[10px]" 
                         disabled={!canManageChats(selectedInstanceId || '')}
                       >
                         Nova Tarefa
@@ -482,24 +489,24 @@ export function CRMChatsModule() {
                   </div>
 
                   {/* Tags */}
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <div className="space-y-1.5">
+                    <h5 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                       Tags
                     </h5>
                     <div className="flex flex-wrap gap-1">
-                      <Badge variant="secondary" className="text-xs">Lead</Badge>
-                      <Badge variant="secondary" className="text-xs">Novo</Badge>
+                      <Badge variant="secondary" className="text-[10px]">Lead</Badge>
+                      <Badge variant="secondary" className="text-[10px]">Novo</Badge>
                     </div>
                   </div>
 
                   {/* Notes */}
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <div className="space-y-1.5">
+                    <h5 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                       Notas
                     </h5>
                     <Card className="bg-muted/50">
-                      <CardContent className="p-3">
-                        <p className="text-xs text-muted-foreground italic">
+                      <CardContent className="p-2.5">
+                        <p className="text-[10px] text-muted-foreground italic">
                           Nenhuma nota adicionada
                         </p>
                       </CardContent>
@@ -509,8 +516,8 @@ export function CRMChatsModule() {
               )}
             </ScrollArea>
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </div>
+      </div>
     </div>
   );
 }
