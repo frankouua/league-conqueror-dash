@@ -92,6 +92,53 @@ function normalizeRemoteJid(raw?: string | null) {
   return v;
 }
 
+function toISODateSafe(input: unknown): string {
+  // UAZAPI pode mandar:
+  // - number em segundos (10 dígitos)
+  // - number em milissegundos (13 dígitos)
+  // - string ISO
+  // - string numérica
+  // Precisamos evitar multiplicar ms por 1000 (gera ano 58041...)
+  try {
+    if (input === null || input === undefined) return new Date().toISOString();
+
+    // number
+    if (typeof input === 'number' && Number.isFinite(input)) {
+      const ms = input > 1e12 ? input : input * 1000; // heurística: > 1e12 = ms
+      const d = new Date(ms);
+      if (!Number.isNaN(d.getTime())) return d.toISOString();
+      return new Date().toISOString();
+    }
+
+    // string
+    if (typeof input === 'string') {
+      const s = input.trim();
+      if (!s) return new Date().toISOString();
+
+      // string numérica
+      if (/^\d{9,16}$/.test(s)) {
+        const n = Number(s);
+        if (Number.isFinite(n)) {
+          const ms = n > 1e12 ? n : n * 1000;
+          const d = new Date(ms);
+          if (!Number.isNaN(d.getTime())) return d.toISOString();
+        }
+      }
+
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) return d.toISOString();
+      return new Date().toISOString();
+    }
+
+    // fallback
+    const d = new Date(String(input));
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+    return new Date().toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
 // Função auxiliar para buscar ou criar chat
 async function getOrCreateChat(
   supabaseClient: any, 
@@ -259,11 +306,13 @@ serve(async (req) => {
       const fromMe = message.fromMe ?? message.key?.fromMe ?? false;
       const senderName = message.senderName || message.pushName || '';
       const messageType = message.messageType || message.type || 'text';
-      const messageTimestamp = message.messageTimestamp 
-        ? new Date(typeof message.messageTimestamp === 'number' 
-            ? message.messageTimestamp * 1000 
-            : message.messageTimestamp).toISOString()
-        : new Date().toISOString();
+      const messageTimestamp = toISODateSafe(
+        message.messageTimestamp ??
+          // alguns provedores usam Timestamp em payload.event
+          message.Timestamp ??
+          payload?.event?.Timestamp ??
+          payload?.data?.event?.Timestamp
+      );
       const contactPhotoUrl = chat.imagePreview || chat.profilePictureUrl || '';
 
       // Buscar ou criar chat (com timestamp e unread_count)
