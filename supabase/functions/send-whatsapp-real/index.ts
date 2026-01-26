@@ -22,13 +22,37 @@ async function safeJsonFromResponse(response: Response): Promise<any> {
 
 function buildUazapiCandidateUrls(baseUrl: string, instanceName: string): string[] {
   const encoded = encodeURIComponent(instanceName);
-  // UAZAPI endpoints - ordem de prioridade baseada na documentação
-  return [
-    `${baseUrl}/chat/send/text/${encoded}`,
-    `${baseUrl}/message/sendText/${encoded}`,
-    `${baseUrl}/send/text/${encoded}`,
-    `${baseUrl}/chat/sendText/${encoded}`,
+  // UAZAPI tem variações de path dependendo da versão / reverse-proxy.
+  // Mantemos uma lista bem abrangente e tentamos em ordem.
+  const prefixes = ['', '/api', '/api/v1', '/v1'];
+  const paths = [
+    // mais comuns
+    '/chat/send/text',
+    '/chat/sendText',
+    '/message/sendText',
+    '/send/text',
+    // variações vistas em alguns forks
+    '/message/send/text',
+    '/message/send',
+    '/chat/send',
   ];
+
+  const urls: string[] = [];
+
+  for (const prefix of prefixes) {
+    for (const path of paths) {
+      // com e sem barra final (alguns proxies diferenciam)
+      urls.push(`${baseUrl}${prefix}${path}/${encoded}`);
+      urls.push(`${baseUrl}${prefix}${path}/${encoded}/`);
+
+      // alguns servidores NÃO colocam a instância na URL (vem no body)
+      urls.push(`${baseUrl}${prefix}${path}`);
+      urls.push(`${baseUrl}${prefix}${path}/`);
+    }
+  }
+
+  // dedupe preservando ordem
+  return Array.from(new Set(urls));
 }
 
 interface SendChatMessagePayload {
@@ -125,6 +149,11 @@ serve(async (req) => {
           text: message,
           number: phoneNumber,
           message: message,
+
+          // Identificação da instância (para servidores que NÃO usam a instância no path)
+          instance: uazapiInstanceName,
+          instanceName: uazapiInstanceName,
+          session: uazapiInstanceName,
         };
 
         console.log('[WhatsApp] UAZAPI payload:', { phoneNumber, messageLength: message.length, remoteJid });
@@ -143,7 +172,11 @@ serve(async (req) => {
 
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
+          // Alguns servidores usam `apikey`, outros `token` e/ou `Authorization: Bearer`
           'apikey': apiKey,
+          'token': apiKey,
+          'x-api-key': apiKey,
+          'Authorization': `Bearer ${apiKey}`,
         };
 
         let lastAttempt: { url: string; status?: number; result?: any } | null = null;
