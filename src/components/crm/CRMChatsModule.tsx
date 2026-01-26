@@ -18,11 +18,13 @@ import {
   User, 
   MoreVertical,
   Inbox,
-  Clock
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
 import { useWhatsAppMessages } from '@/hooks/useWhatsAppMessages';
+import { useMyWhatsAppInstances } from '@/hooks/useMyWhatsAppInstances';
+import { InstanceSelector } from '@/components/crm/chats/InstanceSelector';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -36,13 +38,37 @@ function formatTimestamp(timestamp: string | null): string {
 }
 
 export function CRMChatsModule() {
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const { chats, loading } = useWhatsAppChats();
+  
+  // Load user's authorized instances
+  const { 
+    instances, 
+    loading: instancesLoading, 
+    hasAccess, 
+    getRole,
+    canManageChats 
+  } = useMyWhatsAppInstances();
+  
+  // Load chats for selected instance only
+  const { chats, loading: chatsLoading } = useWhatsAppChats(selectedInstanceId);
   const { messages, loading: messagesLoading } = useWhatsAppMessages(selectedConversation);
 
   // Get selected chat info
   const selectedChat = chats.find((c) => c.id === selectedConversation);
+  const currentRole = selectedInstanceId ? getRole(selectedInstanceId) : null;
+  const currentInstance = instances.find(i => i.instance_id === selectedInstanceId);
+
+  // Handle instance selection with security check
+  const handleSelectInstance = (instanceId: string) => {
+    if (!hasAccess(instanceId)) {
+      console.error('[WhatsApp Security] Blocked unauthorized instance access');
+      return;
+    }
+    setSelectedInstanceId(instanceId);
+    setSelectedConversation(null);
+  };
 
   // Filter chats by search query
   const filteredChats = chats.filter((chat) => {
@@ -52,37 +78,66 @@ export function CRMChatsModule() {
     return name.includes(query) || number.includes(query);
   });
 
+  // Show instance selector when no instance is selected
+  const showInstanceSelector = !selectedInstanceId || instances.length > 1;
+
   return (
     <div className="h-[calc(100vh-220px)] min-h-[500px]">
       <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border bg-card">
         {/* Left Column - Conversations List */}
         <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
           <div className="flex flex-col h-full">
-            {/* Search Header */}
+            {/* Instance Selector & Search Header */}
             <div className="p-3 border-b space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-primary" />
-                  Conversas
-                </h3>
-                <Badge variant="secondary" className="text-xs">
-                  {chats.length}
-                </Badge>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar conversas..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 h-8 text-sm"
-                />
-              </div>
+              {/* Instance Selector */}
+              <InstanceSelector
+                instances={instances}
+                selectedInstanceId={selectedInstanceId}
+                onSelectInstance={handleSelectInstance}
+                loading={instancesLoading}
+              />
+              
+              {/* Current role indicator */}
+              {currentRole && (
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-primary" />
+                    Conversas
+                  </h3>
+                  <Badge variant="secondary" className="text-xs">
+                    {chats.length}
+                  </Badge>
+                </div>
+              )}
+              
+              {selectedInstanceId && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar conversas..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 h-8 text-sm"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Conversations List */}
             <ScrollArea className="flex-1">
-              {loading ? (
+              {!selectedInstanceId ? (
+                <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <ShieldAlert className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h4 className="font-medium text-sm text-foreground mb-1">
+                    Selecione uma instância
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha uma instância WhatsApp para ver as conversas
+                  </p>
+                </div>
+              ) : chatsLoading ? (
                 <div className="p-3 space-y-3">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="flex items-center gap-3">
@@ -262,11 +317,11 @@ export function CRMChatsModule() {
                 <Input
                   placeholder="Digite uma mensagem..."
                   className="flex-1"
-                  disabled={!selectedConversation}
+                  disabled={!selectedConversation || currentRole === 'viewer'}
                 />
                 <Button 
                   size="icon" 
-                  disabled={!selectedConversation}
+                  disabled={!selectedConversation || currentRole === 'viewer'}
                   className="shrink-0"
                 >
                   <Send className="w-4 h-4" />
@@ -299,16 +354,37 @@ export function CRMChatsModule() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Contact Info Placeholder */}
+                  {/* Contact Info */}
                   <div className="text-center">
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                       <User className="w-8 h-8 text-primary" />
                     </div>
-                    <h4 className="font-medium">Nome do Contato</h4>
-                    <p className="text-sm text-muted-foreground">+55 11 99999-9999</p>
+                    <h4 className="font-medium">
+                      {selectedChat?.contact_name || 'Sem nome'}
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedChat?.contact_number || selectedChat?.remote_jid}
+                    </p>
                   </div>
 
-                  {/* Quick Actions Placeholder */}
+                  {/* Instance Info */}
+                  {currentInstance && (
+                    <div className="space-y-2">
+                      <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Instância
+                      </h5>
+                      <Card className="bg-muted/50">
+                        <CardContent className="p-3">
+                          <p className="text-sm font-medium">{currentInstance.instance_name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            Seu papel: {currentRole}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
+                  {/* Quick Actions */}
                   <div className="space-y-2">
                     <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Ações Rápidas
@@ -317,13 +393,18 @@ export function CRMChatsModule() {
                       <Button variant="outline" size="sm" className="h-8 text-xs" disabled>
                         Ver Lead
                       </Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs" disabled>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 text-xs" 
+                        disabled={!canManageChats(selectedInstanceId || '')}
+                      >
                         Nova Tarefa
                       </Button>
                     </div>
                   </div>
 
-                  {/* Tags Placeholder */}
+                  {/* Tags */}
                   <div className="space-y-2">
                     <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Tags
@@ -334,7 +415,7 @@ export function CRMChatsModule() {
                     </div>
                   </div>
 
-                  {/* Notes Placeholder */}
+                  {/* Notes */}
                   <div className="space-y-2">
                     <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Notas
