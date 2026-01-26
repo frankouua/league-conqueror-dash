@@ -160,15 +160,18 @@ serve(async (req) => {
 
 
         // Usar API key global do UAZAPI (configurada como secret)
-        const apiKey = instance.api_key || UAZAPI_GLOBAL_API_KEY;
+      // Priorizar API key da instância, usar global apenas como fallback
+      const apiKey = instance.api_key || UAZAPI_GLOBAL_API_KEY;
         
-        if (!apiKey) {
+      if (!apiKey || apiKey === '') {
           console.error('[WhatsApp] No API key available for UAZAPI');
           return new Response(
-            JSON.stringify({ success: false, error: 'API key do UAZAPI não configurada. Configure UAZAPI_API_KEY nos secrets.' }),
+          JSON.stringify({ success: false, error: `API key não encontrada para a instância ${uazapiInstanceName}. Configure o campo 'api_key' na instância ou defina UAZAPI_API_KEY global.` }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
+      
+      console.log('[WhatsApp] Using API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NONE');
 
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
