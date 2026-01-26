@@ -22,6 +22,7 @@ import {
   Bot,
   Send
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { format, addDays, differenceInDays, isAfter, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -140,7 +141,7 @@ export const CRMPostSaleFlow = () => {
   const getContactIcon = (type: string) => {
     switch (type) {
       case 'call': return <Phone className="h-4 w-4" />;
-      case 'whatsapp': return <MessageSquare className="h-4 w-4" />;
+      case 'whatsapp': return <WhatsAppIcon className="h-4 w-4" />;
       case 'visit': return <Stethoscope className="h-4 w-4" />;
       case 'photo': return <Camera className="h-4 w-4" />;
       case 'nps': return <Star className="h-4 w-4" />;

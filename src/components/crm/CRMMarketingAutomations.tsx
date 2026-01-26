@@ -5,6 +5,7 @@ import {
   Filter, Target, TrendingUp, Users, Sparkles, Check,
   ChevronDown, AlertCircle, Calendar, BarChart3
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -196,7 +197,7 @@ const triggerLabels: Record<string, { label: string; icon: React.ElementType }> 
 
 const actionLabels: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   send_email: { label: 'Enviar E-mail', icon: Mail, color: 'bg-blue-100 text-blue-700' },
-  send_whatsapp: { label: 'Enviar WhatsApp', icon: MessageSquare, color: 'bg-green-100 text-green-700' },
+  send_whatsapp: { label: 'Enviar WhatsApp', icon: WhatsAppIcon, color: 'bg-green-100 text-green-700' },
   send_sms: { label: 'Enviar SMS', icon: Phone, color: 'bg-purple-100 text-purple-700' },
   create_task: { label: 'Criar Tarefa', icon: Check, color: 'bg-yellow-100 text-yellow-700' },
   add_tag: { label: 'Adicionar Tag', icon: Filter, color: 'bg-orange-100 text-orange-700' },

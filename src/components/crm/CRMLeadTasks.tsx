@@ -6,6 +6,7 @@ import {
   Plus, Calendar, Clock, CheckCircle2, Circle, 
   Phone, Mail, MessageSquare, Users, AlertCircle, Loader2
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +41,7 @@ interface Task {
 const TASK_TYPES = [
   { value: 'call', label: 'Ligação', icon: Phone },
   { value: 'email', label: 'Email', icon: Mail },
-  { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+  { value: 'whatsapp', label: 'WhatsApp', icon: WhatsAppIcon },
   { value: 'meeting', label: 'Reunião', icon: Users },
   { value: 'followup', label: 'Follow-up', icon: Clock },
 ];

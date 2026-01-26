@@ -21,6 +21,7 @@ import {
   Instagram,
   Star
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { format, differenceInHours, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -68,7 +69,7 @@ const mockStats: ContactStats = {
 
 const contactTypeConfig = {
   call: { icon: Phone, label: 'Ligação', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  whatsapp: { icon: MessageSquare, label: 'WhatsApp', color: 'text-green-500', bg: 'bg-green-500/10' },
+  whatsapp: { icon: WhatsAppIcon, label: 'WhatsApp', color: 'text-green-500', bg: 'bg-green-500/10' },
   email: { icon: Mail, label: 'E-mail', color: 'text-orange-500', bg: 'bg-orange-500/10' },
   video: { icon: Video, label: 'Vídeo', color: 'text-purple-500', bg: 'bg-purple-500/10' },
   instagram: { icon: Instagram, label: 'Instagram', color: 'text-pink-500', bg: 'bg-pink-500/10' },

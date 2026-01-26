@@ -13,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 interface CRMActivityFeedProps {
   pipelineId?: string;
@@ -43,7 +44,7 @@ const ACTION_CONFIG: Record<string, { icon: React.ElementType; color: string; la
   call: { icon: Phone, color: 'bg-green-500', label: 'Ligação' },
   email: { icon: Mail, color: 'bg-indigo-500', label: 'Email' },
   meeting: { icon: Calendar, color: 'bg-amber-500', label: 'Reunião' },
-  whatsapp: { icon: MessageSquare, color: 'bg-emerald-500', label: 'WhatsApp' },
+  whatsapp: { icon: WhatsAppIcon, color: 'bg-emerald-500', label: 'WhatsApp' },
   ai_analysis: { icon: Sparkles, color: 'bg-violet-500', label: 'Análise IA' },
   edit: { icon: Edit, color: 'bg-muted-foreground', label: 'Editado' },
   priority_change: { icon: Star, color: 'bg-yellow-500', label: 'Prioridade' },

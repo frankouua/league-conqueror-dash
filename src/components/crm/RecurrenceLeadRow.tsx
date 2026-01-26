@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Clock
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -112,7 +113,7 @@ export const RecurrenceLeadRow = memo(function RecurrenceLeadRow({
             className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
             onClick={handleWhatsApp}
           >
-            <MessageSquare className="w-4 h-4" />
+            <WhatsAppIcon className="w-4 h-4" />
           </Button>
         )}
       </div>
