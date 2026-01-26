@@ -173,14 +173,14 @@ serve(async (req) => {
       
       console.log('[WhatsApp] Using API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NONE');
 
+        // IMPORTANTE: Alguns servidores priorizam `Authorization` e ignoram `apikey`.
+        // Para evitar "Invalid token" por ambiguidade, enviamos SOMENTE `apikey`.
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
-          // Alguns servidores usam `apikey`, outros `token` e/ou `Authorization: Bearer`
           'apikey': apiKey,
-          'token': apiKey,
-          'x-api-key': apiKey,
-          'Authorization': `Bearer ${apiKey}`,
         };
+
+        console.log('[WhatsApp] Using auth header: apikey');
 
         let lastAttempt: { url: string; status?: number; result?: any } | null = null;
         let okResponse: { url: string; status: number; result: any } | null = null;
