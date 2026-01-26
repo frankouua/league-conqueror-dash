@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -18,12 +18,14 @@ import {
   User, 
   MoreVertical,
   Inbox,
-  ShieldAlert
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
 import { useWhatsAppMessages } from '@/hooks/useWhatsAppMessages';
 import { useMyWhatsAppInstances } from '@/hooks/useMyWhatsAppInstances';
+import { useWhatsAppSendMessage } from '@/hooks/useWhatsAppSendMessage';
 import { InstanceSelector } from '@/components/crm/chats/InstanceSelector';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -41,6 +43,7 @@ export function CRMChatsModule() {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [messageInput, setMessageInput] = useState('');
   
   // Load user's authorized instances
   const { 
@@ -54,11 +57,18 @@ export function CRMChatsModule() {
   // Load chats for selected instance only
   const { chats, loading: chatsLoading } = useWhatsAppChats(selectedInstanceId);
   const { messages, loading: messagesLoading } = useWhatsAppMessages(selectedConversation);
+  
+  // WhatsApp message sending with instance validation
+  const { sendMessage, canSendMessage, sending } = useWhatsAppSendMessage();
 
   // Get selected chat info
   const selectedChat = chats.find((c) => c.id === selectedConversation);
   const currentRole = selectedInstanceId ? getRole(selectedInstanceId) : null;
   const currentInstance = instances.find(i => i.instance_id === selectedInstanceId);
+
+  // Check if user can send messages in the current context
+  const canSend = selectedInstanceId && selectedConversation && canSendMessage(selectedInstanceId);
+  const isInputDisabled = !selectedConversation || !canSend || sending;
 
   // Handle instance selection with security check
   const handleSelectInstance = (instanceId: string) => {
@@ -68,7 +78,34 @@ export function CRMChatsModule() {
     }
     setSelectedInstanceId(instanceId);
     setSelectedConversation(null);
+    setMessageInput('');
   };
+
+  // Handle message sending with full validation
+  const handleSendMessage = useCallback(async () => {
+    if (!selectedInstanceId || !selectedConversation || !selectedChat || !messageInput.trim()) {
+      return;
+    }
+
+    const result = await sendMessage({
+      instanceId: selectedInstanceId,
+      chatId: selectedConversation,
+      remoteJid: selectedChat.remote_jid,
+      message: messageInput.trim()
+    });
+
+    if (result.success) {
+      setMessageInput('');
+    }
+  }, [selectedInstanceId, selectedConversation, selectedChat, messageInput, sendMessage]);
+
+  // Handle enter key press
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !isInputDisabled) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  }, [handleSendMessage, isInputDisabled]);
 
   // Filter chats by search query
   const filteredChats = chats.filter((chat) => {
@@ -315,18 +352,40 @@ export function CRMChatsModule() {
             <div className="p-3 border-t">
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="Digite uma mensagem..."
+                  placeholder={
+                    !selectedInstanceId 
+                      ? "Selecione uma instância..." 
+                      : !selectedConversation 
+                        ? "Selecione uma conversa..." 
+                        : !canSend
+                          ? "Sem permissão para enviar..."
+                          : "Digite uma mensagem..."
+                  }
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
                   className="flex-1"
-                  disabled={!selectedConversation || currentRole === 'viewer'}
+                  disabled={isInputDisabled}
                 />
                 <Button 
                   size="icon" 
-                  disabled={!selectedConversation || currentRole === 'viewer'}
+                  disabled={isInputDisabled || !messageInput.trim()}
+                  onClick={handleSendMessage}
                   className="shrink-0"
                 >
-                  <Send className="w-4 h-4" />
+                  {sending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
+              {selectedInstanceId && currentRole === 'viewer' && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <ShieldAlert className="w-3 h-3" />
+                  Você tem permissão apenas para visualizar
+                </p>
+              )}
             </div>
           </div>
         </ResizablePanel>
