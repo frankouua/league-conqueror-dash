@@ -8728,6 +8728,38 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_instance_members: {
+        Row: {
+          created_at: string
+          id: string
+          instance_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_instance_members_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_instances: {
         Row: {
           api_key: string | null
@@ -9422,6 +9454,10 @@ export type Database = {
         Returns: number
       }
       calculate_help_score: { Args: { p_lead_id: string }; Returns: number }
+      can_manage_instance_members: {
+        Args: { p_instance_id: string }
+        Returns: boolean
+      }
       get_all_vendedores_kpis: {
         Args: { team_id_param?: string }
         Returns: {
@@ -9534,6 +9570,10 @@ export type Database = {
         Args: { end_date?: string; start_date?: string }
         Returns: Json
       }
+      get_user_instance_role: {
+        Args: { p_instance_id: string; p_user_id: string }
+        Returns: string
+      }
       get_user_organization_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
@@ -9557,6 +9597,7 @@ export type Database = {
           vendas_mes: number
         }[]
       }
+      has_instance_access: { Args: { p_instance_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
