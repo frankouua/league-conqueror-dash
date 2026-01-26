@@ -6,7 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface WhatsAppPayload {
+// UAZAPI Base URL (pode ser configurável por instância)
+const UAZAPI_BASE_URL = 'https://unique.uazapi.com';
+
+interface SendChatMessagePayload {
+  action: 'send_chat_message';
+  instanceId: string;
+  instanceName: string;
+  chatId: string;
+  remoteJid: string;
+  message: string;
+  timestamp: string;
+}
+
+interface LegacyWhatsAppPayload {
   action: 'send' | 'test_connection' | 'process_queue' | 'receive_webhook';
   phone?: string;
   message?: string;
@@ -15,6 +28,8 @@ interface WhatsAppPayload {
   media_url?: string;
   webhook_data?: any;
 }
+
+type WhatsAppPayload = SendChatMessagePayload | LegacyWhatsAppPayload;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -29,21 +44,146 @@ serve(async (req) => {
 
     const payload: WhatsAppPayload = await req.json();
 
-    // Buscar configuração ativa do WhatsApp
+    console.log('[WhatsApp] Action received:', payload.action);
+
+    // =========================================================================
+    // NOVA AÇÃO: Enviar mensagem via UAZAPI (usado pelo CRM Chats Module)
+    // =========================================================================
+    if (payload.action === 'send_chat_message') {
+      const { instanceId, instanceName, chatId, remoteJid, message, timestamp } = payload as SendChatMessagePayload;
+
+      if (!instanceId || !remoteJid || !message) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'instanceId, remoteJid e message são obrigatórios' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      // Buscar a instância para pegar a api_key (se necessário)
+      const { data: instance, error: instanceError } = await supabase
+        .from('whatsapp_instances')
+        .select('id, instance_name, api_key, organization_id')
+        .eq('id', instanceId)
+        .single();
+
+      if (instanceError || !instance) {
+        console.error('[WhatsApp] Instance not found:', instanceId);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Instância não encontrada' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+
+      // Normalizar instance_name para URL do UAZAPI
+      const uazapiInstanceName = instance.instance_name;
+
+      // UAZAPI endpoint para enviar mensagem de texto
+      const sendUrl = `${UAZAPI_BASE_URL}/sendMessage/${encodeURIComponent(uazapiInstanceName)}`;
+
+      console.log('[WhatsApp] Sending via UAZAPI:', {
+        url: sendUrl,
+        to: remoteJid,
+        messageLength: message.length
+      });
+
+      try {
+        // Formato esperado pelo UAZAPI
+        const uazapiPayload = {
+          chatId: remoteJid,
+          message: message,
+        };
+
+        const response = await fetch(sendUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // API Key se necessário (alguns endpoints UAZAPI requerem)
+            ...(instance.api_key ? { 'Authorization': `Bearer ${instance.api_key}` } : {})
+          },
+          body: JSON.stringify(uazapiPayload)
+        });
+
+        const result = await response.json();
+        const success = response.ok;
+
+        console.log('[WhatsApp] UAZAPI response:', { status: response.status, success, result });
+
+        if (success) {
+          // Salvar mensagem enviada no banco
+          const messageTimestamp = new Date().toISOString();
+          const messageId = result?.key?.id || result?.messageId || `sent_${Date.now()}`;
+
+          const { error: saveError } = await supabase
+            .from('whatsapp_messages')
+            .insert({
+              chat_id: chatId,
+              message_id: messageId,
+              from_me: true,
+              sender_name: uazapiInstanceName,
+              content: message,
+              message_type: 'text',
+              message_timestamp: messageTimestamp,
+              status: 'sent',
+              raw_data: { sent_via: 'crm', uazapi_response: result }
+            });
+
+          if (saveError) {
+            console.error('[WhatsApp] Error saving sent message:', saveError);
+          }
+
+          // Atualizar last_message_timestamp do chat
+          await supabase
+            .from('whatsapp_chats')
+            .update({
+              last_message_timestamp: messageTimestamp,
+              updated_at: messageTimestamp
+            })
+            .eq('id', chatId);
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message_id: messageId,
+              sent_at: messageTimestamp
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          console.error('[WhatsApp] UAZAPI send failed:', result);
+          return new Response(
+            JSON.stringify({ success: false, error: result?.message || 'Falha ao enviar via UAZAPI' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
+      } catch (sendError: any) {
+        console.error('[WhatsApp] UAZAPI request error:', sendError);
+        return new Response(
+          JSON.stringify({ success: false, error: sendError?.message || 'Erro de conexão com UAZAPI' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+    }
+
+    // =========================================================================
+    // AÇÕES LEGADAS (compatibilidade com whatsapp_config - Evolution/Z-API)
+    // =========================================================================
+    
+    // Buscar configuração ativa do WhatsApp (legacy)
     const { data: config } = await supabase
       .from('whatsapp_config')
       .select('*')
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!config && payload.action !== 'receive_webhook') {
       return new Response(
-        JSON.stringify({ success: false, error: 'WhatsApp não configurado' }),
+        JSON.stringify({ success: false, error: 'WhatsApp não configurado (legacy mode)' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    // Testar conexão
+    // Testar conexão (legacy)
     if (payload.action === 'test_connection') {
       try {
         let testUrl = '';
@@ -69,7 +209,6 @@ serve(async (req) => {
           data.status === 'CONNECTED'
         );
 
-        // Atualizar status de conexão
         await supabase
           .from('whatsapp_config')
           .update({
@@ -103,17 +242,18 @@ serve(async (req) => {
       }
     }
 
-    // Enviar mensagem
+    // Enviar mensagem (legacy)
     if (payload.action === 'send') {
-      if (!payload.phone || !payload.message) {
+      const legacyPayload = payload as LegacyWhatsAppPayload;
+      
+      if (!legacyPayload.phone || !legacyPayload.message) {
         return new Response(
           JSON.stringify({ success: false, error: 'Phone e message são obrigatórios' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
 
-      // Normalizar telefone
-      let phone = payload.phone.replace(/\D/g, '');
+      let phone = legacyPayload.phone.replace(/\D/g, '');
       if (!phone.startsWith('55')) phone = '55' + phone;
 
       let sendUrl = '';
@@ -125,15 +265,15 @@ serve(async (req) => {
         headers['apikey'] = config.api_key;
         sendBody = {
           number: phone,
-          text: payload.message
+          text: legacyPayload.message
         };
-        if (payload.media_url) {
+        if (legacyPayload.media_url) {
           sendUrl = `${config.api_url}/message/sendMedia/${config.instance_id}`;
           sendBody = {
             number: phone,
             mediatype: 'image',
-            media: payload.media_url,
-            caption: payload.message
+            media: legacyPayload.media_url,
+            caption: legacyPayload.message
           };
         }
       } else if (config.provider === 'z-api') {
@@ -141,14 +281,14 @@ serve(async (req) => {
         headers['Client-Token'] = config.api_key;
         sendBody = {
           phone: phone,
-          message: payload.message
+          message: legacyPayload.message
         };
-        if (payload.media_url) {
+        if (legacyPayload.media_url) {
           sendUrl = `${config.api_url}/${config.instance_id}/send-image`;
           sendBody = {
             phone: phone,
-            image: payload.media_url,
-            caption: payload.message
+            image: legacyPayload.media_url,
+            caption: legacyPayload.message
           };
         }
       } else if (config.provider === 'wppconnect') {
@@ -156,7 +296,7 @@ serve(async (req) => {
         headers['Authorization'] = `Bearer ${config.api_key}`;
         sendBody = {
           phone: phone,
-          message: payload.message
+          message: legacyPayload.message
         };
       }
 
@@ -170,27 +310,25 @@ serve(async (req) => {
         const result = await response.json();
         const success = response.ok;
 
-        // Registrar na fila
         await supabase
           .from('whatsapp_dispatch_queue')
           .insert({
-            lead_id: payload.lead_id,
+            lead_id: legacyPayload.lead_id,
             phone: phone,
-            message: payload.message,
-            template_id: payload.template_id,
+            message: legacyPayload.message,
+            template_id: legacyPayload.template_id,
             status: success ? 'sent' : 'failed',
             sent_at: success ? new Date().toISOString() : null,
             error_message: success ? null : JSON.stringify(result)
           });
 
-        // Registrar no histórico do lead
-        if (payload.lead_id) {
+        if (legacyPayload.lead_id) {
           await supabase
             .from('crm_lead_history')
             .insert({
-              lead_id: payload.lead_id,
+              lead_id: legacyPayload.lead_id,
               action: 'whatsapp_sent',
-              description: `Mensagem WhatsApp enviada: ${payload.message.substring(0, 100)}...`,
+              description: `Mensagem WhatsApp enviada: ${legacyPayload.message.substring(0, 100)}...`,
               metadata: { phone, success, provider: config.provider }
             });
         }
@@ -207,7 +345,7 @@ serve(async (req) => {
       }
     }
 
-    // Processar fila de mensagens pendentes
+    // Processar fila de mensagens pendentes (legacy)
     if (payload.action === 'process_queue') {
       const { data: pendingMessages } = await supabase
         .from('whatsapp_dispatch_queue')
@@ -221,7 +359,6 @@ serve(async (req) => {
       let failed = 0;
 
       for (const msg of pendingMessages || []) {
-        // Chamar recursivamente para enviar
         const sendResult = await fetch(req.url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -241,7 +378,6 @@ serve(async (req) => {
           failed++;
         }
 
-        // Delay entre mensagens para não sobrecarregar
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
@@ -251,9 +387,10 @@ serve(async (req) => {
       );
     }
 
-    // Receber webhook (mensagens recebidas)
+    // Receber webhook (legacy)
     if (payload.action === 'receive_webhook') {
-      const webhookData = payload.webhook_data;
+      const legacyPayload = payload as LegacyWhatsAppPayload;
+      const webhookData = legacyPayload.webhook_data;
       
       if (!webhookData) {
         return new Response(
@@ -262,33 +399,28 @@ serve(async (req) => {
         );
       }
 
-      // Extrair dados dependendo do provider
       let phone = '';
       let message = '';
       let messageId = '';
 
       if (webhookData.data?.key?.remoteJid) {
-        // Evolution API
         phone = webhookData.data.key.remoteJid.replace('@s.whatsapp.net', '');
         message = webhookData.data.message?.conversation || 
                   webhookData.data.message?.extendedTextMessage?.text || '';
         messageId = webhookData.data.key.id;
       } else if (webhookData.phone) {
-        // Z-API ou genérico
         phone = webhookData.phone;
         message = webhookData.text?.message || webhookData.message || '';
         messageId = webhookData.messageId || '';
       }
 
       if (phone && message) {
-        // Buscar lead pelo telefone
         const { data: lead } = await supabase
           .from('crm_leads')
           .select('id, name, assigned_to')
           .or(`phone.eq.${phone},whatsapp.eq.${phone}`)
           .single();
 
-        // Registrar mensagem recebida
         await supabase
           .from('crm_chat_messages')
           .insert({
@@ -300,7 +432,6 @@ serve(async (req) => {
             metadata: { phone, messageId, raw: webhookData }
           });
 
-        // Criar tarefa para responder se lead existe
         if (lead) {
           await supabase
             .from('crm_tasks')
@@ -313,7 +444,6 @@ serve(async (req) => {
               priority: 'high'
             });
 
-          // Notificar vendedor
           if (lead.assigned_to) {
             await supabase
               .from('notifications')
