@@ -179,19 +179,55 @@ serve(async (req) => {
 
     // Processar evento de mensagem
     if (payload.EventType === "messages" || payload.event === "messages.upsert") {
-      // Alguns formatos vêm como payload.data.message / payload.message
-      const message = payload.message || payload.data?.message;
-      const chat = payload.chat || payload.data;
+      // UAZAPI pode mandar em formatos variados: payload.message, payload.data.message,
+      // payload.event, payload.data.event, ou arrays payload.messages/payload.data.messages
+      const chat = payload.chat || payload.data?.chat || payload.data || null;
+
+      const messageCandidate =
+        payload.message ||
+        payload.data?.message ||
+        payload.event ||
+        payload.data?.event ||
+        (Array.isArray(payload.messages) ? payload.messages[0] : null) ||
+        (Array.isArray(payload.data?.messages) ? payload.data.messages[0] : null) ||
+        null;
+
+      const message = Array.isArray(messageCandidate) ? messageCandidate[0] : messageCandidate;
       
-      if (!message || !chat) {
-        console.log('⚠️ Payload incompleto - message ou chat ausente');
+      if (!chat) {
+        console.log('⚠️ Payload sem chat (messages):', {
+          topKeys: Object.keys(payload || {}),
+          dataKeys: Object.keys(payload?.data || {}),
+        });
         return new Response(
-          JSON.stringify({ success: false, error: 'INCOMPLETE_PAYLOAD' }),
+          JSON.stringify({ success: false, error: 'MISSING_CHAT' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
         );
       }
 
-      const remoteJidRaw = chat.wa_chatid || message.key?.remoteJid || chat.remoteJid;
+      if (!message) {
+        console.log('⚠️ Payload sem message (messages):', {
+          topKeys: Object.keys(payload || {}),
+          dataKeys: Object.keys(payload?.data || {}),
+          eventKeys: Object.keys(payload?.event || payload?.data?.event || {}),
+          chatKeys: Object.keys(chat || {}),
+        });
+        return new Response(
+          JSON.stringify({ success: false, error: 'MISSING_MESSAGE' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      const remoteJidRaw =
+        chat.wa_chatid ||
+        chat.chatid ||
+        chat.Chat ||
+        message.key?.remoteJid ||
+        message.remoteJid ||
+        message.Chat ||
+        payload?.event?.Chat ||
+        payload?.data?.event?.Chat ||
+        chat.remoteJid;
       const remoteJid = normalizeRemoteJid(remoteJidRaw);
       const instanceName = normalizeInstanceName(payload, chat);
       
