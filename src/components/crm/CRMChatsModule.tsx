@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
+import { useWhatsAppMessages } from '@/hooks/useWhatsAppMessages';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -38,6 +39,10 @@ export function CRMChatsModule() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { chats, loading } = useWhatsAppChats();
+  const { messages, loading: messagesLoading } = useWhatsAppMessages(selectedConversation);
+
+  // Get selected chat info
+  const selectedChat = chats.find((c) => c.id === selectedConversation);
 
   // Filter chats by search query
   const filteredChats = chats.filter((chat) => {
@@ -157,10 +162,11 @@ export function CRMChatsModule() {
                       <User className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-sm">Nome do Contato</h4>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Online
+                      <h4 className="font-medium text-sm">
+                        {selectedChat?.contact_name || selectedChat?.contact_number || 'Conversa'}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedChat?.contact_number || selectedChat?.remote_jid}
                       </p>
                     </div>
                   </div>
@@ -192,17 +198,60 @@ export function CRMChatsModule() {
                     Bem-vindo ao Chats
                   </h4>
                   <p className="text-sm text-muted-foreground max-w-xs">
-                    Selecione uma conversa à esquerda para começar a enviar mensagens
+                    Selecione uma conversa à esquerda para ver as mensagens
                   </p>
                 </div>
-              ) : (
+              ) : messagesLoading ? (
                 <div className="space-y-4">
-                  {/* Placeholder messages */}
-                  <div className="flex justify-center">
-                    <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                      Mensagens aparecerão aqui
-                    </span>
-                  </div>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className={cn("flex", i % 2 === 0 ? "justify-end" : "justify-start")}>
+                      <Skeleton className="h-12 w-48 rounded-lg" />
+                    </div>
+                  ))}
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex justify-center">
+                  <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                    Nenhuma mensagem nesta conversa
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        "flex",
+                        msg.from_me ? "justify-end" : "justify-start"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "max-w-[70%] rounded-lg px-3 py-2",
+                          msg.from_me
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        )}
+                      >
+                        {!msg.from_me && msg.sender_name && (
+                          <p className="text-xs font-medium mb-1 opacity-70">
+                            {msg.sender_name}
+                          </p>
+                        )}
+                        <p className="text-sm break-words">
+                          {msg.content || '[Mídia]'}
+                        </p>
+                        <p
+                          className={cn(
+                            "text-xs mt-1",
+                            msg.from_me ? "text-primary-foreground/70" : "text-muted-foreground"
+                          )}
+                        >
+                          {formatTimestamp(msg.message_timestamp)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </ScrollArea>
