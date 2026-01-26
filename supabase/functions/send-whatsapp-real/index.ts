@@ -9,6 +9,29 @@ const corsHeaders = {
 // UAZAPI Base URL (pode ser configurável por instância)
 const UAZAPI_BASE_URL = 'https://unique.uazapi.com';
 
+async function safeJsonFromResponse(response: Response): Promise<any> {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
+function buildUazapiCandidateUrls(baseUrl: string, instanceName: string): string[] {
+  const encoded = encodeURIComponent(instanceName);
+  // Alguns provedores/versões variam o path. Tentamos uma lista curta e determinística.
+  return [
+    `${baseUrl}/chat/send/text/${encoded}`,
+    `${baseUrl}/chat/sendText/${encoded}`,
+    `${baseUrl}/chat/send/text/${encoded}/`,
+    `${baseUrl}/chat/sendText/${encoded}/`,
+    // fallback legado (já vimos existir em integrações antigas)
+    `${baseUrl}/sendMessage/${encoded}`,
+  ];
+}
+
 interface SendChatMessagePayload {
   action: 'send_chat_message';
   instanceId: string;
@@ -77,12 +100,10 @@ serve(async (req) => {
       // Normalizar instance_name para URL do UAZAPI
       const uazapiInstanceName = instance.instance_name;
 
-      // UAZAPI endpoint correto para enviar mensagem de texto
-      // Formato: POST /chat/send/text/{instanceName}
-      const sendUrl = `${UAZAPI_BASE_URL}/chat/send/text/${encodeURIComponent(uazapiInstanceName)}`;
+      const candidateUrls = buildUazapiCandidateUrls(UAZAPI_BASE_URL, uazapiInstanceName);
 
       console.log('[WhatsApp] Sending via UAZAPI:', {
-        url: sendUrl,
+        urls: candidateUrls,
         to: remoteJid,
         messageLength: message.length,
         instanceName: uazapiInstanceName
@@ -98,24 +119,47 @@ serve(async (req) => {
 
         console.log('[WhatsApp] UAZAPI payload:', uazapiPayload);
 
-        const response = await fetch(sendUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // API Key - UAZAPI usa header 'apikey' ou 'Authorization'
-            ...(instance.api_key ? { 'apikey': instance.api_key } : {})
-          },
-          body: JSON.stringify(uazapiPayload)
-        });
 
-        const result = await response.json();
-        const success = response.ok;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (instance.api_key) {
+          // Alguns gateways aceitam apikey, outros Bearer.
+          headers['apikey'] = instance.api_key;
+          headers['Authorization'] = `Bearer ${instance.api_key}`;
+        }
 
-        console.log('[WhatsApp] UAZAPI response:', { status: response.status, success, result });
+        let lastAttempt: { url: string; status?: number; result?: any } | null = null;
+        let okResponse: { url: string; status: number; result: any } | null = null;
 
-        if (success) {
+        for (const url of candidateUrls) {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(uazapiPayload)
+          });
+
+          const result = await safeJsonFromResponse(response);
+          const success = response.ok;
+
+          console.log('[WhatsApp] UAZAPI response:', { url, status: response.status, success, result });
+          lastAttempt = { url, status: response.status, result };
+
+          if (success) {
+            okResponse = { url, status: response.status, result };
+            break;
+          }
+
+          // Se for 405/404, tenta o próximo endpoint.
+          if (![404, 405].includes(response.status)) {
+            break;
+          }
+        }
+
+        if (okResponse) {
           // Salvar mensagem enviada no banco
           const messageTimestamp = new Date().toISOString();
+          const result = okResponse.result;
           const messageId = result?.key?.id || result?.messageId || `sent_${Date.now()}`;
 
           const { error: saveError } = await supabase
@@ -149,15 +193,24 @@ serve(async (req) => {
             JSON.stringify({ 
               success: true, 
               message_id: messageId,
-              sent_at: messageTimestamp
+              sent_at: messageTimestamp,
+              provider_status: okResponse.status,
+              provider_url: okResponse.url
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } else {
-          console.error('[WhatsApp] UAZAPI send failed:', result);
+          console.error('[WhatsApp] UAZAPI send failed:', lastAttempt);
+          // Retornamos 200 + success:false para o frontend conseguir ler o erro detalhado.
           return new Response(
-            JSON.stringify({ success: false, error: result?.message || 'Falha ao enviar via UAZAPI' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+            JSON.stringify({
+              success: false,
+              error: lastAttempt?.result?.message || `Falha ao enviar via UAZAPI (${lastAttempt?.status ?? 'unknown'})`,
+              provider_status: lastAttempt?.status,
+              provider_url: lastAttempt?.url,
+              provider_response: lastAttempt?.result,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -165,7 +218,8 @@ serve(async (req) => {
         console.error('[WhatsApp] UAZAPI request error:', sendError);
         return new Response(
           JSON.stringify({ success: false, error: sendError?.message || 'Erro de conexão com UAZAPI' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          // 200 para o frontend conseguir ler a mensagem detalhada.
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }

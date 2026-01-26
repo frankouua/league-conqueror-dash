@@ -133,6 +133,22 @@ export function useWhatsAppSendMessage() {
         return { success: false, error: error.message };
       }
 
+      // Edge function can return { success: false, error: string } with 200 status
+      const typedData = data as any;
+      if (typedData && typedData.success === false) {
+        const msg = typeof typedData.error === 'string' && typedData.error.trim()
+          ? typedData.error
+          : 'Erro ao enviar mensagem';
+        console.error('[WhatsApp] Provider rejected send:', {
+          instanceId,
+          instanceName,
+          chatId,
+          response: typedData
+        });
+        toast.error(msg);
+        return { success: false, error: msg };
+      }
+
       // Log success
       console.log('[WhatsApp] Message sent successfully:', {
         instanceId,
