@@ -278,41 +278,39 @@ export function CRMChatsModule() {
                     key={chat.id}
                     onClick={() => handleSelectConversation(chat.id)}
                     className={cn(
-                      "w-full p-3 text-left transition-all relative",
+                      "w-full px-2 py-2 text-left transition-all relative",
                       selectedConversation === chat.id 
-                        ? "bg-primary/10 border-l-4 border-l-primary shadow-sm" 
-                        : "hover:bg-muted/50 border-l-4 border-l-transparent"
+                        ? "bg-primary/10 border-l-3 border-l-primary" 
+                        : "hover:bg-muted/50 border-l-3 border-l-transparent"
                     )}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-2">
                       <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                        "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
                         selectedConversation === chat.id 
                           ? "bg-primary/20" 
                           : "bg-primary/10"
                       )}>
-                        <User className="w-5 h-5 text-primary" />
+                        <User className="w-4 h-4 text-primary" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between gap-1">
                           <span className={cn(
-                            "text-sm truncate",
-                            selectedConversation === chat.id 
-                              ? "font-semibold text-primary" 
-                              : "font-medium"
+                            "text-[13px] leading-tight font-medium block overflow-hidden text-ellipsis whitespace-nowrap",
+                            selectedConversation === chat.id && "text-primary"
                           )}>
                             {chat.contact_name || chat.contact_number || 'Sem nome'}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground shrink-0">
                             {formatTimestamp(chat.last_message_timestamp)}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {chat.contact_number || chat.remote_jid}
+                        <p className="text-[11px] text-muted-foreground leading-tight overflow-hidden text-ellipsis whitespace-nowrap">
+                          {chat.contact_number || chat.remote_jid?.replace('@s.whatsapp.net', '')}
                         </p>
                       </div>
                       {(chat.unread_count ?? 0) > 0 && (
-                        <Badge className="h-5 min-w-5 flex items-center justify-center">
+                        <Badge className="h-4 min-w-4 text-[10px] px-1 shrink-0">
                           {chat.unread_count}
                         </Badge>
                       )}
@@ -391,7 +389,7 @@ export function CRMChatsModule() {
                   </span>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
@@ -402,14 +400,14 @@ export function CRMChatsModule() {
                     >
                       <div
                         className={cn(
-                          "max-w-[70%] rounded-lg px-3 py-2",
+                          "max-w-[75%] rounded-lg px-2.5 py-1.5",
                           msg.from_me
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
                         )}
                       >
                         {!msg.from_me && msg.sender_name && (
-                          <p className="text-xs font-medium mb-1 opacity-70">
+                          <p className="text-[11px] font-medium mb-0.5 opacity-70">
                             {msg.sender_name}
                           </p>
                         )}
@@ -421,8 +419,8 @@ export function CRMChatsModule() {
                         />
                         <p
                           className={cn(
-                            "text-xs mt-1",
-                            msg.from_me ? "text-primary-foreground/70" : "text-muted-foreground"
+                            "text-[10px] mt-0.5 text-right",
+                            msg.from_me ? "text-primary-foreground/60" : "text-muted-foreground"
                           )}
                         >
                           {formatTimestamp(msg.message_timestamp)}
