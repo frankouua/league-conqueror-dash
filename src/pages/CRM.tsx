@@ -30,6 +30,7 @@ import { CRMGroupChat } from "@/components/crm/CRMGroupChat";
 import { CRMContactPoints } from "@/components/crm/CRMContactPoints";
 import { CRMWhatsAppMonitor } from "@/components/crm/CRMWhatsAppMonitor";
 import { CRMWhatsAppChat } from "@/components/crm/CRMWhatsAppChat";
+import { CRMChatsModule } from "@/components/crm/CRMChatsModule";
 import { CRMWhatsAppConnections } from "@/components/crm/CRMWhatsAppConnections";
 import { CRMMarketingAutomations } from "@/components/crm/CRMMarketingAutomations";
 import { CRMKeyboardShortcuts } from "@/components/crm/CRMKeyboardShortcuts";
@@ -409,7 +410,7 @@ const CRM = () => {
         )}
 
         {viewMode === 'whatsapp' && (
-          <CRMWhatsAppMonitor />
+          <CRMChatsModule />
         )}
 
         {viewMode === 'contacts' && (
