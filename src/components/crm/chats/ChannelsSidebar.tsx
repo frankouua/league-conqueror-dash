@@ -1,4 +1,5 @@
-import { MessageCircle, Instagram, Facebook } from 'lucide-react';
+import { Instagram, Facebook } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -17,7 +18,7 @@ const channels = [
   {
     id: 'whatsapp' as Channel,
     name: 'WhatsApp',
-    icon: MessageCircle,
+    icon: WhatsAppIcon,
     enabled: true,
     color: 'bg-green-500',
     hoverColor: 'hover:bg-green-500/20',
