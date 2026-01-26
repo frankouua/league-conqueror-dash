@@ -45,6 +45,24 @@ export function useMarkChatAsRead() {
     }
 
     try {
+      // Check current unread_count to avoid unnecessary updates
+      const { data: chat, error: fetchError } = await supabase
+        .from('whatsapp_chats')
+        .select('unread_count')
+        .eq('id', chatId)
+        .eq('instance_id', instanceId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('[WhatsApp] Error fetching chat:', fetchError);
+        return { success: false, error: fetchError.message };
+      }
+
+      // Skip update if already read (reduces writes & realtime traffic)
+      if (!chat || chat.unread_count === 0) {
+        return { success: true };
+      }
+
       // Update unread_count to 0 - RLS will enforce access
       const { error } = await supabase
         .from('whatsapp_chats')
