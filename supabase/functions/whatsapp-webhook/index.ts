@@ -468,11 +468,141 @@ serve(async (req) => {
       );
     }
 
-    // Evento não reconhecido - apenas log
-    console.log('ℹ️ Evento não processado:', payload.EventType || payload.event);
+    // Processar atualização de status de mensagem (messages_update)
+    if (payload.EventType === "messages_update") {
+      const event = payload.event || payload.data?.event || {};
+      const instanceName = payload.instanceName || payload.instance_name;
+      const messageIds = event.MessageIDs || [];
+      const updateType = event.Type || payload.state; // "Read", "Delivered", etc.
+
+      if (instanceName && messageIds.length > 0 && updateType) {
+        console.log(`📨 Status update (${updateType}) para ${messageIds.length} mensagens em ${instanceName}`);
+        
+        // Atualizar status das mensagens se necessário
+        // Por enquanto apenas logamos - implementação futura pode atualizar campo status
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'messages_update' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar evento de presença (digitando, online, etc.)
+    if (payload.EventType === "presence") {
+      const event = payload.event || {};
+      const state = event.State; // "composing", "paused", "available", etc.
+      const chatId = event.Chat || event.chatid;
+      
+      // Por enquanto apenas logamos - pode ser usado para UI de "digitando..."
+      console.log(`👤 Presença: ${state} em ${chatId}`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'presence', state }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar atualização de chats (metadata)
+    if (payload.EventType === "chats") {
+      const chat = payload.chat || {};
+      const instanceName = payload.instanceName || payload.instance_name;
+      
+      // Pode ser usado para sincronizar metadata de chats
+      console.log(`💬 Chat update recebido de ${instanceName}`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'chats' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar histórico (bulk sync)
+    if (payload.EventType === "history") {
+      console.log(`📚 Histórico recebido - pode ser usado para sync inicial`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'history' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar contatos
+    if (payload.EventType === "contacts") {
+      console.log(`📇 Contatos recebidos`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'contacts' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar chamadas
+    if (payload.EventType === "call") {
+      const event = payload.event || {};
+      console.log(`📞 Chamada recebida: ${event.Type || 'unknown'}`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'call' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar labels
+    if (payload.EventType === "labels" || payload.EventType === "chat_labels") {
+      console.log(`🏷️ Labels atualizadas`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'labels' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar grupos
+    if (payload.EventType === "groups") {
+      console.log(`👥 Grupos atualizados`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'groups' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar bloqueios
+    if (payload.EventType === "blocks") {
+      console.log(`🚫 Lista de bloqueios atualizada`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'blocks' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar leads (UAZAPI CRM)
+    if (payload.EventType === "leads") {
+      console.log(`📊 Lead UAZAPI recebido`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'leads' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Processar sender
+    if (payload.EventType === "sender") {
+      console.log(`📤 Sender event recebido`);
+
+      return new Response(
+        JSON.stringify({ success: true, event: 'sender' }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Evento não reconhecido - log detalhado para debug
+    console.log('ℹ️ Evento não mapeado:', payload.EventType || payload.event, '- Keys:', Object.keys(payload || {}));
     
     return new Response(
-      JSON.stringify({ success: true, message: 'Evento recebido' }),
+      JSON.stringify({ success: true, message: 'Evento recebido mas não processado' }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
