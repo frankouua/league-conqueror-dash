@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const ACTION_ICONS: Record<string, typeof Phone> = {
+const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   whatsapp: WhatsAppIcon,
   email: Mail,
   call: Phone,
