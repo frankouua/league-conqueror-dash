@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -65,6 +65,16 @@ export function CRMChatsModule() {
   
   // Mark chat as read hook
   const { markAsRead } = useMarkChatAsRead();
+
+  // Auto-select first instance when instances load and none is selected
+  useEffect(() => {
+    if (!instancesLoading && instances.length > 0 && !selectedInstanceId) {
+      const firstInstance = instances[0];
+      if (firstInstance && hasAccess(firstInstance.instance_id)) {
+        setSelectedInstanceId(firstInstance.instance_id);
+      }
+    }
+  }, [instancesLoading, instances, selectedInstanceId, hasAccess]);
 
   // Get selected chat info
   const selectedChat = chats.find((c) => c.id === selectedConversation);
