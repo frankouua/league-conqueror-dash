@@ -18,6 +18,65 @@ function normalizeInstanceName(payload: any, chat: any) {
   );
 }
 
+function normalizeInstanceKey(raw: string): string {
+  // Normaliza para o padrão que usamos no banco (ex: "Kamylle - Farmer" -> "KAMYLLE_FARMER")
+  const s = String(raw)
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_');
+  return s;
+}
+
+async function findInstance(
+  supabaseClient: any,
+  instanceNameRaw: string,
+): Promise<{ id: string; organization_id: string } | null> {
+  const raw = String(instanceNameRaw || '').trim();
+  if (!raw) return null;
+
+  const normalized = normalizeInstanceKey(raw);
+  const firstToken = normalized.split('_').filter(Boolean)[0];
+
+  // 1) Tentativa direta: como veio do provedor
+  {
+    const { data } = await supabaseClient
+      .from('whatsapp_instances')
+      .select('id, organization_id')
+      .eq('instance_name', raw)
+      .maybeSingle();
+    if (data) return data;
+  }
+
+  // 2) Tentativa direta: normalizado (muito comum: "Nome - Cargo" -> "NOME_CARGO")
+  {
+    const { data } = await supabaseClient
+      .from('whatsapp_instances')
+      .select('id, organization_id')
+      .eq('instance_name', normalized)
+      .maybeSingle();
+    if (data) return data;
+  }
+
+  // 3) Fallback: match parcial pelo primeiro token (ex: VIVI -> VIVI_CS)
+  if (firstToken) {
+    const { data, error } = await supabaseClient
+      .from('whatsapp_instances')
+      .select('id, organization_id, instance_name')
+      .ilike('instance_name', `%${firstToken}%`)
+      .limit(2);
+
+    if (!error && Array.isArray(data) && data.length === 1) {
+      return { id: data[0].id, organization_id: data[0].organization_id };
+    }
+  }
+
+  return null;
+}
+
 function normalizeRemoteJid(raw?: string | null) {
   if (!raw) return '';
   const v = String(raw).trim();
@@ -150,15 +209,10 @@ serve(async (req) => {
         );
       }
 
-      // Buscar instância pelo nome
-      const { data: instance, error: instanceError } = await supabaseClient
-        .from('whatsapp_instances')
-        .select('id, organization_id')
-        .eq('instance_name', instanceName)
-        .single();
-
-      if (instanceError || !instance) {
-        console.error('⚠️ Instância não encontrada:', instanceName, instanceError);
+      // Buscar instância pelo nome (com normalização e fallback)
+      const instance = await findInstance(supabaseClient, instanceName);
+      if (!instance) {
+        console.error('⚠️ Instância não encontrada:', { instanceNameRaw: instanceName, normalized: normalizeInstanceKey(instanceName) });
         return new Response(
           JSON.stringify({ success: false, error: 'INSTANCE_NOT_FOUND' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
@@ -275,16 +329,21 @@ serve(async (req) => {
     // Processar outros eventos (conexão, status, etc.)
     if (payload.EventType === "connection" || payload.event === "connection.update") {
       const status = payload.status || payload.data?.state;
-      const instanceName = payload.instance_name || payload.instance;
+      const instanceName = payload.instance_name || payload.instance || payload.instanceName;
 
       if (instanceName && status) {
-        await supabaseClient
-          .from('whatsapp_instances')
-          .update({ 
-            status: status,
-            updated_at: new Date().toISOString()
-          })
-          .eq('instance_name', instanceName);
+        const instance = await findInstance(supabaseClient, instanceName);
+        if (instance) {
+          await supabaseClient
+            .from('whatsapp_instances')
+            .update({
+              status: status,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', instance.id);
+        } else {
+          console.error('⚠️ Instância não encontrada (connection):', { instanceNameRaw: instanceName, normalized: normalizeInstanceKey(instanceName) });
+        }
           
         console.log(`📡 Status da instância ${instanceName}: ${status}`);
       }
@@ -298,17 +357,22 @@ serve(async (req) => {
     // Processar QR Code
     if (payload.EventType === "qrcode" || payload.event === "qrcode.updated") {
       const qrCode = payload.qrcode || payload.data?.qrcode;
-      const instanceName = payload.instance_name || payload.instance;
+      const instanceName = payload.instance_name || payload.instance || payload.instanceName;
 
       if (instanceName && qrCode) {
-        await supabaseClient
-          .from('whatsapp_instances')
-          .update({ 
-            qr_code: qrCode,
-            status: 'awaiting_scan',
-            updated_at: new Date().toISOString()
-          })
-          .eq('instance_name', instanceName);
+        const instance = await findInstance(supabaseClient, instanceName);
+        if (instance) {
+          await supabaseClient
+            .from('whatsapp_instances')
+            .update({
+              qr_code: qrCode,
+              status: 'awaiting_scan',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', instance.id);
+        } else {
+          console.error('⚠️ Instância não encontrada (qrcode):', { instanceNameRaw: instanceName, normalized: normalizeInstanceKey(instanceName) });
+        }
           
         console.log(`📱 QR Code atualizado para instância ${instanceName}`);
       }
