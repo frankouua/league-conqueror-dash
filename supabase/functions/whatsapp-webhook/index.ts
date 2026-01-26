@@ -11,7 +11,9 @@ async function getOrCreateChat(
   supabaseClient: any, 
   remoteJid: string, 
   instanceId: string,
-  organizationId: string
+  organizationId: string,
+  messageTimestamp: string,
+  fromMe: boolean
 ) {
   // Buscar chat existente
   const { data: existingChat, error: fetchError } = await supabaseClient
@@ -19,9 +21,9 @@ async function getOrCreateChat(
     .select('*')
     .eq('remote_jid', remoteJid)
     .eq('instance_id', instanceId)
-    .single();
+    .maybeSingle();
 
-  if (fetchError && fetchError.code !== 'PGRST116') {
+  if (fetchError) {
     console.error('❌ Erro ao buscar chat:', fetchError);
     throw new Error(`FAILED_TO_FETCH_CHAT: ${fetchError.message}`);
   }
@@ -30,7 +32,7 @@ async function getOrCreateChat(
     return existingChat;
   }
 
-  // Criar novo chat com organization_id
+  // Criar novo chat com organization_id, timestamp e unread_count
   const { data: newChat, error } = await supabaseClient
     .from('whatsapp_chats')
     .insert({
@@ -39,6 +41,8 @@ async function getOrCreateChat(
       remote_jid: remoteJid,
       contact_number: remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', ''),
       is_group: remoteJid.includes('@g.us'),
+      last_message_timestamp: messageTimestamp,
+      unread_count: fromMe ? 0 : 1,
     })
     .select()
     .single();
@@ -48,6 +52,7 @@ async function getOrCreateChat(
     throw new Error(`FAILED_TO_CREATE_CHAT: ${error.message}`);
   }
 
+  console.log('✅ Novo chat criado:', newChat.id, 'para', remoteJid);
   return newChat;
 }
 
@@ -105,18 +110,7 @@ serve(async (req) => {
         );
       }
 
-      // Buscar ou criar chat (agora com organization_id)
-      let chatRecord;
-      try {
-        chatRecord = await getOrCreateChat(supabaseClient, remoteJid, instance.id, instance.organization_id);
-      } catch (chatError: any) {
-        console.error('❌ Erro crítico ao buscar/criar chat:', chatError);
-        return new Response(
-          JSON.stringify({ success: false, error: chatError.message || 'FAILED_TO_GET_OR_CREATE_CHAT' }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-        );
-      }
-
+      // Extrair dados da mensagem para criar chat com valores corretos
       const fromMe = message.fromMe ?? message.key?.fromMe ?? false;
       const senderName = message.senderName || message.pushName || '';
       const messageType = message.messageType || message.type || 'text';
@@ -126,6 +120,25 @@ serve(async (req) => {
             : message.messageTimestamp).toISOString()
         : new Date().toISOString();
       const contactPhotoUrl = chat.imagePreview || chat.profilePictureUrl || '';
+
+      // Buscar ou criar chat (com timestamp e unread_count)
+      let chatRecord;
+      try {
+        chatRecord = await getOrCreateChat(
+          supabaseClient, 
+          remoteJid, 
+          instance.id, 
+          instance.organization_id,
+          messageTimestamp,
+          fromMe
+        );
+      } catch (chatError: any) {
+        console.error('❌ Erro crítico ao buscar/criar chat:', chatError);
+        return new Response(
+          JSON.stringify({ success: false, error: chatError.message || 'FAILED_TO_GET_OR_CREATE_CHAT' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
 
       // Atualizar nome do contato se necessário
       if (!fromMe && senderName && senderName !== chatRecord.contact_name) {
