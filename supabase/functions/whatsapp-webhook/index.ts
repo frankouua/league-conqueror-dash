@@ -6,6 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function normalizeInstanceName(payload: any, chat: any) {
+  return (
+    chat?.instance_name ||
+    chat?.instanceName ||
+    payload?.instance_name ||
+    payload?.instanceName ||
+    payload?.instance ||
+    payload?.data?.instance ||
+    payload?.data?.instance_name
+  );
+}
+
+function normalizeRemoteJid(raw?: string | null) {
+  if (!raw) return '';
+  const v = String(raw).trim();
+  if (!v) return '';
+
+  // UAZAPI às vezes manda somente o número (ex: "551199...")
+  if (/^\d{8,}$/.test(v)) return `${v}@s.whatsapp.net`;
+
+  // Alguns provedores usam @c.us (conversão para padrão do Baileys)
+  if (v.endsWith('@c.us')) return v.replace('@c.us', '@s.whatsapp.net');
+
+  // Já está no formato esperado (@s.whatsapp.net ou @g.us)
+  return v;
+}
+
 // Função auxiliar para buscar ou criar chat
 async function getOrCreateChat(
   supabaseClient: any, 
@@ -93,6 +120,7 @@ serve(async (req) => {
 
     // Processar evento de mensagem
     if (payload.EventType === "messages" || payload.event === "messages.upsert") {
+      // Alguns formatos vêm como payload.data.message / payload.message
       const message = payload.message || payload.data?.message;
       const chat = payload.chat || payload.data;
       
@@ -104,12 +132,20 @@ serve(async (req) => {
         );
       }
 
-      const remoteJid = chat.wa_chatid || message.key?.remoteJid || chat.remoteJid;
-      const instanceName = chat.instance_name || payload.instance;
+      const remoteJidRaw = chat.wa_chatid || message.key?.remoteJid || chat.remoteJid;
+      const remoteJid = normalizeRemoteJid(remoteJidRaw);
+      const instanceName = normalizeInstanceName(payload, chat);
       
       if (!remoteJid) {
         return new Response(
           JSON.stringify({ success: false, error: 'MISSING_REMOTE_JID' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      if (!instanceName) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'MISSING_INSTANCE_NAME' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
         );
       }
