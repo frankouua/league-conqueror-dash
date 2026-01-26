@@ -30,6 +30,7 @@ import {
   Sparkles, AlertCircle, CheckCircle, Mail, MessageSquare,
   Phone, Calendar, RefreshCw, Star, ThermometerSun
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCRM } from "@/hooks/useCRM";
@@ -59,7 +60,7 @@ const TRIGGER_TYPES = [
 ];
 
 const ACTION_TYPES = [
-  { value: 'send_whatsapp', label: 'Enviar WhatsApp', icon: MessageSquare, color: 'text-green-500', hasMessage: true },
+  { value: 'send_whatsapp', label: 'Enviar WhatsApp', icon: WhatsAppIcon, color: 'text-green-500', hasMessage: true },
   { value: 'send_email', label: 'Enviar E-mail', icon: Mail, color: 'text-blue-500', hasMessage: true },
   { value: 'send_sms', label: 'Enviar SMS', icon: Phone, color: 'text-purple-500', hasMessage: true },
   { value: 'send_notification', label: 'Notificação Interna', icon: Bell, color: 'text-orange-500', hasMessage: true },

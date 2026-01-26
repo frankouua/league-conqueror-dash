@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, User, Phone, Mail, MessageSquare, Tag, DollarSign, Search, UserPlus, Package, Check } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import {
   Dialog,
   DialogContent,
@@ -312,7 +313,7 @@ export function CRMNewLeadDialog({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="whatsapp" className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
+                    <WhatsAppIcon className="h-4 w-4" />
                     WhatsApp
                   </Label>
                   <Input

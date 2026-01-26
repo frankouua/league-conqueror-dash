@@ -15,6 +15,7 @@ import {
   Phone, Mail, MessageSquare, Calendar, ClipboardList, Plus, 
   CheckCircle2, XCircle, Clock, User, Search, Loader2, RefreshCw
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -39,7 +40,7 @@ interface ActionHistoryItem {
 
 const ACTION_TYPES = [
   { value: 'call', label: 'Ligação', icon: Phone, color: 'bg-blue-500' },
-  { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, color: 'bg-green-500' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: WhatsAppIcon, color: 'bg-green-500' },
   { value: 'email', label: 'E-mail', icon: Mail, color: 'bg-purple-500' },
   { value: 'visit', label: 'Visita', icon: User, color: 'bg-orange-500' },
   { value: 'proposal', label: 'Proposta', icon: ClipboardList, color: 'bg-indigo-500' },

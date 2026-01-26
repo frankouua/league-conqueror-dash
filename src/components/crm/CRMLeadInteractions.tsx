@@ -6,6 +6,7 @@ import {
   MessageSquare, Phone, Mail, Video, Users, Globe,
   Plus, Send, Smile, Meh, Frown, Loader2, TrendingUp
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +51,7 @@ interface Interaction {
 }
 
 const INTERACTION_TYPES = [
-  { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, color: 'bg-green-500' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: WhatsAppIcon, color: 'bg-green-500' },
   { value: 'call', label: 'Ligação', icon: Phone, color: 'bg-blue-500' },
   { value: 'email', label: 'Email', icon: Mail, color: 'bg-purple-500' },
   { value: 'video', label: 'Videochamada', icon: Video, color: 'bg-red-500' },

@@ -6,6 +6,7 @@ import {
   Stethoscope, Phone, FileCheck, Camera, MessageSquare,
   Heart, Bell
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,7 +63,7 @@ const STAGE_CHECKLISTS: Record<string, StageChecklist> = {
     stage_name: 'Agendamento Consulta',
     items: [
       { id: 'agendar_avaliacao', title: 'Agendar consulta de avaliação', icon: Calendar, required: true },
-      { id: 'enviar_confirmacao', title: 'Enviar confirmação por WhatsApp', icon: MessageSquare, required: true },
+      { id: 'enviar_confirmacao', title: 'Enviar confirmação por WhatsApp', icon: WhatsAppIcon, required: true },
       { id: 'lembrete_24h', title: 'Programar lembrete 24h antes', icon: Bell },
       { id: 'lembrete_1h', title: 'Programar lembrete 1h antes', icon: Bell },
     ]

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Play, Clock, Mail, MessageSquare, Phone, CheckCircle, XCircle, Plus, Settings } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const ACTION_ICONS: Record<string, typeof Phone> = {
-  whatsapp: MessageSquare,
+  whatsapp: WhatsAppIcon,
   email: Mail,
   call: Phone,
   sms: MessageSquare,

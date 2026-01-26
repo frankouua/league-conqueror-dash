@@ -8,6 +8,7 @@ import {
   DollarSign, Calendar, User, ThumbsUp, ThumbsDown,
   FileSignature, Sparkles, ArrowRight
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,7 +30,7 @@ const formatCurrency = (value: number) => {
 const actionTypeIcons: Record<string, any> = {
   'note': FileText,
   'call': Phone,
-  'whatsapp': MessageSquare,
+  'whatsapp': WhatsAppIcon,
   'email': Mail,
   'stage_change': ArrowRight,
   'negotiation_change': DollarSign,
@@ -159,7 +160,7 @@ export function CRMLeadSummary({ lead, history, tasks }: CRMLeadSummaryProps) {
               )}
               {stats.whatsapps > 0 && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-500 text-green-600">
-                  <MessageSquare className="h-2.5 w-2.5 mr-0.5" /> {stats.whatsapps}
+                  <WhatsAppIcon className="h-2.5 w-2.5 mr-0.5" /> {stats.whatsapps}
                 </Badge>
               )}
               {stats.notes > 0 && (

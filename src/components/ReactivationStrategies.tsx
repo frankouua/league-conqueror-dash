@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Copy, Check, Clock, Phone, Mail, MessageSquare, Target, Users, TrendingUp, AlertCircle, Zap, RefreshCw } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -15,7 +16,7 @@ import {
 
 const getChannelIcon = (channel: string) => {
   const lowerChannel = channel.toLowerCase();
-  if (lowerChannel.includes("whatsapp")) return <MessageSquare className="h-4 w-4" />;
+  if (lowerChannel.includes("whatsapp")) return <WhatsAppIcon className="h-4 w-4" />;
   if (lowerChannel.includes("telefone") || lowerChannel.includes("phone")) return <Phone className="h-4 w-4" />;
   if (lowerChannel.includes("e-mail") || lowerChannel.includes("email")) return <Mail className="h-4 w-4" />;
   return <MessageSquare className="h-4 w-4" />;
