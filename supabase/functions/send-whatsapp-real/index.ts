@@ -6,8 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// UAZAPI Base URL (pode ser configurável por instância)
+// UAZAPI Base URL e API Key global
 const UAZAPI_BASE_URL = 'https://unique.uazapi.com';
+const UAZAPI_GLOBAL_API_KEY = Deno.env.get('UAZAPI_API_KEY') || '';
 
 async function safeJsonFromResponse(response: Response): Promise<any> {
   const text = await response.text();
@@ -129,14 +130,21 @@ serve(async (req) => {
         console.log('[WhatsApp] UAZAPI payload:', { phoneNumber, messageLength: message.length, remoteJid });
 
 
+        // Usar API key global do UAZAPI (configurada como secret)
+        const apiKey = instance.api_key || UAZAPI_GLOBAL_API_KEY;
+        
+        if (!apiKey) {
+          console.error('[WhatsApp] No API key available for UAZAPI');
+          return new Response(
+            JSON.stringify({ success: false, error: 'API key do UAZAPI não configurada. Configure UAZAPI_API_KEY nos secrets.' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
+          'apikey': apiKey,
         };
-        if (instance.api_key) {
-          // Alguns gateways aceitam apikey, outros Bearer.
-          headers['apikey'] = instance.api_key;
-          headers['Authorization'] = `Bearer ${instance.api_key}`;
-        }
 
         let lastAttempt: { url: string; status?: number; result?: any } | null = null;
         let okResponse: { url: string; status: number; result: any } | null = null;

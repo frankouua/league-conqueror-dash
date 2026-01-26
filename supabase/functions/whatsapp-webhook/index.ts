@@ -268,15 +268,26 @@ async function handleMessages(supabaseClient: any, payload: any) {
 
   // Extrair conteúdo
   let content = message.text || message.body || message.caption || '';
-  if (messageType === 'audio') content = '[Áudio]';
-  if (messageType === 'image') content = message.caption || '[Imagem]';
-  if (messageType === 'video') content = message.caption || '[Vídeo]';
-  if (messageType === 'document') content = '[Documento]';
-  if (messageType === 'sticker') content = '[Sticker]';
-  if (messageType === 'location') content = '[Localização]';
-  if (messageType === 'contact') content = '[Contato]';
+  const msgTypeNorm = (messageType || '').toLowerCase().replace('message', '');
+  
+  if (msgTypeNorm.includes('audio') || msgTypeNorm === 'ptt') content = message.caption || '[Áudio]';
+  if (msgTypeNorm.includes('image')) content = message.caption || '[Imagem]';
+  if (msgTypeNorm.includes('video')) content = message.caption || '[Vídeo]';
+  if (msgTypeNorm.includes('document')) content = message.caption || '[Documento]';
+  if (msgTypeNorm.includes('sticker')) content = '[Sticker]';
+  if (msgTypeNorm.includes('location')) content = '[Localização]';
+  if (msgTypeNorm.includes('contact')) content = '[Contato]';
 
-  const mediaUrl = message.content?.url || message.mediaUrl || null;
+  // Extrair URL de mídia - UAZAPI usa content.URL (maiúsculo) ou content.url
+  const mediaContent = message.content || {};
+  const mediaUrl = 
+    mediaContent.URL || 
+    mediaContent.url || 
+    message.mediaUrl || 
+    message.media_url ||
+    null;
+  
+  console.log('[Webhook] Media extraction:', { messageType, hasMediaUrl: !!mediaUrl, mediaKeys: Object.keys(mediaContent) });
 
   const { error: messageError } = await supabaseClient
     .from('whatsapp_messages')
