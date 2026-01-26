@@ -8637,6 +8637,7 @@ export type Database = {
           instance_id: string | null
           is_group: boolean | null
           last_message_timestamp: string | null
+          organization_id: string | null
           remote_jid: string
           unread_count: number | null
           updated_at: string | null
@@ -8653,6 +8654,7 @@ export type Database = {
           instance_id?: string | null
           is_group?: boolean | null
           last_message_timestamp?: string | null
+          organization_id?: string | null
           remote_jid: string
           unread_count?: number | null
           updated_at?: string | null
@@ -8669,6 +8671,7 @@ export type Database = {
           instance_id?: string | null
           is_group?: boolean | null
           last_message_timestamp?: string | null
+          organization_id?: string | null
           remote_jid?: string
           unread_count?: number | null
           updated_at?: string | null
@@ -9531,6 +9534,7 @@ export type Database = {
         Args: { end_date?: string; start_date?: string }
         Returns: Json
       }
+      get_user_organization_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
