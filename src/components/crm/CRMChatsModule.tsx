@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
 import { useWhatsAppMessages } from '@/hooks/useWhatsAppMessages';
 import { useMyWhatsAppInstances } from '@/hooks/useMyWhatsAppInstances';
 import { useWhatsAppSendMessage } from '@/hooks/useWhatsAppSendMessage';
+import { useMarkChatAsRead } from '@/hooks/useMarkChatAsRead';
 import { InstanceSelector } from '@/components/crm/chats/InstanceSelector';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -60,6 +61,9 @@ export function CRMChatsModule() {
   
   // WhatsApp message sending with instance validation
   const { sendMessage, canSendMessage, sending } = useWhatsAppSendMessage();
+  
+  // Mark chat as read hook
+  const { markAsRead } = useMarkChatAsRead();
 
   // Get selected chat info
   const selectedChat = chats.find((c) => c.id === selectedConversation);
@@ -80,6 +84,20 @@ export function CRMChatsModule() {
     setSelectedConversation(null);
     setMessageInput('');
   };
+
+  // Handle conversation selection with mark as read
+  const handleSelectConversation = useCallback(async (chatId: string) => {
+    if (!selectedInstanceId) return;
+    
+    // Update UI immediately
+    setSelectedConversation(chatId);
+    
+    // Mark chat as read in the background
+    await markAsRead({
+      instanceId: selectedInstanceId,
+      chatId
+    });
+  }, [selectedInstanceId, markAsRead]);
 
   // Handle message sending with full validation
   const handleSendMessage = useCallback(async () => {
@@ -203,7 +221,7 @@ export function CRMChatsModule() {
                   {filteredChats.map((chat) => (
                     <button
                       key={chat.id}
-                      onClick={() => setSelectedConversation(chat.id)}
+                      onClick={() => handleSelectConversation(chat.id)}
                       className={cn(
                         "w-full p-3 text-left hover:bg-muted/50 transition-colors",
                         selectedConversation === chat.id && "bg-muted"
