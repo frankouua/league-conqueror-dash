@@ -25,6 +25,7 @@ import { useWhatsAppSendMessage } from '@/hooks/useWhatsAppSendMessage';
 import { useMarkChatAsRead } from '@/hooks/useMarkChatAsRead';
 import { ChannelsSidebar } from '@/components/crm/chats/ChannelsSidebar';
 import { InstancesList } from '@/components/crm/chats/InstancesList';
+import { WhatsAppMediaRenderer } from '@/components/crm/chats/WhatsAppMediaRenderer';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -412,9 +413,12 @@ export function CRMChatsModule() {
                             {msg.sender_name}
                           </p>
                         )}
-                        <p className="text-sm break-words">
-                          {msg.content || '[Mídia]'}
-                        </p>
+                        <WhatsAppMediaRenderer
+                          messageType={msg.message_type}
+                          content={msg.content}
+                          mediaUrl={msg.media_url}
+                          fromMe={msg.from_me}
+                        />
                         <p
                           className={cn(
                             "text-xs mt-1",
