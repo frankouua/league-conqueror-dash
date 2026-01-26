@@ -14,7 +14,8 @@ import {
   MoreVertical,
   Inbox,
   ShieldAlert,
-  Loader2
+  Loader2,
+  Smartphone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
@@ -164,6 +165,36 @@ export function CRMChatsModule() {
 
         {/* Column 3 - Conversations List */}
         <div className="w-72 border-r bg-card flex flex-col shrink-0">
+          {/* Instance Header - Fixed when instance is selected */}
+          {selectedInstanceId && currentInstance && (
+            <div className="p-3 border-b bg-gradient-to-r from-green-500/10 to-transparent shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                  <Smartphone className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-sm truncate">
+                    {currentInstance.instance_name}
+                  </h4>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {currentInstance.phone_number || 'Número não configurado'}
+                  </p>
+                </div>
+                <Badge 
+                  variant={currentInstance.status === 'connected' ? 'default' : 'secondary'}
+                  className={cn(
+                    "text-[10px] h-5 shrink-0",
+                    currentInstance.status === 'connected' 
+                      ? "bg-green-500/20 text-green-700 hover:bg-green-500/30" 
+                      : ""
+                  )}
+                >
+                  {currentInstance.status === 'connected' ? 'Online' : 'Pendente'}
+                </Badge>
+              </div>
+            </div>
+          )}
+
           {/* Search Header */}
           <div className="p-3 border-b space-y-3">
             <div className="flex items-center justify-between">
@@ -236,17 +267,29 @@ export function CRMChatsModule() {
                     key={chat.id}
                     onClick={() => handleSelectConversation(chat.id)}
                     className={cn(
-                      "w-full p-3 text-left hover:bg-muted/50 transition-colors",
-                      selectedConversation === chat.id && "bg-muted"
+                      "w-full p-3 text-left transition-all relative",
+                      selectedConversation === chat.id 
+                        ? "bg-primary/10 border-l-4 border-l-primary shadow-sm" 
+                        : "hover:bg-muted/50 border-l-4 border-l-transparent"
                     )}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                        selectedConversation === chat.id 
+                          ? "bg-primary/20" 
+                          : "bg-primary/10"
+                      )}>
                         <User className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-0.5">
-                          <span className="font-medium text-sm truncate">
+                          <span className={cn(
+                            "text-sm truncate",
+                            selectedConversation === chat.id 
+                              ? "font-semibold text-primary" 
+                              : "font-medium"
+                          )}>
                             {chat.contact_name || chat.contact_number || 'Sem nome'}
                           </span>
                           <span className="text-xs text-muted-foreground">
