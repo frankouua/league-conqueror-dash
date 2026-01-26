@@ -10,25 +10,32 @@ const corsHeaders = {
 async function getOrCreateChat(
   supabaseClient: any, 
   remoteJid: string, 
-  instanceId: string
+  instanceId: string,
+  organizationId: string
 ) {
   // Buscar chat existente
-  const { data: existingChat } = await supabaseClient
+  const { data: existingChat, error: fetchError } = await supabaseClient
     .from('whatsapp_chats')
     .select('*')
     .eq('remote_jid', remoteJid)
     .eq('instance_id', instanceId)
     .single();
 
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    console.error('❌ Erro ao buscar chat:', fetchError);
+    throw new Error(`FAILED_TO_FETCH_CHAT: ${fetchError.message}`);
+  }
+
   if (existingChat) {
     return existingChat;
   }
 
-  // Criar novo chat
+  // Criar novo chat com organization_id
   const { data: newChat, error } = await supabaseClient
     .from('whatsapp_chats')
     .insert({
       instance_id: instanceId,
+      organization_id: organizationId,
       remote_jid: remoteJid,
       contact_number: remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', ''),
       is_group: remoteJid.includes('@g.us'),
@@ -37,8 +44,8 @@ async function getOrCreateChat(
     .single();
 
   if (error) {
-    console.error('Erro ao criar chat:', error);
-    throw error;
+    console.error('❌ Erro ao criar chat:', error);
+    throw new Error(`FAILED_TO_CREATE_CHAT: ${error.message}`);
   }
 
   return newChat;
@@ -66,10 +73,10 @@ serve(async (req) => {
       const chat = payload.chat || payload.data;
       
       if (!message || !chat) {
-        console.log('⚠️ Payload incompleto, ignorando');
+        console.log('⚠️ Payload incompleto - message ou chat ausente');
         return new Response(
-          JSON.stringify({ success: true, message: 'Payload incompleto' }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: 'INCOMPLETE_PAYLOAD' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
         );
       }
 
@@ -78,28 +85,37 @@ serve(async (req) => {
       
       if (!remoteJid) {
         return new Response(
-          JSON.stringify({ success: false, error: 'remoteJid não encontrado' }),
+          JSON.stringify({ success: false, error: 'MISSING_REMOTE_JID' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
         );
       }
 
       // Buscar instância pelo nome
-      const { data: instance } = await supabaseClient
+      const { data: instance, error: instanceError } = await supabaseClient
         .from('whatsapp_instances')
         .select('id, organization_id')
         .eq('instance_name', instanceName)
         .single();
 
-      if (!instance) {
-        console.log('⚠️ Instância não encontrada:', instanceName);
+      if (instanceError || !instance) {
+        console.error('⚠️ Instância não encontrada:', instanceName, instanceError);
         return new Response(
-          JSON.stringify({ success: false, error: 'Instância não encontrada' }),
+          JSON.stringify({ success: false, error: 'INSTANCE_NOT_FOUND' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
         );
       }
 
-      // Buscar ou criar chat
-      const chatRecord = await getOrCreateChat(supabaseClient, remoteJid, instance.id);
+      // Buscar ou criar chat (agora com organization_id)
+      let chatRecord;
+      try {
+        chatRecord = await getOrCreateChat(supabaseClient, remoteJid, instance.id, instance.organization_id);
+      } catch (chatError: any) {
+        console.error('❌ Erro crítico ao buscar/criar chat:', chatError);
+        return new Response(
+          JSON.stringify({ success: false, error: chatError.message || 'FAILED_TO_GET_OR_CREATE_CHAT' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
 
       const fromMe = message.fromMe ?? message.key?.fromMe ?? false;
       const senderName = message.senderName || message.pushName || '';
@@ -113,24 +129,32 @@ serve(async (req) => {
 
       // Atualizar nome do contato se necessário
       if (!fromMe && senderName && senderName !== chatRecord.contact_name) {
-        await supabaseClient
+        const { error: updateNameError } = await supabaseClient
           .from('whatsapp_chats')
           .update({ 
             contact_name: senderName,
             updated_at: new Date().toISOString()
           })
           .eq('id', chatRecord.id);
+        
+        if (updateNameError) {
+          console.error('⚠️ Erro ao atualizar contact_name:', updateNameError);
+        }
       }
 
       // Atualizar foto do contato se necessário
       if (contactPhotoUrl && contactPhotoUrl !== chatRecord.contact_photo_url) {
-        await supabaseClient
+        const { error: updatePhotoError } = await supabaseClient
           .from('whatsapp_chats')
           .update({ 
             contact_photo_url: contactPhotoUrl,
             updated_at: new Date().toISOString()
           })
           .eq('id', chatRecord.id);
+        
+        if (updatePhotoError) {
+          console.error('⚠️ Erro ao atualizar contact_photo_url:', updatePhotoError);
+        }
       }
 
       // Extrair conteúdo da mensagem
@@ -165,7 +189,11 @@ serve(async (req) => {
         });
 
       if (messageError) {
-        console.error('❌ Erro ao salvar mensagem:', messageError);
+        console.error('❌ Erro crítico ao salvar mensagem:', messageError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'FAILED_TO_SAVE_MESSAGE' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
       }
 
       // Atualizar timestamp da última mensagem e contador de não lidas
@@ -178,10 +206,18 @@ serve(async (req) => {
         updateData.unread_count = (chatRecord.unread_count || 0) + 1;
       }
 
-      await supabaseClient
+      const { error: updateChatError } = await supabaseClient
         .from('whatsapp_chats')
         .update(updateData)
         .eq('id', chatRecord.id);
+
+      if (updateChatError) {
+        console.error('❌ Erro crítico ao atualizar chat:', updateChatError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'FAILED_TO_UPDATE_CHAT' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
 
       console.log('✅ Mensagem processada com sucesso');
 
