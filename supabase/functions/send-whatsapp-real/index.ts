@@ -77,28 +77,33 @@ serve(async (req) => {
       // Normalizar instance_name para URL do UAZAPI
       const uazapiInstanceName = instance.instance_name;
 
-      // UAZAPI endpoint para enviar mensagem de texto
-      const sendUrl = `${UAZAPI_BASE_URL}/sendMessage/${encodeURIComponent(uazapiInstanceName)}`;
+      // UAZAPI endpoint correto para enviar mensagem de texto
+      // Formato: POST /chat/send/text/{instanceName}
+      const sendUrl = `${UAZAPI_BASE_URL}/chat/send/text/${encodeURIComponent(uazapiInstanceName)}`;
 
       console.log('[WhatsApp] Sending via UAZAPI:', {
         url: sendUrl,
         to: remoteJid,
-        messageLength: message.length
+        messageLength: message.length,
+        instanceName: uazapiInstanceName
       });
 
       try {
-        // Formato esperado pelo UAZAPI
+        // Formato esperado pelo UAZAPI para envio de texto
+        // chatId deve ser no formato: 5511999999999@s.whatsapp.net
         const uazapiPayload = {
           chatId: remoteJid,
-          message: message,
+          text: message,
         };
+
+        console.log('[WhatsApp] UAZAPI payload:', uazapiPayload);
 
         const response = await fetch(sendUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // API Key se necessário (alguns endpoints UAZAPI requerem)
-            ...(instance.api_key ? { 'Authorization': `Bearer ${instance.api_key}` } : {})
+            // API Key - UAZAPI usa header 'apikey' ou 'Authorization'
+            ...(instance.api_key ? { 'apikey': instance.api_key } : {})
           },
           body: JSON.stringify(uazapiPayload)
         });
