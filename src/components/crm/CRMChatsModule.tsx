@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,27 +18,34 @@ import {
   User, 
   MoreVertical,
   Inbox,
-  Clock,
-  CheckCheck
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-// Placeholder conversation type
-interface PlaceholderConversation {
-  id: string;
-  name: string;
-  lastMessage: string;
-  time: string;
-  unread: number;
-  avatar?: string;
+function formatTimestamp(timestamp: string | null): string {
+  if (!timestamp) return '';
+  try {
+    return format(new Date(timestamp), 'HH:mm', { locale: ptBR });
+  } catch {
+    return '';
+  }
 }
-
-// Placeholder data - empty for now
-const placeholderConversations: PlaceholderConversation[] = [];
 
 export function CRMChatsModule() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { chats, loading } = useWhatsAppChats();
+
+  // Filter chats by search query
+  const filteredChats = chats.filter((chat) => {
+    const name = chat.contact_name?.toLowerCase() || '';
+    const number = chat.contact_number?.toLowerCase() || '';
+    const query = searchQuery.toLowerCase();
+    return name.includes(query) || number.includes(query);
+  });
 
   return (
     <div className="h-[calc(100vh-220px)] min-h-[500px]">
@@ -54,7 +61,7 @@ export function CRMChatsModule() {
                   Conversas
                 </h3>
                 <Badge variant="secondary" className="text-xs">
-                  0
+                  {chats.length}
                 </Badge>
               </div>
               <div className="relative">
@@ -70,7 +77,19 @@ export function CRMChatsModule() {
 
             {/* Conversations List */}
             <ScrollArea className="flex-1">
-              {placeholderConversations.length === 0 ? (
+              {loading ? (
+                <div className="p-3 space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Skeleton className="w-10 h-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredChats.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full p-6 text-center">
                   <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                     <Inbox className="w-8 h-8 text-muted-foreground" />
@@ -84,13 +103,13 @@ export function CRMChatsModule() {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {placeholderConversations.map((conv) => (
+                  {filteredChats.map((chat) => (
                     <button
-                      key={conv.id}
-                      onClick={() => setSelectedConversation(conv.id)}
+                      key={chat.id}
+                      onClick={() => setSelectedConversation(chat.id)}
                       className={cn(
                         "w-full p-3 text-left hover:bg-muted/50 transition-colors",
-                        selectedConversation === conv.id && "bg-muted"
+                        selectedConversation === chat.id && "bg-muted"
                       )}
                     >
                       <div className="flex items-start gap-3">
@@ -100,19 +119,19 @@ export function CRMChatsModule() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">
                             <span className="font-medium text-sm truncate">
-                              {conv.name}
+                              {chat.contact_name || chat.contact_number || 'Sem nome'}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {conv.time}
+                              {formatTimestamp(chat.last_message_timestamp)}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground truncate">
-                            {conv.lastMessage}
+                            {chat.contact_number || chat.remote_jid}
                           </p>
                         </div>
-                        {conv.unread > 0 && (
+                        {(chat.unread_count ?? 0) > 0 && (
                           <Badge className="h-5 min-w-5 flex items-center justify-center">
-                            {conv.unread}
+                            {chat.unread_count}
                           </Badge>
                         )}
                       </div>
