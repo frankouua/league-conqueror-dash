@@ -21,14 +21,12 @@ async function safeJsonFromResponse(response: Response): Promise<any> {
 
 function buildUazapiCandidateUrls(baseUrl: string, instanceName: string): string[] {
   const encoded = encodeURIComponent(instanceName);
-  // Alguns provedores/versões variam o path. Tentamos uma lista curta e determinística.
+  // UAZAPI endpoints - ordem de prioridade baseada na documentação
   return [
     `${baseUrl}/chat/send/text/${encoded}`,
+    `${baseUrl}/message/sendText/${encoded}`,
+    `${baseUrl}/send/text/${encoded}`,
     `${baseUrl}/chat/sendText/${encoded}`,
-    `${baseUrl}/chat/send/text/${encoded}/`,
-    `${baseUrl}/chat/sendText/${encoded}/`,
-    // fallback legado (já vimos existir em integrações antigas)
-    `${baseUrl}/sendMessage/${encoded}`,
   ];
 }
 
@@ -110,14 +108,25 @@ serve(async (req) => {
       });
 
       try {
-        // Formato esperado pelo UAZAPI para envio de texto
-        // chatId deve ser no formato: 5511999999999@s.whatsapp.net
+        // Extrair número do remoteJid (formato: 5511999999999@s.whatsapp.net)
+        const phoneNumber = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+        
+        // UAZAPI aceita múltiplos formatos de payload - tentar formatos conhecidos
+        // Formato 1: Phone + Body (wuzapi style)
+        // Formato 2: chatId + text
+        // Formato 3: number + message
         const uazapiPayload = {
+          // Formato wuzapi/UAZAPI
+          Phone: phoneNumber,
+          Body: message,
+          // Formatos alternativos (alguns servidores aceitam)
           chatId: remoteJid,
           text: message,
+          number: phoneNumber,
+          message: message,
         };
 
-        console.log('[WhatsApp] UAZAPI payload:', uazapiPayload);
+        console.log('[WhatsApp] UAZAPI payload:', { phoneNumber, messageLength: message.length, remoteJid });
 
 
         const headers: Record<string, string> = {
