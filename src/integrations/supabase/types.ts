@@ -1179,6 +1179,90 @@ export type Database = {
           },
         ]
       }
+      channel_media_library: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          caption: string | null
+          channel_type: string
+          chat_id: string | null
+          contact_name: string | null
+          contact_number: string | null
+          created_at: string
+          file_name: string | null
+          file_size_bytes: number | null
+          from_me: boolean | null
+          id: string
+          is_archived: boolean | null
+          media_preview: string | null
+          media_timestamp: string
+          media_type: string
+          media_url: string | null
+          message_id: string | null
+          mime_type: string | null
+          organization_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          caption?: string | null
+          channel_type: string
+          chat_id?: string | null
+          contact_name?: string | null
+          contact_number?: string | null
+          created_at?: string
+          file_name?: string | null
+          file_size_bytes?: number | null
+          from_me?: boolean | null
+          id?: string
+          is_archived?: boolean | null
+          media_preview?: string | null
+          media_timestamp?: string
+          media_type: string
+          media_url?: string | null
+          message_id?: string | null
+          mime_type?: string | null
+          organization_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          caption?: string | null
+          channel_type?: string
+          chat_id?: string | null
+          contact_name?: string | null
+          contact_number?: string | null
+          created_at?: string
+          file_name?: string | null
+          file_size_bytes?: number | null
+          from_me?: boolean | null
+          id?: string
+          is_archived?: boolean | null
+          media_preview?: string | null
+          media_timestamp?: string
+          media_type?: string
+          media_url?: string | null
+          message_id?: string | null
+          mime_type?: string | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_media_library_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_media_library_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_rfv_metrics: {
         Row: {
           average_ticket: number | null
@@ -9908,6 +9992,18 @@ export type Database = {
           hora: number
           percentual: number
           total_interacoes: number
+        }[]
+      }
+      get_media_library_stats: {
+        Args: { p_org_id?: string }
+        Returns: {
+          archived_count: number
+          audio_count: number
+          document_count: number
+          estimated_size_mb: number
+          image_count: number
+          total_count: number
+          video_count: number
         }[]
       }
       get_my_team_id: { Args: never; Returns: string }
