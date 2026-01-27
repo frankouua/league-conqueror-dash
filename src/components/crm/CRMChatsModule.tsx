@@ -15,7 +15,8 @@ import {
   Inbox,
   ShieldAlert,
   Loader2,
-  Smartphone
+  Smartphone,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
@@ -28,8 +29,14 @@ import { ChannelsSidebar } from '@/components/crm/chats/ChannelsSidebar';
 import { InstancesList } from '@/components/crm/chats/InstancesList';
 import { WhatsAppMediaRenderer } from '@/components/crm/chats/WhatsAppMediaRenderer';
 import { MediaUploadButton, type MediaFile } from '@/components/crm/chats/MediaUploadButton';
+import { MediaLibraryDialog } from '@/components/crm/chats/MediaLibraryDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type Channel = 'whatsapp' | 'instagram' | 'facebook';
 
@@ -49,6 +56,7 @@ export function CRMChatsModule() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
+  const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
   
   // Load user's authorized instances
   const { 
@@ -369,6 +377,19 @@ export function CRMChatsModule() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => setMediaLibraryOpen(true)}
+                        >
+                          <ImageIcon className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Biblioteca de Mídias</TooltipContent>
+                    </Tooltip>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
                       <Phone className="w-4 h-4" />
                     </Button>
@@ -603,6 +624,13 @@ export function CRMChatsModule() {
           </div>
         </div>
       </div>
+
+      {/* Media Library Dialog */}
+      <MediaLibraryDialog
+        open={mediaLibraryOpen}
+        onOpenChange={setMediaLibraryOpen}
+        defaultChannel={activeChannel}
+      />
     </div>
   );
 }
