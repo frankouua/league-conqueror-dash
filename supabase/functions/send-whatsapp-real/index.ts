@@ -173,38 +173,80 @@ serve(async (req) => {
       
       console.log('[WhatsApp] Using API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NONE');
 
-        // IMPORTANTE: Alguns servidores priorizam `Authorization` e ignoram `apikey`.
-        // Para evitar "Invalid token" por ambiguidade, enviamos SOMENTE `apikey`.
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'apikey': apiKey,
-        };
-
-        console.log('[WhatsApp] Using auth header: apikey');
+        // IMPORTANTE:
+        // Diferentes instalações/proxies do UAZAPI esperam o token em headers diferentes.
+        // Enviar múltiplos headers ao mesmo tempo pode causar ambiguidade (ex.: server prioriza Authorization).
+        // Portanto, tentamos ESTRATÉGIAS em sequência: token -> apikey -> Authorization.
+        const authStrategies: Array<{ name: string; headers: Record<string, string> }> = [
+          {
+            name: 'token',
+            headers: {
+              'Content-Type': 'application/json',
+              'token': apiKey,
+            },
+          },
+          {
+            name: 'apikey',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': apiKey,
+            },
+          },
+          {
+            name: 'authorization_bearer',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+            },
+          },
+        ];
 
         let lastAttempt: { url: string; status?: number; result?: any } | null = null;
         let okResponse: { url: string; status: number; result: any } | null = null;
 
         for (const url of candidateUrls) {
-          const response = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(uazapiPayload)
-          });
+          for (const strategy of authStrategies) {
+            console.log('[WhatsApp] Trying UAZAPI send:', { url, auth: strategy.name });
 
-          const result = await safeJsonFromResponse(response);
-          const success = response.ok;
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: strategy.headers,
+              body: JSON.stringify(uazapiPayload)
+            });
 
-          console.log('[WhatsApp] UAZAPI response:', { url, status: response.status, success, result });
-          lastAttempt = { url, status: response.status, result };
+            const result = await safeJsonFromResponse(response);
+            const success = response.ok;
 
-          if (success) {
-            okResponse = { url, status: response.status, result };
-            break;
+            console.log('[WhatsApp] UAZAPI response:', {
+              url,
+              auth: strategy.name,
+              status: response.status,
+              success,
+              result
+            });
+
+            lastAttempt = { url, status: response.status, result };
+
+            if (success) {
+              okResponse = { url, status: response.status, result };
+              break;
+            }
+
+            // Se endpoint existe mas auth falhou, não adianta tentar outros endpoints.
+            // Porém pode valer tentar o PRÓXIMO header (token/apikey/bearer).
+            // Então aqui só "break" do loop de endpoints para 404/405.
+            if ([404, 405].includes(response.status)) {
+              // tenta próximo endpoint (mesma estratégia já falhou por inexistência)
+              break;
+            }
+
+            // 401/403/400/500 etc: tenta próxima estratégia de auth
           }
 
-          // Se for 405/404, tenta o próximo endpoint.
-          if (![404, 405].includes(response.status)) {
+          if (okResponse) break;
+
+          // Se não foi 404/405 no último attempt deste URL, não faz sentido tentar outros URLs.
+          if (lastAttempt?.status && ![404, 405].includes(lastAttempt.status)) {
             break;
           }
         }
