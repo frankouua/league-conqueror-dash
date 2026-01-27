@@ -446,6 +446,9 @@ export function CRMChatsModule() {
                           mediaUrl={msg.media_url}
                           mediaPreview={msg.media_preview}
                           fromMe={msg.from_me}
+                          messageId={msg.id}
+                          timestamp={msg.message_timestamp}
+                          contactName={selectedChat?.contact_name}
                         />
                         <p
                           className={cn(
