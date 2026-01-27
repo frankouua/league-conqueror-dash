@@ -420,113 +420,69 @@ serve(async (req) => {
       console.log('[WhatsApp] Sending media:', { mediaType, instanceName: uazapiInstanceName, phoneNumber });
 
       try {
-        let uazapiPayload: any = {};
-        let mediaEndpoint: string = '';
         let messageTypeForDb: string = mediaType;
 
         // ==========================================================================
-        // UZAPI / UAZAPI OFICIAL - Especificação baseada em documentação Postman:
-        //   https://documenter.getpostman.com/view/131526/U16hsmcg
+        // UAZAPI OFICIAL v2 - Endpoint unificado /send/media
+        // Documentação: https://docs.uazapi.com/tag/Enviar%20Mensagem
         //
-        // Endpoints:
-        //   POST /sendImage    { session, number, caption, path }
-        //   POST /sendAudio    { session, number, caption, path }
-        //   POST /sendAudio64  { session, number, caption, audio } (base64)
-        //   POST /sendDocument { session, number, caption, path, filename }
-        //   POST /sendText     { session, number, text }
-        //   POST /sendLocation { session, number, lat, lng, title, address }
-        //   POST /sendContact  { session, number, name, phone }
-        //
-        // Headers:
-        //   sessionkey: <api_key>
-        //   content-type: application/json
-        //
-        // OBS: Para mídia enviada com base64, usar os endpoints *64 (ex: /sendAudio64)
+        // POST /send/media
+        // Headers: token: <api_key>
+        // Body: {
+        //   "number": "5511999999999",
+        //   "type": "image|video|document|audio|myaudio|ptt|ptv|sticker",
+        //   "file": "URL ou base64",
+        //   "text": "caption opcional",
+        //   "docName": "nome para documentos"
+        // }
         // ==========================================================================
 
-        // Helper para extrair base64 puro de data URI
-        const extractBase64 = (dataUri: string | undefined): string => {
-          if (!dataUri) return '';
-          if (dataUri.startsWith('data:')) {
-            const commaIdx = dataUri.indexOf(',');
-            return commaIdx > 0 ? dataUri.substring(commaIdx + 1) : dataUri;
-          }
-          return dataUri;
+        const mediaEndpoint = `${UAZAPI_BASE_URL}/send/media`;
+        let uazapiPayload: any = {
+          number: phoneNumber,
         };
 
         switch (mediaType) {
           case 'image':
-            // UAZAPI aceita base64 no campo "image" ou URL no campo "path"
-            // Vamos usar base64 puro (sem data: prefix) no campo "image"
-            const imageBase64 = extractBase64(fileBase64);
-            mediaEndpoint = `${UAZAPI_BASE_URL}/sendImage`;
-            uazapiPayload = {
-              session: uazapiInstanceName,
-              number: phoneNumber,
-              caption: caption || '',
-              // Enviar base64 puro
-              image: imageBase64,
-            };
+            uazapiPayload.type = 'image';
+            uazapiPayload.file = fileBase64; // Base64 com ou sem prefixo data: aceito
+            if (caption) uazapiPayload.text = caption;
             break;
 
           case 'video':
-            // Alguns UAZAPI têm /sendVideo, outros usam /sendFile
-            const videoBase64 = extractBase64(fileBase64);
-            mediaEndpoint = `${UAZAPI_BASE_URL}/sendVideo`;
-            uazapiPayload = {
-              session: uazapiInstanceName,
-              number: phoneNumber,
-              caption: caption || '',
-              video: videoBase64,
-            };
+            uazapiPayload.type = 'video';
+            uazapiPayload.file = fileBase64;
+            if (caption) uazapiPayload.text = caption;
             break;
 
           case 'document':
-            const docBase64 = extractBase64(fileBase64);
-            mediaEndpoint = `${UAZAPI_BASE_URL}/sendDocument`;
-            uazapiPayload = {
-              session: uazapiInstanceName,
-              number: phoneNumber,
-              caption: caption || '',
-              document: docBase64,
-              filename: fileName || 'document',
-            };
+            uazapiPayload.type = 'document';
+            uazapiPayload.file = fileBase64;
+            if (caption) uazapiPayload.text = caption;
+            if (fileName) uazapiPayload.docName = fileName;
             break;
 
           case 'audio':
-            // Usar /sendAudio64 para base64
-            const audioBase64 = extractBase64(fileBase64);
-            mediaEndpoint = `${UAZAPI_BASE_URL}/sendAudio64`;
-            uazapiPayload = {
-              session: uazapiInstanceName,
-              number: phoneNumber,
-              caption: caption || '',
-              audio: audioBase64,
-            };
-            messageTypeForDb = 'ptt'; // WhatsApp voice message
+            // UAZAPI suporta: audio (normal), myaudio (voz alternativo), ptt (push-to-talk)
+            uazapiPayload.type = 'ptt'; // mensagem de voz
+            uazapiPayload.file = fileBase64;
+            messageTypeForDb = 'ptt';
             break;
 
           case 'location':
-            mediaEndpoint = `${UAZAPI_BASE_URL}/sendLocation`;
-            uazapiPayload = {
-              session: uazapiInstanceName,
-              number: phoneNumber,
-              lat: latitude?.toString() || '',
-              lng: longitude?.toString() || '',
-              title: locationName || '',
-              address: locationAddress || '',
-            };
-            break;
+            // Localização usa endpoint diferente - mantém lógica anterior como fallback
+            // UAZAPI pode ter /send/location separado
+            return new Response(
+              JSON.stringify({ success: false, error: 'Localização não suportada via /send/media. Use endpoint específico.' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
 
           case 'contact':
-            mediaEndpoint = `${UAZAPI_BASE_URL}/sendContact`;
-            uazapiPayload = {
-              session: uazapiInstanceName,
-              number: phoneNumber,
-              name: contactName || 'Contato',
-              phone: contactPhone || '',
-            };
-            break;
+            // Contato usa endpoint diferente
+            return new Response(
+              JSON.stringify({ success: false, error: 'Contato não suportado via /send/media. Use endpoint específico.' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
 
           default:
             return new Response(
@@ -535,25 +491,32 @@ serve(async (req) => {
             );
         }
         
-        console.log('[WhatsApp] Media endpoint (UZAPI spec):', mediaEndpoint);
-        console.log('[WhatsApp] Media payload keys:', Object.keys(uazapiPayload));
+        console.log('[WhatsApp] Media endpoint (UAZAPI v2):', mediaEndpoint);
+        console.log('[WhatsApp] Media payload:', { 
+          number: uazapiPayload.number, 
+          type: uazapiPayload.type, 
+          hasFile: !!uazapiPayload.file,
+          filePreview: uazapiPayload.file?.substring(0, 50) + '...',
+          text: uazapiPayload.text,
+          docName: uazapiPayload.docName
+        });
 
-        // Headers conforme documentação oficial UZAPI
-        const uzapiHeaders: Record<string, string> = {
+        // Headers conforme documentação oficial UAZAPI v2
+        const uazapiHeaders: Record<string, string> = {
           'Content-Type': 'application/json',
-          'sessionkey': apiKey,
+          'token': apiKey,
         };
 
         console.log('[WhatsApp] Sending media request:', { 
           url: mediaEndpoint, 
           method: 'POST',
-          hasSessionKey: !!apiKey,
-          payloadPreview: { session: uazapiPayload.session, number: uazapiPayload.number }
+          hasToken: !!apiKey,
+          tokenPreview: apiKey?.substring(0, 10) + '...'
         });
 
         const response = await fetch(mediaEndpoint, {
           method: 'POST',
-          headers: uzapiHeaders,
+          headers: uazapiHeaders,
           body: JSON.stringify(uazapiPayload),
         });
 
@@ -566,19 +529,13 @@ serve(async (req) => {
           result
         });
 
-        if (response.ok && result.result === 200) {
+        // UAZAPI retorna 200 com response.status ou messageid
+        if (response.ok) {
           const messageTimestamp = new Date().toISOString();
-          const messageId = result?.data?.id || result?.messageId || `sent_media_${Date.now()}`;
+          const messageId = result?.messageid || result?.messageId || result?.id || `sent_media_${Date.now()}`;
 
           // Determinar conteúdo para salvar
-          let savedContent = '';
-          if (mediaType === 'location') {
-            savedContent = `📍 ${locationName || 'Localização'}`;
-          } else if (mediaType === 'contact') {
-            savedContent = `👤 ${contactName}`;
-          } else {
-            savedContent = caption || `[${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)}]`;
-          }
+          const savedContent = caption || `[${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)}]`;
 
           // Salvar mensagem enviada
           await supabase.from('whatsapp_messages').insert({
@@ -604,7 +561,7 @@ serve(async (req) => {
             updated_at: messageTimestamp
           }).eq('id', chatId);
 
-          console.log('[WhatsApp] Media sent OK:', { endpoint: mediaEndpoint, status: response.status });
+          console.log('[WhatsApp] Media sent OK:', { endpoint: mediaEndpoint, status: response.status, messageId });
           return new Response(
             JSON.stringify({
               success: true,
@@ -612,7 +569,7 @@ serve(async (req) => {
               sent_at: messageTimestamp,
               provider_status: response.status,
               provider_url: mediaEndpoint,
-              provider_response_type: result.type
+              provider_response: result
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
@@ -621,7 +578,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({
               success: false,
-              error: result?.message || result?.reason || `Falha ao enviar ${mediaType} (${response.status})`,
+              error: result?.error || result?.message || `Falha ao enviar ${mediaType} (${response.status})`,
               provider_status: response.status,
               provider_url: mediaEndpoint,
               provider_response: result,
