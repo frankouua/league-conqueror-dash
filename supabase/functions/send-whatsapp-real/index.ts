@@ -441,31 +441,53 @@ serve(async (req) => {
           return base64.startsWith('data:') ? base64 : `data:${mimeType};base64,${base64}`;
         };
 
-        // Gerar todas as variações de endpoints (igual ao texto que funciona)
-        const buildAllMediaEndpoints = (mediaPath: string): string[] => {
-          const prefixes = ['', '/api', '/api/v1', '/v1'];
-          const urls: string[] = [];
-          
-          for (const prefix of prefixes) {
-            // SEM instância (wuzapi padrão - usa token no header para identificar sessão)
-            urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}`);
-            // COM instância no final do path
-            urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}/${encoded}`);
-            // COM instância antes do path
-            urls.push(`${UAZAPI_BASE_URL}${prefix}/${encoded}${mediaPath}`);
-          }
-          
-          // Adicionar variantes extras da UAZAPI
-          urls.push(`${UAZAPI_BASE_URL}/message${mediaPath.replace('/chat', '')}`);
-          urls.push(`${UAZAPI_BASE_URL}/message${mediaPath.replace('/chat', '')}/${encoded}`);
-          
-          return [...new Set(urls)];
-        };
+         // Gerar todas as variações de endpoints (UAZAPI/Wuzapi variam MUITO entre versões)
+         // Ex.: /chat/send/image vs /chat/sendImage vs /message/sendImage
+         const buildAllMediaEndpoints = (mediaPaths: string[]): string[] => {
+           const prefixes = ['', '/api', '/api/v1', '/v1'];
+           const urls: string[] = [];
+
+           for (const prefix of prefixes) {
+             for (const mediaPath of mediaPaths) {
+               // SEM instância (servidores que identificam sessão via Token)
+               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}`);
+               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}/`);
+
+               // COM instância no final do path
+               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}/${encoded}`);
+               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}/${encoded}/`);
+
+               // COM instância antes do path
+               urls.push(`${UAZAPI_BASE_URL}${prefix}/${encoded}${mediaPath}`);
+               urls.push(`${UAZAPI_BASE_URL}${prefix}/${encoded}${mediaPath}/`);
+             }
+           }
+
+           // Adicionar variantes extras que aparecem em alguns gateways/reverse-proxies
+           for (const mediaPath of mediaPaths) {
+             // /message/send/image (quando o base é /message e não /chat)
+             const msgPath = mediaPath.startsWith('/chat') ? `/message${mediaPath.slice('/chat'.length)}` : mediaPath;
+             urls.push(`${UAZAPI_BASE_URL}${msgPath}`);
+             urls.push(`${UAZAPI_BASE_URL}${msgPath}/`);
+             urls.push(`${UAZAPI_BASE_URL}${msgPath}/${encoded}`);
+             urls.push(`${UAZAPI_BASE_URL}${msgPath}/${encoded}/`);
+           }
+
+           // dedupe preservando ordem
+           return Array.from(new Set(urls));
+         };
 
         switch (mediaType) {
           case 'image':
             const imageDataUri = ensureDataUri(fileBase64, fileMimeType || 'image/jpeg');
-            mediaEndpoints = buildAllMediaEndpoints('/chat/send/image');
+            mediaEndpoints = buildAllMediaEndpoints([
+              '/chat/send/image',
+              '/chat/sendImage',
+              '/message/send/image',
+              '/message/sendImage',
+              '/send/image',
+              '/sendImage',
+            ]);
             uazapiPayload = {
               Phone: phoneNumber,
               Image: imageDataUri,
@@ -481,7 +503,14 @@ serve(async (req) => {
 
           case 'video':
             const videoDataUri = ensureDataUri(fileBase64, fileMimeType || 'video/mp4');
-            mediaEndpoints = buildAllMediaEndpoints('/chat/send/video');
+            mediaEndpoints = buildAllMediaEndpoints([
+              '/chat/send/video',
+              '/chat/sendVideo',
+              '/message/send/video',
+              '/message/sendVideo',
+              '/send/video',
+              '/sendVideo',
+            ]);
             uazapiPayload = {
               Phone: phoneNumber,
               Video: videoDataUri,
@@ -496,7 +525,14 @@ serve(async (req) => {
 
           case 'document':
             const docDataUri = ensureDataUri(fileBase64, fileMimeType || 'application/octet-stream');
-            mediaEndpoints = buildAllMediaEndpoints('/chat/send/document');
+            mediaEndpoints = buildAllMediaEndpoints([
+              '/chat/send/document',
+              '/chat/sendDocument',
+              '/message/send/document',
+              '/message/sendDocument',
+              '/send/document',
+              '/sendDocument',
+            ]);
             uazapiPayload = {
               Phone: phoneNumber,
               Document: docDataUri,
@@ -512,7 +548,14 @@ serve(async (req) => {
 
           case 'audio':
             const audioDataUri = ensureDataUri(fileBase64, fileMimeType || 'audio/ogg');
-            mediaEndpoints = buildAllMediaEndpoints('/chat/send/audio');
+            mediaEndpoints = buildAllMediaEndpoints([
+              '/chat/send/audio',
+              '/chat/sendAudio',
+              '/message/send/audio',
+              '/message/sendAudio',
+              '/send/audio',
+              '/sendAudio',
+            ]);
             uazapiPayload = {
               Phone: phoneNumber,
               Audio: audioDataUri,
@@ -524,7 +567,14 @@ serve(async (req) => {
             break;
 
           case 'location':
-            mediaEndpoints = buildAllMediaEndpoints('/chat/send/location');
+            mediaEndpoints = buildAllMediaEndpoints([
+              '/chat/send/location',
+              '/chat/sendLocation',
+              '/message/send/location',
+              '/message/sendLocation',
+              '/send/location',
+              '/sendLocation',
+            ]);
             uazapiPayload = {
               Phone: phoneNumber,
               Latitude: latitude,
@@ -540,7 +590,14 @@ serve(async (req) => {
 
           case 'contact':
             const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\nTEL;type=CELL;type=pref:${contactPhone}\nEND:VCARD`;
-            mediaEndpoints = buildAllMediaEndpoints('/chat/send/contact');
+            mediaEndpoints = buildAllMediaEndpoints([
+              '/chat/send/contact',
+              '/chat/sendContact',
+              '/message/send/contact',
+              '/message/sendContact',
+              '/send/contact',
+              '/sendContact',
+            ]);
             uazapiPayload = {
               Phone: phoneNumber,
               Name: contactName || 'Contato',
