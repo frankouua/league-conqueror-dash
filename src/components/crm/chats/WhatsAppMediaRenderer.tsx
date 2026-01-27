@@ -34,6 +34,33 @@ function normalizeMessageType(type: string | null): string {
   return type.toLowerCase().replace('message', '').trim();
 }
 
+function guessMediaKindFromUrl(url: string | null): 'image' | 'video' | 'audio' | 'document' | null {
+  if (!url) return null;
+  const clean = url.split('?')[0]?.toLowerCase() ?? '';
+
+  // Common image extensions + WhatsApp CDN patterns
+  if (/(\.png|\.jpg|\.jpeg|\.gif|\.webp)$/.test(clean) || clean.includes('whatsapp.net')) {
+    return 'image';
+  }
+  if (/(\.mp4|\.mov|\.webm)$/.test(clean)) return 'video';
+  if (/(\.mp3|\.ogg|\.wav|\.m4a)$/.test(clean)) return 'audio';
+  if (/(\.pdf|\.doc|\.docx|\.xls|\.xlsx|\.ppt|\.pptx|\.txt|\.csv)$/.test(clean)) return 'document';
+
+  return null;
+}
+
+function isImagePlaceholderText(text: string | null): boolean {
+  if (!text) return false;
+  const t = text.trim().toLowerCase();
+  return t === '[imagem]' || t === 'imagem' || t === '📷 imagem';
+}
+
+function isVideoPlaceholderText(text: string | null): boolean {
+  if (!text) return false;
+  const t = text.trim().toLowerCase();
+  return t === '[vídeo]' || t === '[video]' || t === 'vídeo' || t === 'video';
+}
+
 export function WhatsAppMediaRenderer({ 
   messageType, 
   content, 
@@ -46,8 +73,16 @@ export function WhatsAppMediaRenderer({
 
   const normalizedType = normalizeMessageType(messageType);
 
+  // Heurística: às vezes o backend salva message_type como Conversation/Text, mas a mídia chega via media_url.
+  // Nesse caso, renderizamos pelo mediaUrl (experiência estilo Direct/Messenger).
+  const guessedKind = guessMediaKindFromUrl(mediaUrl);
+  const effectiveType =
+    normalizedType === 'text' || normalizedType === 'conversation' || normalizedType === 'extendedtext'
+      ? (guessedKind ?? (isImagePlaceholderText(content) ? 'image' : isVideoPlaceholderText(content) ? 'video' : normalizedType))
+      : normalizedType;
+
   // Text messages
-  if (!messageType || normalizedType === 'text' || normalizedType === 'conversation' || normalizedType === 'extendedtext') {
+  if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
     return (
       <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
         {content || ''}
@@ -56,7 +91,7 @@ export function WhatsAppMediaRenderer({
   }
 
   // Image messages
-  if (normalizedType === 'image') {
+  if (effectiveType === 'image') {
     if (mediaUrl && !imageError) {
       return (
         <Dialog>
@@ -65,7 +100,9 @@ export function WhatsAppMediaRenderer({
               <img
                 src={mediaUrl}
                 alt="Imagem"
-                className="max-w-[250px] max-h-[250px] rounded-md object-cover hover:opacity-90 transition-opacity"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover hover:opacity-90 transition-opacity"
                 onError={() => setImageError(true)}
               />
               {content && content !== '[Imagem]' && (
@@ -79,6 +116,7 @@ export function WhatsAppMediaRenderer({
             <img
               src={mediaUrl}
               alt="Imagem ampliada"
+              referrerPolicy="no-referrer"
               className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
             />
           </DialogContent>
@@ -87,31 +125,47 @@ export function WhatsAppMediaRenderer({
     }
     
     return (
-      <div className="flex items-center gap-2 py-1">
-        <div className={cn(
-          "p-2 rounded-md",
-          fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
-        )}>
-          <ImageIcon className="w-6 h-6 opacity-60" />
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 py-1">
+          <div className={cn(
+            "p-2 rounded-md",
+            fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
+          )}>
+            <ImageIcon className="w-6 h-6 opacity-60" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium">📷 Imagem</p>
+            {content && content !== '[Imagem]' && (
+              <p className="text-[11px] opacity-70 break-words">{content}</p>
+            )}
+            {!mediaUrl && (
+              <p className="text-[10px] opacity-50 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Mídia não disponível
+              </p>
+            )}
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium">📷 Imagem</p>
-          {content && content !== '[Imagem]' && (
-            <p className="text-[11px] opacity-70 break-words">{content}</p>
-          )}
-          {!mediaUrl && (
-            <p className="text-[10px] opacity-50 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
-              Mídia não disponível
-            </p>
-          )}
-        </div>
+
+        {/* Se a URL existir mas o browser bloquear (hotlink/expiração), ainda damos um caminho pra ver a mídia */}
+        {mediaUrl && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-7 px-2 text-[11px]"
+            asChild
+          >
+            <a href={mediaUrl} target="_blank" rel="noopener noreferrer">
+              Abrir imagem
+            </a>
+          </Button>
+        )}
       </div>
     );
   }
 
   // Video messages
-  if (normalizedType === 'video') {
+  if (effectiveType === 'video') {
     if (mediaUrl && !videoError) {
       return (
         <div className="space-y-1.5">
@@ -159,7 +213,7 @@ export function WhatsAppMediaRenderer({
   }
 
   // Audio/Voice messages
-  if (normalizedType === 'audio' || normalizedType === 'ptt') {
+  if (effectiveType === 'audio' || effectiveType === 'ptt') {
     if (mediaUrl && !audioError) {
       return (
         <div className="flex items-center gap-2 py-0.5 min-w-[180px]">
@@ -204,7 +258,7 @@ export function WhatsAppMediaRenderer({
   }
 
   // Document messages
-  if (normalizedType === 'document' || normalizedType === 'documentwithcaption') {
+  if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
     const fileName = (content && content !== '[Documento]') ? content : 'Documento';
     
     return (
