@@ -629,18 +629,40 @@ serve(async (req) => {
         let lastAttempt: { url: string; status?: number; result?: any } | null = null;
         let okResponse: { url: string; status: number; result: any } | null = null;
 
-        const httpMethods: Array<'POST' | 'PUT'> = ['POST', 'PUT'];
-
+        // Importante: 404/405 aqui significam “esse endpoint/método não serve”; devemos tentar os outros.
+        // Só paramos de varrer endpoints quando recebemos um status que indica que o endpoint existe (ex.: 401/403/400).
         for (const url of mediaEndpoints) {
+          let shouldTryNextUrl = false;
+
           for (const strategy of authStrategies) {
-            for (const method of httpMethods) {
-              // Mantém POST como padrão; só tenta PUT se o provedor indicar Method Not Allowed (405)
-              if (method === 'PUT' && lastAttempt?.status !== 405) continue;
+            console.log('[WhatsApp] Trying media send:', { url, auth: strategy.name, mediaType, method: 'POST' });
 
-              console.log('[WhatsApp] Trying media send:', { url, auth: strategy.name, mediaType, method });
+            // 1) POST
+            let response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                ...strategy.headers,
+                Accept: 'application/json',
+              },
+              body: JSON.stringify(uazapiPayload),
+            });
 
-              const response = await fetch(url, {
-                method,
+            let result = await safeJsonFromResponse(response);
+            lastAttempt = { url, status: response.status, result };
+
+            console.log('[WhatsApp] Media response:', { url, status: response.status, success: response.ok, method: 'POST' });
+
+            if (response.ok) {
+              okResponse = { url, status: response.status, result };
+              break;
+            }
+
+            // 2) Se POST não é permitido, tenta PUT uma única vez.
+            if (response.status === 405) {
+              console.log('[WhatsApp] Trying media send:', { url, auth: strategy.name, mediaType, method: 'PUT' });
+
+              response = await fetch(url, {
+                method: 'PUT',
                 headers: {
                   ...strategy.headers,
                   Accept: 'application/json',
@@ -648,40 +670,31 @@ serve(async (req) => {
                 body: JSON.stringify(uazapiPayload),
               });
 
-              const result = await safeJsonFromResponse(response);
+              result = await safeJsonFromResponse(response);
               lastAttempt = { url, status: response.status, result };
 
-              console.log('[WhatsApp] Media response:', { url, status: response.status, success: response.ok, method });
+              console.log('[WhatsApp] Media response:', { url, status: response.status, success: response.ok, method: 'PUT' });
 
               if (response.ok) {
                 okResponse = { url, status: response.status, result };
                 break;
               }
+            }
 
-              // 404: endpoint não existe → tenta próximo endpoint
-              if (response.status === 404) break;
-
-              // 405: método não permitido → tenta PUT (mesma url/headers) e depois segue
-              if (response.status === 405) continue;
-
-              // outros status (401/403/400/5xx): tenta próxima estratégia de auth; não faz sentido varrer URLs
+            // 404/405: endpoint/método não serve → tenta PRÓXIMO URL (não vale tentar outras auth strategies)
+            if (lastAttempt?.status === 404 || lastAttempt?.status === 405) {
+              shouldTryNextUrl = true;
               break;
             }
 
-            if (okResponse) break;
-
-            if (lastAttempt?.status && [404].includes(lastAttempt.status)) {
-              // continua para próxima estratégia/url
-              continue;
-            }
-
-            // Se não foi 404, não faz sentido tentar outros URLs
-            if (lastAttempt?.status && lastAttempt.status !== 404) break;
+            // Outros status (401/403/400/5xx): endpoint existe → tenta próxima estratégia de auth.
           }
 
           if (okResponse) break;
+          if (shouldTryNextUrl) continue;
 
-          if (lastAttempt?.status && lastAttempt.status !== 404) break;
+          // Se chegamos aqui sem okResponse e não é 404/405, não faz sentido tentar outros URLs.
+          if (lastAttempt?.status && lastAttempt.status !== 404 && lastAttempt.status !== 405) break;
         }
 
         if (okResponse) {
