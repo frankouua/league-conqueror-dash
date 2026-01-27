@@ -62,6 +62,48 @@ export function useWhatsAppSendMedia() {
     });
   }, []);
 
+  // Cria um preview menor (data URI) para renderização no chat (experiência tipo Direct/Messenger)
+  // Evita depender do link do WhatsApp (que muitas vezes é criptografado/expira).
+  const createImagePreviewDataUri = useCallback(async (file: File): Promise<string> => {
+    const MAX_SIZE = 1024;
+    const QUALITY = 0.85;
+
+    // Fallback: se não for imagem, retorna data uri original
+    if (!file.type?.startsWith('image/')) {
+      return await fileToDataUri(file);
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image();
+        el.onload = () => resolve(el);
+        el.onerror = () => reject(new Error('Falha ao carregar imagem para preview'));
+        el.src = objectUrl;
+      });
+
+      const srcW = img.naturalWidth || img.width;
+      const srcH = img.naturalHeight || img.height;
+      const scale = Math.min(1, MAX_SIZE / Math.max(srcW, srcH));
+      const outW = Math.max(1, Math.round(srcW * scale));
+      const outH = Math.max(1, Math.round(srcH * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas não suportado');
+
+      ctx.drawImage(img, 0, 0, outW, outH);
+
+      // Padroniza em JPEG para reduzir peso (bom o suficiente pra preview)
+      return canvas.toDataURL('image/jpeg', QUALITY);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }, [fileToDataUri]);
+
   const sendMedia = useCallback(async (params: SendMediaParams): Promise<SendMediaResult> => {
     const { 
       instanceId, 
@@ -139,6 +181,16 @@ export function useWhatsAppSendMedia() {
         payload.fileName = file.name;
         payload.fileMimeType = file.type;
         payload.caption = caption;
+
+        // Para imagens, enviamos um preview reduzido para persistir no banco e mostrar no chat
+        if (mediaType === 'image') {
+          try {
+            payload.mediaPreview = await createImagePreviewDataUri(file);
+          } catch (e) {
+            console.warn('[WhatsApp] Failed to generate image preview, falling back to original data URI', e);
+            payload.mediaPreview = dataUri;
+          }
+        }
       } else {
         toast.error('Arquivo não fornecido');
         return { success: false, error: 'No file provided' };
@@ -184,7 +236,7 @@ export function useWhatsAppSendMedia() {
     } finally {
       setSending(false);
     }
-  }, [canSendMedia, getInstanceName, fileToDataUri]);
+  }, [canSendMedia, getInstanceName, fileToDataUri, createImagePreviewDataUri]);
 
   return {
     sendMedia,

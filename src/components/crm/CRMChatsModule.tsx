@@ -440,6 +440,7 @@ export function CRMChatsModule() {
                           messageType={msg.message_type}
                           content={msg.content}
                           mediaUrl={msg.media_url}
+                          mediaPreview={msg.media_preview}
                           fromMe={msg.from_me}
                         />
                         <p

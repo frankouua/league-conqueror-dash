@@ -96,6 +96,8 @@ interface SendMediaPayload {
   fileName?: string;
   fileMimeType?: string;
   caption?: string;
+  // Optional: client-side preview (data URI) to render inside CRM chat
+  mediaPreview?: string;
   // For location
   latitude?: number;
   longitude?: number;
@@ -375,6 +377,7 @@ serve(async (req) => {
         fileName,
         fileMimeType,
         caption,
+        mediaPreview,
         latitude,
         longitude,
         locationName,
@@ -552,6 +555,7 @@ serve(async (req) => {
             content: savedContent,
             message_type: messageTypeForDb,
             media_url: mediaUrl,
+            media_preview: mediaPreview || (mediaType === 'image' ? (fileBase64 ?? null) : null),
             message_timestamp: messageTimestamp,
             status: 'sent',
             raw_data: { 
