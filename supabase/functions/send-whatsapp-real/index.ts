@@ -435,99 +435,120 @@ serve(async (req) => {
         // Tentamos AMBAS abordagens
         
         // Configurar payload e endpoints por tipo de mídia
+        // Construir data URI se necessário
+        const ensureDataUri = (base64: string | undefined, mimeType: string): string => {
+          if (!base64) return '';
+          return base64.startsWith('data:') ? base64 : `data:${mimeType};base64,${base64}`;
+        };
+
+        // Gerar todas as variações de endpoints (igual ao texto que funciona)
+        const buildAllMediaEndpoints = (mediaPath: string): string[] => {
+          const prefixes = ['', '/api', '/api/v1', '/v1'];
+          const urls: string[] = [];
+          
+          for (const prefix of prefixes) {
+            // SEM instância (wuzapi padrão - usa token no header para identificar sessão)
+            urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}`);
+            // COM instância no final do path
+            urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}/${encoded}`);
+            // COM instância antes do path
+            urls.push(`${UAZAPI_BASE_URL}${prefix}/${encoded}${mediaPath}`);
+          }
+          
+          // Adicionar variantes extras da UAZAPI
+          urls.push(`${UAZAPI_BASE_URL}/message${mediaPath.replace('/chat', '')}`);
+          urls.push(`${UAZAPI_BASE_URL}/message${mediaPath.replace('/chat', '')}/${encoded}`);
+          
+          return [...new Set(urls)];
+        };
+
         switch (mediaType) {
           case 'image':
-            // WUZAPI format: Image deve ser data URI (data:image/jpeg;base64,...)
-            const imageDataUri = fileBase64?.startsWith('data:') ? fileBase64 : `data:${fileMimeType || 'image/jpeg'};base64,${fileBase64}`;
-            mediaEndpoints = [
-              // SEM instância no path (wuzapi padrão - usa token no header)
-              `${UAZAPI_BASE_URL}/chat/send/image`,
-              // COM instância no path (variantes UAZAPI)
-              `${UAZAPI_BASE_URL}/chat/send/image/${encoded}`,
-              `${UAZAPI_BASE_URL}/${encoded}/chat/send/image`,
-              `${UAZAPI_BASE_URL}/api/${encoded}/chat/send/image`,
-            ];
+            const imageDataUri = ensureDataUri(fileBase64, fileMimeType || 'image/jpeg');
+            mediaEndpoints = buildAllMediaEndpoints('/chat/send/image');
             uazapiPayload = {
-              // Formato WUZAPI oficial
               Phone: phoneNumber,
               Image: imageDataUri,
               Caption: caption || '',
+              // Formatos alternativos que alguns servidores aceitam
+              phone: phoneNumber,
+              image: imageDataUri,
+              caption: caption || '',
+              base64: imageDataUri,
+              filename: fileName || 'image.jpg',
             };
             break;
 
           case 'video':
-            const videoDataUri = fileBase64?.startsWith('data:') ? fileBase64 : `data:${fileMimeType || 'video/mp4'};base64,${fileBase64}`;
-            mediaEndpoints = [
-              `${UAZAPI_BASE_URL}/chat/send/video`,
-              `${UAZAPI_BASE_URL}/chat/send/video/${encoded}`,
-              `${UAZAPI_BASE_URL}/${encoded}/chat/send/video`,
-              `${UAZAPI_BASE_URL}/api/${encoded}/chat/send/video`,
-            ];
+            const videoDataUri = ensureDataUri(fileBase64, fileMimeType || 'video/mp4');
+            mediaEndpoints = buildAllMediaEndpoints('/chat/send/video');
             uazapiPayload = {
               Phone: phoneNumber,
               Video: videoDataUri,
               Caption: caption || '',
+              phone: phoneNumber,
+              video: videoDataUri,
+              caption: caption || '',
+              base64: videoDataUri,
+              filename: fileName || 'video.mp4',
             };
             break;
 
           case 'document':
-            const docDataUri = fileBase64?.startsWith('data:') ? fileBase64 : `data:${fileMimeType || 'application/octet-stream'};base64,${fileBase64}`;
-            mediaEndpoints = [
-              `${UAZAPI_BASE_URL}/chat/send/document`,
-              `${UAZAPI_BASE_URL}/chat/send/document/${encoded}`,
-              `${UAZAPI_BASE_URL}/${encoded}/chat/send/document`,
-              `${UAZAPI_BASE_URL}/api/${encoded}/chat/send/document`,
-            ];
+            const docDataUri = ensureDataUri(fileBase64, fileMimeType || 'application/octet-stream');
+            mediaEndpoints = buildAllMediaEndpoints('/chat/send/document');
             uazapiPayload = {
               Phone: phoneNumber,
               Document: docDataUri,
               FileName: fileName || 'document',
               Caption: caption || '',
+              phone: phoneNumber,
+              document: docDataUri,
+              filename: fileName || 'document',
+              caption: caption || '',
+              base64: docDataUri,
             };
             break;
 
           case 'audio':
-            const audioDataUri = fileBase64?.startsWith('data:') ? fileBase64 : `data:${fileMimeType || 'audio/ogg'};base64,${fileBase64}`;
-            mediaEndpoints = [
-              `${UAZAPI_BASE_URL}/chat/send/audio`,
-              `${UAZAPI_BASE_URL}/chat/send/audio/${encoded}`,
-              `${UAZAPI_BASE_URL}/${encoded}/chat/send/audio`,
-              `${UAZAPI_BASE_URL}/api/${encoded}/chat/send/audio`,
-            ];
+            const audioDataUri = ensureDataUri(fileBase64, fileMimeType || 'audio/ogg');
+            mediaEndpoints = buildAllMediaEndpoints('/chat/send/audio');
             uazapiPayload = {
               Phone: phoneNumber,
               Audio: audioDataUri,
+              phone: phoneNumber,
+              audio: audioDataUri,
+              base64: audioDataUri,
+              filename: fileName || 'audio.ogg',
             };
             break;
 
           case 'location':
-            mediaEndpoints = [
-              `${UAZAPI_BASE_URL}/chat/send/location`,
-              `${UAZAPI_BASE_URL}/chat/send/location/${encoded}`,
-              `${UAZAPI_BASE_URL}/${encoded}/chat/send/location`,
-              `${UAZAPI_BASE_URL}/api/${encoded}/chat/send/location`,
-            ];
+            mediaEndpoints = buildAllMediaEndpoints('/chat/send/location');
             uazapiPayload = {
               Phone: phoneNumber,
               Latitude: latitude,
               Longitude: longitude,
               Name: locationName || '',
+              phone: phoneNumber,
+              latitude: latitude,
+              longitude: longitude,
+              name: locationName || '',
+              address: locationAddress || '',
             };
             break;
 
           case 'contact':
-            // WUZAPI format: Vcard é obrigatório, Name é o display name
             const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\nTEL;type=CELL;type=pref:${contactPhone}\nEND:VCARD`;
-            mediaEndpoints = [
-              `${UAZAPI_BASE_URL}/chat/send/contact`,
-              `${UAZAPI_BASE_URL}/chat/send/contact/${encoded}`,
-              `${UAZAPI_BASE_URL}/${encoded}/chat/send/contact`,
-              `${UAZAPI_BASE_URL}/api/${encoded}/chat/send/contact`,
-            ];
+            mediaEndpoints = buildAllMediaEndpoints('/chat/send/contact');
             uazapiPayload = {
               Phone: phoneNumber,
               Name: contactName || 'Contato',
               Vcard: vcard,
+              phone: phoneNumber,
+              name: contactName || 'Contato',
+              vcard: vcard,
+              contact: { name: contactName, phone: contactPhone },
             };
             break;
 
@@ -537,6 +558,8 @@ serve(async (req) => {
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
             );
         }
+        
+        console.log('[WhatsApp] Media endpoints to try:', mediaEndpoints.length);
 
         // Estratégias de autenticação (WUZAPI usa "Token" header com valor direto)
         const authStrategies: Array<{ name: string; headers: Record<string, string> }> = [
