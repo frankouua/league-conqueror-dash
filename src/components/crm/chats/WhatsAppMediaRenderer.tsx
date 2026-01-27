@@ -15,11 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { MediaViewer, MediaViewerItem } from './MediaViewer';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -27,6 +23,9 @@ interface WhatsAppMediaRendererProps {
   mediaUrl: string | null;
   mediaPreview?: string | null;
   fromMe: boolean;
+  messageId?: string;
+  timestamp?: string | null;
+  contactName?: string | null;
 }
 
 // Normaliza o tipo de mensagem para comparação
@@ -67,11 +66,15 @@ export function WhatsAppMediaRenderer({
   content, 
   mediaUrl, 
   mediaPreview,
-  fromMe 
+  fromMe,
+  messageId,
+  timestamp,
+  contactName
 }: WhatsAppMediaRendererProps) {
   const [imageError, setImageError] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [audioError, setAudioError] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const normalizedType = normalizeMessageType(messageType);
 
@@ -99,35 +102,44 @@ export function WhatsAppMediaRenderer({
     const preferredImageSrc = (fromMe && mediaPreview) ? mediaPreview : mediaUrl;
     const showOriginalLink = !!mediaUrl && (!fromMe || !mediaPreview);
 
+    const mediaItem: MediaViewerItem = {
+      id: messageId || 'single',
+      type: 'image',
+      src: mediaUrl || '',
+      preview: mediaPreview,
+      caption: content && content !== '[Imagem]' ? content : undefined,
+      timestamp: timestamp,
+      fromMe: fromMe,
+      contactName: contactName,
+    };
+
     if (preferredImageSrc && !imageError) {
       return (
-        <Dialog>
-          <DialogTrigger asChild>
-            <div className="cursor-pointer">
-              <img
-                src={preferredImageSrc}
-                alt="Imagem"
-                loading="lazy"
-                referrerPolicy="no-referrer"
-                className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover hover:opacity-90 transition-opacity"
-                onError={() => setImageError(true)}
-              />
-              {content && content !== '[Imagem]' && (
-                <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
-                  {content}
-                </p>
-              )}
-            </div>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
+        <>
+          <div 
+            className="cursor-pointer"
+            onClick={() => setViewerOpen(true)}
+          >
             <img
               src={preferredImageSrc}
-              alt="Imagem ampliada"
+              alt="Imagem"
+              loading="lazy"
               referrerPolicy="no-referrer"
-              className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+              className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover hover:opacity-90 transition-opacity"
+              onError={() => setImageError(true)}
             />
-          </DialogContent>
-        </Dialog>
+            {content && content !== '[Imagem]' && (
+              <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
+                {content}
+              </p>
+            )}
+          </div>
+          <MediaViewer
+            open={viewerOpen}
+            onOpenChange={setViewerOpen}
+            media={mediaItem}
+          />
+        </>
       );
     }
     

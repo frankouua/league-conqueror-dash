@@ -1,10 +1,9 @@
-import { useMemo } from 'react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useState, useMemo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Image as ImageIcon, Video, Music, FileText, ExternalLink } from 'lucide-react';
+import { Image as ImageIcon, Video, Music, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MediaViewer, MediaViewerItem } from './MediaViewer';
 
 interface ChatMedia {
   id: string;
@@ -21,16 +20,19 @@ interface ChatMediaPreviewProps {
   className?: string;
 }
 
-const mediaTypeConfig: Record<string, { label: string; icon: typeof ImageIcon }> = {
-  image: { label: 'Imagem', icon: ImageIcon },
-  video: { label: 'Vídeo', icon: Video },
-  audio: { label: 'Áudio', icon: Music },
-  ptt: { label: 'Áudio', icon: Music },
-  document: { label: 'Documento', icon: FileText },
-  sticker: { label: 'Sticker', icon: ImageIcon },
+const mediaTypeConfig: Record<string, { label: string; icon: typeof ImageIcon; type: 'image' | 'video' | 'audio' | 'document' }> = {
+  image: { label: 'Imagem', icon: ImageIcon, type: 'image' },
+  video: { label: 'Vídeo', icon: Video, type: 'video' },
+  audio: { label: 'Áudio', icon: Music, type: 'audio' },
+  ptt: { label: 'Áudio', icon: Music, type: 'audio' },
+  document: { label: 'Documento', icon: FileText, type: 'document' },
+  sticker: { label: 'Sticker', icon: ImageIcon, type: 'image' },
 };
 
 export function ChatMediaPreview({ messages, className }: ChatMediaPreviewProps) {
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<MediaViewerItem | null>(null);
+
   // Filter only media messages
   const mediaMessages = useMemo(() => {
     return messages.filter(msg => {
@@ -38,6 +40,37 @@ export function ChatMediaPreview({ messages, className }: ChatMediaPreviewProps)
       return type && ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(type);
     });
   }, [messages]);
+
+  // Convert to viewer format
+  const viewerItems: MediaViewerItem[] = useMemo(() => {
+    return mediaMessages.map(msg => {
+      const type = msg.message_type?.toLowerCase() || 'document';
+      const config = mediaTypeConfig[type] || mediaTypeConfig.document;
+      return {
+        id: msg.id,
+        type: config.type,
+        src: msg.media_url || '',
+        preview: msg.media_preview,
+        caption: msg.content,
+        timestamp: msg.message_timestamp,
+        fromMe: msg.from_me ?? false,
+      };
+    });
+  }, [mediaMessages]);
+
+  const handleMediaClick = (item: MediaViewerItem) => {
+    setSelectedMedia(item);
+    setViewerOpen(true);
+  };
+
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    if (!selectedMedia) return;
+    const currentIndex = viewerItems.findIndex(m => m.id === selectedMedia.id);
+    const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex >= 0 && newIndex < viewerItems.length) {
+      setSelectedMedia(viewerItems[newIndex]);
+    }
+  };
 
   if (mediaMessages.length === 0) {
     return (
@@ -87,15 +120,13 @@ export function ChatMediaPreview({ messages, className }: ChatMediaPreviewProps)
           {mediaMessages.slice(0, 12).map(item => {
             const type = item.message_type?.toLowerCase();
             const config = mediaTypeConfig[type || 'document'] || mediaTypeConfig.document;
+            const viewerItem = viewerItems.find(v => v.id === item.id);
             
             return (
               <div
                 key={item.id}
                 className="relative aspect-square rounded-md overflow-hidden cursor-pointer group border hover:border-primary/50 transition-all"
-                onClick={() => {
-                  const url = item.media_url || item.media_preview;
-                  if (url) window.open(url, '_blank');
-                }}
+                onClick={() => viewerItem && handleMediaClick(viewerItem)}
               >
                 {renderThumbnail(item)}
                 
@@ -110,8 +141,8 @@ export function ChatMediaPreview({ messages, className }: ChatMediaPreviewProps)
                 )}
                 
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <ExternalLink className="w-4 h-4 text-white" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="text-white text-xs font-medium">Ver</span>
                 </div>
                 
                 {/* Type badge */}
@@ -129,6 +160,15 @@ export function ChatMediaPreview({ messages, className }: ChatMediaPreviewProps)
           </p>
         )}
       </ScrollArea>
+
+      {/* Media Viewer Modal */}
+      <MediaViewer
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+        media={selectedMedia}
+        allMedia={viewerItems}
+        onNavigate={handleNavigate}
+      />
     </div>
   );
 }
