@@ -537,6 +537,12 @@ serve(async (req) => {
           // Determinar conteúdo para salvar
           const savedContent = caption || `[${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)}]`;
 
+          // Extrair URL da mídia da resposta da UAZAPI
+          // A UAZAPI retorna a URL em: result.content.URL ou result.content.url ou result.fileURL
+          const mediaUrl = result?.content?.URL || result?.content?.url || result?.fileURL || result?.fileUrl || null;
+
+          console.log('[WhatsApp] Extracted media URL:', mediaUrl);
+
           // Salvar mensagem enviada
           await supabase.from('whatsapp_messages').insert({
             chat_id: chatId,
@@ -545,6 +551,7 @@ serve(async (req) => {
             sender_name: uazapiInstanceName,
             content: savedContent,
             message_type: messageTypeForDb,
+            media_url: mediaUrl,
             message_timestamp: messageTimestamp,
             status: 'sent',
             raw_data: { 
