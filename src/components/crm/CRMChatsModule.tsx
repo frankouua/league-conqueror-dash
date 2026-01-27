@@ -22,10 +22,12 @@ import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
 import { useWhatsAppMessages } from '@/hooks/useWhatsAppMessages';
 import { useMyWhatsAppInstances } from '@/hooks/useMyWhatsAppInstances';
 import { useWhatsAppSendMessage } from '@/hooks/useWhatsAppSendMessage';
+import { useWhatsAppSendMedia } from '@/hooks/useWhatsAppSendMedia';
 import { useMarkChatAsRead } from '@/hooks/useMarkChatAsRead';
 import { ChannelsSidebar } from '@/components/crm/chats/ChannelsSidebar';
 import { InstancesList } from '@/components/crm/chats/InstancesList';
 import { WhatsAppMediaRenderer } from '@/components/crm/chats/WhatsAppMediaRenderer';
+import { MediaUploadButton, type MediaFile } from '@/components/crm/chats/MediaUploadButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -63,6 +65,9 @@ export function CRMChatsModule() {
   
   // WhatsApp message sending with instance validation
   const { sendMessage, canSendMessage, sending } = useWhatsAppSendMessage();
+  
+  // WhatsApp media sending
+  const { sendMedia, sending: sendingMedia } = useWhatsAppSendMedia();
   
   // Mark chat as read hook
   const { markAsRead } = useMarkChatAsRead();
@@ -146,6 +151,26 @@ export function CRMChatsModule() {
       handleSendMessage();
     }
   }, [handleSendMessage, isInputDisabled]);
+
+  // Handle media selection
+  const handleMediaSelect = useCallback(async (media: MediaFile) => {
+    if (!selectedInstanceId || !selectedConversation || !selectedChat) return;
+
+    await sendMedia({
+      instanceId: selectedInstanceId,
+      chatId: selectedConversation,
+      remoteJid: selectedChat.remote_jid,
+      mediaType: media.type,
+      file: media.file,
+      caption: media.caption,
+      latitude: media.latitude,
+      longitude: media.longitude,
+      locationName: media.locationName,
+      locationAddress: media.locationAddress,
+      contactName: media.contactName,
+      contactPhone: media.contactPhone,
+    });
+  }, [selectedInstanceId, selectedConversation, selectedChat, sendMedia]);
 
   // Filter chats by search query
   const filteredChats = chats.filter((chat) => {
@@ -435,6 +460,10 @@ export function CRMChatsModule() {
             {/* Message Input */}
             <div className="p-3 border-t shrink-0">
               <div className="flex items-center gap-2">
+                <MediaUploadButton
+                  disabled={isInputDisabled || sendingMedia}
+                  onMediaSelect={handleMediaSelect}
+                />
                 <Input
                   placeholder={
                     !selectedInstanceId 
@@ -453,11 +482,11 @@ export function CRMChatsModule() {
                 />
                 <Button 
                   size="icon" 
-                  disabled={isInputDisabled || !messageInput.trim()}
+                  disabled={isInputDisabled || !messageInput.trim() || sendingMedia}
                   onClick={handleSendMessage}
                   className="shrink-0"
                 >
-                  {sending ? (
+                  {sending || sendingMedia ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Send className="w-4 h-4" />
