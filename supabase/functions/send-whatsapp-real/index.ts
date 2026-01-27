@@ -423,16 +423,13 @@ serve(async (req) => {
         let uazapiPayload: any = {};
         let mediaEndpoints: string[] = [];
 
-        // WUZAPI/UAZAPI endpoints - documentação oficial:
-        // - Image: POST /chat/send/image com { Phone, Image (base64 data uri), Caption }
-        // - Video: POST /chat/send/video com { Phone, Video (base64 data uri), Caption }
-        // - Document: POST /chat/send/document com { Phone, Document (base64 data uri), FileName }
-        // - Audio: POST /chat/send/audio com { Phone, Audio (base64 data uri) }
-        // - Location: POST /chat/send/location com { Phone, Latitude, Longitude, Name }
-        // - Contact: POST /chat/send/contact com { Phone, Name, Vcard }
-        
-        // A UAZAPI pode ter instância no path OU usar token para identificar sessão
-        // Tentamos AMBAS abordagens
+        // IMPORTANTE (requisito do gateway atual):
+        // Usar EXCLUSIVAMENTE:
+        //   POST /send/{type}
+        // Headers obrigatórios:
+        //   token: <api_key_da_instancia>
+        //   Content-Type: application/json
+        // Não tentar /chat, /v1, /api em hipótese alguma.
         
         // Configurar payload e endpoints por tipo de mídia
         // Construir data URI se necessário
@@ -441,41 +438,15 @@ serve(async (req) => {
           return base64.startsWith('data:') ? base64 : `data:${mimeType};base64,${base64}`;
         };
 
-         // Gerar todas as variações de endpoints - PRIORIZAR endpoints SEM prefixo (padrão UAZAPI)
-         // Texto funciona com /send/text, então /send/image deve funcionar igual
-         const buildAllMediaEndpoints = (mediaPaths: string[]): string[] => {
-           const urls: string[] = [];
-
-           // PRIMEIRO: tentar endpoints SEM prefixo (padrão UAZAPI que funciona para texto)
-           for (const mediaPath of mediaPaths) {
-             urls.push(`${UAZAPI_BASE_URL}${mediaPath}`);
-           }
-
-           // DEPOIS: tentar com prefixos comuns
-           const prefixes = ['/v1', '/api/v1', '/api', ''];
-           for (const prefix of prefixes) {
-             for (const mediaPath of mediaPaths) {
-               if (prefix === '') continue; // já adicionado acima
-               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}`);
-               urls.push(`${UAZAPI_BASE_URL}${prefix}/${encoded}${mediaPath}`);
-             }
-           }
-
-           // dedupe preservando ordem
-           return Array.from(new Set(urls));
+         const buildStrictSendEndpoint = (type: string): string[] => {
+           // Sem barras finais, sem variações.
+           return [`${UAZAPI_BASE_URL}/send/${type}`];
          };
 
         switch (mediaType) {
           case 'image':
             const imageDataUri = ensureDataUri(fileBase64, fileMimeType || 'image/jpeg');
-            mediaEndpoints = buildAllMediaEndpoints([
-              '/chat/send/image',
-              '/chat/sendImage',
-              '/message/send/image',
-              '/message/sendImage',
-              '/send/image',
-              '/sendImage',
-            ]);
+            mediaEndpoints = buildStrictSendEndpoint('image');
             uazapiPayload = {
               Phone: phoneNumber,
               Image: imageDataUri,
@@ -491,14 +462,7 @@ serve(async (req) => {
 
           case 'video':
             const videoDataUri = ensureDataUri(fileBase64, fileMimeType || 'video/mp4');
-            mediaEndpoints = buildAllMediaEndpoints([
-              '/chat/send/video',
-              '/chat/sendVideo',
-              '/message/send/video',
-              '/message/sendVideo',
-              '/send/video',
-              '/sendVideo',
-            ]);
+            mediaEndpoints = buildStrictSendEndpoint('video');
             uazapiPayload = {
               Phone: phoneNumber,
               Video: videoDataUri,
@@ -513,14 +477,7 @@ serve(async (req) => {
 
           case 'document':
             const docDataUri = ensureDataUri(fileBase64, fileMimeType || 'application/octet-stream');
-            mediaEndpoints = buildAllMediaEndpoints([
-              '/chat/send/document',
-              '/chat/sendDocument',
-              '/message/send/document',
-              '/message/sendDocument',
-              '/send/document',
-              '/sendDocument',
-            ]);
+            mediaEndpoints = buildStrictSendEndpoint('document');
             uazapiPayload = {
               Phone: phoneNumber,
               Document: docDataUri,
@@ -536,14 +493,7 @@ serve(async (req) => {
 
           case 'audio':
             const audioDataUri = ensureDataUri(fileBase64, fileMimeType || 'audio/ogg');
-            mediaEndpoints = buildAllMediaEndpoints([
-              '/chat/send/audio',
-              '/chat/sendAudio',
-              '/message/send/audio',
-              '/message/sendAudio',
-              '/send/audio',
-              '/sendAudio',
-            ]);
+            mediaEndpoints = buildStrictSendEndpoint('audio');
             uazapiPayload = {
               Phone: phoneNumber,
               Audio: audioDataUri,
@@ -555,14 +505,7 @@ serve(async (req) => {
             break;
 
           case 'location':
-            mediaEndpoints = buildAllMediaEndpoints([
-              '/chat/send/location',
-              '/chat/sendLocation',
-              '/message/send/location',
-              '/message/sendLocation',
-              '/send/location',
-              '/sendLocation',
-            ]);
+            mediaEndpoints = buildStrictSendEndpoint('location');
             uazapiPayload = {
               Phone: phoneNumber,
               Latitude: latitude,
@@ -578,14 +521,7 @@ serve(async (req) => {
 
           case 'contact':
             const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\nTEL;type=CELL;type=pref:${contactPhone}\nEND:VCARD`;
-            mediaEndpoints = buildAllMediaEndpoints([
-              '/chat/send/contact',
-              '/chat/sendContact',
-              '/message/send/contact',
-              '/message/sendContact',
-              '/send/contact',
-              '/sendContact',
-            ]);
+            mediaEndpoints = buildStrictSendEndpoint('contact');
             uazapiPayload = {
               Phone: phoneNumber,
               Name: contactName || 'Contato',
@@ -604,84 +540,41 @@ serve(async (req) => {
             );
         }
         
-        console.log('[WhatsApp] Media endpoints to try:', mediaEndpoints.length);
+        console.log('[WhatsApp] Media endpoints to try (STRICT):', mediaEndpoints);
 
-        // Estratégias de autenticação - MESMA ordem que funciona para texto
-        const authStrategies: Array<{ name: string; headers: Record<string, string> }> = [
-          { name: 'token', headers: { 'Content-Type': 'application/json', 'token': apiKey } },
-          { name: 'apikey', headers: { 'Content-Type': 'application/json', 'apikey': apiKey } },
-          { name: 'authorization_bearer', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` } },
-        ];
+        // Requisito: apenas header `token`.
+        const strictHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+          token: apiKey,
+          Accept: 'application/json',
+        };
 
         let lastAttempt: { url: string; status?: number; result?: any } | null = null;
         let okResponse: { url: string; status: number; result: any } | null = null;
 
-        // Importante: 404/405 aqui significam “esse endpoint/método não serve”; devemos tentar os outros.
-        // Só paramos de varrer endpoints quando recebemos um status que indica que o endpoint existe (ex.: 401/403/400).
+        // STRICT: apenas POST no endpoint /send/{type}
         for (const url of mediaEndpoints) {
-          let shouldTryNextUrl = false;
+          console.log('[WhatsApp] Trying media send (STRICT):', { url, mediaType, method: 'POST' });
 
-          for (const strategy of authStrategies) {
-            console.log('[WhatsApp] Trying media send:', { url, auth: strategy.name, mediaType, method: 'POST' });
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: strictHeaders,
+            body: JSON.stringify(uazapiPayload),
+          });
 
-            // 1) POST
-            let response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                ...strategy.headers,
-                Accept: 'application/json',
-              },
-              body: JSON.stringify(uazapiPayload),
-            });
+          const result = await safeJsonFromResponse(response);
+          lastAttempt = { url, status: response.status, result };
 
-            let result = await safeJsonFromResponse(response);
-            lastAttempt = { url, status: response.status, result };
+          console.log('[WhatsApp] Media response (STRICT):', {
+            url,
+            status: response.status,
+            success: response.ok,
+          });
 
-            console.log('[WhatsApp] Media response:', { url, status: response.status, success: response.ok, method: 'POST' });
-
-            if (response.ok) {
-              okResponse = { url, status: response.status, result };
-              break;
-            }
-
-            // 2) Se POST não é permitido, tenta PUT uma única vez.
-            if (response.status === 405) {
-              console.log('[WhatsApp] Trying media send:', { url, auth: strategy.name, mediaType, method: 'PUT' });
-
-              response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                  ...strategy.headers,
-                  Accept: 'application/json',
-                },
-                body: JSON.stringify(uazapiPayload),
-              });
-
-              result = await safeJsonFromResponse(response);
-              lastAttempt = { url, status: response.status, result };
-
-              console.log('[WhatsApp] Media response:', { url, status: response.status, success: response.ok, method: 'PUT' });
-
-              if (response.ok) {
-                okResponse = { url, status: response.status, result };
-                break;
-              }
-            }
-
-            // 404/405: endpoint/método não serve → tenta PRÓXIMO URL (não vale tentar outras auth strategies)
-            if (lastAttempt?.status === 404 || lastAttempt?.status === 405) {
-              shouldTryNextUrl = true;
-              break;
-            }
-
-            // Outros status (401/403/400/5xx): endpoint existe → tenta próxima estratégia de auth.
+          if (response.ok) {
+            okResponse = { url, status: response.status, result };
+            break;
           }
-
-          if (okResponse) break;
-          if (shouldTryNextUrl) continue;
-
-          // Se chegamos aqui sem okResponse e não é 404/405, não faz sentido tentar outros URLs.
-          if (lastAttempt?.status && lastAttempt.status !== 404 && lastAttempt.status !== 405) break;
         }
 
         if (okResponse) {
@@ -723,8 +616,15 @@ serve(async (req) => {
             updated_at: messageTimestamp
           }).eq('id', chatId);
 
+          console.log('[WhatsApp] Media sent OK:', { endpoint200: okResponse.url, status: okResponse.status });
           return new Response(
-            JSON.stringify({ success: true, message_id: messageId, sent_at: messageTimestamp }),
+            JSON.stringify({
+              success: true,
+              message_id: messageId,
+              sent_at: messageTimestamp,
+              provider_status: okResponse.status,
+              provider_url: okResponse.url,
+            }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } else {
@@ -734,6 +634,8 @@ serve(async (req) => {
               success: false,
               error: lastAttempt?.result?.message || `Falha ao enviar ${mediaType}`,
               provider_status: lastAttempt?.status,
+              provider_url: lastAttempt?.url,
+              provider_response: lastAttempt?.result,
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
