@@ -629,30 +629,59 @@ serve(async (req) => {
         let lastAttempt: { url: string; status?: number; result?: any } | null = null;
         let okResponse: { url: string; status: number; result: any } | null = null;
 
+        const httpMethods: Array<'POST' | 'PUT'> = ['POST', 'PUT'];
+
         for (const url of mediaEndpoints) {
           for (const strategy of authStrategies) {
-            console.log('[WhatsApp] Trying media send:', { url, auth: strategy.name, mediaType });
+            for (const method of httpMethods) {
+              // Mantém POST como padrão; só tenta PUT se o provedor indicar Method Not Allowed (405)
+              if (method === 'PUT' && lastAttempt?.status !== 405) continue;
 
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: strategy.headers,
-              body: JSON.stringify(uazapiPayload)
-            });
+              console.log('[WhatsApp] Trying media send:', { url, auth: strategy.name, mediaType, method });
 
-            const result = await safeJsonFromResponse(response);
-            lastAttempt = { url, status: response.status, result };
+              const response = await fetch(url, {
+                method,
+                headers: {
+                  ...strategy.headers,
+                  Accept: 'application/json',
+                },
+                body: JSON.stringify(uazapiPayload),
+              });
 
-            console.log('[WhatsApp] Media response:', { url, status: response.status, success: response.ok });
+              const result = await safeJsonFromResponse(response);
+              lastAttempt = { url, status: response.status, result };
 
-            if (response.ok) {
-              okResponse = { url, status: response.status, result };
+              console.log('[WhatsApp] Media response:', { url, status: response.status, success: response.ok, method });
+
+              if (response.ok) {
+                okResponse = { url, status: response.status, result };
+                break;
+              }
+
+              // 404: endpoint não existe → tenta próximo endpoint
+              if (response.status === 404) break;
+
+              // 405: método não permitido → tenta PUT (mesma url/headers) e depois segue
+              if (response.status === 405) continue;
+
+              // outros status (401/403/400/5xx): tenta próxima estratégia de auth; não faz sentido varrer URLs
               break;
             }
 
-            if ([404, 405].includes(response.status)) break;
+            if (okResponse) break;
+
+            if (lastAttempt?.status && [404].includes(lastAttempt.status)) {
+              // continua para próxima estratégia/url
+              continue;
+            }
+
+            // Se não foi 404, não faz sentido tentar outros URLs
+            if (lastAttempt?.status && lastAttempt.status !== 404) break;
           }
+
           if (okResponse) break;
-          if (lastAttempt?.status && ![404, 405].includes(lastAttempt.status)) break;
+
+          if (lastAttempt?.status && lastAttempt.status !== 404) break;
         }
 
         if (okResponse) {
