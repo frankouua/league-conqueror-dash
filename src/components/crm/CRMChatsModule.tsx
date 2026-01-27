@@ -15,8 +15,7 @@ import {
   Inbox,
   ShieldAlert,
   Loader2,
-  Smartphone,
-  Image as ImageIcon
+  Smartphone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWhatsAppChats } from '@/hooks/useWhatsAppChats';
@@ -32,11 +31,7 @@ import { MediaUploadButton, type MediaFile } from '@/components/crm/chats/MediaU
 import { MediaLibraryDialog } from '@/components/crm/chats/MediaLibraryDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { ChatMediaPreview } from '@/components/crm/chats/ChatMediaPreview';
 
 type Channel = 'whatsapp' | 'instagram' | 'facebook';
 
@@ -195,6 +190,7 @@ export function CRMChatsModule() {
         <ChannelsSidebar
           activeChannel={activeChannel}
           onSelectChannel={handleSelectChannel}
+          onOpenMediaLibrary={() => setMediaLibraryOpen(true)}
         />
 
         {/* Column 2 - Instances List (WhatsApp only) */}
@@ -377,19 +373,6 @@ export function CRMChatsModule() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => setMediaLibraryOpen(true)}
-                        >
-                          <ImageIcon className="w-4 h-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Biblioteca de Mídias</TooltipContent>
-                    </Tooltip>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
                       <Phone className="w-4 h-4" />
                     </Button>
@@ -604,6 +587,9 @@ export function CRMChatsModule() {
                       <Badge variant="secondary" className="text-[10px]">Novo</Badge>
                     </div>
                   </div>
+
+                  {/* Chat Media Preview */}
+                  <ChatMediaPreview messages={messages} />
 
                   {/* Notes */}
                   <div className="space-y-1.5">

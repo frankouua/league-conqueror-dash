@@ -1,4 +1,4 @@
-import { Instagram, Facebook } from 'lucide-react';
+import { Instagram, Facebook, Image as ImageIcon } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { cn } from '@/lib/utils';
 import {
@@ -12,6 +12,7 @@ type Channel = 'whatsapp' | 'instagram' | 'facebook';
 interface ChannelsSidebarProps {
   activeChannel: Channel;
   onSelectChannel: (channel: Channel) => void;
+  onOpenMediaLibrary?: () => void;
 }
 
 const channels = [
@@ -44,7 +45,7 @@ const channels = [
   },
 ];
 
-export function ChannelsSidebar({ activeChannel, onSelectChannel }: ChannelsSidebarProps) {
+export function ChannelsSidebar({ activeChannel, onSelectChannel, onOpenMediaLibrary }: ChannelsSidebarProps) {
   return (
     <div className="w-16 border-r bg-muted/30 flex flex-col items-center py-4 gap-2 shrink-0">
       <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
@@ -94,6 +95,28 @@ export function ChannelsSidebar({ activeChannel, onSelectChannel }: ChannelsSide
           </Tooltip>
         );
       })}
+      
+      {/* Separator */}
+      <div className="w-8 h-px bg-border my-2" />
+      
+      {/* Media Library Button */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={onOpenMediaLibrary}
+            className={cn(
+              "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200",
+              "border border-transparent text-muted-foreground",
+              "hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+            )}
+          >
+            <ImageIcon className="w-5 h-5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="bg-popover border-border">
+          <p className="text-sm">Biblioteca de Mídias</p>
+        </TooltipContent>
+      </Tooltip>
       
       {/* Visual indicator for active channel */}
       <div className="mt-auto px-2">
