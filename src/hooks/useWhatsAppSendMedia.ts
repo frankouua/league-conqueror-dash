@@ -48,15 +48,15 @@ export function useWhatsAppSendMedia() {
     return instance?.instance_name || null;
   }, [instances]);
 
-  const fileToBase64 = useCallback((file: File): Promise<string> => {
+  // WUZAPI requer o data URI completo (data:image/jpeg;base64,...)
+  const fileToDataUri = useCallback((file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => {
+        // Retorna o data URI completo - WUZAPI precisa dele
         const result = reader.result as string;
-        // Remove the data:mime;base64, prefix
-        const base64 = result.split(',')[1];
-        resolve(base64);
+        resolve(result);
       };
       reader.onerror = reject;
     });
@@ -133,8 +133,9 @@ export function useWhatsAppSendMedia() {
         payload.contactPhone = contactPhone;
       } else if (file) {
         // File-based media (image, video, document)
-        const base64 = await fileToBase64(file);
-        payload.fileBase64 = base64;
+        // WUZAPI requer o data URI completo (data:image/jpeg;base64,...)
+        const dataUri = await fileToDataUri(file);
+        payload.fileBase64 = dataUri;
         payload.fileName = file.name;
         payload.fileMimeType = file.type;
         payload.caption = caption;
@@ -183,7 +184,7 @@ export function useWhatsAppSendMedia() {
     } finally {
       setSending(false);
     }
-  }, [canSendMedia, getInstanceName, fileToBase64]);
+  }, [canSendMedia, getInstanceName, fileToDataUri]);
 
   return {
     sendMedia,
