@@ -9100,6 +9100,7 @@ export type Database = {
           created_at: string | null
           from_me: boolean | null
           id: string
+          media_preview: string | null
           media_url: string | null
           message_id: string
           message_timestamp: string
@@ -9116,6 +9117,7 @@ export type Database = {
           created_at?: string | null
           from_me?: boolean | null
           id?: string
+          media_preview?: string | null
           media_url?: string | null
           message_id: string
           message_timestamp: string
@@ -9132,6 +9134,7 @@ export type Database = {
           created_at?: string | null
           from_me?: boolean | null
           id?: string
+          media_preview?: string | null
           media_url?: string | null
           message_id?: string
           message_timestamp?: string
@@ -10026,8 +10029,6 @@ export type Database = {
         Args: { _reason?: string; _user_id: string }
         Returns: undefined
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       update_last_access: { Args: never; Returns: undefined }
     }
     Enums: {

@@ -25,6 +25,7 @@ interface WhatsAppMediaRendererProps {
   messageType: string | null;
   content: string | null;
   mediaUrl: string | null;
+  mediaPreview?: string | null;
   fromMe: boolean;
 }
 
@@ -65,6 +66,7 @@ export function WhatsAppMediaRenderer({
   messageType, 
   content, 
   mediaUrl, 
+  mediaPreview,
   fromMe 
 }: WhatsAppMediaRendererProps) {
   const [imageError, setImageError] = useState(false);
@@ -92,13 +94,18 @@ export function WhatsAppMediaRenderer({
 
   // Image messages
   if (effectiveType === 'image') {
-    if (mediaUrl && !imageError) {
+    // Para mensagens enviadas, preferimos o preview persistido (data URI), porque links do WhatsApp
+    // podem vir criptografados (.enc) ou expirar, resultando em "arquivo sem sentido".
+    const preferredImageSrc = (fromMe && mediaPreview) ? mediaPreview : mediaUrl;
+    const showOriginalLink = !!mediaUrl && (!fromMe || !mediaPreview);
+
+    if (preferredImageSrc && !imageError) {
       return (
         <Dialog>
           <DialogTrigger asChild>
             <div className="cursor-pointer">
               <img
-                src={mediaUrl}
+                src={preferredImageSrc}
                 alt="Imagem"
                 loading="lazy"
                 referrerPolicy="no-referrer"
@@ -114,7 +121,7 @@ export function WhatsAppMediaRenderer({
           </DialogTrigger>
           <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
             <img
-              src={mediaUrl}
+              src={preferredImageSrc}
               alt="Imagem ampliada"
               referrerPolicy="no-referrer"
               className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
@@ -148,7 +155,7 @@ export function WhatsAppMediaRenderer({
         </div>
 
         {/* Se a URL existir mas o browser bloquear (hotlink/expiração), ainda damos um caminho pra ver a mídia */}
-        {mediaUrl && (
+        {showOriginalLink && (
           <Button
             variant="secondary"
             size="sm"
@@ -156,7 +163,7 @@ export function WhatsAppMediaRenderer({
             asChild
           >
             <a href={mediaUrl} target="_blank" rel="noopener noreferrer">
-              Abrir imagem
+              Abrir original
             </a>
           </Button>
         )}
