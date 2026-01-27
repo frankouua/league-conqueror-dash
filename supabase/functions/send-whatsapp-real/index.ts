@@ -441,36 +441,24 @@ serve(async (req) => {
           return base64.startsWith('data:') ? base64 : `data:${mimeType};base64,${base64}`;
         };
 
-         // Gerar todas as variações de endpoints (UAZAPI/Wuzapi variam MUITO entre versões)
-         // Ex.: /chat/send/image vs /chat/sendImage vs /message/sendImage
+         // Gerar todas as variações de endpoints - PRIORIZAR endpoints SEM prefixo (padrão UAZAPI)
+         // Texto funciona com /send/text, então /send/image deve funcionar igual
          const buildAllMediaEndpoints = (mediaPaths: string[]): string[] => {
-           const prefixes = ['', '/api', '/api/v1', '/v1'];
            const urls: string[] = [];
 
-           for (const prefix of prefixes) {
-             for (const mediaPath of mediaPaths) {
-               // SEM instância (servidores que identificam sessão via Token)
-               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}`);
-               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}/`);
-
-               // COM instância no final do path
-               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}/${encoded}`);
-               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}/${encoded}/`);
-
-               // COM instância antes do path
-               urls.push(`${UAZAPI_BASE_URL}${prefix}/${encoded}${mediaPath}`);
-               urls.push(`${UAZAPI_BASE_URL}${prefix}/${encoded}${mediaPath}/`);
-             }
+           // PRIMEIRO: tentar endpoints SEM prefixo (padrão UAZAPI que funciona para texto)
+           for (const mediaPath of mediaPaths) {
+             urls.push(`${UAZAPI_BASE_URL}${mediaPath}`);
            }
 
-           // Adicionar variantes extras que aparecem em alguns gateways/reverse-proxies
-           for (const mediaPath of mediaPaths) {
-             // /message/send/image (quando o base é /message e não /chat)
-             const msgPath = mediaPath.startsWith('/chat') ? `/message${mediaPath.slice('/chat'.length)}` : mediaPath;
-             urls.push(`${UAZAPI_BASE_URL}${msgPath}`);
-             urls.push(`${UAZAPI_BASE_URL}${msgPath}/`);
-             urls.push(`${UAZAPI_BASE_URL}${msgPath}/${encoded}`);
-             urls.push(`${UAZAPI_BASE_URL}${msgPath}/${encoded}/`);
+           // DEPOIS: tentar com prefixos comuns
+           const prefixes = ['/v1', '/api/v1', '/api', ''];
+           for (const prefix of prefixes) {
+             for (const mediaPath of mediaPaths) {
+               if (prefix === '') continue; // já adicionado acima
+               urls.push(`${UAZAPI_BASE_URL}${prefix}${mediaPath}`);
+               urls.push(`${UAZAPI_BASE_URL}${prefix}/${encoded}${mediaPath}`);
+             }
            }
 
            // dedupe preservando ordem
@@ -618,12 +606,11 @@ serve(async (req) => {
         
         console.log('[WhatsApp] Media endpoints to try:', mediaEndpoints.length);
 
-        // Estratégias de autenticação (WUZAPI usa "Token" header com valor direto)
+        // Estratégias de autenticação - MESMA ordem que funciona para texto
         const authStrategies: Array<{ name: string; headers: Record<string, string> }> = [
-          { name: 'Token', headers: { 'Content-Type': 'application/json', 'Token': apiKey } },
           { name: 'token', headers: { 'Content-Type': 'application/json', 'token': apiKey } },
           { name: 'apikey', headers: { 'Content-Type': 'application/json', 'apikey': apiKey } },
-          { name: 'authorization', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` } },
+          { name: 'authorization_bearer', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` } },
         ];
 
         let lastAttempt: { url: string; status?: number; result?: any } | null = null;
