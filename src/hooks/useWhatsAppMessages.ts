@@ -60,6 +60,25 @@ export function useWhatsAppMessages(chatId: string | null) {
           setMessages((prev) => [...prev, payload.new as WhatsAppMessage]);
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'whatsapp_messages',
+          filter: `chat_id=eq.${chatId}`,
+        },
+        (payload) => {
+          console.log('[Realtime] Message updated:', payload.new);
+          setMessages((prev) => 
+            prev.map((msg) => 
+              msg.id === (payload.new as WhatsAppMessage).id 
+                ? (payload.new as WhatsAppMessage) 
+                : msg
+            )
+          );
+        }
+      )
       .subscribe((status) => {
         console.log(`[Realtime] Messages subscription (${chatId}):`, status);
       });
