@@ -65,6 +65,29 @@ interface SendChatMessagePayload {
   timestamp: string;
 }
 
+interface SendMediaPayload {
+  action: 'send_media';
+  instanceId: string;
+  instanceName: string;
+  chatId: string;
+  remoteJid: string;
+  mediaType: 'image' | 'video' | 'document' | 'audio' | 'location' | 'contact';
+  timestamp: string;
+  // For file media
+  fileBase64?: string;
+  fileName?: string;
+  fileMimeType?: string;
+  caption?: string;
+  // For location
+  latitude?: number;
+  longitude?: number;
+  locationName?: string;
+  locationAddress?: string;
+  // For contact
+  contactName?: string;
+  contactPhone?: string;
+}
+
 interface LegacyWhatsAppPayload {
   action: 'send' | 'test_connection' | 'process_queue' | 'receive_webhook';
   phone?: string;
@@ -75,7 +98,7 @@ interface LegacyWhatsAppPayload {
   webhook_data?: any;
 }
 
-type WhatsAppPayload = SendChatMessagePayload | LegacyWhatsAppPayload;
+type WhatsAppPayload = SendChatMessagePayload | SendMediaPayload | LegacyWhatsAppPayload;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -314,6 +337,312 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ success: false, error: sendError?.message || 'Erro de conexão com UAZAPI' }),
           // 200 para o frontend conseguir ler a mensagem detalhada.
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // =========================================================================
+    // NOVA AÇÃO: Enviar mídia via UAZAPI (imagens, vídeos, documentos, localização, contatos)
+    // =========================================================================
+    if (payload.action === 'send_media') {
+      const mediaPayload = payload as SendMediaPayload;
+      const { 
+        instanceId, 
+        instanceName, 
+        chatId, 
+        remoteJid, 
+        mediaType,
+        fileBase64,
+        fileName,
+        fileMimeType,
+        caption,
+        latitude,
+        longitude,
+        locationName,
+        locationAddress,
+        contactName,
+        contactPhone
+      } = mediaPayload;
+
+      if (!instanceId || !remoteJid || !mediaType) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'instanceId, remoteJid e mediaType são obrigatórios' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      // Buscar a instância
+      const { data: instance, error: instanceError } = await supabase
+        .from('whatsapp_instances')
+        .select('id, instance_name, api_key, organization_id')
+        .eq('id', instanceId)
+        .single();
+
+      if (instanceError || !instance) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Instância não encontrada' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+
+      const uazapiInstanceName = instance.instance_name;
+      const apiKey = instance.api_key || UAZAPI_GLOBAL_API_KEY;
+
+      if (!apiKey) {
+        return new Response(
+          JSON.stringify({ success: false, error: `API key não encontrada para ${uazapiInstanceName}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const phoneNumber = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+      const encoded = encodeURIComponent(uazapiInstanceName);
+
+      console.log('[WhatsApp] Sending media:', { mediaType, instanceName: uazapiInstanceName, phoneNumber });
+
+      try {
+        let uazapiPayload: any = {};
+        let mediaEndpoints: string[] = [];
+
+        // Configurar payload e endpoints por tipo de mídia
+        switch (mediaType) {
+          case 'image':
+            mediaEndpoints = [
+              `${UAZAPI_BASE_URL}/chat/send/image/${encoded}`,
+              `${UAZAPI_BASE_URL}/message/sendImage/${encoded}`,
+              `${UAZAPI_BASE_URL}/chat/sendImage/${encoded}`,
+              `${UAZAPI_BASE_URL}/send/image/${encoded}`,
+            ];
+            uazapiPayload = {
+              Phone: phoneNumber,
+              Image: fileBase64,
+              Caption: caption || '',
+              // Formatos alternativos
+              number: phoneNumber,
+              chatId: remoteJid,
+              image: fileBase64,
+              base64: fileBase64,
+              caption: caption || '',
+              mimetype: fileMimeType || 'image/jpeg',
+            };
+            break;
+
+          case 'video':
+            mediaEndpoints = [
+              `${UAZAPI_BASE_URL}/chat/send/video/${encoded}`,
+              `${UAZAPI_BASE_URL}/message/sendVideo/${encoded}`,
+              `${UAZAPI_BASE_URL}/chat/sendVideo/${encoded}`,
+              `${UAZAPI_BASE_URL}/send/video/${encoded}`,
+            ];
+            uazapiPayload = {
+              Phone: phoneNumber,
+              Video: fileBase64,
+              Caption: caption || '',
+              number: phoneNumber,
+              chatId: remoteJid,
+              video: fileBase64,
+              base64: fileBase64,
+              caption: caption || '',
+              mimetype: fileMimeType || 'video/mp4',
+            };
+            break;
+
+          case 'document':
+            mediaEndpoints = [
+              `${UAZAPI_BASE_URL}/chat/send/document/${encoded}`,
+              `${UAZAPI_BASE_URL}/message/sendDocument/${encoded}`,
+              `${UAZAPI_BASE_URL}/chat/sendDocument/${encoded}`,
+              `${UAZAPI_BASE_URL}/send/document/${encoded}`,
+              `${UAZAPI_BASE_URL}/chat/send/file/${encoded}`,
+            ];
+            uazapiPayload = {
+              Phone: phoneNumber,
+              Document: fileBase64,
+              FileName: fileName || 'document',
+              Caption: caption || '',
+              number: phoneNumber,
+              chatId: remoteJid,
+              document: fileBase64,
+              base64: fileBase64,
+              fileName: fileName || 'document',
+              filename: fileName || 'document',
+              caption: caption || '',
+              mimetype: fileMimeType || 'application/octet-stream',
+            };
+            break;
+
+          case 'audio':
+            mediaEndpoints = [
+              `${UAZAPI_BASE_URL}/chat/send/audio/${encoded}`,
+              `${UAZAPI_BASE_URL}/message/sendAudio/${encoded}`,
+              `${UAZAPI_BASE_URL}/chat/sendAudio/${encoded}`,
+              `${UAZAPI_BASE_URL}/send/audio/${encoded}`,
+            ];
+            uazapiPayload = {
+              Phone: phoneNumber,
+              Audio: fileBase64,
+              number: phoneNumber,
+              chatId: remoteJid,
+              audio: fileBase64,
+              base64: fileBase64,
+              mimetype: fileMimeType || 'audio/ogg',
+              ptt: true, // voice message
+            };
+            break;
+
+          case 'location':
+            mediaEndpoints = [
+              `${UAZAPI_BASE_URL}/chat/send/location/${encoded}`,
+              `${UAZAPI_BASE_URL}/message/sendLocation/${encoded}`,
+              `${UAZAPI_BASE_URL}/chat/sendLocation/${encoded}`,
+              `${UAZAPI_BASE_URL}/send/location/${encoded}`,
+            ];
+            uazapiPayload = {
+              Phone: phoneNumber,
+              Latitude: latitude,
+              Longitude: longitude,
+              Name: locationName || '',
+              Address: locationAddress || '',
+              // Formatos alternativos
+              number: phoneNumber,
+              chatId: remoteJid,
+              latitude: latitude,
+              longitude: longitude,
+              name: locationName || '',
+              address: locationAddress || '',
+            };
+            break;
+
+          case 'contact':
+            mediaEndpoints = [
+              `${UAZAPI_BASE_URL}/chat/send/contact/${encoded}`,
+              `${UAZAPI_BASE_URL}/message/sendContact/${encoded}`,
+              `${UAZAPI_BASE_URL}/chat/sendContact/${encoded}`,
+              `${UAZAPI_BASE_URL}/send/contact/${encoded}`,
+            ];
+            // vCard format
+            const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\nTEL;type=CELL:${contactPhone}\nEND:VCARD`;
+            uazapiPayload = {
+              Phone: phoneNumber,
+              ContactName: contactName,
+              ContactPhone: contactPhone,
+              Vcard: vcard,
+              // Formatos alternativos
+              number: phoneNumber,
+              chatId: remoteJid,
+              contactName: contactName,
+              contactPhone: contactPhone,
+              vcard: vcard,
+              contact: {
+                fullName: contactName,
+                phoneNumber: contactPhone,
+              },
+            };
+            break;
+
+          default:
+            return new Response(
+              JSON.stringify({ success: false, error: `Tipo de mídia não suportado: ${mediaType}` }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+        }
+
+        // Estratégias de autenticação
+        const authStrategies: Array<{ name: string; headers: Record<string, string> }> = [
+          { name: 'token', headers: { 'Content-Type': 'application/json', 'token': apiKey } },
+          { name: 'apikey', headers: { 'Content-Type': 'application/json', 'apikey': apiKey } },
+          { name: 'authorization', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` } },
+        ];
+
+        let lastAttempt: { url: string; status?: number; result?: any } | null = null;
+        let okResponse: { url: string; status: number; result: any } | null = null;
+
+        for (const url of mediaEndpoints) {
+          for (const strategy of authStrategies) {
+            console.log('[WhatsApp] Trying media send:', { url, auth: strategy.name, mediaType });
+
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: strategy.headers,
+              body: JSON.stringify(uazapiPayload)
+            });
+
+            const result = await safeJsonFromResponse(response);
+            lastAttempt = { url, status: response.status, result };
+
+            console.log('[WhatsApp] Media response:', { url, status: response.status, success: response.ok });
+
+            if (response.ok) {
+              okResponse = { url, status: response.status, result };
+              break;
+            }
+
+            if ([404, 405].includes(response.status)) break;
+          }
+          if (okResponse) break;
+          if (lastAttempt?.status && ![404, 405].includes(lastAttempt.status)) break;
+        }
+
+        if (okResponse) {
+          const messageTimestamp = new Date().toISOString();
+          const result = okResponse.result;
+          const messageId = result?.key?.id || result?.messageId || `sent_media_${Date.now()}`;
+
+          // Determinar conteúdo para salvar
+          let savedContent = '';
+          if (mediaType === 'location') {
+            savedContent = `📍 ${locationName || 'Localização'}`;
+          } else if (mediaType === 'contact') {
+            savedContent = `👤 ${contactName}`;
+          } else {
+            savedContent = caption || `[${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)}]`;
+          }
+
+          // Salvar mensagem enviada
+          await supabase.from('whatsapp_messages').insert({
+            chat_id: chatId,
+            message_id: messageId,
+            from_me: true,
+            sender_name: uazapiInstanceName,
+            content: savedContent,
+            message_type: mediaType,
+            message_timestamp: messageTimestamp,
+            status: 'sent',
+            raw_data: { 
+              sent_via: 'crm', 
+              media_type: mediaType,
+              file_name: fileName,
+              uazapi_response: result 
+            }
+          });
+
+          // Atualizar chat
+          await supabase.from('whatsapp_chats').update({
+            last_message_timestamp: messageTimestamp,
+            updated_at: messageTimestamp
+          }).eq('id', chatId);
+
+          return new Response(
+            JSON.stringify({ success: true, message_id: messageId, sent_at: messageTimestamp }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          console.error('[WhatsApp] Media send failed:', lastAttempt);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: lastAttempt?.result?.message || `Falha ao enviar ${mediaType}`,
+              provider_status: lastAttempt?.status,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+      } catch (mediaError: any) {
+        console.error('[WhatsApp] Media request error:', mediaError);
+        return new Response(
+          JSON.stringify({ success: false, error: mediaError?.message || 'Erro ao enviar mídia' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
