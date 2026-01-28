@@ -525,6 +525,7 @@ export function CRMChatsModule() {
                           content={msg.content}
                           mediaUrl={msg.media_url}
                           mediaPreview={msg.media_preview}
+                          rawData={msg.raw_data}
                           fromMe={msg.from_me}
                           messageId={msg.id}
                           timestamp={msg.message_timestamp}

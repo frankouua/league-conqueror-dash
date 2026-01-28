@@ -22,6 +22,7 @@ interface WhatsAppMediaRendererProps {
   content: string | null;
   mediaUrl: string | null;
   mediaPreview?: string | null;
+  rawData?: unknown | null;
   fromMe: boolean;
   messageId?: string;
   timestamp?: string | null;
@@ -68,6 +69,7 @@ export function WhatsAppMediaRenderer({
   content, 
   mediaUrl, 
   mediaPreview,
+  rawData,
   fromMe,
   messageId,
   timestamp,
@@ -302,40 +304,43 @@ export function WhatsAppMediaRenderer({
   // Document messages
   if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
     const docUrl = mediaUrl ? getBestChatMediaSrc({ url: mediaUrl, kind: 'document' }) : null;
-    
-    // Detectar se o content é um nome de arquivo (tem extensão) ou uma legenda
-    const fileExtensions = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar|odt|rtf)$/i;
-    const contentIsFileName = content && fileExtensions.test(content.trim());
-    
-    // Nome do arquivo: usa content se for nome, senão fallback
-    const fileName = contentIsFileName 
-      ? content!.trim() 
-      : 'Documento';
-    
-    // Extrair formato do arquivo
-    const getFileFormat = (name: string): string => {
-      const match = name.match(/\.([a-z0-9]+)$/i);
-      if (match) {
-        return match[1].toUpperCase();
+
+    // Tenta pegar o nome e mimetype do payload original (raw_data) do provedor
+    const raw = rawData as any;
+    const providerFileName: string | null =
+      raw?.content?.fileName ??
+      raw?.content?.file_name ??
+      raw?.content?.docName ??
+      raw?.content?.doc_name ??
+      raw?.content?.filename ??
+      raw?.content?.name ??
+      null;
+    const providerMime: string | null = raw?.content?.mimetype ?? raw?.content?.mime_type ?? raw?.content?.mime ?? null;
+    const providerCaption: string | null = raw?.content?.caption ?? raw?.content?.text ?? null;
+
+    // Nome do arquivo (título)
+    const fileName = (providerFileName || '').trim() || 'Documento';
+
+    // Subtítulo (formato) - prioriza mimetype
+    const fileFormat = (() => {
+      if (providerMime && typeof providerMime === 'string') {
+        const parts = providerMime.split('/');
+        const subtype = (parts[1] || '').toUpperCase();
+        if (subtype) return subtype;
       }
-      // Tentar extrair da URL se não conseguiu do nome
-      if (mediaUrl) {
-        const urlMatch = mediaUrl.match(/\.([a-z0-9]+)(?:\?|$)/i);
-        if (urlMatch && !['enc', 'net', 'com'].includes(urlMatch[1].toLowerCase())) {
-          return urlMatch[1].toUpperCase();
-        }
-      }
-      return 'Arquivo';
-    };
-    
-    const fileFormat = getFileFormat(fileName);
-    
-    // Legenda: só mostra se content não for o nome do arquivo
-    const caption = !contentIsFileName && content && 
-                    content !== '[Documento]' && 
-                    content !== '[document]' &&
-                    !content.toLowerCase().match(/^\[?documento?\]?$/) 
-                    ? content : null;
+      const extMatch = fileName.match(/\.([a-z0-9]+)$/i);
+      if (extMatch) return extMatch[1].toUpperCase();
+      return 'ARQUIVO';
+    })();
+
+    // Legenda (abaixo): usa preferencialmente a caption do raw_data; fallback para content
+    const candidateCaption = (providerCaption ?? content ?? '').toString();
+    const caption = candidateCaption &&
+      candidateCaption !== '[Documento]' &&
+      candidateCaption !== '[document]' &&
+      !candidateCaption.toLowerCase().match(/^\[?documento?\]?$/)
+      ? candidateCaption
+      : null;
     
     return (
       <div className="space-y-1.5">
@@ -364,7 +369,7 @@ export function WhatsAppMediaRenderer({
           )}
         </div>
         {/* Legenda abaixo do documento */}
-        {caption && (
+        {caption && caption !== fileName && (
           <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
             {caption}
           </p>
