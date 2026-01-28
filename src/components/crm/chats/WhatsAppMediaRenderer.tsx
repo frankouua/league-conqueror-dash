@@ -526,10 +526,14 @@ export function WhatsAppMediaRenderer({
             <p className="text-[10px] opacity-70">{fileFormat}</p>
           </div>
           {docUrl && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0 hover:bg-muted"
+            <button
+              type="button"
+              className={cn(
+                "p-2 rounded-md shrink-0 transition-colors",
+                fromMe 
+                  ? "hover:bg-primary-foreground/20" 
+                  : "hover:bg-muted-foreground/10"
+              )}
               onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -551,8 +555,8 @@ export function WhatsAppMediaRenderer({
                 }
               }}
             >
-              <Download className="w-3.5 h-3.5" />
-            </Button>
+              <Download className="w-5 h-5" />
+            </button>
           )}
         </div>
         {/* Legenda abaixo do documento */}
