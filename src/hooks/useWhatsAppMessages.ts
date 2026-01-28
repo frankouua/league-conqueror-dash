@@ -10,6 +10,7 @@ export interface WhatsAppMessage {
   message_type: string | null;
   media_url: string | null;
   media_preview?: string | null;
+  raw_data?: unknown | null;
   from_me: boolean;
   message_timestamp: string;
   created_at: string;
