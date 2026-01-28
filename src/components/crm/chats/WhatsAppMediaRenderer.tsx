@@ -327,36 +327,40 @@ export function WhatsAppMediaRenderer({
       ? (guessedKind ?? (isImagePlaceholderText(content) ? 'image' : isVideoPlaceholderText(content) ? 'video' : normalizedType))
       : normalizedType;
 
-  const displaySrc = useMemo(() => {
-    // Prioriza preview (base64 de alta qualidade) para exibição imediata; fallback para proxy da URL
-    return getBestChatMediaSrc({ preview: resolvedMediaPreview, url: resolvedMediaUrl, kind: 'image' });
-  }, [resolvedMediaPreview, resolvedMediaUrl]);
+  // Para imagens: queremos SEMPRE tentar a versão em alta (URL/proxy) quando existir.
+  // O preview (thumbnail) serve apenas como placeholder/fallback.
+  const hiResSrc = useMemo(() => {
+    return getBestChatMediaSrc({ preview: null, url: resolvedMediaUrl, kind: 'image' });
+  }, [resolvedMediaUrl]);
+
+  const previewSrc = useMemo(() => {
+    return getBestChatMediaSrc({ preview: resolvedMediaPreview, url: null, kind: 'image' });
+  }, [resolvedMediaPreview]);
 
   // IMPORTANTE: URLs de mídia recebida frequentemente dependem do proxy para contornar CORS/hotlink.
   // Para máxima compatibilidade, fazemos um fetch do proxy e renderizamos via blob URL.
   // (Sem headers customizados, evitando preflight CORS desnecessário.)
   const shouldFetchProxyAsBlob = useMemo(() => {
-    if (!displaySrc) return false;
-    const s = displaySrc.toLowerCase();
-    // Só vale a pena quando NÃO temos preview (senão já renderiza local)
-    // E evitamos gastar requisição em .enc (comum vir criptografado e não renderizável no navegador).
+    if (!hiResSrc) return false;
+    const s = hiResSrc.toLowerCase();
+    // Evitamos gastar requisição em .enc (comum vir criptografado e não renderizável no navegador).
     const isEnc = resolvedMediaUrl?.toLowerCase().includes('.enc') ?? false;
-    return !resolvedMediaPreview && !isEnc && s.includes('/functions/v1/media-proxy');
-  }, [displaySrc, resolvedMediaPreview, resolvedMediaUrl]);
+    return !isEnc && s.includes('/functions/v1/media-proxy');
+  }, [hiResSrc, resolvedMediaUrl]);
 
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
 
     async function run() {
-      if (!shouldFetchProxyAsBlob || !displaySrc) {
+      if (!shouldFetchProxyAsBlob || !hiResSrc) {
         setAuthedBlobSrc(null);
         return;
       }
 
       try {
         // Sem headers customizados para evitar CORS preflight.
-        const resp = await fetch(displaySrc);
+        const resp = await fetch(hiResSrc);
         if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
 
         const blob = await resp.blob();
@@ -374,7 +378,7 @@ export function WhatsAppMediaRenderer({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [displaySrc, shouldFetchProxyAsBlob]);
+  }, [hiResSrc, shouldFetchProxyAsBlob]);
 
   // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
   // não podemos "travar" no fallback por causa de um onError antigo.
@@ -382,7 +386,7 @@ export function WhatsAppMediaRenderer({
     setImageError(false);
     setVideoError(false);
     setAudioError(false);
-  }, [messageType, resolvedMediaUrl, resolvedMediaPreview, displaySrc]);
+  }, [messageType, resolvedMediaUrl, resolvedMediaPreview, hiResSrc, previewSrc]);
 
   // Text messages
   if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
@@ -395,8 +399,13 @@ export function WhatsAppMediaRenderer({
 
   // Image messages
   if (effectiveType === 'image') {
-    // Sempre mostra a imagem se tiver alguma fonte disponível
-    const finalImgSrc = authedBlobSrc || displaySrc;
+    // Ordem geral: blob (alta via proxy) > URL direta/proxy (alta) > preview (thumbnail)
+    // Exceção: quando a mídia é .enc, browsers frequentemente não renderizam mesmo com proxy;
+    // então preferimos o preview para evitar “imagem sem resolução”/quebrada.
+    const isEnc = resolvedMediaUrl?.toLowerCase().includes('.enc') ?? false;
+    const finalImgSrc =
+      authedBlobSrc ||
+      (isEnc ? (previewSrc || hiResSrc) : (hiResSrc || previewSrc));
 
     if (finalImgSrc && !imageError) {
       return (
