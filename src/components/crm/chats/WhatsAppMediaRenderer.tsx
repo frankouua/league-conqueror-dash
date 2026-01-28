@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getBestChatMediaSrc } from './mediaSrc';
-import { supabase } from '@/integrations/supabase/client';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -302,11 +301,10 @@ export function WhatsAppMediaRenderer({
     return getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
   }, [mediaPreview, resolvedMediaUrl]);
 
-  // IMPORTANTE: a rota de "backend functions" pode exigir headers (apikey/authorization).
-  // Um <img src="..."> não envia headers customizados; então para mídias RECEBIDAS
-  // (sem preview/base64) que dependem do proxy, buscamos via fetch autenticado e
-  // renderizamos via blob URL.
-  const shouldUseAuthedFetch = useMemo(() => {
+  // IMPORTANTE: URLs de mídia recebida frequentemente dependem do proxy para contornar CORS/hotlink.
+  // Para máxima compatibilidade, fazemos um fetch do proxy e renderizamos via blob URL.
+  // (Sem headers customizados, evitando preflight CORS desnecessário.)
+  const shouldFetchProxyAsBlob = useMemo(() => {
     if (!displaySrc) return false;
     const s = displaySrc.toLowerCase();
     // Só vale a pena quando NÃO temos preview (senão já renderiza local)
@@ -318,22 +316,14 @@ export function WhatsAppMediaRenderer({
     let objectUrl: string | null = null;
 
     async function run() {
-      if (!shouldUseAuthedFetch || !displaySrc) {
+      if (!shouldFetchProxyAsBlob || !displaySrc) {
         setAuthedBlobSrc(null);
         return;
       }
 
       try {
-        const { data } = await supabase.auth.getSession();
-        const accessToken = data.session?.access_token;
-
-        const headers: Record<string, string> = {
-          // publishable key do projeto (seguro para frontend)
-          apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''),
-        };
-        if (accessToken) headers.authorization = `Bearer ${accessToken}`;
-
-        const resp = await fetch(displaySrc, { headers });
+        // Sem headers customizados para evitar CORS preflight.
+        const resp = await fetch(displaySrc);
         if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
 
         const blob = await resp.blob();
@@ -351,7 +341,7 @@ export function WhatsAppMediaRenderer({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [displaySrc, shouldUseAuthedFetch]);
+  }, [displaySrc, shouldFetchProxyAsBlob]);
 
   // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
   // não podemos “travar” no fallback por causa de um onError antigo.

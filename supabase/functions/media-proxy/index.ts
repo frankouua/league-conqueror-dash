@@ -87,13 +87,17 @@ function normalizeUpstreamContentType(raw: string | null): string {
 }
 
 function corsHeaders(origin: string | null) {
-  // We allow all origins because this is used as an <img>/<video> src.
-  // The allowlist above prevents SSRF.
+  // This endpoint is used by the web app (fetch + <img>/<video> src).
+  // We keep it public (verify_jwt=false) and rely on the allowlist above to prevent SSRF.
+  // CORS must allow Supabase client headers to avoid preflight failures.
   return {
     'Access-Control-Allow-Origin': origin ?? '*',
     'Access-Control-Allow-Methods': 'GET,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
     'Access-Control-Max-Age': '86400',
+    // Useful for debugging / consumers that want to read the content-type
+    'Access-Control-Expose-Headers': 'Content-Type, Content-Length',
     'Cache-Control': 'public, max-age=3600',
   } as Record<string, string>;
 }
@@ -129,7 +133,7 @@ async function readUpToLimit(resp: Response) {
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin');
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders(origin) });
+    return new Response('ok', { status: 200, headers: corsHeaders(origin) });
   }
 
   if (req.method !== 'GET') {
