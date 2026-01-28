@@ -28,8 +28,16 @@ export function normalizePreview(preview: string | null | undefined, kind: Media
 export function shouldProxyUrl(url: string | null | undefined) {
   if (!url) return false;
   const lower = url.toLowerCase();
-  // WhatsApp CDN hosts: mmg.whatsapp.net, pps.whatsapp.net, web.whatsapp.com, etc.
-  return lower.includes('whatsapp.net') || lower.includes('whatsapp.com');
+
+  // Evita loop: se já estamos apontando para o nosso proxy, não reproxiar.
+  if (lower.includes('/functions/v1/media-proxy')) return false;
+
+  // Regra geral: qualquer URL http(s) externa pode sofrer bloqueio de hotlink/CORS.
+  // Como o proxy é exatamente o nosso gateway para contornar isso, preferimos
+  // proxiar por padrão (mantendo compatível com WhatsApp + provedores diversos).
+  if (lower.startsWith('http://') || lower.startsWith('https://')) return true;
+
+  return false;
 }
 
 export function buildMediaProxyUrl(url: string) {
