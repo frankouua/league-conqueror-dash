@@ -192,9 +192,14 @@ export function CRMChatsModule() {
   const allChatMedia = useMemo<MediaViewerItem[]>(() => {
     return messages
       .filter(msg => {
-        const type = msg.message_type?.toLowerCase() || '';
+        const type = (msg.message_type?.toLowerCase() || '').replace('message', '');
         const hasMedia = msg.media_url || msg.media_preview;
-        return hasMedia && (type.includes('image') || type === 'image');
+        // Captura imagens de várias formas que podem vir do WhatsApp
+        const isImage = type.includes('image') || 
+                       type === 'image' || 
+                       type === 'sticker' ||
+                       (hasMedia && (type === 'text' || type === 'conversation' || type === 'extendedtext' || type === ''));
+        return hasMedia && isImage;
       })
       .map(msg => ({
         id: msg.id,

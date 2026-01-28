@@ -219,29 +219,33 @@ export function MediaViewer({
           </div>
         </div>
 
-        {/* Navigation Arrows */}
-        {allMedia.length > 1 && onNavigate && (
+        {/* Navigation Arrows - Always visible like WhatsApp */}
+        {onNavigate && (
           <>
-            {hasPrev && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-black/50 text-white hover:bg-black/70"
-                onClick={() => onNavigate('prev')}
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </Button>
-            )}
-            {hasNext && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-black/50 text-white hover:bg-black/70"
-                onClick={() => onNavigate('next')}
-              >
-                <ChevronRight className="w-6 h-6" />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "absolute left-4 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all",
+                !hasPrev && "opacity-30 cursor-not-allowed"
+              )}
+              onClick={() => hasPrev && onNavigate('prev')}
+              disabled={!hasPrev}
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "absolute right-4 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all",
+                !hasNext && "opacity-30 cursor-not-allowed"
+              )}
+              onClick={() => hasNext && onNavigate('next')}
+              disabled={!hasNext}
+            >
+              <ChevronRight className="w-8 h-8" />
+            </Button>
           </>
         )}
 
