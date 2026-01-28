@@ -83,6 +83,48 @@ function pickFirstString(...values: unknown[]): string | null {
   return null;
 }
 
+function extractMediaUrlFromRawData(rawData: unknown): string | null {
+  const raw = (rawData ?? {}) as any;
+
+  // UAZAPI costuma variar bastante os paths e o casing (url/URL).
+  // Preferimos sempre URL direta (o proxy cuida do resto).
+  return (
+    pickFirstString(
+      // Estrutura atual (geral): raw_data.message.content.url
+      raw?.message?.content?.url,
+      raw?.message?.content?.URL,
+      raw?.message?.content?.mediaUrl,
+      raw?.message?.content?.media_url,
+
+      // Estruturas por tipo (alguns provedores)
+      raw?.message?.imageMessage?.url,
+      raw?.message?.imageMessage?.URL,
+      raw?.message?.videoMessage?.url,
+      raw?.message?.videoMessage?.URL,
+      raw?.message?.audioMessage?.url,
+      raw?.message?.audioMessage?.URL,
+      raw?.message?.documentMessage?.url,
+      raw?.message?.documentMessage?.URL,
+      raw?.message?.documentWithCaptionMessage?.message?.documentMessage?.url,
+      raw?.message?.documentWithCaptionMessage?.message?.documentMessage?.URL,
+
+      // Resposta armazenada de envio (mensagens enviadas)
+      raw?.uazapi_response?.content?.url,
+      raw?.uazapi_response?.content?.URL,
+      raw?.uazapi_response?.content?.mediaUrl,
+      raw?.uazapi_response?.content?.media_url,
+
+      // Outros fallbacks comuns
+      raw?.url,
+      raw?.URL,
+      raw?.mediaUrl,
+      raw?.media_url,
+      raw?.content?.url,
+      raw?.content?.URL
+    ) ?? null
+  );
+}
+
 function fileFormatFromMimeOrName(mime: string | null, fileName: string | null): string {
   if (mime && typeof mime === 'string') {
     const m = mime.toLowerCase().trim();
@@ -238,9 +280,16 @@ export function WhatsAppMediaRenderer({
 
   const normalizedType = normalizeMessageType(messageType);
 
+  // Algumas mensagens recebidas chegam com media_url null no registro,
+  // mas a URL está dentro do raw_data. Se não resolvermos isso aqui,
+  // o <img> nunca terá src e a imagem não aparece.
+  const resolvedMediaUrl = useMemo(() => {
+    return mediaUrl ?? extractMediaUrlFromRawData(rawData);
+  }, [mediaUrl, rawData]);
+
   // Heurística: às vezes o backend salva message_type como Conversation/Text, mas a mídia chega via media_url.
   // Nesse caso, renderizamos pelo mediaUrl (experiência estilo Direct/Messenger).
-  const guessedKind = guessMediaKindFromUrl(mediaUrl);
+  const guessedKind = guessMediaKindFromUrl(resolvedMediaUrl);
   const effectiveType =
     normalizedType === 'text' || normalizedType === 'conversation' || normalizedType === 'extendedtext'
       ? (guessedKind ?? (isImagePlaceholderText(content) ? 'image' : isVideoPlaceholderText(content) ? 'video' : normalizedType))
@@ -248,8 +297,8 @@ export function WhatsAppMediaRenderer({
 
   const displaySrc = useMemo(() => {
     // Prioriza preview (base64 de alta qualidade) para exibição imediata; fallback para proxy da URL
-    return getBestChatMediaSrc({ preview: mediaPreview, url: mediaUrl, kind: 'image' });
-  }, [mediaPreview, mediaUrl]);
+    return getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
+  }, [mediaPreview, resolvedMediaUrl]);
 
   // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
   // não podemos “travar” no fallback por causa de um onError antigo.
@@ -257,7 +306,7 @@ export function WhatsAppMediaRenderer({
     setImageError(false);
     setVideoError(false);
     setAudioError(false);
-  }, [messageType, mediaUrl, mediaPreview]);
+  }, [messageType, resolvedMediaUrl, mediaPreview]);
 
   // Text messages
   if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
@@ -328,14 +377,14 @@ export function WhatsAppMediaRenderer({
         </div>
 
         {/* Se a URL existir mas o browser bloquear (hotlink/expiração), ainda damos um caminho pra ver a mídia */}
-        {mediaUrl && (
+         {resolvedMediaUrl && (
           <Button
             variant="secondary"
             size="sm"
             className="h-7 px-2 text-[11px]"
             asChild
           >
-            <a href={mediaUrl} target="_blank" rel="noopener noreferrer">
+             <a href={resolvedMediaUrl} target="_blank" rel="noopener noreferrer">
               Abrir original
             </a>
           </Button>
@@ -346,7 +395,7 @@ export function WhatsAppMediaRenderer({
 
   // Video messages
   if (effectiveType === 'video') {
-    const videoSrc = getBestChatMediaSrc({ preview: mediaPreview, url: mediaUrl, kind: 'video' });
+    const videoSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'video' });
     if (videoSrc && !videoError) {
       return (
         <div 
@@ -413,7 +462,7 @@ export function WhatsAppMediaRenderer({
 
   // Audio/Voice messages
   if (effectiveType === 'audio' || effectiveType === 'ptt') {
-    const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: mediaUrl, kind: 'audio' });
+    const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'audio' });
     if (audioSrc && !audioError) {
       return (
         <div className="flex items-center gap-2 py-0.5 min-w-[180px]">
@@ -459,9 +508,9 @@ export function WhatsAppMediaRenderer({
 
   // Document messages
   if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
-    const docUrl = mediaUrl ? getBestChatMediaSrc({ url: mediaUrl, kind: 'document' }) : null;
+    const docUrl = resolvedMediaUrl ? getBestChatMediaSrc({ url: resolvedMediaUrl, kind: 'document' }) : null;
 
-    const { fileName, fileFormat, caption } = extractDocumentMeta(rawData, content, mediaUrl);
+    const { fileName, fileFormat, caption } = extractDocumentMeta(rawData, content, resolvedMediaUrl);
     
     return (
       <div className="space-y-1.5">
