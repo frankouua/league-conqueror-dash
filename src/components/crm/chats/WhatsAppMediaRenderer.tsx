@@ -303,25 +303,35 @@ export function WhatsAppMediaRenderer({
   if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
     const docUrl = mediaUrl ? getBestChatMediaSrc({ url: mediaUrl, kind: 'document' }) : null;
     
-    // Extrair nome do arquivo da URL ou usar fallback
-    const extractFileName = (url: string | null): string => {
-      if (!url) return 'Documento';
-      try {
-        const urlPath = url.split('?')[0];
-        const segments = urlPath.split('/');
-        const lastSegment = segments[segments.length - 1];
-        // Decodificar e limpar extensão .enc se houver
-        const decoded = decodeURIComponent(lastSegment).replace(/\.enc$/, '');
-        if (decoded && decoded.length > 3 && decoded.includes('.')) {
-          return decoded;
+    // Detectar se o content é um nome de arquivo (tem extensão) ou uma legenda
+    const fileExtensions = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar|odt|rtf)$/i;
+    const contentIsFileName = content && fileExtensions.test(content.trim());
+    
+    // Nome do arquivo: usa content se for nome, senão fallback
+    const fileName = contentIsFileName 
+      ? content!.trim() 
+      : 'Documento';
+    
+    // Extrair formato do arquivo
+    const getFileFormat = (name: string): string => {
+      const match = name.match(/\.([a-z0-9]+)$/i);
+      if (match) {
+        return match[1].toUpperCase();
+      }
+      // Tentar extrair da URL se não conseguiu do nome
+      if (mediaUrl) {
+        const urlMatch = mediaUrl.match(/\.([a-z0-9]+)(?:\?|$)/i);
+        if (urlMatch && !['enc', 'net', 'com'].includes(urlMatch[1].toLowerCase())) {
+          return urlMatch[1].toUpperCase();
         }
-      } catch {}
-      return 'Documento';
+      }
+      return 'Arquivo';
     };
     
-    const fileName = extractFileName(mediaUrl);
-    // Content agora é a legenda, não o nome do arquivo
-    const caption = content && 
+    const fileFormat = getFileFormat(fileName);
+    
+    // Legenda: só mostra se content não for o nome do arquivo
+    const caption = !contentIsFileName && content && 
                     content !== '[Documento]' && 
                     content !== '[document]' &&
                     !content.toLowerCase().match(/^\[?documento?\]?$/) 
@@ -338,7 +348,7 @@ export function WhatsAppMediaRenderer({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-medium break-words">{fileName}</p>
-            <p className="text-[10px] opacity-70">Documento</p>
+            <p className="text-[10px] opacity-70">{fileFormat}</p>
           </div>
           {docUrl && (
             <Button
@@ -353,7 +363,7 @@ export function WhatsAppMediaRenderer({
             </Button>
           )}
         </div>
-        {/* Legenda abaixo do documento, igual imagens/vídeos */}
+        {/* Legenda abaixo do documento */}
         {caption && (
           <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
             {caption}
