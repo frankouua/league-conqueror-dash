@@ -27,8 +27,9 @@ export function normalizePreview(preview: string | null | undefined, kind: Media
 
 export function shouldProxyUrl(url: string | null | undefined) {
   if (!url) return false;
-  const clean = url.split('?')[0]?.toLowerCase() ?? '';
-  return clean.includes('whatsapp.net');
+  const lower = url.toLowerCase();
+  // WhatsApp CDN hosts: mmg.whatsapp.net, pps.whatsapp.net, web.whatsapp.com, etc.
+  return lower.includes('whatsapp.net') || lower.includes('whatsapp.com');
 }
 
 export function buildMediaProxyUrl(url: string) {
