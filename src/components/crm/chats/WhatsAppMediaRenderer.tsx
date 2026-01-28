@@ -191,19 +191,37 @@ export function WhatsAppMediaRenderer({
     const videoSrc = getBestChatMediaSrc({ preview: mediaPreview, url: mediaUrl, kind: 'video' });
     if (videoSrc && !videoError) {
       return (
-        <div className="space-y-1.5">
-          <div className="relative max-w-[250px] rounded-md overflow-hidden bg-black/20">
+        <div 
+          className="cursor-pointer group"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (messageId && onOpenMediaViewer) {
+              onOpenMediaViewer(messageId);
+            }
+          }}
+        >
+          <div className="relative w-[240px] max-w-full max-h-[320px] rounded-lg overflow-hidden bg-muted">
             <video
               src={videoSrc}
-              controls
-              className="max-w-full max-h-[250px]"
+              className="w-full h-full object-contain"
               onError={() => setVideoError(true)}
-            >
-              Seu navegador não suporta vídeos
-            </video>
+              muted
+              preload="metadata"
+            />
+            {/* Play icon overlay */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <Play className="w-6 h-6 text-gray-800 ml-1" fill="currentColor" />
+              </div>
+            </div>
           </div>
-          {content && content !== '[Vídeo]' && (
-            <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
+          {content && 
+           content !== '[Vídeo]' && 
+           content !== '[video]' && 
+           !content.toLowerCase().includes('vídeo') && 
+           !content.toLowerCase().match(/^\[?video\]?$/) && (
+            <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
               {content}
             </p>
           )}
@@ -224,7 +242,7 @@ export function WhatsAppMediaRenderer({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">🎬 Vídeo</p>
-          {!mediaUrl && (
+          {!mediaUrl && !mediaPreview && (
             <p className="text-[10px] opacity-50 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
               Mídia não disponível
