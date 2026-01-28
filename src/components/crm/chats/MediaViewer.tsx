@@ -50,12 +50,47 @@ export function MediaViewer({
 }: MediaViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [authedBlobSrc, setAuthedBlobSrc] = useState<string | null>(null);
 
   // Reset zoom and rotation when switching to a different image
   useEffect(() => {
     setZoom(1);
     setRotation(0);
+    setAuthedBlobSrc(null);
   }, [media?.id]);
+
+  // Hi-res sempre tem prioridade. Preview é apenas fallback.
+  // Se a src vier do proxy, fazemos fetch e exibimos via blob (mais confiável que <img src=proxyUrl>).
+  const imageSrc = authedBlobSrc || media?.src || media?.preview || '';
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    async function run() {
+      if (!media || media.type !== 'image') return;
+      const src = media.src;
+      if (!src) return;
+      if (!src.toLowerCase().includes('/functions/v1/media-proxy')) return;
+
+      try {
+        const resp = await fetch(src);
+        if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
+        const blob = await resp.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setAuthedBlobSrc(objectUrl);
+      } catch {
+        if (!cancelled) setAuthedBlobSrc(null);
+      }
+    }
+
+    run();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [media]);
 
   if (!media) return null;
 
@@ -63,7 +98,6 @@ export function MediaViewer({
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < allMedia.length - 1 && currentIndex >= 0;
 
-  const imageSrc = media.preview || media.src;
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.5, 4));
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.5, 0.5));

@@ -403,10 +403,16 @@ export function WhatsAppMediaRenderer({
     // Exceção: quando a mídia é .enc, browsers frequentemente não renderizam mesmo com proxy;
     // então preferimos o preview para evitar “imagem sem resolução”/quebrada.
     const isEnc = resolvedMediaUrl?.toLowerCase().includes('.enc') ?? false;
-    // Para não “desconfigurar” o chat enquanto a alta carrega, mostramos o preview primeiro,
-    // e trocamos automaticamente para o blob (alta) quando estiver pronto.
-    const placeholderSrc = isEnc ? (previewSrc || hiResSrc) : (previewSrc || hiResSrc);
-    const finalImgSrc = authedBlobSrc || placeholderSrc;
+
+    // REGRA (definitiva):
+    // - Se for .enc: geralmente não é renderizável no browser => preferir preview.
+    // - Se a hi-res é via proxy: NÃO usar a URL do proxy direto no <img> (muitos browsers falham
+    //   quando o Content-Type é genérico); usamos blob via fetch.
+    // - Preview é APENAS placeholder/fallback (nunca “trava” em thumb se houver hi-res).
+    const finalImgSrc =
+      isEnc
+        ? (previewSrc || hiResSrc)
+        : (authedBlobSrc || (shouldFetchProxyAsBlob ? previewSrc : hiResSrc) || previewSrc);
 
     if (finalImgSrc && !imageError) {
       return (
@@ -425,12 +431,12 @@ export function WhatsAppMediaRenderer({
             alt="Imagem"
             loading="lazy"
             referrerPolicy="no-referrer"
-            className="w-[240px] max-w-full max-h-[320px] rounded-lg object-contain bg-muted group-hover:opacity-90 transition-opacity"
-             onError={() => {
-               // Se o placeholder falhar, ainda podemos ter blob em seguida.
-               // Só marcamos erro se NÃO temos blob.
-               if (!authedBlobSrc) setImageError(true);
-             }}
+            className="w-full max-w-[240px] max-h-[320px] rounded-lg object-contain bg-muted group-hover:opacity-90 transition-opacity"
+            onError={() => {
+              // Se estávamos no preview (placeholder), não “mata” a imagem: pode virar blob em seguida.
+              // Só marcamos erro quando nem blob nem hi-res direto existem.
+              if (!authedBlobSrc && !(hiResSrc && !shouldFetchProxyAsBlob)) setImageError(true);
+            }}
           />
           {content && 
            content !== '[Imagem]' && 
