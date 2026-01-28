@@ -122,7 +122,11 @@ export function WhatsAppMediaRenderer({
             className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover group-hover:opacity-90 transition-opacity"
             onError={() => setImageError(true)}
           />
-          {content && content !== '[Imagem]' && !content.toLowerCase().includes('imagem') && (
+          {content && 
+           content !== '[Imagem]' && 
+           content !== '[image]' && 
+           !content.toLowerCase().includes('imagem') && 
+           !content.toLowerCase().match(/^\[?image\]?$/) && (
             <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
               {content}
             </p>
