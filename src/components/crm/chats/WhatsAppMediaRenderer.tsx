@@ -126,9 +126,19 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 } {
   const raw = (rawData ?? {}) as any;
 
+  // Estrutura de mensagens recebidas (UAZAPI): raw_data.message.documentMessage ou raw_data.message.documentWithCaptionMessage
+  const docMessage = raw?.message?.documentMessage 
+    ?? raw?.message?.documentWithCaptionMessage?.message?.documentMessage
+    ?? null;
+
   // UAZAPI (exato como vem no log): raw_data.file_name e raw_data.uazapi_response.content.fileName
   const fileName =
     pickFirstString(
+      // Mensagens recebidas
+      docMessage?.fileName,
+      docMessage?.file_name,
+      docMessage?.title,
+      // Mensagens enviadas / estrutura alternativa
       raw?.file_name,
       raw?.filename,
       raw?.name,
@@ -161,6 +171,10 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 
   const mime =
     pickFirstString(
+      // Mensagens recebidas
+      docMessage?.mimetype,
+      docMessage?.mime_type,
+      // Mensagens enviadas / estrutura alternativa
       raw?.mime_type,
       raw?.mimetype,
       raw?.mime,
@@ -174,6 +188,10 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 
   const captionCandidate =
     pickFirstString(
+      // Mensagens recebidas
+      docMessage?.caption,
+      raw?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption,
+      // Mensagens enviadas / estrutura alternativa
       raw?.caption,
       raw?.text,
       raw?.uazapi_response?.content?.caption,
