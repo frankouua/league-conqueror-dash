@@ -59,17 +59,31 @@ export function MediaViewer({
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.5, 4));
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.5, 0.5));
   const handleRotate = () => setRotation(r => (r + 90) % 360);
-  const handleReset = () => {
-    setZoom(1);
-    setRotation(0);
+  
+  const handleOpenInNewTab = () => {
+    window.open(imageSrc, '_blank');
   };
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = media.src;
-    link.download = `media-${media.id}`;
-    link.target = '_blank';
-    link.click();
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(imageSrc);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `imagem-${media.id || Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback se fetch falhar (CORS)
+      const link = document.createElement('a');
+      link.href = imageSrc;
+      link.download = `imagem-${media.id || Date.now()}.jpg`;
+      link.target = '_blank';
+      link.click();
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -114,6 +128,7 @@ export function MediaViewer({
                   size="icon"
                   className="text-white/80 hover:text-white hover:bg-white/10"
                   onClick={handleZoomOut}
+                  title="Diminuir zoom"
                 >
                   <ZoomOut className="w-4 h-4" />
                 </Button>
@@ -122,6 +137,7 @@ export function MediaViewer({
                   size="icon"
                   className="text-white/80 hover:text-white hover:bg-white/10"
                   onClick={handleZoomIn}
+                  title="Aumentar zoom"
                 >
                   <ZoomIn className="w-4 h-4" />
                 </Button>
@@ -130,6 +146,7 @@ export function MediaViewer({
                   size="icon"
                   className="text-white/80 hover:text-white hover:bg-white/10"
                   onClick={handleRotate}
+                  title="Girar"
                 >
                   <RotateCw className="w-4 h-4" />
                 </Button>
@@ -137,7 +154,8 @@ export function MediaViewer({
                   variant="ghost"
                   size="icon"
                   className="text-white/80 hover:text-white hover:bg-white/10"
-                  onClick={handleReset}
+                  onClick={handleOpenInNewTab}
+                  title="Abrir em nova guia"
                 >
                   <Maximize2 className="w-4 h-4" />
                 </Button>
@@ -149,6 +167,7 @@ export function MediaViewer({
               size="icon"
               className="text-white/80 hover:text-white hover:bg-white/10"
               onClick={handleDownload}
+              title="Baixar imagem"
             >
               <Download className="w-4 h-4" />
             </Button>
@@ -157,6 +176,7 @@ export function MediaViewer({
               size="icon"
               className="text-white/80 hover:text-white hover:bg-white/10"
               onClick={() => onOpenChange(false)}
+              title="Fechar"
             >
               <X className="w-5 h-5" />
             </Button>
