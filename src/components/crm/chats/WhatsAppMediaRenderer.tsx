@@ -128,28 +128,25 @@ function extractMediaUrlFromRawData(rawData: unknown): string | null {
 function extractMediaPreviewFromRawData(rawData: unknown): string | null {
   const raw = (rawData ?? {}) as any;
 
-  // Variações comuns: alguns payloads trazem thumbnail/preview (base64) em campos diferentes.
-  // Observação: pode vir como data URI ou base64 “cru” — o normalizePreview (mediaSrc) lida com isso.
+  // UAZAPI: o thumbnail da mensagem de imagem vem em message.content.JPEGThumbnail (base64).
+  // ATENÇÃO: Não confundir com chat.imagePreview que é o avatar do contato!
+  // O normalizePreview (mediaSrc) converte base64 cru para data URI se necessário.
   return (
     pickFirstString(
-      // UAZAPI / chat payloads
-      raw?.message?.content?.imagePreview,
-      raw?.message?.content?.image_preview,
-      raw?.message?.content?.preview,
-      raw?.message?.content?.thumbnail,
+      // UAZAPI (estrutura real observada): message.content.JPEGThumbnail
+      raw?.message?.content?.JPEGThumbnail,
+      raw?.message?.content?.jpegThumbnail,
+      raw?.message?.content?.jpeg_thumbnail,
 
       // WhatsApp-like (Baileys/WA Web) thumbnails
       raw?.message?.imageMessage?.jpegThumbnail,
-      raw?.message?.imageMessage?.thumbnail,
+      raw?.message?.imageMessage?.JPEGThumbnail,
       raw?.message?.videoMessage?.jpegThumbnail,
+      raw?.message?.videoMessage?.JPEGThumbnail,
 
-      // Outros fallbacks que já vimos em payloads
-      raw?.imagePreview,
-      raw?.image_preview,
-      raw?.preview,
-      raw?.thumbnail,
-      raw?.chat?.imagePreview,
-      raw?.chat?.image_preview
+      // Outros fallbacks em message.content (não chat!)
+      raw?.message?.content?.thumbnail,
+      raw?.message?.content?.preview
     ) ?? null
   );
 }
@@ -380,7 +377,7 @@ export function WhatsAppMediaRenderer({
   }, [displaySrc, shouldFetchProxyAsBlob]);
 
   // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
-  // não podemos “travar” no fallback por causa de um onError antigo.
+  // não podemos "travar" no fallback por causa de um onError antigo.
   useEffect(() => {
     setImageError(false);
     setVideoError(false);
@@ -524,44 +521,42 @@ export function WhatsAppMediaRenderer({
           fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
         )}>
           <Video className="w-6 h-6 opacity-60" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Play className="w-3 h-3" />
-          </div>
+          <Play className="w-3 h-3 absolute bottom-1 right-1 opacity-60" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">🎬 Vídeo</p>
-          {!mediaUrl && !mediaPreview && (
-            <p className="text-[10px] opacity-50 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
-              Mídia não disponível
-            </p>
+          {content && content !== '[Vídeo]' && (
+            <p className="text-[11px] opacity-70 break-words">{content}</p>
           )}
         </div>
       </div>
     );
   }
 
-  // Audio/Voice messages
+  // Audio/PTT messages
   if (effectiveType === 'audio' || effectiveType === 'ptt') {
     const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'audio' });
+    
     if (audioSrc && !audioError) {
       return (
-        <div className="flex items-center gap-2 py-0.5 min-w-[180px]">
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-            fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
-          )}>
-            <Mic className="w-4 h-4" />
-          </div>
+        <div className="w-[240px] max-w-full">
           <audio 
             controls 
-            className="h-7 max-w-[180px] flex-1"
+            src={audioSrc}
             onError={() => setAudioError(true)}
-          >
-            <source src={audioSrc} type="audio/ogg" />
-            <source src={audioSrc} type="audio/mpeg" />
-            Áudio não suportado
-          </audio>
+            className="w-full h-10"
+            preload="metadata"
+          />
+          {content && 
+           content !== '[Áudio]' && 
+           content !== '[audio]' && 
+           content !== '[ptt]' &&
+           !content.toLowerCase().includes('áudio') && 
+           !content.toLowerCase().match(/^\[?(audio|ptt)\]?$/) && (
+            <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
+              {content}
+            </p>
+          )}
         </div>
       );
     }
@@ -569,18 +564,15 @@ export function WhatsAppMediaRenderer({
     return (
       <div className="flex items-center gap-2 py-1">
         <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center",
+          "p-2 rounded-md",
           fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
         )}>
-          <Mic className="w-4 h-4" />
+          <Mic className="w-6 h-6 opacity-60" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">🎤 Áudio</p>
-          {!mediaUrl && (
-            <p className="text-[10px] opacity-50 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
-              Mídia não disponível
-            </p>
+          {content && content !== '[Áudio]' && content !== '[ptt]' && (
+            <p className="text-[11px] opacity-70 break-words">{content}</p>
           )}
         </div>
       </div>
@@ -589,59 +581,60 @@ export function WhatsAppMediaRenderer({
 
   // Document messages
   if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
-    const docUrl = resolvedMediaUrl ? getBestChatMediaSrc({ url: resolvedMediaUrl, kind: 'document' }) : null;
-
     const { fileName, fileFormat, caption } = extractDocumentMeta(rawData, content, resolvedMediaUrl);
+    const documentUrl = resolvedMediaUrl;
+
+    const handleDownload = async () => {
+      if (!documentUrl) return;
+      
+      try {
+        // Usa proxy para contornar bloqueios de hotlink
+        const proxyUrl = getBestChatMediaSrc({ preview: null, url: documentUrl, kind: 'document' });
+        if (!proxyUrl) return;
+        
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Download failed');
+        
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || 'documento';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        // Fallback: abre em nova aba
+        window.open(documentUrl, '_blank');
+      }
+    };
     
     return (
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2 py-1 min-w-[180px]">
+        <div 
+          className={cn(
+            "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors",
+            fromMe ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-muted-foreground/5 hover:bg-muted-foreground/10"
+          )}
+          onClick={handleDownload}
+        >
           <div className={cn(
-            "p-2 rounded-md",
+            "p-2 rounded-md shrink-0",
             fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
           )}>
-            <FileText className="w-5 h-5" />
+            <FileText className="w-5 h-5 opacity-70" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium break-words">{fileName}</p>
-            <p className="text-[10px] opacity-70">{fileFormat}</p>
+            <p className="text-[13px] font-medium truncate" title={fileName}>
+              {fileName}
+            </p>
+            <p className="text-[11px] opacity-60">{fileFormat}</p>
           </div>
-          {docUrl && (
-            <button
-              type="button"
-              className={cn(
-                "p-2 rounded-md shrink-0 transition-colors",
-                fromMe 
-                  ? "hover:bg-primary-foreground/20" 
-                  : "hover:bg-muted-foreground/10"
-              )}
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                try {
-                  const response = await fetch(docUrl);
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = fileName;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  window.URL.revokeObjectURL(url);
-                } catch (err) {
-                  console.error('Erro ao baixar documento:', err);
-                  // Fallback: abre em nova aba
-                  window.open(docUrl, '_blank');
-                }
-              }}
-            >
-              <Download className="w-5 h-5" />
-            </button>
-          )}
+          <Download className="w-4 h-4 opacity-50 shrink-0" />
         </div>
-        {/* Legenda abaixo do documento */}
-        {caption && caption !== fileName && (
+        {caption && (
           <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
             {caption}
           </p>
@@ -651,68 +644,67 @@ export function WhatsAppMediaRenderer({
   }
 
   // Sticker messages
-  if (normalizedType === 'sticker') {
-    if (mediaUrl) {
+  if (effectiveType === 'sticker') {
+    const stickerSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
+    
+    if (stickerSrc) {
       return (
         <img
-          src={mediaUrl}
+          src={stickerSrc}
           alt="Sticker"
-          className="w-24 h-24 object-contain"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="w-[120px] h-[120px] object-contain"
         />
       );
     }
     
     return (
       <div className="flex items-center gap-2 py-1">
-        <Sticker className="w-6 h-6 opacity-60" />
-        <span className="text-[13px]">Sticker</span>
+        <div className={cn(
+          "p-2 rounded-md",
+          fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
+        )}>
+          <Sticker className="w-6 h-6 opacity-60" />
+        </div>
+        <p className="text-[13px]">Sticker</p>
       </div>
     );
   }
 
   // Location messages
-  if (normalizedType === 'location' || normalizedType === 'livelocation') {
+  if (effectiveType === 'location' || effectiveType === 'liveLocation') {
     return (
       <div className="flex items-center gap-2 py-1">
         <div className={cn(
           "p-2 rounded-md",
           fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
         )}>
-          <MapPin className="w-5 h-5" />
+          <MapPin className="w-6 h-6 opacity-60" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">📍 Localização</p>
-          {content && content !== '[Localização]' && (
+          {content && (
             <p className="text-[11px] opacity-70 break-words">{content}</p>
           )}
         </div>
-        {mediaUrl && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-            <a href={mediaUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </Button>
-        )}
       </div>
     );
   }
 
   // Contact/vCard messages
-  if (normalizedType === 'contact' || normalizedType === 'contactsarray') {
+  if (effectiveType === 'vcard' || effectiveType === 'contact') {
     return (
       <div className="flex items-center gap-2 py-1">
         <div className={cn(
           "p-2 rounded-md",
           fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
         )}>
-          <User className="w-5 h-5" />
+          <User className="w-6 h-6 opacity-60" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">👤 Contato</p>
-          {content && content !== '[Contato]' && (
+          {content && (
             <p className="text-[11px] opacity-70 break-words">{content}</p>
           )}
         </div>
@@ -720,59 +712,33 @@ export function WhatsAppMediaRenderer({
     );
   }
 
-  // Reaction messages
-  if (normalizedType === 'reaction') {
-    return (
-      <div className="text-xl py-0.5">
-        {content || '👍'}
-      </div>
-    );
-  }
-
-  // Poll messages
-  if (normalizedType === 'poll' || normalizedType === 'pollcreation') {
-    return (
-      <div className="py-1">
-        <p className="text-[13px] font-medium mb-0.5">📊 Enquete</p>
-        {content && content !== '[Enquete]' && (
-          <p className="text-[13px] opacity-90">{content}</p>
-        )}
-      </div>
-    );
-  }
-
-  // Protocol/system messages
-  if (normalizedType === 'protocol') {
-    return (
-      <p className="text-[11px] italic opacity-70">
-        Mensagem do sistema
-      </p>
-    );
-  }
-
-  // Button/Interactive messages
-  if (normalizedType === 'buttons' || normalizedType === 'template' || normalizedType === 'list') {
-    return (
-      <div className="py-1">
-        {content && <p className="text-[13px] break-words whitespace-pre-wrap">{content}</p>}
-        <p className="text-[10px] opacity-70 mt-0.5">📱 Mensagem interativa</p>
-      </div>
-    );
-  }
-
-  // Default fallback for unknown types
+  // Fallback for unknown message types
   return (
     <div className="flex items-center gap-2 py-1">
-      <File className="w-4 h-4 opacity-60" />
+      <div className={cn(
+        "p-2 rounded-md",
+        fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
+      )}>
+        <File className="w-6 h-6 opacity-60" />
+      </div>
       <div className="flex-1 min-w-0">
-        {content ? (
-          <p className="text-[13px] break-words whitespace-pre-wrap">{content}</p>
-        ) : (
-          <p className="text-[13px] opacity-70">
-            {messageType ? `[${messageType}]` : '[Mídia]'}
-          </p>
+        <p className="text-[13px] font-medium capitalize">{effectiveType || 'Mídia'}</p>
+        {content && (
+          <p className="text-[11px] opacity-70 break-words">{content}</p>
         )}
       </div>
+      {resolvedMediaUrl && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2"
+          asChild
+        >
+          <a href={resolvedMediaUrl} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </Button>
+      )}
     </div>
   );
 }
