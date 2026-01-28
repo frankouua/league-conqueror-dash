@@ -126,15 +126,22 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 } {
   const raw = (rawData ?? {}) as any;
 
-  // Estrutura de mensagens recebidas (UAZAPI): raw_data.message.documentMessage ou raw_data.message.documentWithCaptionMessage
+  // Estrutura UAZAPI para mensagens RECEBIDAS: raw_data.message.content.fileName
+  const messageContent = raw?.message?.content ?? null;
+  
+  // Estrutura antiga (documentMessage) - fallback
   const docMessage = raw?.message?.documentMessage 
     ?? raw?.message?.documentWithCaptionMessage?.message?.documentMessage
     ?? null;
 
-  // UAZAPI (exato como vem no log): raw_data.file_name e raw_data.uazapi_response.content.fileName
+  // Prioridade: message.content (recebidas) > documentMessage > outros fallbacks
   const fileName =
     pickFirstString(
-      // Mensagens recebidas
+      // Mensagens recebidas (estrutura UAZAPI atual): raw_data.message.content.fileName
+      messageContent?.fileName,
+      messageContent?.file_name,
+      messageContent?.filename,
+      // Estrutura antiga de mensagens recebidas
       docMessage?.fileName,
       docMessage?.file_name,
       docMessage?.title,
@@ -171,7 +178,10 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 
   const mime =
     pickFirstString(
-      // Mensagens recebidas
+      // Mensagens recebidas (estrutura UAZAPI atual)
+      messageContent?.mimetype,
+      messageContent?.mime_type,
+      // Estrutura antiga
       docMessage?.mimetype,
       docMessage?.mime_type,
       // Mensagens enviadas / estrutura alternativa
@@ -188,7 +198,10 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 
   const captionCandidate =
     pickFirstString(
-      // Mensagens recebidas
+      // Mensagens recebidas (estrutura UAZAPI atual)
+      raw?.message?.text,
+      messageContent?.caption,
+      // Estrutura antiga
       docMessage?.caption,
       raw?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption,
       // Mensagens enviadas / estrutura alternativa
