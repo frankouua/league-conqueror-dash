@@ -301,32 +301,63 @@ export function WhatsAppMediaRenderer({
 
   // Document messages
   if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
-    const fileName = (content && content !== '[Documento]') ? content : 'Documento';
     const docUrl = mediaUrl ? getBestChatMediaSrc({ url: mediaUrl, kind: 'document' }) : null;
     
+    // Extrair nome do arquivo da URL ou usar fallback
+    const extractFileName = (url: string | null): string => {
+      if (!url) return 'Documento';
+      try {
+        const urlPath = url.split('?')[0];
+        const segments = urlPath.split('/');
+        const lastSegment = segments[segments.length - 1];
+        // Decodificar e limpar extensão .enc se houver
+        const decoded = decodeURIComponent(lastSegment).replace(/\.enc$/, '');
+        if (decoded && decoded.length > 3 && decoded.includes('.')) {
+          return decoded;
+        }
+      } catch {}
+      return 'Documento';
+    };
+    
+    const fileName = extractFileName(mediaUrl);
+    // Content agora é a legenda, não o nome do arquivo
+    const caption = content && 
+                    content !== '[Documento]' && 
+                    content !== '[document]' &&
+                    !content.toLowerCase().match(/^\[?documento?\]?$/) 
+                    ? content : null;
+    
     return (
-      <div className="flex items-center gap-2 py-1 min-w-[180px]">
-        <div className={cn(
-          "p-2 rounded-md",
-          fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
-        )}>
-          <FileText className="w-5 h-5" />
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2 py-1 min-w-[180px]">
+          <div className={cn(
+            "p-2 rounded-md",
+            fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
+          )}>
+            <FileText className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium break-words">{fileName}</p>
+            <p className="text-[10px] opacity-70">Documento</p>
+          </div>
+          {docUrl && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              asChild
+            >
+              <a href={docUrl} target="_blank" rel="noopener noreferrer" download>
+                <Download className="w-3.5 h-3.5" />
+              </a>
+            </Button>
+          )}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium break-words">{fileName}</p>
-          <p className="text-[10px] opacity-70">Documento</p>
-        </div>
-        {docUrl && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0"
-            asChild
-          >
-            <a href={docUrl} target="_blank" rel="noopener noreferrer" download>
-              <Download className="w-3.5 h-3.5" />
-            </a>
-          </Button>
+        {/* Legenda abaixo do documento, igual imagens/vídeos */}
+        {caption && (
+          <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
+            {caption}
+          </p>
         )}
       </div>
     );
