@@ -15,7 +15,6 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MediaViewer, MediaViewerItem } from './MediaViewer';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -26,6 +25,8 @@ interface WhatsAppMediaRendererProps {
   messageId?: string;
   timestamp?: string | null;
   contactName?: string | null;
+  // Callback para abrir o visualizador no componente pai
+  onOpenMediaViewer?: (mediaId: string) => void;
 }
 
 // Normaliza o tipo de mensagem para comparação
@@ -69,12 +70,12 @@ export function WhatsAppMediaRenderer({
   fromMe,
   messageId,
   timestamp,
-  contactName
+  contactName,
+  onOpenMediaViewer
 }: WhatsAppMediaRendererProps) {
   const [imageError, setImageError] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [audioError, setAudioError] = useState(false);
-  const [viewerOpen, setViewerOpen] = useState(false);
 
   const normalizedType = normalizeMessageType(messageType);
 
@@ -99,51 +100,34 @@ export function WhatsAppMediaRenderer({
   if (effectiveType === 'image') {
     // Prioriza preview (base64) para exibição imediata, fallback para mediaUrl
     const displaySrc = mediaPreview || mediaUrl;
-    const viewerSrc = mediaUrl || mediaPreview || '';
-
-    const mediaItem: MediaViewerItem = {
-      id: messageId || 'single',
-      type: 'image',
-      src: viewerSrc,
-      preview: mediaPreview,
-      caption: content && content !== '[Imagem]' && !content.toLowerCase().includes('imagem') ? content : undefined,
-      timestamp: timestamp,
-      fromMe: fromMe,
-      contactName: contactName,
-    };
 
     // Sempre mostra a imagem se tiver alguma fonte disponível
     if (displaySrc && !imageError) {
       return (
-        <>
-          <div 
-            className="cursor-pointer group"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setViewerOpen(true);
-            }}
-          >
-            <img
-              src={displaySrc}
-              alt="Imagem"
-              loading="lazy"
-              referrerPolicy="no-referrer"
-              className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover group-hover:opacity-90 transition-opacity"
-              onError={() => setImageError(true)}
-            />
-            {content && content !== '[Imagem]' && !content.toLowerCase().includes('imagem') && (
-              <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
-                {content}
-              </p>
-            )}
-          </div>
-          <MediaViewer
-            open={viewerOpen}
-            onOpenChange={setViewerOpen}
-            media={mediaItem}
+        <div 
+          className="cursor-pointer group"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (messageId && onOpenMediaViewer) {
+              onOpenMediaViewer(messageId);
+            }
+          }}
+        >
+          <img
+            src={displaySrc}
+            alt="Imagem"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover group-hover:opacity-90 transition-opacity"
+            onError={() => setImageError(true)}
           />
-        </>
+          {content && content !== '[Imagem]' && !content.toLowerCase().includes('imagem') && (
+            <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
+              {content}
+            </p>
+          )}
+        </div>
       );
     }
     

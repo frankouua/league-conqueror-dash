@@ -4,7 +4,9 @@ import { ptBR } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -131,7 +133,11 @@ export function MediaViewer({
       <DialogContent 
         className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black/95 border-none flex flex-col [&>button]:hidden"
         onKeyDown={handleKeyDown}
+        aria-describedby={undefined}
       >
+        <VisuallyHidden>
+          <DialogTitle>Visualizador de mídia</DialogTitle>
+        </VisuallyHidden>
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
           <div className="flex items-center gap-3">
