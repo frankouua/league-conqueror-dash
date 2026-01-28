@@ -504,17 +504,15 @@ export function CRMChatsModule() {
                     >
                       <div
                         className={cn(
-                          "max-w-[75%] rounded-lg",
-                          // Para mídia visual, removemos o padding do balão para a miniatura ficar limpa (estilo WhatsApp)
+                          "max-w-[75%] rounded-lg overflow-hidden",
+                          // Mídia visual: padding menor para a miniatura ocupar mais espaço, mas mantém o balão
                           isWhatsAppVisualMediaMessage(msg.message_type, msg.media_url, msg.media_preview)
-                            ? "p-1 bg-transparent"
+                            ? "p-1"
                             : "px-2.5 py-1.5",
-                          // Mantém cores do balão apenas para texto; mídia fica sem fundo (a própria miniatura define o visual)
-                          isWhatsAppVisualMediaMessage(msg.message_type, msg.media_url, msg.media_preview)
-                            ? ""
-                            : msg.from_me
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
+                          // Cor do balão para todas as mensagens (texto e mídia)
+                          msg.from_me
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
                         )}
                       >
                         {!msg.from_me && msg.sender_name && (
@@ -536,11 +534,9 @@ export function CRMChatsModule() {
                         <p
                           className={cn(
                             "text-[10px] mt-0.5 text-right",
-                            isWhatsAppVisualMediaMessage(msg.message_type, msg.media_url, msg.media_preview)
-                              ? "text-muted-foreground"
-                              : msg.from_me
-                                ? "text-primary-foreground/60"
-                                : "text-muted-foreground"
+                            msg.from_me
+                              ? "text-primary-foreground/60"
+                              : "text-muted-foreground"
                           )}
                         >
                           {formatTimestamp(msg.message_timestamp)}
