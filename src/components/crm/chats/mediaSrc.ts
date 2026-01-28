@@ -41,7 +41,19 @@ export function shouldProxyUrl(url: string | null | undefined) {
 }
 
 export function buildMediaProxyUrl(url: string) {
-  const base = import.meta.env.VITE_SUPABASE_URL;
+  // Em alguns builds o VITE_SUPABASE_URL pode não estar disponível (ou vir vazio).
+  // Como as imagens recebidas dependem do proxy (não têm preview/base64), garantimos
+  // um fallback determinístico via PROJECT_ID para evitar src inválido ("undefined/..."),
+  // que faria o renderer cair no placeholder.
+  const envBase = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
+  const baseFromEnv = envBase.trim();
+
+  const projectId = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ?? '';
+  const baseFromProject = projectId ? `https://${projectId}.supabase.co` : '';
+
+  const base = (baseFromEnv || baseFromProject).replace(/\/+$/, '');
+  if (!base) return url;
+
   // Public function (verify_jwt=false)
   return `${base}/functions/v1/media-proxy?url=${encodeURIComponent(url)}`;
 }
