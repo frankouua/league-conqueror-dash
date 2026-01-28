@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Image as ImageIcon, Video, Music, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MediaViewer, MediaViewerItem } from './MediaViewer';
+import { getBestChatMediaSrc } from './mediaSrc';
 
 interface ChatMedia {
   id: string;
@@ -84,8 +85,9 @@ export function ChatMediaPreview({ messages, className }: ChatMediaPreviewProps)
   }
 
   const renderThumbnail = (item: ChatMedia) => {
-    const src = item.media_preview || item.media_url;
     const type = item.message_type?.toLowerCase();
+    const kind = type === 'video' ? 'video' : type === 'audio' || type === 'ptt' ? 'audio' : type === 'document' ? 'document' : 'image';
+    const src = getBestChatMediaSrc({ preview: item.media_preview, url: item.media_url, kind });
     
     if ((type === 'image' || type === 'sticker') && src) {
       return (

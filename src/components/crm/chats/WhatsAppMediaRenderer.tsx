@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getBestChatMediaSrc } from './mediaSrc';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -88,8 +89,8 @@ export function WhatsAppMediaRenderer({
       : normalizedType;
 
   const displaySrc = useMemo(() => {
-    // Prioriza preview (base64) para exibição imediata; fallback para URL original
-    return mediaPreview || mediaUrl;
+    // Prioriza preview (base64) para exibição imediata; fallback para proxy quando URL do provedor bloquear no browser
+    return getBestChatMediaSrc({ preview: mediaPreview, url: mediaUrl, kind: 'image' });
   }, [mediaPreview, mediaUrl]);
 
   // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
@@ -187,12 +188,13 @@ export function WhatsAppMediaRenderer({
 
   // Video messages
   if (effectiveType === 'video') {
-    if (mediaUrl && !videoError) {
+    const videoSrc = getBestChatMediaSrc({ preview: mediaPreview, url: mediaUrl, kind: 'video' });
+    if (videoSrc && !videoError) {
       return (
         <div className="space-y-1.5">
           <div className="relative max-w-[250px] rounded-md overflow-hidden bg-black/20">
             <video
-              src={mediaUrl}
+              src={videoSrc}
               controls
               className="max-w-full max-h-[250px]"
               onError={() => setVideoError(true)}
@@ -235,7 +237,8 @@ export function WhatsAppMediaRenderer({
 
   // Audio/Voice messages
   if (effectiveType === 'audio' || effectiveType === 'ptt') {
-    if (mediaUrl && !audioError) {
+    const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: mediaUrl, kind: 'audio' });
+    if (audioSrc && !audioError) {
       return (
         <div className="flex items-center gap-2 py-0.5 min-w-[180px]">
           <div className={cn(
@@ -249,8 +252,8 @@ export function WhatsAppMediaRenderer({
             className="h-7 max-w-[180px] flex-1"
             onError={() => setAudioError(true)}
           >
-            <source src={mediaUrl} type="audio/ogg" />
-            <source src={mediaUrl} type="audio/mpeg" />
+            <source src={audioSrc} type="audio/ogg" />
+            <source src={audioSrc} type="audio/mpeg" />
             Áudio não suportado
           </audio>
         </div>
@@ -281,6 +284,7 @@ export function WhatsAppMediaRenderer({
   // Document messages
   if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
     const fileName = (content && content !== '[Documento]') ? content : 'Documento';
+    const docUrl = mediaUrl ? getBestChatMediaSrc({ url: mediaUrl, kind: 'document' }) : null;
     
     return (
       <div className="flex items-center gap-2 py-1 min-w-[180px]">
@@ -294,14 +298,14 @@ export function WhatsAppMediaRenderer({
           <p className="text-[13px] font-medium break-words">{fileName}</p>
           <p className="text-[10px] opacity-70">Documento</p>
         </div>
-        {mediaUrl && (
+        {docUrl && (
           <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7 shrink-0"
             asChild
           >
-            <a href={mediaUrl} target="_blank" rel="noopener noreferrer" download>
+            <a href={docUrl} target="_blank" rel="noopener noreferrer" download>
               <Download className="w-3.5 h-3.5" />
             </a>
           </Button>
