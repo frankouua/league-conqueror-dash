@@ -357,7 +357,7 @@ export function WhatsAppMediaRenderer({
             {/* Play icon overlay */}
             <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
               <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                <Play className="w-6 h-6 text-gray-800 ml-1" fill="currentColor" />
+                <Play className="w-6 h-6 text-foreground ml-1" fill="currentColor" />
               </div>
             </div>
           </div>
