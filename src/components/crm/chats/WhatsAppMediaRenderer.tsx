@@ -97,38 +97,42 @@ export function WhatsAppMediaRenderer({
 
   // Image messages
   if (effectiveType === 'image') {
-    // Para mensagens enviadas, preferimos o preview persistido (data URI), porque links do WhatsApp
-    // podem vir criptografados (.enc) ou expirar, resultando em "arquivo sem sentido".
-    const preferredImageSrc = (fromMe && mediaPreview) ? mediaPreview : mediaUrl;
-    const showOriginalLink = !!mediaUrl && (!fromMe || !mediaPreview);
+    // Prioriza preview (base64) para exibição imediata, fallback para mediaUrl
+    const displaySrc = mediaPreview || mediaUrl;
+    const viewerSrc = mediaUrl || mediaPreview || '';
 
     const mediaItem: MediaViewerItem = {
       id: messageId || 'single',
       type: 'image',
-      src: mediaUrl || '',
+      src: viewerSrc,
       preview: mediaPreview,
-      caption: content && content !== '[Imagem]' ? content : undefined,
+      caption: content && content !== '[Imagem]' && !content.toLowerCase().includes('imagem') ? content : undefined,
       timestamp: timestamp,
       fromMe: fromMe,
       contactName: contactName,
     };
 
-    if (preferredImageSrc && !imageError) {
+    // Sempre mostra a imagem se tiver alguma fonte disponível
+    if (displaySrc && !imageError) {
       return (
         <>
           <div 
-            className="cursor-pointer"
-            onClick={() => setViewerOpen(true)}
+            className="cursor-pointer group"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setViewerOpen(true);
+            }}
           >
             <img
-              src={preferredImageSrc}
+              src={displaySrc}
               alt="Imagem"
               loading="lazy"
               referrerPolicy="no-referrer"
-              className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover hover:opacity-90 transition-opacity"
+              className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover group-hover:opacity-90 transition-opacity"
               onError={() => setImageError(true)}
             />
-            {content && content !== '[Imagem]' && (
+            {content && content !== '[Imagem]' && !content.toLowerCase().includes('imagem') && (
               <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
                 {content}
               </p>
@@ -157,7 +161,7 @@ export function WhatsAppMediaRenderer({
             {content && content !== '[Imagem]' && (
               <p className="text-[11px] opacity-70 break-words">{content}</p>
             )}
-            {!mediaUrl && (
+            {!mediaUrl && !mediaPreview && (
               <p className="text-[10px] opacity-50 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" />
                 Mídia não disponível
@@ -167,7 +171,7 @@ export function WhatsAppMediaRenderer({
         </div>
 
         {/* Se a URL existir mas o browser bloquear (hotlink/expiração), ainda damos um caminho pra ver a mídia */}
-        {showOriginalLink && (
+        {mediaUrl && (
           <Button
             variant="secondary"
             size="sm"
