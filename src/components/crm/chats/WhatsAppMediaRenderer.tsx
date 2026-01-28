@@ -85,8 +85,30 @@ function pickFirstString(...values: unknown[]): string | null {
 
 function fileFormatFromMimeOrName(mime: string | null, fileName: string | null): string {
   if (mime && typeof mime === 'string') {
-    const subtype = (mime.split('/')[1] || '').trim();
-    if (subtype) return subtype.toUpperCase();
+    const m = mime.toLowerCase().trim();
+
+    // Mapeamentos comuns (WhatsApp/UAZAPI costuma mandar mimetype completo do Office)
+    if (m === 'application/pdf') return 'PDF';
+    if (m === 'text/plain') return 'TXT';
+    if (m === 'text/csv') return 'CSV';
+    if (m === 'application/zip') return 'ZIP';
+    if (m === 'application/x-zip-compressed') return 'ZIP';
+
+    // Word
+    if (m === 'application/msword') return 'DOC';
+    if (m.includes('wordprocessingml.document')) return 'DOCX';
+
+    // Excel
+    if (m === 'application/vnd.ms-excel') return 'XLS';
+    if (m.includes('spreadsheetml.sheet')) return 'XLSX';
+
+    // PowerPoint
+    if (m === 'application/vnd.ms-powerpoint') return 'PPT';
+    if (m.includes('presentationml.presentation')) return 'PPTX';
+
+    // Fallback razoável: usa o subtype mas sem poluir com "vnd.openxml..."
+    const subtype = (m.split('/')[1] || '').trim();
+    if (subtype && !subtype.includes('vnd.') && !subtype.includes('openxml')) return subtype.toUpperCase();
   }
   if (fileName) {
     // evita considerar ".enc" como extensão final
