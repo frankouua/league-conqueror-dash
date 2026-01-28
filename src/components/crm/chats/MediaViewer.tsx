@@ -17,6 +17,7 @@ import {
   ZoomIn, 
   ZoomOut,
   RotateCw,
+  RotateCcw,
   Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -66,7 +67,8 @@ export function MediaViewer({
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.5, 4));
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.5, 0.5));
-  const handleRotate = () => setRotation(r => r + 90); // Always increment for clockwise animation
+  const handleRotateClockwise = () => setRotation(r => r + 90);
+  const handleRotateCounterClockwise = () => setRotation(r => r - 90);
   
   const handleOpenInNewTab = () => {
     // Para Base64 ou URLs, criar uma página HTML temporária com a imagem
@@ -187,8 +189,17 @@ export function MediaViewer({
                   variant="ghost"
                   size="icon"
                   className="text-white/80 hover:text-white hover:bg-white/10"
-                  onClick={handleRotate}
-                  title="Girar"
+                  onClick={handleRotateCounterClockwise}
+                  title="Girar anti-horário"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/80 hover:text-white hover:bg-white/10"
+                  onClick={handleRotateClockwise}
+                  title="Girar horário"
                 >
                   <RotateCw className="w-4 h-4" />
                 </Button>
