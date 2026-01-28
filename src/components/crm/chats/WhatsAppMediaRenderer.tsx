@@ -497,7 +497,7 @@ export function WhatsAppMediaRenderer({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 shrink-0"
+              className="h-7 w-7 shrink-0 hover:bg-muted"
               onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
