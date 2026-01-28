@@ -125,6 +125,35 @@ function extractMediaUrlFromRawData(rawData: unknown): string | null {
   );
 }
 
+function extractMediaPreviewFromRawData(rawData: unknown): string | null {
+  const raw = (rawData ?? {}) as any;
+
+  // Variações comuns: alguns payloads trazem thumbnail/preview (base64) em campos diferentes.
+  // Observação: pode vir como data URI ou base64 “cru” — o normalizePreview (mediaSrc) lida com isso.
+  return (
+    pickFirstString(
+      // UAZAPI / chat payloads
+      raw?.message?.content?.imagePreview,
+      raw?.message?.content?.image_preview,
+      raw?.message?.content?.preview,
+      raw?.message?.content?.thumbnail,
+
+      // WhatsApp-like (Baileys/WA Web) thumbnails
+      raw?.message?.imageMessage?.jpegThumbnail,
+      raw?.message?.imageMessage?.thumbnail,
+      raw?.message?.videoMessage?.jpegThumbnail,
+
+      // Outros fallbacks que já vimos em payloads
+      raw?.imagePreview,
+      raw?.image_preview,
+      raw?.preview,
+      raw?.thumbnail,
+      raw?.chat?.imagePreview,
+      raw?.chat?.image_preview
+    ) ?? null
+  );
+}
+
 function fileFormatFromMimeOrName(mime: string | null, fileName: string | null): string {
   if (mime && typeof mime === 'string') {
     const m = mime.toLowerCase().trim();
@@ -288,6 +317,11 @@ export function WhatsAppMediaRenderer({
     return mediaUrl ?? extractMediaUrlFromRawData(rawData);
   }, [mediaUrl, rawData]);
 
+  // Mensagens recebidas podem não persistir media_preview na tabela, mas o thumbnail vem no raw_data.
+  const resolvedMediaPreview = useMemo(() => {
+    return mediaPreview ?? extractMediaPreviewFromRawData(rawData);
+  }, [mediaPreview, rawData]);
+
   // Heurística: às vezes o backend salva message_type como Conversation/Text, mas a mídia chega via media_url.
   // Nesse caso, renderizamos pelo mediaUrl (experiência estilo Direct/Messenger).
   const guessedKind = guessMediaKindFromUrl(resolvedMediaUrl);
@@ -298,8 +332,8 @@ export function WhatsAppMediaRenderer({
 
   const displaySrc = useMemo(() => {
     // Prioriza preview (base64 de alta qualidade) para exibição imediata; fallback para proxy da URL
-    return getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
-  }, [mediaPreview, resolvedMediaUrl]);
+    return getBestChatMediaSrc({ preview: resolvedMediaPreview, url: resolvedMediaUrl, kind: 'image' });
+  }, [resolvedMediaPreview, resolvedMediaUrl]);
 
   // IMPORTANTE: URLs de mídia recebida frequentemente dependem do proxy para contornar CORS/hotlink.
   // Para máxima compatibilidade, fazemos um fetch do proxy e renderizamos via blob URL.
@@ -308,8 +342,10 @@ export function WhatsAppMediaRenderer({
     if (!displaySrc) return false;
     const s = displaySrc.toLowerCase();
     // Só vale a pena quando NÃO temos preview (senão já renderiza local)
-    return !mediaPreview && s.includes('/functions/v1/media-proxy');
-  }, [displaySrc, mediaPreview]);
+    // E evitamos gastar requisição em .enc (comum vir criptografado e não renderizável no navegador).
+    const isEnc = resolvedMediaUrl?.toLowerCase().includes('.enc') ?? false;
+    return !resolvedMediaPreview && !isEnc && s.includes('/functions/v1/media-proxy');
+  }, [displaySrc, resolvedMediaPreview, resolvedMediaUrl]);
 
   useEffect(() => {
     let cancelled = false;
@@ -349,7 +385,7 @@ export function WhatsAppMediaRenderer({
     setImageError(false);
     setVideoError(false);
     setAudioError(false);
-  }, [messageType, resolvedMediaUrl, mediaPreview, displaySrc]);
+  }, [messageType, resolvedMediaUrl, resolvedMediaPreview, displaySrc]);
 
   // Text messages
   if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
