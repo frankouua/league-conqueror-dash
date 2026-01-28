@@ -61,7 +61,37 @@ export function MediaViewer({
   const handleRotate = () => setRotation(r => (r + 90) % 360);
   
   const handleOpenInNewTab = () => {
-    window.open(imageSrc, '_blank');
+    // Para Base64 ou URLs, criar uma página HTML temporária com a imagem
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Imagem</title>
+            <style>
+              body {
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background: #0a0a0a;
+              }
+              img {
+                max-width: 100%;
+                max-height: 100vh;
+                object-fit: contain;
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${imageSrc}" alt="Imagem" />
+          </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
   };
 
   const handleDownload = async () => {
