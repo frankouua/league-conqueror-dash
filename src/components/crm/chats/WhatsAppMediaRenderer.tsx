@@ -386,7 +386,7 @@ export function WhatsAppMediaRenderer({
     setImageError(false);
     setVideoError(false);
     setAudioError(false);
-  }, [messageType, resolvedMediaUrl, resolvedMediaPreview, hiResSrc, previewSrc]);
+  }, [messageType, resolvedMediaUrl, resolvedMediaPreview, hiResSrc, previewSrc, authedBlobSrc]);
 
   // Text messages
   if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
@@ -403,9 +403,10 @@ export function WhatsAppMediaRenderer({
     // Exceção: quando a mídia é .enc, browsers frequentemente não renderizam mesmo com proxy;
     // então preferimos o preview para evitar “imagem sem resolução”/quebrada.
     const isEnc = resolvedMediaUrl?.toLowerCase().includes('.enc') ?? false;
-    const finalImgSrc =
-      authedBlobSrc ||
-      (isEnc ? (previewSrc || hiResSrc) : (hiResSrc || previewSrc));
+    // Para não “desconfigurar” o chat enquanto a alta carrega, mostramos o preview primeiro,
+    // e trocamos automaticamente para o blob (alta) quando estiver pronto.
+    const placeholderSrc = isEnc ? (previewSrc || hiResSrc) : (previewSrc || hiResSrc);
+    const finalImgSrc = authedBlobSrc || placeholderSrc;
 
     if (finalImgSrc && !imageError) {
       return (
@@ -425,7 +426,11 @@ export function WhatsAppMediaRenderer({
             loading="lazy"
             referrerPolicy="no-referrer"
             className="w-[240px] max-w-full max-h-[320px] rounded-lg object-contain bg-muted group-hover:opacity-90 transition-opacity"
-            onError={() => setImageError(true)}
+             onError={() => {
+               // Se o placeholder falhar, ainda podemos ter blob em seguida.
+               // Só marcamos erro se NÃO temos blob.
+               if (!authedBlobSrc) setImageError(true);
+             }}
           />
           {content && 
            content !== '[Imagem]' && 
