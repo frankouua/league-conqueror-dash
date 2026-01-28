@@ -450,11 +450,28 @@ export function WhatsAppMediaRenderer({
               variant="ghost"
               size="icon"
               className="h-7 w-7 shrink-0"
-              asChild
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                  const response = await fetch(docUrl);
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = fileName;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                } catch (err) {
+                  console.error('Erro ao baixar documento:', err);
+                  // Fallback: abre em nova aba
+                  window.open(docUrl, '_blank');
+                }
+              }}
             >
-              <a href={docUrl} target="_blank" rel="noopener noreferrer" download>
-                <Download className="w-3.5 h-3.5" />
-              </a>
+              <Download className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>
