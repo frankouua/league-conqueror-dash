@@ -15,6 +15,77 @@ const ALLOWED_HOSTS = new Set([
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25MB
 
+function sniffContentType(bytes: Uint8Array): string | null {
+  if (bytes.length < 12) return null;
+
+  // JPEG
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  // PNG
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+  // GIF
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'image/gif';
+  // WEBP: RIFF....WEBP
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+  // PDF: %PDF
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return 'application/pdf';
+  // OGG: OggS
+  if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) return 'audio/ogg';
+  // MP3: ID3 or frame sync
+  if (
+    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
+    (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)
+  ) {
+    return 'audio/mpeg';
+  }
+  // MP4: ....ftyp
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return 'video/mp4';
+
+  return null;
+}
+
+function contentTypeFromExt(url: URL): string | null {
+  const path = url.pathname.toLowerCase();
+  if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+  if (path.endsWith('.png')) return 'image/png';
+  if (path.endsWith('.gif')) return 'image/gif';
+  if (path.endsWith('.webp')) return 'image/webp';
+  if (path.endsWith('.mp4') || path.endsWith('.m4v')) return 'video/mp4';
+  if (path.endsWith('.webm')) return 'video/webm';
+  if (path.endsWith('.ogg')) return 'audio/ogg';
+  if (path.endsWith('.mp3')) return 'audio/mpeg';
+  if (path.endsWith('.wav')) return 'audio/wav';
+  if (path.endsWith('.m4a')) return 'audio/mp4';
+  if (path.endsWith('.pdf')) return 'application/pdf';
+  return null;
+}
+
+function normalizeUpstreamContentType(raw: string | null): string {
+  if (!raw) return '';
+  return raw.split(';')[0]?.trim().toLowerCase() ?? '';
+}
+
 function corsHeaders(origin: string | null) {
   // We allow all origins because this is used as an <img>/<video> src.
   // The allowlist above prevents SSRF.
@@ -95,7 +166,13 @@ Deno.serve(async (req) => {
     }
 
     const bytes = await readUpToLimit(upstream);
-    const contentType = upstream.headers.get('content-type') ?? 'application/octet-stream';
+    const upstreamType = normalizeUpstreamContentType(upstream.headers.get('content-type'));
+
+    // Many WhatsApp CDN URLs end with .enc and return application/octet-stream.
+    // Browsers won't render <img>/<video> without the correct Content-Type.
+    const inferredType = sniffContentType(bytes) ?? contentTypeFromExt(validation.url);
+    const contentType =
+      upstreamType && upstreamType !== 'application/octet-stream' ? upstreamType : inferredType ?? 'application/octet-stream';
 
     return new Response(bytes, {
       status: 200,
