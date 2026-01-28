@@ -47,10 +47,21 @@ export function ChatMediaPreview({ messages, className }: ChatMediaPreviewProps)
     return mediaMessages.map(msg => {
       const type = msg.message_type?.toLowerCase() || 'document';
       const config = mediaTypeConfig[type] || mediaTypeConfig.document;
+
+      const kind =
+        type === 'video'
+          ? 'video'
+          : type === 'audio' || type === 'ptt'
+            ? 'audio'
+            : type === 'document'
+              ? 'document'
+              : 'image';
+
       return {
         id: msg.id,
         type: config.type,
-        src: msg.media_url || '',
+        // Garante que URLs do WhatsApp passem pelo proxy também no visualizador
+        src: getBestChatMediaSrc({ preview: null, url: msg.media_url, kind }) || '',
         preview: msg.media_preview,
         caption: msg.content,
         timestamp: msg.message_timestamp,
