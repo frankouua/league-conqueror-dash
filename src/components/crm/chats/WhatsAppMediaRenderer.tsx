@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { 
   Play, 
@@ -87,6 +87,19 @@ export function WhatsAppMediaRenderer({
       ? (guessedKind ?? (isImagePlaceholderText(content) ? 'image' : isVideoPlaceholderText(content) ? 'video' : normalizedType))
       : normalizedType;
 
+  const displaySrc = useMemo(() => {
+    // Prioriza preview (base64) para exibição imediata; fallback para URL original
+    return mediaPreview || mediaUrl;
+  }, [mediaPreview, mediaUrl]);
+
+  // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
+  // não podemos “travar” no fallback por causa de um onError antigo.
+  useEffect(() => {
+    setImageError(false);
+    setVideoError(false);
+    setAudioError(false);
+  }, [messageType, mediaUrl, mediaPreview]);
+
   // Text messages
   if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
     return (
@@ -98,9 +111,6 @@ export function WhatsAppMediaRenderer({
 
   // Image messages
   if (effectiveType === 'image') {
-    // Prioriza preview (base64) para exibição imediata, fallback para mediaUrl
-    const displaySrc = mediaPreview || mediaUrl;
-
     // Sempre mostra a imagem se tiver alguma fonte disponível
     if (displaySrc && !imageError) {
       return (
@@ -119,7 +129,7 @@ export function WhatsAppMediaRenderer({
             alt="Imagem"
             loading="lazy"
             referrerPolicy="no-referrer"
-            className="w-[240px] max-w-full max-h-[320px] rounded-lg object-cover group-hover:opacity-90 transition-opacity"
+            className="w-[240px] max-w-full max-h-[320px] rounded-lg object-contain bg-muted group-hover:opacity-90 transition-opacity"
             onError={() => setImageError(true)}
           />
           {content && 

@@ -36,6 +36,19 @@ import { ChatMediaPreview } from '@/components/crm/chats/ChatMediaPreview';
 
 type Channel = 'whatsapp' | 'instagram' | 'facebook';
 
+function isWhatsAppVisualMediaMessage(messageType: string | null, mediaUrl: string | null, mediaPreview?: string | null) {
+  const type = (messageType?.toLowerCase() || '').replace('message', '').trim();
+  const hasMedia = Boolean(mediaUrl || mediaPreview);
+
+  // Tipos que devem parecer “WhatsApp”: imagem/sticker/vídeo/áudio/documento
+  if (['image', 'sticker', 'video', 'audio', 'ptt', 'document', 'documentwithcaption'].includes(type)) return true;
+
+  // Heurística: às vezes vem como Conversation/Text mas com mídia presente
+  if (hasMedia && (type === 'text' || type === 'conversation' || type === 'extendedtext' || type === '')) return true;
+
+  return false;
+}
+
 function formatTimestamp(timestamp: string | null): string {
   if (!timestamp) return '';
   try {
@@ -491,10 +504,17 @@ export function CRMChatsModule() {
                     >
                       <div
                         className={cn(
-                          "max-w-[75%] rounded-lg px-2.5 py-1.5",
-                          msg.from_me
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
+                          "max-w-[75%] rounded-lg",
+                          // Para mídia visual, removemos o padding do balão para a miniatura ficar limpa (estilo WhatsApp)
+                          isWhatsAppVisualMediaMessage(msg.message_type, msg.media_url, msg.media_preview)
+                            ? "p-1 bg-transparent"
+                            : "px-2.5 py-1.5",
+                          // Mantém cores do balão apenas para texto; mídia fica sem fundo (a própria miniatura define o visual)
+                          isWhatsAppVisualMediaMessage(msg.message_type, msg.media_url, msg.media_preview)
+                            ? ""
+                            : msg.from_me
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
                         )}
                       >
                         {!msg.from_me && msg.sender_name && (
@@ -516,7 +536,11 @@ export function CRMChatsModule() {
                         <p
                           className={cn(
                             "text-[10px] mt-0.5 text-right",
-                            msg.from_me ? "text-primary-foreground/60" : "text-muted-foreground"
+                            isWhatsAppVisualMediaMessage(msg.message_type, msg.media_url, msg.media_preview)
+                              ? "text-muted-foreground"
+                              : msg.from_me
+                                ? "text-primary-foreground/60"
+                                : "text-muted-foreground"
                           )}
                         >
                           {formatTimestamp(msg.message_timestamp)}
