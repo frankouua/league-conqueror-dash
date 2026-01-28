@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getBestChatMediaSrc } from './mediaSrc';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -121,32 +122,6 @@ function extractMediaUrlFromRawData(rawData: unknown): string | null {
       raw?.media_url,
       raw?.content?.url,
       raw?.content?.URL
-    ) ?? null
-  );
-}
-
-function extractMediaPreviewFromRawData(rawData: unknown): string | null {
-  const raw = (rawData ?? {}) as any;
-
-  // UAZAPI: o thumbnail da mensagem de imagem vem em message.content.JPEGThumbnail (base64).
-  // ATENÇÃO: Não confundir com chat.imagePreview que é o avatar do contato!
-  // O normalizePreview (mediaSrc) converte base64 cru para data URI se necessário.
-  return (
-    pickFirstString(
-      // UAZAPI (estrutura real observada): message.content.JPEGThumbnail
-      raw?.message?.content?.JPEGThumbnail,
-      raw?.message?.content?.jpegThumbnail,
-      raw?.message?.content?.jpeg_thumbnail,
-
-      // WhatsApp-like (Baileys/WA Web) thumbnails
-      raw?.message?.imageMessage?.jpegThumbnail,
-      raw?.message?.imageMessage?.JPEGThumbnail,
-      raw?.message?.videoMessage?.jpegThumbnail,
-      raw?.message?.videoMessage?.JPEGThumbnail,
-
-      // Outros fallbacks em message.content (não chat!)
-      raw?.message?.content?.thumbnail,
-      raw?.message?.content?.preview
     ) ?? null
   );
 }
@@ -314,11 +289,6 @@ export function WhatsAppMediaRenderer({
     return mediaUrl ?? extractMediaUrlFromRawData(rawData);
   }, [mediaUrl, rawData]);
 
-  // Mensagens recebidas podem não persistir media_preview na tabela, mas o thumbnail vem no raw_data.
-  const resolvedMediaPreview = useMemo(() => {
-    return mediaPreview ?? extractMediaPreviewFromRawData(rawData);
-  }, [mediaPreview, rawData]);
-
   // Heurística: às vezes o backend salva message_type como Conversation/Text, mas a mídia chega via media_url.
   // Nesse caso, renderizamos pelo mediaUrl (experiência estilo Direct/Messenger).
   const guessedKind = guessMediaKindFromUrl(resolvedMediaUrl);
@@ -327,40 +297,43 @@ export function WhatsAppMediaRenderer({
       ? (guessedKind ?? (isImagePlaceholderText(content) ? 'image' : isVideoPlaceholderText(content) ? 'video' : normalizedType))
       : normalizedType;
 
-  // Para imagens: queremos SEMPRE tentar a versão em alta (URL/proxy) quando existir.
-  // O preview (thumbnail) serve apenas como placeholder/fallback.
-  const hiResSrc = useMemo(() => {
-    return getBestChatMediaSrc({ preview: null, url: resolvedMediaUrl, kind: 'image' });
-  }, [resolvedMediaUrl]);
+  const displaySrc = useMemo(() => {
+    // Prioriza preview (base64 de alta qualidade) para exibição imediata; fallback para proxy da URL
+    return getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
+  }, [mediaPreview, resolvedMediaUrl]);
 
-  const previewSrc = useMemo(() => {
-    return getBestChatMediaSrc({ preview: resolvedMediaPreview, url: null, kind: 'image' });
-  }, [resolvedMediaPreview]);
-
-  // IMPORTANTE: URLs de mídia recebida frequentemente dependem do proxy para contornar CORS/hotlink.
-  // Para máxima compatibilidade, fazemos um fetch do proxy e renderizamos via blob URL.
-  // (Sem headers customizados, evitando preflight CORS desnecessário.)
-  const shouldFetchProxyAsBlob = useMemo(() => {
-    if (!hiResSrc) return false;
-    const s = hiResSrc.toLowerCase();
-    // Evitamos gastar requisição em .enc (comum vir criptografado e não renderizável no navegador).
-    const isEnc = resolvedMediaUrl?.toLowerCase().includes('.enc') ?? false;
-    return !isEnc && s.includes('/functions/v1/media-proxy');
-  }, [hiResSrc, resolvedMediaUrl]);
+  // IMPORTANTE: a rota de "backend functions" pode exigir headers (apikey/authorization).
+  // Um <img src="..."> não envia headers customizados; então para mídias RECEBIDAS
+  // (sem preview/base64) que dependem do proxy, buscamos via fetch autenticado e
+  // renderizamos via blob URL.
+  const shouldUseAuthedFetch = useMemo(() => {
+    if (!displaySrc) return false;
+    const s = displaySrc.toLowerCase();
+    // Só vale a pena quando NÃO temos preview (senão já renderiza local)
+    return !mediaPreview && s.includes('/functions/v1/media-proxy');
+  }, [displaySrc, mediaPreview]);
 
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
 
     async function run() {
-      if (!shouldFetchProxyAsBlob || !hiResSrc) {
+      if (!shouldUseAuthedFetch || !displaySrc) {
         setAuthedBlobSrc(null);
         return;
       }
 
       try {
-        // Sem headers customizados para evitar CORS preflight.
-        const resp = await fetch(hiResSrc);
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
+
+        const headers: Record<string, string> = {
+          // publishable key do projeto (seguro para frontend)
+          apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''),
+        };
+        if (accessToken) headers.authorization = `Bearer ${accessToken}`;
+
+        const resp = await fetch(displaySrc, { headers });
         if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
 
         const blob = await resp.blob();
@@ -378,15 +351,15 @@ export function WhatsAppMediaRenderer({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [hiResSrc, shouldFetchProxyAsBlob]);
+  }, [displaySrc, shouldUseAuthedFetch]);
 
   // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
-  // não podemos "travar" no fallback por causa de um onError antigo.
+  // não podemos “travar” no fallback por causa de um onError antigo.
   useEffect(() => {
     setImageError(false);
     setVideoError(false);
     setAudioError(false);
-  }, [messageType, resolvedMediaUrl, resolvedMediaPreview, hiResSrc, previewSrc, authedBlobSrc]);
+  }, [messageType, resolvedMediaUrl, mediaPreview, displaySrc]);
 
   // Text messages
   if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
@@ -399,20 +372,8 @@ export function WhatsAppMediaRenderer({
 
   // Image messages
   if (effectiveType === 'image') {
-    // Ordem geral: blob (alta via proxy) > URL direta/proxy (alta) > preview (thumbnail)
-    // Exceção: quando a mídia é .enc, browsers frequentemente não renderizam mesmo com proxy;
-    // então preferimos o preview para evitar “imagem sem resolução”/quebrada.
-    const isEnc = resolvedMediaUrl?.toLowerCase().includes('.enc') ?? false;
-
-    // REGRA (definitiva):
-    // - Se for .enc: geralmente não é renderizável no browser => preferir preview.
-    // - Se a hi-res é via proxy: NÃO usar a URL do proxy direto no <img> (muitos browsers falham
-    //   quando o Content-Type é genérico); usamos blob via fetch.
-    // - Preview é APENAS placeholder/fallback (nunca “trava” em thumb se houver hi-res).
-    const finalImgSrc =
-      isEnc
-        ? (previewSrc || hiResSrc)
-        : (authedBlobSrc || (shouldFetchProxyAsBlob ? previewSrc : hiResSrc) || previewSrc);
+    // Sempre mostra a imagem se tiver alguma fonte disponível
+    const finalImgSrc = authedBlobSrc || displaySrc;
 
     if (finalImgSrc && !imageError) {
       return (
@@ -431,12 +392,8 @@ export function WhatsAppMediaRenderer({
             alt="Imagem"
             loading="lazy"
             referrerPolicy="no-referrer"
-            className="w-full max-w-[240px] max-h-[320px] rounded-lg object-contain bg-muted group-hover:opacity-90 transition-opacity"
-            onError={() => {
-              // Se estávamos no preview (placeholder), não “mata” a imagem: pode virar blob em seguida.
-              // Só marcamos erro quando nem blob nem hi-res direto existem.
-              if (!authedBlobSrc && !(hiResSrc && !shouldFetchProxyAsBlob)) setImageError(true);
-            }}
+            className="w-[240px] max-w-full max-h-[320px] rounded-lg object-contain bg-muted group-hover:opacity-90 transition-opacity"
+            onError={() => setImageError(true)}
           />
           {content && 
            content !== '[Imagem]' && 
@@ -541,42 +498,44 @@ export function WhatsAppMediaRenderer({
           fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
         )}>
           <Video className="w-6 h-6 opacity-60" />
-          <Play className="w-3 h-3 absolute bottom-1 right-1 opacity-60" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Play className="w-3 h-3" />
+          </div>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">🎬 Vídeo</p>
-          {content && content !== '[Vídeo]' && (
-            <p className="text-[11px] opacity-70 break-words">{content}</p>
+          {!mediaUrl && !mediaPreview && (
+            <p className="text-[10px] opacity-50 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              Mídia não disponível
+            </p>
           )}
         </div>
       </div>
     );
   }
 
-  // Audio/PTT messages
+  // Audio/Voice messages
   if (effectiveType === 'audio' || effectiveType === 'ptt') {
     const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'audio' });
-    
     if (audioSrc && !audioError) {
       return (
-        <div className="w-[240px] max-w-full">
+        <div className="flex items-center gap-2 py-0.5 min-w-[180px]">
+          <div className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+            fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
+          )}>
+            <Mic className="w-4 h-4" />
+          </div>
           <audio 
             controls 
-            src={audioSrc}
+            className="h-7 max-w-[180px] flex-1"
             onError={() => setAudioError(true)}
-            className="w-full h-10"
-            preload="metadata"
-          />
-          {content && 
-           content !== '[Áudio]' && 
-           content !== '[audio]' && 
-           content !== '[ptt]' &&
-           !content.toLowerCase().includes('áudio') && 
-           !content.toLowerCase().match(/^\[?(audio|ptt)\]?$/) && (
-            <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">
-              {content}
-            </p>
-          )}
+          >
+            <source src={audioSrc} type="audio/ogg" />
+            <source src={audioSrc} type="audio/mpeg" />
+            Áudio não suportado
+          </audio>
         </div>
       );
     }
@@ -584,15 +543,18 @@ export function WhatsAppMediaRenderer({
     return (
       <div className="flex items-center gap-2 py-1">
         <div className={cn(
-          "p-2 rounded-md",
+          "w-8 h-8 rounded-full flex items-center justify-center",
           fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
         )}>
-          <Mic className="w-6 h-6 opacity-60" />
+          <Mic className="w-4 h-4" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">🎤 Áudio</p>
-          {content && content !== '[Áudio]' && content !== '[ptt]' && (
-            <p className="text-[11px] opacity-70 break-words">{content}</p>
+          {!mediaUrl && (
+            <p className="text-[10px] opacity-50 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              Mídia não disponível
+            </p>
           )}
         </div>
       </div>
@@ -601,60 +563,59 @@ export function WhatsAppMediaRenderer({
 
   // Document messages
   if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
-    const { fileName, fileFormat, caption } = extractDocumentMeta(rawData, content, resolvedMediaUrl);
-    const documentUrl = resolvedMediaUrl;
+    const docUrl = resolvedMediaUrl ? getBestChatMediaSrc({ url: resolvedMediaUrl, kind: 'document' }) : null;
 
-    const handleDownload = async () => {
-      if (!documentUrl) return;
-      
-      try {
-        // Usa proxy para contornar bloqueios de hotlink
-        const proxyUrl = getBestChatMediaSrc({ preview: null, url: documentUrl, kind: 'document' });
-        if (!proxyUrl) return;
-        
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error('Download failed');
-        
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName || 'documento';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        // Fallback: abre em nova aba
-        window.open(documentUrl, '_blank');
-      }
-    };
+    const { fileName, fileFormat, caption } = extractDocumentMeta(rawData, content, resolvedMediaUrl);
     
     return (
       <div className="space-y-1.5">
-        <div 
-          className={cn(
-            "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors",
-            fromMe ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-muted-foreground/5 hover:bg-muted-foreground/10"
-          )}
-          onClick={handleDownload}
-        >
+        <div className="flex items-center gap-2 py-1 min-w-[180px]">
           <div className={cn(
-            "p-2 rounded-md shrink-0",
+            "p-2 rounded-md",
             fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
           )}>
-            <FileText className="w-5 h-5 opacity-70" />
+            <FileText className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium truncate" title={fileName}>
-              {fileName}
-            </p>
-            <p className="text-[11px] opacity-60">{fileFormat}</p>
+            <p className="text-[13px] font-medium break-words">{fileName}</p>
+            <p className="text-[10px] opacity-70">{fileFormat}</p>
           </div>
-          <Download className="w-4 h-4 opacity-50 shrink-0" />
+          {docUrl && (
+            <button
+              type="button"
+              className={cn(
+                "p-2 rounded-md shrink-0 transition-colors",
+                fromMe 
+                  ? "hover:bg-primary-foreground/20" 
+                  : "hover:bg-muted-foreground/10"
+              )}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                  const response = await fetch(docUrl);
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = fileName;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                } catch (err) {
+                  console.error('Erro ao baixar documento:', err);
+                  // Fallback: abre em nova aba
+                  window.open(docUrl, '_blank');
+                }
+              }}
+            >
+              <Download className="w-5 h-5" />
+            </button>
+          )}
         </div>
-        {caption && (
+        {/* Legenda abaixo do documento */}
+        {caption && caption !== fileName && (
           <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
             {caption}
           </p>
@@ -664,67 +625,68 @@ export function WhatsAppMediaRenderer({
   }
 
   // Sticker messages
-  if (effectiveType === 'sticker') {
-    const stickerSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
-    
-    if (stickerSrc) {
+  if (normalizedType === 'sticker') {
+    if (mediaUrl) {
       return (
         <img
-          src={stickerSrc}
+          src={mediaUrl}
           alt="Sticker"
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="w-[120px] h-[120px] object-contain"
+          className="w-24 h-24 object-contain"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
         />
       );
     }
     
     return (
       <div className="flex items-center gap-2 py-1">
-        <div className={cn(
-          "p-2 rounded-md",
-          fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
-        )}>
-          <Sticker className="w-6 h-6 opacity-60" />
-        </div>
-        <p className="text-[13px]">Sticker</p>
+        <Sticker className="w-6 h-6 opacity-60" />
+        <span className="text-[13px]">Sticker</span>
       </div>
     );
   }
 
   // Location messages
-  if (effectiveType === 'location' || effectiveType === 'liveLocation') {
+  if (normalizedType === 'location' || normalizedType === 'livelocation') {
     return (
       <div className="flex items-center gap-2 py-1">
         <div className={cn(
           "p-2 rounded-md",
           fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
         )}>
-          <MapPin className="w-6 h-6 opacity-60" />
+          <MapPin className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">📍 Localização</p>
-          {content && (
+          {content && content !== '[Localização]' && (
             <p className="text-[11px] opacity-70 break-words">{content}</p>
           )}
         </div>
+        {mediaUrl && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+            <a href={mediaUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </Button>
+        )}
       </div>
     );
   }
 
   // Contact/vCard messages
-  if (effectiveType === 'vcard' || effectiveType === 'contact') {
+  if (normalizedType === 'contact' || normalizedType === 'contactsarray') {
     return (
       <div className="flex items-center gap-2 py-1">
         <div className={cn(
           "p-2 rounded-md",
           fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
         )}>
-          <User className="w-6 h-6 opacity-60" />
+          <User className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium">👤 Contato</p>
-          {content && (
+          {content && content !== '[Contato]' && (
             <p className="text-[11px] opacity-70 break-words">{content}</p>
           )}
         </div>
@@ -732,33 +694,59 @@ export function WhatsAppMediaRenderer({
     );
   }
 
-  // Fallback for unknown message types
-  return (
-    <div className="flex items-center gap-2 py-1">
-      <div className={cn(
-        "p-2 rounded-md",
-        fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
-      )}>
-        <File className="w-6 h-6 opacity-60" />
+  // Reaction messages
+  if (normalizedType === 'reaction') {
+    return (
+      <div className="text-xl py-0.5">
+        {content || '👍'}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-medium capitalize">{effectiveType || 'Mídia'}</p>
-        {content && (
-          <p className="text-[11px] opacity-70 break-words">{content}</p>
+    );
+  }
+
+  // Poll messages
+  if (normalizedType === 'poll' || normalizedType === 'pollcreation') {
+    return (
+      <div className="py-1">
+        <p className="text-[13px] font-medium mb-0.5">📊 Enquete</p>
+        {content && content !== '[Enquete]' && (
+          <p className="text-[13px] opacity-90">{content}</p>
         )}
       </div>
-      {resolvedMediaUrl && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2"
-          asChild
-        >
-          <a href={resolvedMediaUrl} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </Button>
-      )}
+    );
+  }
+
+  // Protocol/system messages
+  if (normalizedType === 'protocol') {
+    return (
+      <p className="text-[11px] italic opacity-70">
+        Mensagem do sistema
+      </p>
+    );
+  }
+
+  // Button/Interactive messages
+  if (normalizedType === 'buttons' || normalizedType === 'template' || normalizedType === 'list') {
+    return (
+      <div className="py-1">
+        {content && <p className="text-[13px] break-words whitespace-pre-wrap">{content}</p>}
+        <p className="text-[10px] opacity-70 mt-0.5">📱 Mensagem interativa</p>
+      </div>
+    );
+  }
+
+  // Default fallback for unknown types
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <File className="w-4 h-4 opacity-60" />
+      <div className="flex-1 min-w-0">
+        {content ? (
+          <p className="text-[13px] break-words whitespace-pre-wrap">{content}</p>
+        ) : (
+          <p className="text-[13px] opacity-70">
+            {messageType ? `[${messageType}]` : '[Mídia]'}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
