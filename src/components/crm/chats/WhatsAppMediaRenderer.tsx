@@ -306,7 +306,7 @@ export function WhatsAppMediaRenderer({
     setImageError(false);
     setVideoError(false);
     setAudioError(false);
-  }, [messageType, resolvedMediaUrl, mediaPreview]);
+  }, [messageType, resolvedMediaUrl, mediaPreview, displaySrc]);
 
   // Text messages
   if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
