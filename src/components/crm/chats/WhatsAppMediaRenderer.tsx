@@ -246,27 +246,10 @@ export function WhatsAppMediaRenderer({
       ? (guessedKind ?? (isImagePlaceholderText(content) ? 'image' : isVideoPlaceholderText(content) ? 'video' : normalizedType))
       : normalizedType;
 
-  // Extrai thumbnail base64 do raw_data para imagens recebidas (UAZAPI envia como JPEGThumbnail)
-  const extractedThumbnail = useMemo(() => {
-    if (mediaPreview) return null; // Já temos preview, não precisa extrair
-    const raw = (rawData ?? {}) as any;
-    const thumbnail = raw?.message?.content?.JPEGThumbnail 
-      ?? raw?.message?.imageMessage?.jpegThumbnail
-      ?? raw?.message?.videoMessage?.jpegThumbnail
-      ?? null;
-    if (thumbnail && typeof thumbnail === 'string' && thumbnail.length > 50) {
-      // Verifica se já é data URI ou se precisa adicionar prefixo
-      if (thumbnail.startsWith('data:')) return thumbnail;
-      return `data:image/jpeg;base64,${thumbnail}`;
-    }
-    return null;
-  }, [rawData, mediaPreview]);
-
   const displaySrc = useMemo(() => {
-    // Prioriza: 1) media_preview do DB, 2) thumbnail extraído do raw_data, 3) proxy da URL
-    const effectivePreview = mediaPreview || extractedThumbnail;
-    return getBestChatMediaSrc({ preview: effectivePreview, url: mediaUrl, kind: 'image' });
-  }, [mediaPreview, mediaUrl, extractedThumbnail]);
+    // Prioriza preview (base64 de alta qualidade) para exibição imediata; fallback para proxy da URL
+    return getBestChatMediaSrc({ preview: mediaPreview, url: mediaUrl, kind: 'image' });
+  }, [mediaPreview, mediaUrl]);
 
   // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
   // não podemos “travar” no fallback por causa de um onError antigo.
