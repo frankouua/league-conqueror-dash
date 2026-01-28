@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -49,6 +49,12 @@ export function MediaViewer({
 }: MediaViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+
+  // Reset zoom and rotation when switching to a different image
+  useEffect(() => {
+    setZoom(1);
+    setRotation(0);
+  }, [media?.id]);
 
   if (!media) return null;
 
