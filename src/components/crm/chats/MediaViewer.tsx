@@ -66,7 +66,7 @@ export function MediaViewer({
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.5, 4));
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.5, 0.5));
-  const handleRotate = () => setRotation(r => (r + 90) % 360);
+  const handleRotate = () => setRotation(r => r + 90); // Always increment for clockwise animation
   
   const handleOpenInNewTab = () => {
     // Para Base64 ou URLs, criar uma página HTML temporária com a imagem
