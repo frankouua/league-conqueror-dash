@@ -285,8 +285,11 @@ export function MediaViewer({
           )}
         </div>
 
-        {/* Caption */}
-        {media.caption && (
+        {/* Caption - filter out placeholder texts */}
+        {media.caption && 
+         !media.caption.toLowerCase().match(/^\[?image\]?$/) && 
+         !media.caption.toLowerCase().match(/^\[?imagem\]?$/) && 
+         !media.caption.toLowerCase().includes('📷 imagem') && (
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
             <p className="text-white/90 text-center max-w-2xl mx-auto">
               {media.caption}
