@@ -64,6 +64,109 @@ function isVideoPlaceholderText(text: string | null): boolean {
   return t === '[vídeo]' || t === '[video]' || t === 'vídeo' || t === 'video';
 }
 
+function normalizeDocPlaceholder(text: string | null): string {
+  return (text ?? '').trim().toLowerCase();
+}
+
+function isDocumentPlaceholderText(text: string | null): boolean {
+  const t = normalizeDocPlaceholder(text);
+  return t === '[document]' || t === '[documento]' || t === 'documento' || t === 'document';
+}
+
+function pickFirstString(...values: unknown[]): string | null {
+  for (const v of values) {
+    if (typeof v === 'string') {
+      const s = v.trim();
+      if (s) return s;
+    }
+  }
+  return null;
+}
+
+function fileFormatFromMimeOrName(mime: string | null, fileName: string | null): string {
+  if (mime && typeof mime === 'string') {
+    const subtype = (mime.split('/')[1] || '').trim();
+    if (subtype) return subtype.toUpperCase();
+  }
+  if (fileName) {
+    // evita considerar ".enc" como extensão final
+    const cleaned = fileName.replace(/\.enc$/i, '');
+    const extMatch = cleaned.match(/\.([a-z0-9]+)$/i);
+    if (extMatch?.[1]) return extMatch[1].toUpperCase();
+  }
+  return 'ARQUIVO';
+}
+
+function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl: string | null): {
+  fileName: string;
+  fileFormat: string;
+  caption: string | null;
+} {
+  const raw = (rawData ?? {}) as any;
+
+  // UAZAPI (exato como vem no log): raw_data.file_name e raw_data.uazapi_response.content.fileName
+  const fileName =
+    pickFirstString(
+      raw?.file_name,
+      raw?.filename,
+      raw?.name,
+      raw?.uazapi_response?.content?.fileName,
+      raw?.uazapi_response?.content?.file_name,
+      raw?.uazapi_response?.content?.filename,
+      raw?.uazapi_response?.content?.name,
+      raw?.uazapi_response?.content?.docName,
+      raw?.uazapi_response?.content?.doc_name,
+      // fallback: alguns provedores usam raw.content.*
+      raw?.content?.fileName,
+      raw?.content?.file_name,
+      raw?.content?.filename,
+      raw?.content?.name,
+      raw?.content?.docName,
+      raw?.content?.doc_name
+    ) ||
+    (() => {
+      // último fallback: tentar extrair de querystring, se existir
+      try {
+        if (!mediaUrl) return null;
+        const u = new URL(mediaUrl);
+        const qName = u.searchParams.get('fileName') || u.searchParams.get('filename');
+        return qName ? decodeURIComponent(qName) : null;
+      } catch {
+        return null;
+      }
+    })() ||
+    'Documento';
+
+  const mime =
+    pickFirstString(
+      raw?.mime_type,
+      raw?.mimetype,
+      raw?.mime,
+      raw?.uazapi_response?.content?.mimetype,
+      raw?.uazapi_response?.content?.mime_type,
+      raw?.uazapi_response?.content?.mime,
+      raw?.content?.mimetype,
+      raw?.content?.mime_type,
+      raw?.content?.mime
+    ) || null;
+
+  const captionCandidate =
+    pickFirstString(
+      raw?.caption,
+      raw?.text,
+      raw?.uazapi_response?.content?.caption,
+      raw?.uazapi_response?.content?.text,
+      raw?.content?.caption,
+      raw?.content?.text,
+      content
+    ) || null;
+
+  const caption = captionCandidate && !isDocumentPlaceholderText(captionCandidate) ? captionCandidate : null;
+  const fileFormat = fileFormatFromMimeOrName(mime, fileName);
+
+  return { fileName, fileFormat, caption };
+}
+
 export function WhatsAppMediaRenderer({ 
   messageType, 
   content, 
@@ -305,42 +408,7 @@ export function WhatsAppMediaRenderer({
   if (effectiveType === 'document' || effectiveType === 'documentwithcaption') {
     const docUrl = mediaUrl ? getBestChatMediaSrc({ url: mediaUrl, kind: 'document' }) : null;
 
-    // Tenta pegar o nome e mimetype do payload original (raw_data) do provedor
-    const raw = rawData as any;
-    const providerFileName: string | null =
-      raw?.content?.fileName ??
-      raw?.content?.file_name ??
-      raw?.content?.docName ??
-      raw?.content?.doc_name ??
-      raw?.content?.filename ??
-      raw?.content?.name ??
-      null;
-    const providerMime: string | null = raw?.content?.mimetype ?? raw?.content?.mime_type ?? raw?.content?.mime ?? null;
-    const providerCaption: string | null = raw?.content?.caption ?? raw?.content?.text ?? null;
-
-    // Nome do arquivo (título)
-    const fileName = (providerFileName || '').trim() || 'Documento';
-
-    // Subtítulo (formato) - prioriza mimetype
-    const fileFormat = (() => {
-      if (providerMime && typeof providerMime === 'string') {
-        const parts = providerMime.split('/');
-        const subtype = (parts[1] || '').toUpperCase();
-        if (subtype) return subtype;
-      }
-      const extMatch = fileName.match(/\.([a-z0-9]+)$/i);
-      if (extMatch) return extMatch[1].toUpperCase();
-      return 'ARQUIVO';
-    })();
-
-    // Legenda (abaixo): usa preferencialmente a caption do raw_data; fallback para content
-    const candidateCaption = (providerCaption ?? content ?? '').toString();
-    const caption = candidateCaption &&
-      candidateCaption !== '[Documento]' &&
-      candidateCaption !== '[document]' &&
-      !candidateCaption.toLowerCase().match(/^\[?documento?\]?$/)
-      ? candidateCaption
-      : null;
+    const { fileName, fileFormat, caption } = extractDocumentMeta(rawData, content, mediaUrl);
     
     return (
       <div className="space-y-1.5">
