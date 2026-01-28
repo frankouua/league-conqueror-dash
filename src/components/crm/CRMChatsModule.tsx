@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ import { InstancesList } from '@/components/crm/chats/InstancesList';
 import { WhatsAppMediaRenderer } from '@/components/crm/chats/WhatsAppMediaRenderer';
 import { MediaUploadButton, type MediaFile } from '@/components/crm/chats/MediaUploadButton';
 import { MediaLibraryDialog } from '@/components/crm/chats/MediaLibraryDialog';
+import { MediaViewer, MediaViewerItem } from '@/components/crm/chats/MediaViewer';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChatMediaPreview } from '@/components/crm/chats/ChatMediaPreview';
@@ -52,6 +53,10 @@ export function CRMChatsModule() {
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
+  
+  // Media viewer state for navigation between chat media
+  const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   
   // Load user's authorized instances
   const { 
@@ -182,6 +187,58 @@ export function CRMChatsModule() {
     const query = searchQuery.toLowerCase();
     return name.includes(query) || number.includes(query);
   });
+
+  // Compute all media items from messages for navigation
+  const allChatMedia = useMemo<MediaViewerItem[]>(() => {
+    return messages
+      .filter(msg => {
+        const type = msg.message_type?.toLowerCase() || '';
+        const hasMedia = msg.media_url || msg.media_preview;
+        return hasMedia && (type.includes('image') || type === 'image');
+      })
+      .map(msg => ({
+        id: msg.id,
+        type: 'image' as const,
+        src: msg.media_url || msg.media_preview || '',
+        preview: msg.media_preview,
+        caption: msg.content && msg.content !== '[Imagem]' && !msg.content.toLowerCase().includes('imagem') 
+          ? msg.content 
+          : undefined,
+        timestamp: msg.message_timestamp,
+        fromMe: msg.from_me,
+        contactName: selectedChat?.contact_name,
+      }));
+  }, [messages, selectedChat?.contact_name]);
+
+  // Get current media for viewer
+  const selectedMedia = useMemo(() => {
+    return allChatMedia.find(m => m.id === selectedMediaId) || null;
+  }, [allChatMedia, selectedMediaId]);
+
+  // Handle opening media viewer
+  const handleOpenMediaViewer = useCallback((mediaId: string) => {
+    setSelectedMediaId(mediaId);
+    setMediaViewerOpen(true);
+  }, []);
+
+  // Handle navigation between media
+  const handleMediaNavigate = useCallback((direction: 'prev' | 'next') => {
+    if (!selectedMediaId || allChatMedia.length === 0) return;
+    
+    const currentIndex = allChatMedia.findIndex(m => m.id === selectedMediaId);
+    if (currentIndex === -1) return;
+    
+    let newIndex: number;
+    if (direction === 'prev') {
+      newIndex = currentIndex > 0 ? currentIndex - 1 : currentIndex;
+    } else {
+      newIndex = currentIndex < allChatMedia.length - 1 ? currentIndex + 1 : currentIndex;
+    }
+    
+    if (allChatMedia[newIndex]) {
+      setSelectedMediaId(allChatMedia[newIndex].id);
+    }
+  }, [selectedMediaId, allChatMedia]);
 
   return (
     <div className="h-[calc(100vh-220px)] min-h-[500px]">
@@ -449,6 +506,7 @@ export function CRMChatsModule() {
                           messageId={msg.id}
                           timestamp={msg.message_timestamp}
                           contactName={selectedChat?.contact_name}
+                          onOpenMediaViewer={handleOpenMediaViewer}
                         />
                         <p
                           className={cn(
@@ -619,6 +677,15 @@ export function CRMChatsModule() {
         open={mediaLibraryOpen}
         onOpenChange={setMediaLibraryOpen}
         defaultChannel={activeChannel}
+      />
+
+      {/* Media Viewer for chat images with navigation */}
+      <MediaViewer
+        open={mediaViewerOpen}
+        onOpenChange={setMediaViewerOpen}
+        media={selectedMedia}
+        allMedia={allChatMedia}
+        onNavigate={handleMediaNavigate}
       />
     </div>
   );
