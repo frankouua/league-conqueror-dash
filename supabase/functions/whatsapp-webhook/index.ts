@@ -286,8 +286,14 @@ async function handleMessages(supabaseClient: any, payload: any) {
     message.mediaUrl || 
     message.media_url ||
     null;
+
+  // Extrair thumbnail Base64 - UAZAPI envia JPEGThumbnail no content
+  const mediaPreview =
+    mediaContent.JPEGThumbnail ||
+    mediaContent.jpegThumbnail ||
+    null;
   
-  console.log('[Webhook] Media extraction:', { messageType, hasMediaUrl: !!mediaUrl, mediaKeys: Object.keys(mediaContent) });
+  console.log('[Webhook] Media extraction:', { messageType, hasMediaUrl: !!mediaUrl, hasMediaPreview: !!mediaPreview, mediaKeys: Object.keys(mediaContent) });
 
   const { error: messageError } = await supabaseClient
     .from('whatsapp_messages')
@@ -299,6 +305,7 @@ async function handleMessages(supabaseClient: any, payload: any) {
       content: content,
       message_type: messageType,
       media_url: mediaUrl,
+      media_preview: mediaPreview,
       message_timestamp: messageTimestamp,
       raw_data: payload,
       transcription_status: messageType === 'audio' ? 'pending' : null,
