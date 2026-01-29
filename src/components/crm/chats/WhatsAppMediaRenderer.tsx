@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getBestChatMediaSrc } from './mediaSrc';
-import { supabase } from '@/integrations/supabase/client';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -328,15 +327,12 @@ export function WhatsAppMediaRenderer({
       setIsLoadingHd(true);
 
       try {
-        const { data } = await supabase.auth.getSession();
-        const accessToken = data.session?.access_token;
-
-        const headers: Record<string, string> = {
-          apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''),
-        };
-        if (accessToken) headers.authorization = `Bearer ${accessToken}`;
-
-        const resp = await fetch(hdProxyUrl, { headers });
+        // IMPORTANT:
+        // O `media-proxy` é público (verify_jwt=false) e usado como src de mídia.
+        // Enviar headers customizados (apikey/authorization) dispara preflight (OPTIONS).
+        // Hoje o proxy não permite esses headers no CORS, e o browser aborta com "Failed to fetch".
+        // Portanto, carregamos SEM headers para evitar preflight.
+        const resp = await fetch(hdProxyUrl);
         if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
 
         const blob = await resp.blob();
