@@ -13,7 +13,11 @@ function looksLikeBareBase64(value: string) {
   return /^[A-Za-z0-9+/=]+$/.test(value);
 }
 
-export function normalizePreview(preview: string | null | undefined, kind: MediaKind = 'image') {
+/**
+ * Normaliza o preview para data-uri válida.
+ * Retorna a string original se já for URL ou data-uri.
+ */
+export function normalizePreview(preview: string | null | undefined, kind: MediaKind = 'image'): string | null {
   if (!preview) return null;
   const p = preview.trim();
   if (!p) return null;
@@ -25,43 +29,37 @@ export function normalizePreview(preview: string | null | undefined, kind: Media
   return p;
 }
 
-export function shouldProxyUrl(url: string | null | undefined) {
-  if (!url) return false;
-  const lower = url.toLowerCase();
-
-  // Evita loop: se já estamos apontando para o nosso proxy, não reproxiar.
-  if (lower.includes('/functions/v1/media-proxy')) return false;
-
-  // Regra geral: qualquer URL http(s) externa pode sofrer bloqueio de hotlink/CORS.
-  if (lower.startsWith('http://') || lower.startsWith('https://')) return true;
-
-  return false;
-}
-
 /**
  * REGRA OBRIGATÓRIA: Nunca retornar URL direta do WhatsApp.
  * Toda mídia recebida DEVE passar pelo media-proxy.
+ * 
+ * Retorna URL absoluta do proxy ou null se não conseguir montar.
  */
 export function buildMediaProxyUrl(url?: string | null): string | null {
   if (!url) return null;
 
-  // Evita reproxiar
+  // Evita reproxiar se já for URL do proxy
   if (url.includes('/functions/v1/media-proxy')) return url;
 
-  const supabaseUrl =
-    import.meta.env.VITE_SUPABASE_URL ||
-    `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co`;
+  // Monta a base do Supabase a partir das env vars disponíveis
+  const envUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
+  const projectId = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ?? '';
+  const baseFromProject = projectId ? `https://${projectId}.supabase.co` : '';
+  
+  const base = (envUrl.trim() || baseFromProject).replace(/\/+$/, '');
 
-  if (!supabaseUrl) {
-    console.error('[media-proxy] Supabase URL ausente - não é possível proxiar mídia');
-    return null; // NUNCA retornar URL original
+  if (!base) {
+    console.error('[mediaSrc] buildMediaProxyUrl: não foi possível montar base do Supabase');
+    return null;
   }
 
-  const base = supabaseUrl.replace(/\/+$/, '');
-  const encoded = encodeURIComponent(url);
-  const proxyUrl = `${base}/functions/v1/media-proxy?url=${encoded}`;
+  const proxyUrl = `${base}/functions/v1/media-proxy?url=${encodeURIComponent(url)}`;
 
-  console.log('[mediaSrc] buildMediaProxyUrl:', { original: url.slice(0, 60), proxy: proxyUrl.slice(0, 80) });
+  // Log mínimo para debug
+  console.log('[mediaSrc] buildMediaProxyUrl:', {
+    original: url.slice(0, 60) + (url.length > 60 ? '...' : ''),
+    proxy: proxyUrl.slice(0, 80) + (proxyUrl.length > 80 ? '...' : ''),
+  });
 
   return proxyUrl;
 }
@@ -69,36 +67,38 @@ export function buildMediaProxyUrl(url?: string | null): string | null {
 /**
  * Retorna a melhor fonte de mídia para exibição.
  * 
- * IMPORTANTE: Esta função agora suporta carregamento progressivo.
- * - Se onlyPreview=true: retorna apenas o preview (para placeholder inicial)
- * - Se onlyHd=true: retorna apenas a URL HD via proxy (para carregamento em background)
- * - Sem flags: comportamento legado (prioriza preview, fallback para URL)
+ * REGRAS SIMPLIFICADAS:
+ * - Se preview existir e for válido → retorna preview (base64 para render imediato)
+ * - Se url existir → retorna URL via proxy (para HD)
+ * - Se ambos faltarem → null
  */
 export function getBestChatMediaSrc(params: {
   preview?: string | null;
   url?: string | null;
   kind?: MediaKind;
-  onlyPreview?: boolean;
-  onlyHd?: boolean;
-}) {
+}): string | null {
   const kind = params.kind ?? 'image';
-  const normalizedPreview = normalizePreview(params.preview, kind);
-  const url = params.url ?? null;
   
-  // REGRA: URL HD SEMPRE passa pelo proxy - nunca retornar URL direta
-  const hdUrl = url ? buildMediaProxyUrl(url) : null;
-
-  // Modo placeholder: retorna apenas o preview (thumbnail)
-  if (params.onlyPreview) {
+  // Preview (base64) sempre tem prioridade para render imediato
+  const normalizedPreview = normalizePreview(params.preview, kind);
+  if (normalizedPreview) {
     return normalizedPreview;
   }
 
-  // Modo HD: retorna apenas a URL de alta resolução via proxy
-  if (params.onlyHd) {
-    return hdUrl;
-  }
+  // Fallback: tenta HD via proxy
+  return buildMediaProxyUrl(params.url);
+}
 
-  // Comportamento legado: prioriza preview, fallback para URL proxiada
-  if (normalizedPreview) return normalizedPreview;
-  return hdUrl;
+/**
+ * Retorna APENAS o preview (para placeholder inicial)
+ */
+export function getPreviewSrc(preview?: string | null, kind: MediaKind = 'image'): string | null {
+  return normalizePreview(preview, kind);
+}
+
+/**
+ * Retorna APENAS a URL HD via proxy (para carregamento em background)
+ */
+export function getHdProxyUrl(url?: string | null): string | null {
+  return buildMediaProxyUrl(url);
 }
