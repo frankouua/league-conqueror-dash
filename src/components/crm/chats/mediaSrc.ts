@@ -33,33 +33,36 @@ export function shouldProxyUrl(url: string | null | undefined) {
   if (lower.includes('/functions/v1/media-proxy')) return false;
 
   // Regra geral: qualquer URL http(s) externa pode sofrer bloqueio de hotlink/CORS.
-  // Como o proxy é exatamente o nosso gateway para contornar isso, preferimos
-  // proxiar por padrão (mantendo compatível com WhatsApp + provedores diversos).
   if (lower.startsWith('http://') || lower.startsWith('https://')) return true;
 
   return false;
 }
 
-export function buildMediaProxyUrl(url: string) {
-  // CRITICAL: Garantir URL absoluta do proxy para evitar CORS no WhatsApp CDN.
-  // Fallback hardcoded para o project ID atual caso as env vars não estejam disponíveis.
-  const HARDCODED_PROJECT_ID = 'mbnjjwatnqjjqxogmaju';
-  
-  const envBase = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
-  const baseFromEnv = envBase.trim();
+/**
+ * REGRA OBRIGATÓRIA: Nunca retornar URL direta do WhatsApp.
+ * Toda mídia recebida DEVE passar pelo media-proxy.
+ */
+export function buildMediaProxyUrl(url?: string | null): string | null {
+  if (!url) return null;
 
-  const projectId = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ?? '';
-  const baseFromProject = projectId ? `https://${projectId}.supabase.co` : '';
+  // Evita reproxiar
+  if (url.includes('/functions/v1/media-proxy')) return url;
 
-  // Fallback final para garantir que NUNCA retornamos URL original
-  const base = (baseFromEnv || baseFromProject || `https://${HARDCODED_PROJECT_ID}.supabase.co`).replace(/\/+$/, '');
+  const supabaseUrl =
+    import.meta.env.VITE_SUPABASE_URL ||
+    `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co`;
 
-  // Public function (verify_jwt=false)
-  const proxyUrl = `${base}/functions/v1/media-proxy?url=${encodeURIComponent(url)}`;
-  
-  // DEBUG: Log para auditoria
+  if (!supabaseUrl) {
+    console.error('[media-proxy] Supabase URL ausente - não é possível proxiar mídia');
+    return null; // NUNCA retornar URL original
+  }
+
+  const base = supabaseUrl.replace(/\/+$/, '');
+  const encoded = encodeURIComponent(url);
+  const proxyUrl = `${base}/functions/v1/media-proxy?url=${encoded}`;
+
   console.log('[mediaSrc] buildMediaProxyUrl:', { original: url.slice(0, 60), proxy: proxyUrl.slice(0, 80) });
-  
+
   return proxyUrl;
 }
 
@@ -81,7 +84,9 @@ export function getBestChatMediaSrc(params: {
   const kind = params.kind ?? 'image';
   const normalizedPreview = normalizePreview(params.preview, kind);
   const url = params.url ?? null;
-  const hdUrl = url && shouldProxyUrl(url) ? buildMediaProxyUrl(url) : url;
+  
+  // REGRA: URL HD SEMPRE passa pelo proxy - nunca retornar URL direta
+  const hdUrl = url ? buildMediaProxyUrl(url) : null;
 
   // Modo placeholder: retorna apenas o preview (thumbnail)
   if (params.onlyPreview) {
@@ -93,7 +98,7 @@ export function getBestChatMediaSrc(params: {
     return hdUrl;
   }
 
-  // Comportamento legado (para compatibilidade): prioriza preview, fallback para URL
+  // Comportamento legado: prioriza preview, fallback para URL proxiada
   if (normalizedPreview) return normalizedPreview;
   return hdUrl;
 }
