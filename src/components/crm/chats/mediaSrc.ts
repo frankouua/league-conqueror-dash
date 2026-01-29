@@ -41,21 +41,26 @@ export function shouldProxyUrl(url: string | null | undefined) {
 }
 
 export function buildMediaProxyUrl(url: string) {
-  // Em alguns builds o VITE_SUPABASE_URL pode não estar disponível (ou vir vazio).
-  // Como as imagens recebidas dependem do proxy (não têm preview/base64), garantimos
-  // um fallback determinístico via PROJECT_ID para evitar src inválido ("undefined/..."),
-  // que faria o renderer cair no placeholder.
+  // CRITICAL: Garantir URL absoluta do proxy para evitar CORS no WhatsApp CDN.
+  // Fallback hardcoded para o project ID atual caso as env vars não estejam disponíveis.
+  const HARDCODED_PROJECT_ID = 'mbnjjwatnqjjqxogmaju';
+  
   const envBase = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
   const baseFromEnv = envBase.trim();
 
   const projectId = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ?? '';
   const baseFromProject = projectId ? `https://${projectId}.supabase.co` : '';
 
-  const base = (baseFromEnv || baseFromProject).replace(/\/+$/, '');
-  if (!base) return url;
+  // Fallback final para garantir que NUNCA retornamos URL original
+  const base = (baseFromEnv || baseFromProject || `https://${HARDCODED_PROJECT_ID}.supabase.co`).replace(/\/+$/, '');
 
   // Public function (verify_jwt=false)
-  return `${base}/functions/v1/media-proxy?url=${encodeURIComponent(url)}`;
+  const proxyUrl = `${base}/functions/v1/media-proxy?url=${encodeURIComponent(url)}`;
+  
+  // DEBUG: Log para auditoria
+  console.log('[mediaSrc] buildMediaProxyUrl:', { original: url.slice(0, 60), proxy: proxyUrl.slice(0, 80) });
+  
+  return proxyUrl;
 }
 
 /**
