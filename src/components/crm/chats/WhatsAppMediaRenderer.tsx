@@ -320,30 +320,48 @@ export function WhatsAppMediaRenderer({
     async function loadHdImage() {
       // Só carrega HD se tiver URL de proxy disponível
       if (!hdProxyUrl) {
+        console.log('[WhatsAppMediaRenderer] hdProxyUrl ausente, pulando carregamento HD');
         setHdBlobSrc(null);
         return;
       }
 
+      // ========== DEBUG: URL final do proxy ==========
+      console.log('[WhatsAppMediaRenderer] 🔗 URL FINAL DO PROXY:', hdProxyUrl);
+      console.log('[WhatsAppMediaRenderer] É URL absoluta?', hdProxyUrl.startsWith('http'));
+
       setIsLoadingHd(true);
 
       try {
-        // IMPORTANT:
-        // O `media-proxy` é público (verify_jwt=false) e usado como src de mídia.
-        // Enviar headers customizados (apikey/authorization) dispara preflight (OPTIONS).
-        // Hoje o proxy não permite esses headers no CORS, e o browser aborta com "Failed to fetch".
-        // Portanto, carregamos SEM headers para evitar preflight.
+        // O `media-proxy` é público (verify_jwt=false).
+        // Carregamos SEM headers para evitar preflight CORS.
+        console.log('[WhatsAppMediaRenderer] ⏳ Iniciando fetch HD...');
         const resp = await fetch(hdProxyUrl);
+        
+        // ========== DEBUG: Status e headers da resposta ==========
+        console.log('[WhatsAppMediaRenderer] ✅ Resposta recebida:', {
+          status: resp.status,
+          statusText: resp.statusText,
+          contentType: resp.headers.get('content-type'),
+          cors: resp.headers.get('access-control-allow-origin'),
+        });
+
         if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
 
         const blob = await resp.blob();
+        console.log('[WhatsAppMediaRenderer] 📦 Blob criado:', {
+          size: blob.size,
+          type: blob.type,
+        });
+
         objectUrl = URL.createObjectURL(blob);
+        console.log('[WhatsAppMediaRenderer] 🎉 HD carregado! objectUrl:', objectUrl.slice(0, 50));
         
         if (!cancelled) {
           setHdBlobSrc(objectUrl);
           setIsLoadingHd(false);
         }
       } catch (err) {
-        console.warn('[WhatsAppMediaRenderer] Falha ao carregar HD:', err);
+        console.error('[WhatsAppMediaRenderer] ❌ Falha ao carregar HD:', err);
         if (!cancelled) {
           setHdBlobSrc(null);
           setIsLoadingHd(false);
