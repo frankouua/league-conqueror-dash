@@ -278,7 +278,9 @@ export function WhatsAppMediaRenderer({
   const [imageError, setImageError] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [audioError, setAudioError] = useState(false);
-  const [authedBlobSrc, setAuthedBlobSrc] = useState<string | null>(null);
+  // Estado para o blob HD carregado em background
+  const [hdBlobSrc, setHdBlobSrc] = useState<string | null>(null);
+  const [isLoadingHd, setIsLoadingHd] = useState(false);
 
   const normalizedType = normalizeMessageType(messageType);
 
@@ -297,64 +299,77 @@ export function WhatsAppMediaRenderer({
       ? (guessedKind ?? (isImagePlaceholderText(content) ? 'image' : isVideoPlaceholderText(content) ? 'video' : normalizedType))
       : normalizedType;
 
-  const displaySrc = useMemo(() => {
-    // Prioriza preview (base64 de alta qualidade) para exibição imediata; fallback para proxy da URL
-    return getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
-  }, [mediaPreview, resolvedMediaUrl]);
+  // CARREGAMENTO PROGRESSIVO:
+  // 1. previewSrc = thumbnail Base64 para exibição IMEDIATA (placeholder)
+  // 2. hdProxyUrl = URL HD via proxy para carregamento em BACKGROUND
+  const previewSrc = useMemo(() => {
+    return getBestChatMediaSrc({ preview: mediaPreview, url: null, kind: 'image', onlyPreview: true });
+  }, [mediaPreview]);
 
-  // IMPORTANTE: a rota de "backend functions" pode exigir headers (apikey/authorization).
-  // Um <img src="..."> não envia headers customizados; então para mídias RECEBIDAS
-  // (sem preview/base64) que dependem do proxy, buscamos via fetch autenticado e
-  // renderizamos via blob URL.
-  const shouldUseAuthedFetch = useMemo(() => {
-    if (!displaySrc) return false;
-    const s = displaySrc.toLowerCase();
-    // Só vale a pena quando NÃO temos preview (senão já renderiza local)
-    return !mediaPreview && s.includes('/functions/v1/media-proxy');
-  }, [displaySrc, mediaPreview]);
+  const hdProxyUrl = useMemo(() => {
+    return getBestChatMediaSrc({ preview: null, url: resolvedMediaUrl, kind: 'image', onlyHd: true });
+  }, [resolvedMediaUrl]);
 
+  // Fonte final: HD (quando carregado) > Preview (thumbnail) > hdProxyUrl direto
+  const displaySrc = hdBlobSrc || previewSrc || hdProxyUrl;
+
+  // Efeito para carregar a imagem HD em background via fetch autenticado
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    async function run() {
-      if (!shouldUseAuthedFetch || !displaySrc) {
-        setAuthedBlobSrc(null);
+    async function loadHdImage() {
+      // Só carrega HD se tiver URL de proxy disponível
+      if (!hdProxyUrl) {
+        setHdBlobSrc(null);
         return;
       }
+
+      setIsLoadingHd(true);
 
       try {
         const { data } = await supabase.auth.getSession();
         const accessToken = data.session?.access_token;
 
         const headers: Record<string, string> = {
-          // publishable key do projeto (seguro para frontend)
           apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''),
         };
         if (accessToken) headers.authorization = `Bearer ${accessToken}`;
 
-        const resp = await fetch(displaySrc, { headers });
+        const resp = await fetch(hdProxyUrl, { headers });
         if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
 
         const blob = await resp.blob();
         objectUrl = URL.createObjectURL(blob);
-        if (!cancelled) setAuthedBlobSrc(objectUrl);
-      } catch {
-        // Se falhar, mantemos o displaySrc original (pode funcionar em alguns ambientes)
-        if (!cancelled) setAuthedBlobSrc(null);
+        
+        if (!cancelled) {
+          setHdBlobSrc(objectUrl);
+          setIsLoadingHd(false);
+        }
+      } catch (err) {
+        console.warn('[WhatsAppMediaRenderer] Falha ao carregar HD:', err);
+        if (!cancelled) {
+          setHdBlobSrc(null);
+          setIsLoadingHd(false);
+        }
       }
     }
 
-    run();
+    loadHdImage();
 
     return () => {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [displaySrc, shouldUseAuthedFetch]);
+  }, [hdProxyUrl]);
+
+  // Reset do blob HD quando a URL muda (nova mensagem)
+  useEffect(() => {
+    setHdBlobSrc(null);
+  }, [resolvedMediaUrl]);
 
   // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
-  // não podemos “travar” no fallback por causa de um onError antigo.
+  // não podemos "travar" no fallback por causa de um onError antigo.
   useEffect(() => {
     setImageError(false);
     setVideoError(false);
@@ -372,8 +387,8 @@ export function WhatsAppMediaRenderer({
 
   // Image messages
   if (effectiveType === 'image') {
-    // Sempre mostra a imagem se tiver alguma fonte disponível
-    const finalImgSrc = authedBlobSrc || displaySrc;
+    // Fonte final: HD > preview > proxy direto
+    const finalImgSrc = displaySrc;
 
     if (finalImgSrc && !imageError) {
       return (
