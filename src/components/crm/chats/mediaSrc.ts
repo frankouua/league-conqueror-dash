@@ -58,16 +58,37 @@ export function buildMediaProxyUrl(url: string) {
   return `${base}/functions/v1/media-proxy?url=${encodeURIComponent(url)}`;
 }
 
+/**
+ * Retorna a melhor fonte de mídia para exibição.
+ * 
+ * IMPORTANTE: Esta função agora suporta carregamento progressivo.
+ * - Se onlyPreview=true: retorna apenas o preview (para placeholder inicial)
+ * - Se onlyHd=true: retorna apenas a URL HD via proxy (para carregamento em background)
+ * - Sem flags: comportamento legado (prioriza preview, fallback para URL)
+ */
 export function getBestChatMediaSrc(params: {
   preview?: string | null;
   url?: string | null;
   kind?: MediaKind;
+  onlyPreview?: boolean;
+  onlyHd?: boolean;
 }) {
   const kind = params.kind ?? 'image';
   const normalizedPreview = normalizePreview(params.preview, kind);
-  if (normalizedPreview) return normalizedPreview;
-
   const url = params.url ?? null;
-  if (url && shouldProxyUrl(url)) return buildMediaProxyUrl(url);
-  return url;
+  const hdUrl = url && shouldProxyUrl(url) ? buildMediaProxyUrl(url) : url;
+
+  // Modo placeholder: retorna apenas o preview (thumbnail)
+  if (params.onlyPreview) {
+    return normalizedPreview;
+  }
+
+  // Modo HD: retorna apenas a URL de alta resolução via proxy
+  if (params.onlyHd) {
+    return hdUrl;
+  }
+
+  // Comportamento legado (para compatibilidade): prioriza preview, fallback para URL
+  if (normalizedPreview) return normalizedPreview;
+  return hdUrl;
 }
