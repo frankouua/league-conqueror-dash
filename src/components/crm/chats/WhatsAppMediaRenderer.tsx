@@ -401,7 +401,7 @@ export function WhatsAppMediaRenderer({
             alt="Imagem"
             loading="lazy"
             referrerPolicy="no-referrer"
-            className="w-[240px] max-w-full max-h-[320px] rounded-lg object-contain bg-muted group-hover:opacity-90 transition-opacity"
+            className="max-w-[280px] max-h-[320px] rounded-lg object-cover group-hover:opacity-90 transition-opacity"
             onError={() => setImageError(true)}
           />
           {content && 
