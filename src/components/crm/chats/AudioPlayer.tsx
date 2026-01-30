@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Play, Pause, Mic } from 'lucide-react';
+import { Play, Pause, Mic, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AudioPlayerProps {
   src: string;
@@ -15,6 +16,13 @@ interface AudioPlayerProps {
 const PLAYBACK_SPEEDS = [1, 1.5, 2] as const;
 type PlaybackSpeed = typeof PLAYBACK_SPEEDS[number];
 
+// Verifica se a URL precisa de fetch autenticado via proxy
+function needsAuthenticatedFetch(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return lower.includes('/functions/v1/media-proxy');
+}
+
 export function AudioPlayer({ 
   src, 
   duration: providedDuration, 
@@ -27,8 +35,68 @@ export function AudioPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(providedDuration || 0);
   const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(1);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Fetch autenticado para URLs que passam pelo proxy
+  const shouldFetchWithAuth = useMemo(() => needsAuthenticatedFetch(src), [src]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    async function fetchAudioBlob() {
+      if (!shouldFetchWithAuth || !src) {
+        setBlobUrl(null);
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
+
+        const headers: Record<string, string> = {
+          apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''),
+        };
+        if (accessToken) headers.authorization = `Bearer ${accessToken}`;
+
+        const resp = await fetch(src, { headers });
+        if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
+
+        const blob = await resp.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) {
+          setBlobUrl(objectUrl);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('[AudioPlayer] Failed to fetch audio:', err);
+        if (!cancelled) {
+          setBlobUrl(null);
+          setIsLoading(false);
+          setHasError(true);
+          onError?.();
+        }
+      }
+    }
+
+    fetchAudioBlob();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src, shouldFetchWithAuth, onError]);
+
+  // URL final para o elemento de áudio
+  const audioSrc = useMemo(() => {
+    if (shouldFetchWithAuth) return blobUrl;
+    return src;
+  }, [shouldFetchWithAuth, blobUrl, src]);
   const progressRef = useRef<HTMLDivElement>(null);
 
   // Format time as MM:SS
@@ -74,7 +142,7 @@ export function AudioPlayer({
 
   // Toggle play/pause
   const togglePlay = useCallback(() => {
-    if (!audioRef.current || hasError) return;
+    if (!audioRef.current || hasError || isLoading || !audioSrc) return;
     
     if (isPlaying) {
       audioRef.current.pause();
@@ -85,7 +153,7 @@ export function AudioPlayer({
       });
       setIsPlaying(true);
     }
-  }, [isPlaying, hasError]);
+  }, [isPlaying, hasError, isLoading, audioSrc]);
 
   // Cycle playback speed
   const cycleSpeed = useCallback(() => {
@@ -136,7 +204,48 @@ export function AudioPlayer({
     Array.from({ length: 28 }, (_, i) => Math.sin((i * 0.8) + 1) * 40 + 30)
   );
 
-  if (hasError) {
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className={cn(
+        "flex items-center gap-2 py-1.5 px-2 rounded-xl",
+        fromMe ? "bg-primary/10" : "bg-muted",
+        className
+      )}>
+        <div className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+          fromMe ? "bg-primary-foreground/30" : "bg-primary/90"
+        )}>
+          <Loader2 className={cn(
+            "w-5 h-5 animate-spin",
+            fromMe ? "text-primary-foreground" : "text-primary-foreground"
+          )} />
+        </div>
+        <div className="flex-1 min-w-[120px]">
+          <div className="h-6 flex items-center gap-[2px]">
+            {waveformHeights.current.map((height, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "w-[3px] rounded-full",
+                  fromMe ? "bg-primary-foreground/30" : "bg-muted-foreground/30"
+                )}
+                style={{ height: `${height}%` }}
+              />
+            ))}
+          </div>
+          <span className={cn(
+            "text-[10px]",
+            fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
+          )}>
+            Carregando...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasError || !audioSrc) {
     return (
       <div className={cn(
         "flex items-center gap-2 py-1.5 px-2 rounded-xl",
@@ -163,7 +272,7 @@ export function AudioPlayer({
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
-        src={src}
+        src={audioSrc}
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
