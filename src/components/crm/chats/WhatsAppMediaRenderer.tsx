@@ -302,16 +302,25 @@ export function WhatsAppMediaRenderer({
     return getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
   }, [mediaPreview, resolvedMediaUrl]);
 
+  // Verifica se já temos um preview base64 válido (renderiza instantaneamente)
+  const hasBase64Preview = useMemo(() => {
+    if (!mediaPreview) return false;
+    const p = mediaPreview.trim();
+    return p.startsWith('data:') || (p.length > 200 && /^[A-Za-z0-9+/=]+$/.test(p));
+  }, [mediaPreview]);
+
   // IMPORTANTE: a rota de "backend functions" pode exigir headers (apikey/authorization).
-  // Um <img src="..."> não envia headers customizados; então para mídias RECEBIDAS
-  // (sem preview/base64) que dependem do proxy, buscamos via fetch autenticado e
-  // renderizamos via blob URL.
+  // Um <img src="..."> não envia headers customizados; então para mídias SEM preview base64
+  // que dependem do proxy, buscamos via fetch autenticado e renderizamos via blob URL.
+  // Isso vale tanto para mensagens RECEBIDAS quanto ENVIADAS sem preview.
   const shouldUseAuthedFetch = useMemo(() => {
     if (!displaySrc) return false;
+    // Se já temos base64, não precisa fetch (renderiza direto)
+    if (hasBase64Preview) return false;
     const s = displaySrc.toLowerCase();
-    // Só vale a pena quando NÃO temos preview (senão já renderiza local)
-    return !mediaPreview && s.includes('/functions/v1/media-proxy');
-  }, [displaySrc, mediaPreview]);
+    // Busca autenticada para qualquer URL que passa pelo proxy
+    return s.includes('/functions/v1/media-proxy');
+  }, [displaySrc, hasBase64Preview]);
 
   useEffect(() => {
     let cancelled = false;
