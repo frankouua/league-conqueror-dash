@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Play, Pause, Mic, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AudioPlayerProps {
   src: string;
@@ -16,11 +15,12 @@ interface AudioPlayerProps {
 const PLAYBACK_SPEEDS = [1, 1.5, 2] as const;
 type PlaybackSpeed = typeof PLAYBACK_SPEEDS[number];
 
-// Verifica se a URL precisa de fetch autenticado via proxy
-function needsAuthenticatedFetch(url: string): boolean {
-  if (!url) return false;
-  const lower = url.toLowerCase();
-  return lower.includes('/functions/v1/media-proxy');
+// Historicamente tentávamos baixar o áudio do media-proxy via `fetch()` (com headers).
+// Porém isso dispara preflight/CORS e pode falhar como `TypeError: Failed to fetch`,
+// deixando o player sem play. Para reprodução, o <audio> consegue tocar direto da URL
+// do proxy sem headers customizados, então desabilitamos esse caminho.
+function needsAuthenticatedFetch(_url: string): boolean {
+  return false;
 }
 
 export function AudioPlayer({ 
@@ -56,15 +56,9 @@ export function AudioPlayer({
       setIsLoading(true);
 
       try {
-        const { data } = await supabase.auth.getSession();
-        const accessToken = data.session?.access_token;
-
-        const headers: Record<string, string> = {
-          apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''),
-        };
-        if (accessToken) headers.authorization = `Bearer ${accessToken}`;
-
-        const resp = await fetch(src, { headers });
+        // Mantido apenas por compatibilidade caso voltemos a usar esse caminho.
+        // Atualmente `shouldFetchWithAuth` é sempre false.
+        const resp = await fetch(src);
         if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
 
         const blob = await resp.blob();
