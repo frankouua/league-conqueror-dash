@@ -29,6 +29,7 @@ import { InstancesList } from '@/components/crm/chats/InstancesList';
 import { WhatsAppMediaRenderer } from '@/components/crm/chats/WhatsAppMediaRenderer';
 import { MediaUploadButton, type MediaFile } from '@/components/crm/chats/MediaUploadButton';
 import { MediaLibraryDialog } from '@/components/crm/chats/MediaLibraryDialog';
+import { VoiceRecordButton } from '@/components/crm/chats/VoiceRecordButton';
 import { MediaViewer, MediaViewerItem } from '@/components/crm/chats/MediaViewer';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -190,6 +191,20 @@ export function CRMChatsModule() {
       locationAddress: media.locationAddress,
       contactName: media.contactName,
       contactPhone: media.contactPhone,
+    });
+  }, [selectedInstanceId, selectedConversation, selectedChat, sendMedia]);
+
+  // Handle audio recording ready to send
+  const handleAudioReady = useCallback(async (audioBlob: Blob, durationSeconds: number) => {
+    if (!selectedInstanceId || !selectedConversation || !selectedChat) return;
+
+    await sendMedia({
+      instanceId: selectedInstanceId,
+      chatId: selectedConversation,
+      remoteJid: selectedChat.remote_jid,
+      mediaType: 'audio',
+      audioBlob,
+      audioDuration: durationSeconds,
     });
   }, [selectedInstanceId, selectedConversation, selectedChat, sendMedia]);
 
@@ -571,6 +586,11 @@ export function CRMChatsModule() {
                   onKeyDown={handleKeyPress}
                   className="flex-1"
                   disabled={isInputDisabled}
+                />
+                <VoiceRecordButton
+                  disabled={isInputDisabled}
+                  onAudioReady={handleAudioReady}
+                  sending={sendingMedia}
                 />
                 <Button 
                   size="icon" 

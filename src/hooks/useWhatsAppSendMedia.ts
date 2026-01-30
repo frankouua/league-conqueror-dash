@@ -10,8 +10,10 @@ interface SendMediaParams {
   chatId: string;
   remoteJid: string;
   mediaType: MediaType;
-  // For file media
+  // For file media (File or Blob for audio recordings)
   file?: File;
+  audioBlob?: Blob;
+  audioDuration?: number;
   caption?: string;
   // For location
   latitude?: number;
@@ -48,13 +50,25 @@ export function useWhatsAppSendMedia() {
     return instance?.instance_name || null;
   }, [instances]);
 
-  // WUZAPI requer o data URI completo (data:image/jpeg;base64,...)
+  // Convert File to data URI (WUZAPI requer o data URI completo)
   const fileToDataUri = useCallback((file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => {
-        // Retorna o data URI completo - WUZAPI precisa dele
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = reject;
+    });
+  }, []);
+
+  // Convert Blob to data URI (for audio recordings)
+  const blobToDataUri = useCallback((blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onload = () => {
         const result = reader.result as string;
         resolve(result);
       };
@@ -110,7 +124,9 @@ export function useWhatsAppSendMedia() {
       chatId, 
       remoteJid, 
       mediaType, 
-      file, 
+      file,
+      audioBlob,
+      audioDuration,
       caption,
       latitude,
       longitude,
@@ -173,9 +189,15 @@ export function useWhatsAppSendMedia() {
         }
         payload.contactName = contactName;
         payload.contactPhone = contactPhone;
+      } else if (audioBlob && mediaType === 'audio') {
+        // Audio recording (Blob from MediaRecorder)
+        const dataUri = await blobToDataUri(audioBlob);
+        payload.fileBase64 = dataUri;
+        payload.fileName = `audio_${Date.now()}.webm`;
+        payload.fileMimeType = audioBlob.type || 'audio/webm';
+        payload.audioDuration = audioDuration;
       } else if (file) {
         // File-based media (image, video, document)
-        // WUZAPI requer o data URI completo (data:image/jpeg;base64,...)
         const dataUri = await fileToDataUri(file);
         payload.fileBase64 = dataUri;
         payload.fileName = file.name;
@@ -202,6 +224,7 @@ export function useWhatsAppSendMedia() {
         chatId,
         mediaType,
         hasFile: !!file,
+        hasAudioBlob: !!audioBlob,
         fileName: file?.name
       });
 
@@ -236,7 +259,7 @@ export function useWhatsAppSendMedia() {
     } finally {
       setSending(false);
     }
-  }, [canSendMedia, getInstanceName, fileToDataUri, createImagePreviewDataUri]);
+  }, [canSendMedia, getInstanceName, fileToDataUri, blobToDataUri, createImagePreviewDataUri]);
 
   return {
     sendMedia,
