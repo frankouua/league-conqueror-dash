@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { getBestChatMediaSrc } from './mediaSrc';
 import { supabase } from '@/integrations/supabase/client';
+import { AudioPlayer } from './AudioPlayer';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -529,23 +530,13 @@ export function WhatsAppMediaRenderer({
     const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'audio' });
     if (audioSrc && !audioError) {
       return (
-        <div className="flex items-center gap-2 py-0.5 min-w-[180px]">
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-            fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
-          )}>
-            <Mic className="w-4 h-4" />
-          </div>
-          <audio 
-            controls 
-            className="h-7 max-w-[180px] flex-1"
-            onError={() => setAudioError(true)}
-          >
-            <source src={audioSrc} type="audio/ogg" />
-            <source src={audioSrc} type="audio/mpeg" />
-            Áudio não suportado
-          </audio>
-        </div>
+        <AudioPlayer
+          src={audioSrc}
+          fromMe={fromMe}
+          compact
+          className="min-w-[200px] max-w-[280px]"
+          onError={() => setAudioError(true)}
+        />
       );
     }
     

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, Square, Loader2, Trash2, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { AudioPlayer } from './AudioPlayer';
 
 interface VoiceRecordButtonProps {
   disabled?: boolean;
@@ -192,14 +193,13 @@ export function VoiceRecordButton({
   if (audioBlob && audioUrl) {
     return (
       <div className={cn("flex items-center gap-2 flex-1", className)}>
-        <audio 
-          src={audioUrl} 
-          controls 
-          className="h-9 flex-1 max-w-[200px]"
+        <AudioPlayer
+          src={audioUrl}
+          duration={recordingTime}
+          fromMe={true}
+          compact
+          className="flex-1"
         />
-        <span className="text-xs text-muted-foreground">
-          {formatTime(recordingTime)}
-        </span>
         <Button 
           variant="ghost" 
           size="icon" 
