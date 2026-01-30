@@ -15,7 +15,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getPreviewSrc, getHdProxyUrl, getBestChatMediaSrc } from './mediaSrc';
+import { getBestChatMediaSrc } from './mediaSrc';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -27,9 +28,11 @@ interface WhatsAppMediaRendererProps {
   messageId?: string;
   timestamp?: string | null;
   contactName?: string | null;
+  // Callback para abrir o visualizador no componente pai
   onOpenMediaViewer?: (mediaId: string) => void;
 }
 
+// Normaliza o tipo de mensagem para comparação
 function normalizeMessageType(type: string | null): string {
   if (!type) return 'text';
   return type.toLowerCase().replace('message', '').trim();
@@ -39,6 +42,7 @@ function guessMediaKindFromUrl(url: string | null): 'image' | 'video' | 'audio' 
   if (!url) return null;
   const clean = url.split('?')[0]?.toLowerCase() ?? '';
 
+  // Common image extensions + WhatsApp CDN patterns
   if (/(\.png|\.jpg|\.jpeg|\.gif|\.webp)$/.test(clean) || clean.includes('whatsapp.net')) {
     return 'image';
   }
@@ -83,12 +87,17 @@ function pickFirstString(...values: unknown[]): string | null {
 function extractMediaUrlFromRawData(rawData: unknown): string | null {
   const raw = (rawData ?? {}) as any;
 
+  // UAZAPI costuma variar bastante os paths e o casing (url/URL).
+  // Preferimos sempre URL direta (o proxy cuida do resto).
   return (
     pickFirstString(
+      // Estrutura atual (geral): raw_data.message.content.url
       raw?.message?.content?.url,
       raw?.message?.content?.URL,
       raw?.message?.content?.mediaUrl,
       raw?.message?.content?.media_url,
+
+      // Estruturas por tipo (alguns provedores)
       raw?.message?.imageMessage?.url,
       raw?.message?.imageMessage?.URL,
       raw?.message?.videoMessage?.url,
@@ -99,10 +108,14 @@ function extractMediaUrlFromRawData(rawData: unknown): string | null {
       raw?.message?.documentMessage?.URL,
       raw?.message?.documentWithCaptionMessage?.message?.documentMessage?.url,
       raw?.message?.documentWithCaptionMessage?.message?.documentMessage?.URL,
+
+      // Resposta armazenada de envio (mensagens enviadas)
       raw?.uazapi_response?.content?.url,
       raw?.uazapi_response?.content?.URL,
       raw?.uazapi_response?.content?.mediaUrl,
       raw?.uazapi_response?.content?.media_url,
+
+      // Outros fallbacks comuns
       raw?.url,
       raw?.URL,
       raw?.mediaUrl,
@@ -117,22 +130,31 @@ function fileFormatFromMimeOrName(mime: string | null, fileName: string | null):
   if (mime && typeof mime === 'string') {
     const m = mime.toLowerCase().trim();
 
+    // Mapeamentos comuns (WhatsApp/UAZAPI costuma mandar mimetype completo do Office)
     if (m === 'application/pdf') return 'PDF';
     if (m === 'text/plain') return 'TXT';
     if (m === 'text/csv') return 'CSV';
     if (m === 'application/zip') return 'ZIP';
     if (m === 'application/x-zip-compressed') return 'ZIP';
+
+    // Word
     if (m === 'application/msword') return 'DOC';
     if (m.includes('wordprocessingml.document')) return 'DOCX';
+
+    // Excel
     if (m === 'application/vnd.ms-excel') return 'XLS';
     if (m.includes('spreadsheetml.sheet')) return 'XLSX';
+
+    // PowerPoint
     if (m === 'application/vnd.ms-powerpoint') return 'PPT';
     if (m.includes('presentationml.presentation')) return 'PPTX';
 
+    // Fallback razoável: usa o subtype mas sem poluir com "vnd.openxml..."
     const subtype = (m.split('/')[1] || '').trim();
     if (subtype && !subtype.includes('vnd.') && !subtype.includes('openxml')) return subtype.toUpperCase();
   }
   if (fileName) {
+    // evita considerar ".enc" como extensão final
     const cleaned = fileName.replace(/\.enc$/i, '');
     const extMatch = cleaned.match(/\.([a-z0-9]+)$/i);
     if (extMatch?.[1]) return extMatch[1].toUpperCase();
@@ -147,19 +169,26 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 } {
   const raw = (rawData ?? {}) as any;
 
+  // Estrutura UAZAPI para mensagens RECEBIDAS: raw_data.message.content.fileName
   const messageContent = raw?.message?.content ?? null;
+  
+  // Estrutura antiga (documentMessage) - fallback
   const docMessage = raw?.message?.documentMessage 
     ?? raw?.message?.documentWithCaptionMessage?.message?.documentMessage
     ?? null;
 
+  // Prioridade: message.content (recebidas) > documentMessage > outros fallbacks
   const fileName =
     pickFirstString(
+      // Mensagens recebidas (estrutura UAZAPI atual): raw_data.message.content.fileName
       messageContent?.fileName,
       messageContent?.file_name,
       messageContent?.filename,
+      // Estrutura antiga de mensagens recebidas
       docMessage?.fileName,
       docMessage?.file_name,
       docMessage?.title,
+      // Mensagens enviadas / estrutura alternativa
       raw?.file_name,
       raw?.filename,
       raw?.name,
@@ -169,6 +198,7 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
       raw?.uazapi_response?.content?.name,
       raw?.uazapi_response?.content?.docName,
       raw?.uazapi_response?.content?.doc_name,
+      // fallback: alguns provedores usam raw.content.*
       raw?.content?.fileName,
       raw?.content?.file_name,
       raw?.content?.filename,
@@ -177,6 +207,7 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
       raw?.content?.doc_name
     ) ||
     (() => {
+      // último fallback: tentar extrair de querystring, se existir
       try {
         if (!mediaUrl) return null;
         const u = new URL(mediaUrl);
@@ -190,10 +221,13 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 
   const mime =
     pickFirstString(
+      // Mensagens recebidas (estrutura UAZAPI atual)
       messageContent?.mimetype,
       messageContent?.mime_type,
+      // Estrutura antiga
       docMessage?.mimetype,
       docMessage?.mime_type,
+      // Mensagens enviadas / estrutura alternativa
       raw?.mime_type,
       raw?.mimetype,
       raw?.mime,
@@ -207,10 +241,13 @@ function extractDocumentMeta(rawData: unknown, content: string | null, mediaUrl:
 
   const captionCandidate =
     pickFirstString(
+      // Mensagens recebidas (estrutura UAZAPI atual)
       raw?.message?.text,
       messageContent?.caption,
+      // Estrutura antiga
       docMessage?.caption,
       raw?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption,
+      // Mensagens enviadas / estrutura alternativa
       raw?.caption,
       raw?.text,
       raw?.uazapi_response?.content?.caption,
@@ -241,124 +278,88 @@ export function WhatsAppMediaRenderer({
   const [imageError, setImageError] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [audioError, setAudioError] = useState(false);
-  // Estado para o blob HD carregado em background
-  const [hdBlobSrc, setHdBlobSrc] = useState<string | null>(null);
-  const [isLoadingHd, setIsLoadingHd] = useState(false);
+  const [authedBlobSrc, setAuthedBlobSrc] = useState<string | null>(null);
 
   const normalizedType = normalizeMessageType(messageType);
 
-  // Resolve URL da mídia (pode estar no raw_data)
+  // Algumas mensagens recebidas chegam com media_url null no registro,
+  // mas a URL está dentro do raw_data. Se não resolvermos isso aqui,
+  // o <img> nunca terá src e a imagem não aparece.
   const resolvedMediaUrl = useMemo(() => {
     return mediaUrl ?? extractMediaUrlFromRawData(rawData);
   }, [mediaUrl, rawData]);
 
+  // Heurística: às vezes o backend salva message_type como Conversation/Text, mas a mídia chega via media_url.
+  // Nesse caso, renderizamos pelo mediaUrl (experiência estilo Direct/Messenger).
   const guessedKind = guessMediaKindFromUrl(resolvedMediaUrl);
   const effectiveType =
     normalizedType === 'text' || normalizedType === 'conversation' || normalizedType === 'extendedtext'
       ? (guessedKind ?? (isImagePlaceholderText(content) ? 'image' : isVideoPlaceholderText(content) ? 'video' : normalizedType))
       : normalizedType;
 
-  // CARREGAMENTO PROGRESSIVO:
-  // 1. previewSrc = thumbnail Base64 para exibição IMEDIATA
-  // 2. hdProxyUrl = URL HD via proxy para carregamento em BACKGROUND
-  const previewSrc = useMemo(() => {
-    return getPreviewSrc(mediaPreview, 'image');
-  }, [mediaPreview]);
+  const displaySrc = useMemo(() => {
+    // Prioriza preview (base64 de alta qualidade) para exibição imediata; fallback para proxy da URL
+    return getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'image' });
+  }, [mediaPreview, resolvedMediaUrl]);
 
-  const hdProxyUrl = useMemo(() => {
-    return getHdProxyUrl(resolvedMediaUrl);
-  }, [resolvedMediaUrl]);
+  // IMPORTANTE: a rota de "backend functions" pode exigir headers (apikey/authorization).
+  // Um <img src="..."> não envia headers customizados; então para mídias RECEBIDAS
+  // (sem preview/base64) que dependem do proxy, buscamos via fetch autenticado e
+  // renderizamos via blob URL.
+  const shouldUseAuthedFetch = useMemo(() => {
+    if (!displaySrc) return false;
+    const s = displaySrc.toLowerCase();
+    // Só vale a pena quando NÃO temos preview (senão já renderiza local)
+    return !mediaPreview && s.includes('/functions/v1/media-proxy');
+  }, [displaySrc, mediaPreview]);
 
-  // Fonte final: HD blob (quando carregado) > Preview base64 > proxy direto (fallback)
-  const displaySrc = hdBlobSrc || previewSrc || hdProxyUrl;
-
-  // LOG DE DEBUG (temporário)
-  useEffect(() => {
-    if (effectiveType === 'image') {
-      console.log('[WhatsAppMediaRenderer] 📊 Debug mídia:', {
-        messageId,
-        hasPreview: !!previewSrc,
-        hasHdProxyUrl: !!hdProxyUrl,
-        hasHdBlobSrc: !!hdBlobSrc,
-        displaySrc: displaySrc?.slice(0, 50) + (displaySrc && displaySrc.length > 50 ? '...' : ''),
-      });
-    }
-  }, [effectiveType, messageId, previewSrc, hdProxyUrl, hdBlobSrc, displaySrc]);
-
-  // Efeito para carregar a imagem HD em background
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    async function loadHdImage() {
-      // Só carrega HD se tiver URL de proxy disponível
-      if (!hdProxyUrl) {
-        console.log('[WhatsAppMediaRenderer] ⚠️ hdProxyUrl ausente, usando apenas preview');
+    async function run() {
+      if (!shouldUseAuthedFetch || !displaySrc) {
+        setAuthedBlobSrc(null);
         return;
       }
 
-      // Se já temos preview, não bloquear o render - carregar HD em background
-      setIsLoadingHd(true);
-
       try {
-        // DEBUG: URL absoluta?
-        console.log('[WhatsAppMediaRenderer] 🔗 Iniciando fetch HD:', {
-          url: hdProxyUrl.slice(0, 80) + '...',
-          isAbsolute: hdProxyUrl.startsWith('http'),
-        });
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
 
-        // O `media-proxy` é público (verify_jwt=false).
-        // Carregamos SEM headers para evitar preflight CORS.
-        const resp = await fetch(hdProxyUrl);
-        
-        console.log('[WhatsAppMediaRenderer] ✅ Resposta proxy:', {
-          status: resp.status,
-          contentType: resp.headers.get('content-type'),
-          cors: resp.headers.get('access-control-allow-origin'),
-        });
+        const headers: Record<string, string> = {
+          // publishable key do projeto (seguro para frontend)
+          apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''),
+        };
+        if (accessToken) headers.authorization = `Bearer ${accessToken}`;
 
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const resp = await fetch(displaySrc, { headers });
+        if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
 
         const blob = await resp.blob();
-        console.log('[WhatsAppMediaRenderer] 📦 Blob HD:', {
-          size: blob.size,
-          type: blob.type,
-        });
-
-        if (blob.size === 0) throw new Error('Blob vazio');
-
         objectUrl = URL.createObjectURL(blob);
-        
-        if (!cancelled) {
-          console.log('[WhatsAppMediaRenderer] 🎉 HD carregado com sucesso!');
-          setHdBlobSrc(objectUrl);
-          setIsLoadingHd(false);
-        }
-      } catch (err) {
-        console.error('[WhatsAppMediaRenderer] ❌ Falha ao carregar HD (usando preview):', err);
-        if (!cancelled) {
-          // Não quebra UI - continua usando preview
-          setHdBlobSrc(null);
-          setIsLoadingHd(false);
-        }
+        if (!cancelled) setAuthedBlobSrc(objectUrl);
+      } catch {
+        // Se falhar, mantemos o displaySrc original (pode funcionar em alguns ambientes)
+        if (!cancelled) setAuthedBlobSrc(null);
       }
     }
 
-    loadHdImage();
+    run();
 
     return () => {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [hdProxyUrl]);
+  }, [displaySrc, shouldUseAuthedFetch]);
 
-  // Reset do blob HD quando a URL muda (nova mensagem)
+  // Se a mensagem for atualizada via realtime (ex.: media_preview chega depois),
+  // não podemos “travar” no fallback por causa de um onError antigo.
   useEffect(() => {
-    setHdBlobSrc(null);
     setImageError(false);
     setVideoError(false);
     setAudioError(false);
-  }, [resolvedMediaUrl, mediaPreview]);
+  }, [messageType, resolvedMediaUrl, mediaPreview, displaySrc]);
 
   // Text messages
   if (!messageType || effectiveType === 'text' || effectiveType === 'conversation' || effectiveType === 'extendedtext') {
@@ -371,8 +372,8 @@ export function WhatsAppMediaRenderer({
 
   // Image messages
   if (effectiveType === 'image') {
-    // Fonte final: HD > preview > proxy direto
-    const finalImgSrc = displaySrc;
+    // Sempre mostra a imagem se tiver alguma fonte disponível
+    const finalImgSrc = authedBlobSrc || displaySrc;
 
     if (finalImgSrc && !imageError) {
       return (
