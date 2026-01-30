@@ -12,6 +12,9 @@ interface AudioPlayerProps {
   onError?: () => void;
 }
 
+const PLAYBACK_SPEEDS = [1, 1.5, 2] as const;
+type PlaybackSpeed = typeof PLAYBACK_SPEEDS[number];
+
 export function AudioPlayer({ 
   src, 
   duration: providedDuration, 
@@ -24,6 +27,7 @@ export function AudioPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(providedDuration || 0);
   const [hasError, setHasError] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(1);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +87,18 @@ export function AudioPlayer({
     }
   }, [isPlaying, hasError]);
 
+  // Cycle playback speed
+  const cycleSpeed = useCallback(() => {
+    if (!audioRef.current) return;
+    
+    const currentIndex = PLAYBACK_SPEEDS.indexOf(playbackSpeed);
+    const nextIndex = (currentIndex + 1) % PLAYBACK_SPEEDS.length;
+    const newSpeed = PLAYBACK_SPEEDS[nextIndex];
+    
+    setPlaybackSpeed(newSpeed);
+    audioRef.current.playbackRate = newSpeed;
+  }, [playbackSpeed]);
+
   // Handle progress bar click
   const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!audioRef.current || !progressRef.current || hasError) return;
@@ -99,6 +115,13 @@ export function AudioPlayer({
   // Calculate progress percentage
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  // Sync playback rate when speed changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -108,15 +131,21 @@ export function AudioPlayer({
     };
   }, []);
 
+  // Generate waveform heights (deterministic based on src)
+  const waveformHeights = useRef<number[]>(
+    Array.from({ length: 28 }, (_, i) => Math.sin((i * 0.8) + 1) * 40 + 30)
+  );
+
   if (hasError) {
     return (
       <div className={cn(
-        "flex items-center gap-2 py-1",
+        "flex items-center gap-2 py-1.5 px-2 rounded-xl",
+        fromMe ? "bg-primary/10" : "bg-muted",
         className
       )}>
         <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-          fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
+          "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
+          fromMe ? "bg-primary/20" : "bg-muted-foreground/10"
         )}>
           <Mic className="w-4 h-4 opacity-50" />
         </div>
@@ -127,8 +156,8 @@ export function AudioPlayer({
 
   return (
     <div className={cn(
-      "flex items-center gap-2",
-      compact ? "py-0.5" : "py-1",
+      "flex items-center gap-2 rounded-xl",
+      compact ? "py-1.5 px-2" : "py-2 px-3",
       className
     )}>
       {/* Hidden audio element */}
@@ -148,71 +177,86 @@ export function AudioPlayer({
         size="icon"
         onClick={togglePlay}
         className={cn(
-          "w-9 h-9 rounded-full shrink-0 transition-colors",
+          "w-10 h-10 rounded-full shrink-0 transition-all",
           fromMe 
-            ? "bg-primary-foreground/20 hover:bg-primary-foreground/30" 
-            : "bg-muted-foreground/10 hover:bg-muted-foreground/20"
+            ? "bg-primary-foreground/30 hover:bg-primary-foreground/50 text-primary-foreground" 
+            : "bg-primary/90 hover:bg-primary text-primary-foreground"
         )}
       >
         {isPlaying ? (
-          <Pause className="w-4 h-4" />
+          <Pause className="w-5 h-5" fill="currentColor" />
         ) : (
-          <Play className="w-4 h-4 ml-0.5" />
+          <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
         )}
       </Button>
 
-      {/* Progress bar and time */}
-      <div className="flex-1 flex flex-col gap-1 min-w-[100px] max-w-[180px]">
+      {/* Progress bar and waveform */}
+      <div className="flex-1 flex flex-col gap-1 min-w-[120px]">
         {/* Waveform / Progress bar */}
         <div 
           ref={progressRef}
           onClick={handleProgressClick}
-          className={cn(
-            "relative h-2 rounded-full cursor-pointer overflow-hidden",
-            fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/15"
-          )}
+          className="relative h-6 cursor-pointer flex items-center"
         >
-          {/* Progress fill */}
-          <div 
-            className={cn(
-              "absolute left-0 top-0 h-full rounded-full transition-all",
-              fromMe ? "bg-primary-foreground/60" : "bg-muted-foreground/40"
-            )}
-            style={{ width: `${progress}%` }}
-          />
-          
-          {/* Simulated waveform bars (decorative) */}
-          <div className="absolute inset-0 flex items-center justify-around px-1 pointer-events-none">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-[2px] rounded-full",
-                  i <= (progress / 100) * 20 
-                    ? (fromMe ? "bg-primary-foreground/80" : "bg-muted-foreground/60")
-                    : (fromMe ? "bg-primary-foreground/30" : "bg-muted-foreground/25")
-                )}
-                style={{ 
-                  height: `${Math.sin((i * 0.7) + 1) * 40 + 30}%`,
-                }}
-              />
-            ))}
+          {/* Waveform bars */}
+          <div className="absolute inset-0 flex items-center gap-[2px]">
+            {waveformHeights.current.map((height, i) => {
+              const barProgress = (i / waveformHeights.current.length) * 100;
+              const isPlayed = barProgress <= progress;
+              
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "w-[3px] rounded-full transition-colors",
+                    isPlayed 
+                      ? (fromMe ? "bg-primary-foreground/80" : "bg-primary")
+                      : (fromMe ? "bg-primary-foreground/30" : "bg-muted-foreground/30")
+                  )}
+                  style={{ 
+                    height: `${height}%`,
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
 
         {/* Time display */}
-        <div className="flex justify-between text-[10px] opacity-70">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
+        <div className="flex justify-between items-center text-[10px]">
+          <span className={cn(
+            "font-medium",
+            fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
+          )}>
+            {isPlaying || currentTime > 0 ? formatTime(currentTime) : formatTime(duration)}
+          </span>
         </div>
       </div>
 
+      {/* Speed control button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={cycleSpeed}
+        className={cn(
+          "h-7 px-2 text-[11px] font-bold rounded-full shrink-0 transition-colors",
+          fromMe 
+            ? "bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground" 
+            : "bg-muted-foreground/10 hover:bg-muted-foreground/20 text-muted-foreground"
+        )}
+      >
+        {playbackSpeed}x
+      </Button>
+
       {/* Mic icon indicator */}
       <div className={cn(
-        "w-7 h-7 rounded-full flex items-center justify-center shrink-0",
+        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
         fromMe ? "bg-primary-foreground/15" : "bg-muted-foreground/10"
       )}>
-        <Mic className="w-3.5 h-3.5 opacity-60" />
+        <Mic className={cn(
+          "w-4 h-4",
+          fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
+        )} />
       </div>
     </div>
   );
