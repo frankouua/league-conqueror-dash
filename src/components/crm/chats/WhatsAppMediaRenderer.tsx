@@ -535,20 +535,41 @@ export function WhatsAppMediaRenderer({
 
   // Audio/Voice messages (ptt, audio, AudioMessage, myaudio)
   if (effectiveType === 'audio' || effectiveType === 'ptt' || effectiveType === 'myaudio') {
-    // Extrair URL de áudio do raw_data se não estiver disponível diretamente
+    // Extrair URL de áudio e duração do raw_data
     let audioUrl = resolvedMediaUrl;
-    if (!audioUrl && rawData) {
+    let audioDuration: number | undefined;
+    
+    if (rawData) {
       const raw = rawData as any;
-      audioUrl = 
-        raw?.message?.content?.URL ||
-        raw?.message?.content?.url ||
-        raw?.message?.audioMessage?.url ||
-        raw?.message?.audioMessage?.URL ||
-        raw?.uazapi_response?.content?.URL ||
-        raw?.uazapi_response?.content?.url ||
-        raw?.content?.URL ||
-        raw?.content?.url ||
-        null;
+      
+      // Extrair URL de múltiplas estruturas possíveis
+      if (!audioUrl) {
+        audioUrl = pickFirstString(
+          // Estrutura UAZAPI v2 (resposta de envio)
+          raw?.uazapi_response?.content?.URL,
+          raw?.uazapi_response?.content?.url,
+          // Estrutura de mensagem recebida
+          raw?.message?.content?.URL,
+          raw?.message?.content?.url,
+          // Estrutura alternativa (audioMessage)
+          raw?.message?.audioMessage?.url,
+          raw?.message?.audioMessage?.URL,
+          // Fallbacks genéricos
+          raw?.content?.URL,
+          raw?.content?.url,
+          raw?.URL,
+          raw?.url
+        );
+      }
+      
+      // Extrair duração em segundos (UAZAPI retorna "seconds" no content)
+      audioDuration = 
+        raw?.uazapi_response?.content?.seconds ??
+        raw?.message?.content?.seconds ??
+        raw?.message?.audioMessage?.seconds ??
+        raw?.content?.seconds ??
+        raw?.seconds ??
+        undefined;
     }
     
     const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: audioUrl, kind: 'audio' });
@@ -557,6 +578,7 @@ export function WhatsAppMediaRenderer({
       return (
         <AudioPlayer
           src={audioSrc}
+          duration={audioDuration}
           fromMe={fromMe}
           compact
           className="min-w-[200px] max-w-[280px]"
