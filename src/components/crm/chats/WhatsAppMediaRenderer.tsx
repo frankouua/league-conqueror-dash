@@ -36,7 +36,15 @@ interface WhatsAppMediaRendererProps {
 // Normaliza o tipo de mensagem para comparação
 function normalizeMessageType(type: string | null): string {
   if (!type) return 'text';
-  return type.toLowerCase().replace('message', '').trim();
+  const lower = type.toLowerCase().trim();
+  
+  // Normaliza variações de áudio primeiro (antes de remover "message")
+  if (lower === 'audiomessage' || lower === 'audio' || lower === 'ptt' || lower === 'myaudio') {
+    return 'audio';
+  }
+  
+  // Remove sufixo "message" para outros tipos
+  return lower.replace('message', '').trim();
 }
 
 function guessMediaKindFromUrl(url: string | null): 'image' | 'video' | 'audio' | 'document' | null {
@@ -525,9 +533,26 @@ export function WhatsAppMediaRenderer({
     );
   }
 
-  // Audio/Voice messages
-  if (effectiveType === 'audio' || effectiveType === 'ptt') {
-    const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'audio' });
+  // Audio/Voice messages (ptt, audio, AudioMessage, myaudio)
+  if (effectiveType === 'audio' || effectiveType === 'ptt' || effectiveType === 'myaudio') {
+    // Extrair URL de áudio do raw_data se não estiver disponível diretamente
+    let audioUrl = resolvedMediaUrl;
+    if (!audioUrl && rawData) {
+      const raw = rawData as any;
+      audioUrl = 
+        raw?.message?.content?.URL ||
+        raw?.message?.content?.url ||
+        raw?.message?.audioMessage?.url ||
+        raw?.message?.audioMessage?.URL ||
+        raw?.uazapi_response?.content?.URL ||
+        raw?.uazapi_response?.content?.url ||
+        raw?.content?.URL ||
+        raw?.content?.url ||
+        null;
+    }
+    
+    const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: audioUrl, kind: 'audio' });
+    
     if (audioSrc && !audioError) {
       return (
         <AudioPlayer
