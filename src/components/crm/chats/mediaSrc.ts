@@ -32,6 +32,10 @@ export function shouldProxyUrl(url: string | null | undefined) {
   // Evita loop: se já estamos apontando para o nosso proxy, não reproxiar.
   if (lower.includes('/functions/v1/media-proxy')) return false;
 
+  // URLs do Supabase Storage são públicas e não precisam de proxy
+  if (lower.includes('.supabase.co/storage/')) return false;
+  if (lower.includes('supabase.co/storage/')) return false;
+
   // Regra geral: qualquer URL http(s) externa pode sofrer bloqueio de hotlink/CORS.
   // Como o proxy é exatamente o nosso gateway para contornar isso, preferimos
   // proxiar por padrão (mantendo compatível com WhatsApp + provedores diversos).
