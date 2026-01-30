@@ -37,7 +37,7 @@ function normalizeInstanceKey(raw: string): string {
 async function findInstance(
   supabaseClient: any,
   instanceNameRaw: string,
-): Promise<{ id: string; organization_id: string } | null> {
+): Promise<{ id: string; organization_id: string; api_key?: string } | null> {
   const raw = String(instanceNameRaw || '').trim();
   if (!raw) return null;
 
@@ -48,7 +48,7 @@ async function findInstance(
   {
     const { data } = await supabaseClient
       .from('whatsapp_instances')
-      .select('id, organization_id')
+      .select('id, organization_id, api_key')
       .eq('instance_name', raw)
       .maybeSingle();
     if (data) return data;
@@ -58,7 +58,7 @@ async function findInstance(
   {
     const { data } = await supabaseClient
       .from('whatsapp_instances')
-      .select('id, organization_id')
+      .select('id, organization_id, api_key')
       .eq('instance_name', normalized)
       .maybeSingle();
     if (data) return data;
@@ -68,12 +68,12 @@ async function findInstance(
   if (firstToken) {
     const { data, error } = await supabaseClient
       .from('whatsapp_instances')
-      .select('id, organization_id, instance_name')
+      .select('id, organization_id, api_key, instance_name')
       .ilike('instance_name', `%${firstToken}%`)
       .limit(2);
 
     if (!error && Array.isArray(data) && data.length === 1) {
-      return { id: data[0].id, organization_id: data[0].organization_id };
+      return { id: data[0].id, organization_id: data[0].organization_id, api_key: data[0].api_key };
     }
   }
 
@@ -124,6 +124,127 @@ function toISODateSafe(input: unknown): string {
     return new Date().toISOString();
   } catch {
     return new Date().toISOString();
+  }
+}
+
+// =====================================================
+// MEDIA DOWNLOAD & UPLOAD HELPER
+// =====================================================
+
+async function downloadAndUploadMedia(
+  supabaseClient: any,
+  messageId: string,
+  messageType: string,
+  instanceApiKey: string,
+  baseUrl: string,
+  mimetype?: string
+): Promise<{ publicUrl: string | null; mediaPreview: string | null }> {
+  const apiKey = instanceApiKey || Deno.env.get('UAZAPI_API_KEY');
+  
+  if (!apiKey) {
+    console.error('[Media] ❌ Sem API key disponível para download');
+    return { publicUrl: null, mediaPreview: null };
+  }
+
+  // Usar o BaseUrl que veio no payload, ou fallback para unique.uazapi.com
+  const uazapiBaseUrl = baseUrl || 'https://unique.uazapi.com';
+  
+  console.log('[Media] 📥 Iniciando download via UAZAPI...', { messageId, messageType, uazapiBaseUrl });
+
+  try {
+    // 1. Chamar endpoint /message/download da UAZAPI
+    const downloadResponse = await fetch(`${uazapiBaseUrl}/message/download`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': apiKey,
+      },
+      body: JSON.stringify({
+        id: messageId,
+        return_base64: true,
+        return_link: false,
+      }),
+    });
+
+    if (!downloadResponse.ok) {
+      const errorText = await downloadResponse.text();
+      console.error('[Media] ❌ Erro no download UAZAPI:', downloadResponse.status, errorText);
+      return { publicUrl: null, mediaPreview: null };
+    }
+
+    const downloadData = await downloadResponse.json();
+    const base64Data = downloadData.base64Data || downloadData.base64 || downloadData.data;
+    const detectedMimetype = downloadData.mimetype || mimetype || 'image/jpeg';
+
+    if (!base64Data) {
+      console.error('[Media] ❌ UAZAPI não retornou base64Data:', Object.keys(downloadData));
+      return { publicUrl: null, mediaPreview: null };
+    }
+
+    console.log('[Media] ✅ Base64 recebido, tamanho:', base64Data.length, 'bytes');
+
+    // 2. Converter base64 para Uint8Array
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // 3. Determinar extensão e path
+    const msgTypeNorm = (messageType || '').toLowerCase().replace('message', '');
+    let folder = 'misc';
+    let extension = 'bin';
+    
+    if (msgTypeNorm.includes('image')) {
+      folder = 'images';
+      extension = detectedMimetype === 'image/png' ? 'png' : 
+                  detectedMimetype === 'image/webp' ? 'webp' : 'jpg';
+    } else if (msgTypeNorm.includes('video')) {
+      folder = 'videos';
+      extension = 'mp4';
+    } else if (msgTypeNorm.includes('audio') || msgTypeNorm === 'ptt') {
+      folder = 'audios';
+      extension = detectedMimetype?.includes('ogg') ? 'ogg' : 'mp3';
+    } else if (msgTypeNorm.includes('document')) {
+      folder = 'documents';
+      extension = detectedMimetype?.includes('pdf') ? 'pdf' : 'bin';
+    }
+
+    const fileName = `${messageId}.${extension}`;
+    const filePath = `${folder}/${fileName}`;
+
+    // 4. Upload para Supabase Storage
+    const { error: uploadError } = await supabaseClient.storage
+      .from('whatsapp-media')
+      .upload(filePath, bytes.buffer, {
+        contentType: detectedMimetype,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('[Media] ❌ Erro no upload Storage:', uploadError);
+      return { publicUrl: null, mediaPreview: null };
+    }
+
+    // 5. Obter URL pública
+    const { data: urlData } = supabaseClient.storage
+      .from('whatsapp-media')
+      .getPublicUrl(filePath);
+
+    const publicUrl = urlData?.publicUrl || null;
+    console.log('[Media] ✅ Upload concluído:', publicUrl);
+
+    // 6. Para imagens, gerar preview thumbnail (primeiros bytes do base64)
+    let mediaPreview: string | null = null;
+    if (msgTypeNorm.includes('image') && base64Data.length < 500000) {
+      // Usar o próprio base64 como preview se for pequeno o suficiente
+      mediaPreview = `data:${detectedMimetype};base64,${base64Data.substring(0, 50000)}`;
+    }
+
+    return { publicUrl, mediaPreview };
+  } catch (error) {
+    console.error('[Media] ❌ Exceção no download/upload:', error);
+    return { publicUrl: null, mediaPreview: null };
   }
 }
 
@@ -280,25 +401,80 @@ async function handleMessages(supabaseClient: any, payload: any) {
 
   // Extrair URL de mídia - UAZAPI usa content.URL (maiúsculo) ou content.url
   const mediaContent = message.content || {};
-  const mediaUrl = 
+  const originalMediaUrl = 
     mediaContent.URL || 
     mediaContent.url || 
     message.mediaUrl || 
     message.media_url ||
     null;
   
-  console.log('[Webhook] Media extraction:', { messageType, hasMediaUrl: !!mediaUrl, mediaKeys: Object.keys(mediaContent) });
+  // Extrair mimetype e message ID para download
+  const mimetype = mediaContent.mimetype || mediaContent.mimeType || message.mimetype;
+  const messageIdForDownload = message.messageid || message.key?.id || message.id;
+  
+  console.log('[Webhook] Media extraction:', { 
+    messageType, 
+    hasOriginalMediaUrl: !!originalMediaUrl, 
+    fromMe,
+    mimetype,
+    messageIdForDownload,
+    mediaKeys: Object.keys(mediaContent) 
+  });
+
+  // =========================================================
+  // DOWNLOAD E UPLOAD DE MÍDIA PARA SUPABASE STORAGE
+  // =========================================================
+  let finalMediaUrl: string | null = null;
+  let mediaPreview: string | null = null;
+  
+  const isMediaMessage = msgTypeNorm.includes('image') || 
+                         msgTypeNorm.includes('video') || 
+                         msgTypeNorm.includes('audio') || 
+                         msgTypeNorm === 'ptt' ||
+                         msgTypeNorm.includes('document');
+
+  if (isMediaMessage && !fromMe && messageIdForDownload) {
+    // Mensagem recebida com mídia - fazer download via UAZAPI e upload para Storage
+    console.log('[Webhook] 📥 Mensagem de mídia recebida, iniciando download/upload...');
+    
+    // Extrair BaseUrl do payload (UAZAPI envia isso no webhook)
+    const uazapiBaseUrl = payload.BaseUrl || payload.baseUrl || payload.base_url || 'https://unique.uazapi.com';
+    
+    const { publicUrl, mediaPreview: preview } = await downloadAndUploadMedia(
+      supabaseClient,
+      messageIdForDownload,
+      messageType,
+      instance.api_key || '',
+      uazapiBaseUrl,
+      mimetype
+    );
+    
+    if (publicUrl) {
+      finalMediaUrl = publicUrl;
+      mediaPreview = preview;
+      console.log('[Webhook] ✅ Mídia salva no Storage:', finalMediaUrl);
+    } else {
+      // Fallback: usar URL original (pode não funcionar no frontend)
+      finalMediaUrl = originalMediaUrl;
+      console.log('[Webhook] ⚠️ Fallback para URL original:', finalMediaUrl);
+    }
+  } else if (isMediaMessage && fromMe) {
+    // Mensagem enviada - já temos a URL original
+    finalMediaUrl = originalMediaUrl;
+    console.log('[Webhook] 📤 Mensagem enviada, usando URL original:', finalMediaUrl);
+  }
 
   const { error: messageError } = await supabaseClient
     .from('whatsapp_messages')
     .upsert({
       chat_id: chatRecord.id,
-      message_id: message.messageid || message.key?.id || `${Date.now()}`,
+      message_id: messageIdForDownload || `${Date.now()}`,
       from_me: fromMe,
       sender_name: fromMe ? instanceName : senderName,
       content: content,
       message_type: messageType,
-      media_url: mediaUrl,
+      media_url: finalMediaUrl,
+      media_preview: mediaPreview,
       message_timestamp: messageTimestamp,
       raw_data: payload,
       transcription_status: messageType === 'audio' ? 'pending' : null,
