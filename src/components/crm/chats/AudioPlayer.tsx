@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Play, Pause, Mic, Loader2 } from 'lucide-react';
+import { Play, Pause, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 
 interface AudioPlayerProps {
   src: string;
-  duration?: number; // Duration in seconds (optional, will be computed if not provided)
+  duration?: number;
   fromMe?: boolean;
   compact?: boolean;
   className?: string;
@@ -14,14 +15,6 @@ interface AudioPlayerProps {
 
 const PLAYBACK_SPEEDS = [1, 1.5, 2] as const;
 type PlaybackSpeed = typeof PLAYBACK_SPEEDS[number];
-
-// Historicamente tentávamos baixar o áudio do media-proxy via `fetch()` (com headers).
-// Porém isso dispara preflight/CORS e pode falhar como `TypeError: Failed to fetch`,
-// deixando o player sem play. Para reprodução, o <audio> consegue tocar direto da URL
-// do proxy sem headers customizados, então desabilitamos esse caminho.
-function needsAuthenticatedFetch(_url: string): boolean {
-  return false;
-}
 
 export function AudioPlayer({ 
   src, 
@@ -35,63 +28,9 @@ export function AudioPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(providedDuration || 0);
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(1);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-
-  // Fetch autenticado para URLs que passam pelo proxy
-  const shouldFetchWithAuth = useMemo(() => needsAuthenticatedFetch(src), [src]);
-
-  useEffect(() => {
-    let cancelled = false;
-    let objectUrl: string | null = null;
-
-    async function fetchAudioBlob() {
-      if (!shouldFetchWithAuth || !src) {
-        setBlobUrl(null);
-        return;
-      }
-
-      setIsLoading(true);
-
-      try {
-        // Mantido apenas por compatibilidade caso voltemos a usar esse caminho.
-        // Atualmente `shouldFetchWithAuth` é sempre false.
-        const resp = await fetch(src);
-        if (!resp.ok) throw new Error(`media-proxy http ${resp.status}`);
-
-        const blob = await resp.blob();
-        objectUrl = URL.createObjectURL(blob);
-        if (!cancelled) {
-          setBlobUrl(objectUrl);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('[AudioPlayer] Failed to fetch audio:', err);
-        if (!cancelled) {
-          setBlobUrl(null);
-          setIsLoading(false);
-          setHasError(true);
-          onError?.();
-        }
-      }
-    }
-
-    fetchAudioBlob();
-
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [src, shouldFetchWithAuth, onError]);
-
-  // URL final para o elemento de áudio
-  const audioSrc = useMemo(() => {
-    if (shouldFetchWithAuth) return blobUrl;
-    return src;
-  }, [shouldFetchWithAuth, blobUrl, src]);
-  const progressRef = useRef<HTMLDivElement>(null);
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -105,10 +44,16 @@ export function AudioPlayer({
   const handleLoadedMetadata = useCallback(() => {
     if (audioRef.current) {
       const audioDuration = audioRef.current.duration;
-      if (isFinite(audioDuration)) {
+      if (isFinite(audioDuration) && audioDuration > 0) {
         setDuration(audioDuration);
       }
+      setIsLoaded(true);
     }
+  }, []);
+
+  // Handle can play
+  const handleCanPlay = useCallback(() => {
+    setIsLoaded(true);
   }, []);
 
   // Handle time update
@@ -129,25 +74,28 @@ export function AudioPlayer({
 
   // Handle audio error
   const handleError = useCallback(() => {
+    console.error('[AudioPlayer] Error loading audio:', src);
     setHasError(true);
     setIsPlaying(false);
     onError?.();
-  }, [onError]);
+  }, [onError, src]);
 
   // Toggle play/pause
   const togglePlay = useCallback(() => {
-    if (!audioRef.current || hasError || isLoading || !audioSrc) return;
+    if (!audioRef.current || hasError) return;
     
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().catch(() => {
+      audioRef.current.play().catch((err) => {
+        console.error('[AudioPlayer] Play failed:', err);
         setHasError(true);
+        onError?.();
       });
       setIsPlaying(true);
     }
-  }, [isPlaying, hasError, isLoading, audioSrc]);
+  }, [isPlaying, hasError, onError]);
 
   // Cycle playback speed
   const cycleSpeed = useCallback(() => {
@@ -161,21 +109,13 @@ export function AudioPlayer({
     audioRef.current.playbackRate = newSpeed;
   }, [playbackSpeed]);
 
-  // Handle progress bar click
-  const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || !progressRef.current || hasError) return;
-    
-    const rect = progressRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = clickX / rect.width;
-    const newTime = percentage * duration;
-    
+  // Handle slider change
+  const handleSliderChange = useCallback((value: number[]) => {
+    if (!audioRef.current) return;
+    const newTime = value[0];
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
-  }, [duration, hasError]);
-
-  // Calculate progress percentage
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  }, []);
 
   // Sync playback rate when speed changes
   useEffect(() => {
@@ -193,56 +133,13 @@ export function AudioPlayer({
     };
   }, []);
 
-  // Generate waveform heights (deterministic based on src)
-  const waveformHeights = useRef<number[]>(
-    Array.from({ length: 28 }, (_, i) => Math.sin((i * 0.8) + 1) * 40 + 30)
-  );
+  // Calculate progress percentage for visual bar
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  // Loading state
-  if (isLoading) {
+  if (hasError || !src) {
     return (
       <div className={cn(
-        "flex items-center gap-2 py-1.5 px-2 rounded-xl",
-        fromMe ? "bg-primary/10" : "bg-muted",
-        className
-      )}>
-        <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-          fromMe ? "bg-primary-foreground/30" : "bg-primary/90"
-        )}>
-          <Loader2 className={cn(
-            "w-5 h-5 animate-spin",
-            fromMe ? "text-primary-foreground" : "text-primary-foreground"
-          )} />
-        </div>
-        <div className="flex-1 min-w-[120px]">
-          <div className="h-6 flex items-center gap-[2px]">
-            {waveformHeights.current.map((height, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-[3px] rounded-full",
-                  fromMe ? "bg-primary-foreground/30" : "bg-muted-foreground/30"
-                )}
-                style={{ height: `${height}%` }}
-              />
-            ))}
-          </div>
-          <span className={cn(
-            "text-[10px]",
-            fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
-          )}>
-            Carregando...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  if (hasError || !audioSrc) {
-    return (
-      <div className={cn(
-        "flex items-center gap-2 py-1.5 px-2 rounded-xl",
+        "flex items-center gap-2 py-2 px-3 rounded-xl",
         fromMe ? "bg-primary/10" : "bg-muted",
         className
       )}>
@@ -263,15 +160,16 @@ export function AudioPlayer({
       compact ? "py-1.5 px-2" : "py-2 px-3",
       className
     )}>
-      {/* Hidden audio element */}
+      {/* Hidden audio element - no crossOrigin to avoid CORS issues with proxy */}
       <audio
         ref={audioRef}
-        src={audioSrc}
+        src={src}
         onLoadedMetadata={handleLoadedMetadata}
+        onCanPlay={handleCanPlay}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
         onError={handleError}
-        preload="metadata"
+        preload="auto"
       />
 
       {/* Play/Pause button */}
@@ -293,37 +191,20 @@ export function AudioPlayer({
         )}
       </Button>
 
-      {/* Progress bar and waveform */}
+      {/* Progress slider and time */}
       <div className="flex-1 flex flex-col gap-1 min-w-[120px]">
-        {/* Waveform / Progress bar */}
-        <div 
-          ref={progressRef}
-          onClick={handleProgressClick}
-          className="relative h-6 cursor-pointer flex items-center"
-        >
-          {/* Waveform bars */}
-          <div className="absolute inset-0 flex items-center gap-[2px]">
-            {waveformHeights.current.map((height, i) => {
-              const barProgress = (i / waveformHeights.current.length) * 100;
-              const isPlayed = barProgress <= progress;
-              
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    "w-[3px] rounded-full transition-colors",
-                    isPlayed 
-                      ? (fromMe ? "bg-primary-foreground/80" : "bg-primary")
-                      : (fromMe ? "bg-primary-foreground/30" : "bg-muted-foreground/30")
-                  )}
-                  style={{ 
-                    height: `${height}%`,
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
+        {/* Slider */}
+        <Slider
+          value={[currentTime]}
+          min={0}
+          max={duration || 100}
+          step={0.1}
+          onValueChange={handleSliderChange}
+          className={cn(
+            "cursor-pointer",
+            fromMe ? "[&>span:first-child]:bg-primary-foreground/30 [&_[role=slider]]:bg-primary-foreground" : ""
+          )}
+        />
 
         {/* Time display */}
         <div className="flex justify-between items-center text-[10px]">
@@ -331,7 +212,13 @@ export function AudioPlayer({
             "font-medium",
             fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
           )}>
-            {isPlaying || currentTime > 0 ? formatTime(currentTime) : formatTime(duration)}
+            {formatTime(currentTime)}
+          </span>
+          <span className={cn(
+            "font-medium",
+            fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
+          )}>
+            {formatTime(duration)}
           </span>
         </div>
       </div>
