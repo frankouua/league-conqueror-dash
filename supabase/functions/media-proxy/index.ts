@@ -87,14 +87,16 @@ function normalizeUpstreamContentType(raw: string | null): string {
 }
 
 function corsHeaders(origin: string | null) {
-  // We allow all origins because this is used as an <img>/<video> src.
-  // The allowlist above prevents SSRF.
+  // This endpoint is consumed by the web app via <img>/<video>/<audio> and fetch().
+  // We keep it permissive for CORS, relying on the strict upstream allowlist to prevent SSRF.
+  // NOTE: Browsers send header names in lowercase in preflight; keep this list lowercase.
+  void origin;
   return {
-    'Access-Control-Allow-Origin': origin ?? '*',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,OPTIONS',
-    // The frontend may call this via fetch() and include auth headers.
-    // If we don't allow them, the browser will block the request during preflight.
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, Range',
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, range',
+    'Access-Control-Expose-Headers': 'content-type, content-length, accept-ranges, content-range',
     'Access-Control-Max-Age': '86400',
     'Cache-Control': 'public, max-age=3600',
   } as Record<string, string>;
