@@ -51,14 +51,20 @@ function guessMediaKindFromUrl(url: string | null): 'image' | 'video' | 'audio' 
   if (!url) return null;
   const clean = url.split('?')[0]?.toLowerCase() ?? '';
 
-  // Common image extensions + WhatsApp CDN patterns
-  if (/(\.png|\.jpg|\.jpeg|\.gif|\.webp)$/.test(clean) || clean.includes('whatsapp.net')) {
-    return 'image';
-  }
+  // Check audio first (including .enc files which are often audio from WhatsApp)
+  if (/(\.mp3|\.ogg|\.wav|\.m4a|\.opus)$/.test(clean)) return 'audio';
+  
+  // Video extensions
   if (/(\.mp4|\.mov|\.webm)$/.test(clean)) return 'video';
-  if (/(\.mp3|\.ogg|\.wav|\.m4a)$/.test(clean)) return 'audio';
+  
+  // Document extensions
   if (/(\.pdf|\.doc|\.docx|\.xls|\.xlsx|\.ppt|\.pptx|\.txt|\.csv)$/.test(clean)) return 'document';
-
+  
+  // Image extensions - check AFTER other types to avoid false positives
+  if (/(\.png|\.jpg|\.jpeg|\.gif|\.webp)$/.test(clean)) return 'image';
+  
+  // WhatsApp CDN without extension - can't determine type, return null
+  // (The message_type should be used instead)
   return null;
 }
 
@@ -536,7 +542,19 @@ export function WhatsAppMediaRenderer({
   }
 
   // Audio/Voice messages (ptt, audio, AudioMessage, myaudio)
-  if (effectiveType === 'audio' || effectiveType === 'ptt' || effectiveType === 'myaudio') {
+  // DEBUG: verificar se tipo está correto
+  const isAudioType = effectiveType === 'audio' || effectiveType === 'ptt' || effectiveType === 'myaudio';
+  if (messageType?.toLowerCase().includes('audio') || messageType?.toLowerCase() === 'ptt') {
+    console.log('[WhatsAppMediaRenderer] Audio message check:', {
+      messageType,
+      normalizedType,
+      effectiveType,
+      isAudioType,
+      resolvedMediaUrl
+    });
+  }
+  
+  if (isAudioType) {
     // Extrair URL de áudio e duração do raw_data
     let audioUrl = resolvedMediaUrl;
     let audioDuration: number | undefined;
@@ -590,10 +608,30 @@ export function WhatsAppMediaRenderer({
         undefined;
     }
     
-    const primaryAudioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: audioUrl, kind: 'audio' });
-    const fallbackAudioSrc = rawWhatsAppUrl ? getBestChatMediaSrc({ preview: null, url: rawWhatsAppUrl, kind: 'audio' }) : null;
+    // Para áudio, não usamos preview base64 - passamos diretamente a URL
+    // URLs do Supabase Storage são públicas e podem ser usadas diretamente
+    // URLs do WhatsApp precisam passar pelo proxy
+    const primaryAudioSrc = audioUrl ? (
+      audioUrl.includes('.supabase.co/storage/') 
+        ? audioUrl  // URL do storage é pública
+        : getBestChatMediaSrc({ preview: null, url: audioUrl, kind: 'audio' })
+    ) : null;
+    
+    const fallbackAudioSrc = rawWhatsAppUrl 
+      ? getBestChatMediaSrc({ preview: null, url: rawWhatsAppUrl, kind: 'audio' }) 
+      : null;
 
     const chosenAudioSrc = audioActiveSrc ?? primaryAudioSrc;
+    
+    // DEBUG: Log para verificar se a URL está chegando
+    if (!chosenAudioSrc) {
+      console.warn('[WhatsAppMediaRenderer] Audio without src:', { 
+        audioUrl, 
+        primaryAudioSrc, 
+        fallbackAudioSrc,
+        resolvedMediaUrl 
+      });
+    }
     
     if (chosenAudioSrc && !audioError) {
       return (
@@ -604,6 +642,7 @@ export function WhatsAppMediaRenderer({
           compact
           className="min-w-[200px] max-w-[280px]"
           onError={() => {
+            console.warn('[WhatsAppMediaRenderer] Audio error, trying fallback:', { chosenAudioSrc, fallbackAudioSrc });
             // 1) Se o src primário falhar (ex.: storage com mime/ext errado), tenta automaticamente
             // o fallback via WhatsApp CDN + media-proxy.
             if (fallbackAudioSrc && chosenAudioSrc !== fallbackAudioSrc) {
