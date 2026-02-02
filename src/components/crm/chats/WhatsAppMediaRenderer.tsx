@@ -288,6 +288,7 @@ export function WhatsAppMediaRenderer({
   const [videoError, setVideoError] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const [authedBlobSrc, setAuthedBlobSrc] = useState<string | null>(null);
+  const [audioActiveSrc, setAudioActiveSrc] = useState<string | null>(null);
 
   const normalizedType = normalizeMessageType(messageType);
 
@@ -377,6 +378,7 @@ export function WhatsAppMediaRenderer({
     setImageError(false);
     setVideoError(false);
     setAudioError(false);
+    setAudioActiveSrc(null);
   }, [messageType, resolvedMediaUrl, mediaPreview, displaySrc]);
 
   // Text messages
@@ -538,6 +540,7 @@ export function WhatsAppMediaRenderer({
     // Extrair URL de áudio e duração do raw_data
     let audioUrl = resolvedMediaUrl;
     let audioDuration: number | undefined;
+    let rawWhatsAppUrl: string | null = null;
     
     if (rawData) {
       const raw = rawData as any;
@@ -561,6 +564,21 @@ export function WhatsAppMediaRenderer({
           raw?.url
         );
       }
+
+      // Preferimos capturar também a URL do WhatsApp (geralmente .enc em mmg.whatsapp.net)
+      // para usar como fallback quando a URL armazenada (ex.: storage) estiver com
+      // Content-Type/extensão inconsistente e o browser não conseguir decodificar.
+      rawWhatsAppUrl = pickFirstString(
+        raw?.message?.content?.URL,
+        raw?.message?.content?.url,
+        raw?.message?.audioMessage?.URL,
+        raw?.message?.audioMessage?.url,
+        raw?.uazapi_response?.content?.URL,
+        raw?.uazapi_response?.content?.url
+      );
+      if (rawWhatsAppUrl && !rawWhatsAppUrl.toLowerCase().includes('whatsapp.net')) {
+        rawWhatsAppUrl = null;
+      }
       
       // Extrair duração em segundos (UAZAPI retorna "seconds" no content)
       audioDuration = 
@@ -572,17 +590,29 @@ export function WhatsAppMediaRenderer({
         undefined;
     }
     
-    const audioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: audioUrl, kind: 'audio' });
+    const primaryAudioSrc = getBestChatMediaSrc({ preview: mediaPreview, url: audioUrl, kind: 'audio' });
+    const fallbackAudioSrc = rawWhatsAppUrl ? getBestChatMediaSrc({ preview: null, url: rawWhatsAppUrl, kind: 'audio' }) : null;
+
+    const chosenAudioSrc = audioActiveSrc ?? primaryAudioSrc;
     
-    if (audioSrc && !audioError) {
+    if (chosenAudioSrc && !audioError) {
       return (
         <AudioPlayer
-          src={audioSrc}
+          src={chosenAudioSrc}
           duration={audioDuration}
           fromMe={fromMe}
           compact
           className="min-w-[200px] max-w-[280px]"
-          onError={() => setAudioError(true)}
+          onError={() => {
+            // 1) Se o src primário falhar (ex.: storage com mime/ext errado), tenta automaticamente
+            // o fallback via WhatsApp CDN + media-proxy.
+            if (fallbackAudioSrc && chosenAudioSrc !== fallbackAudioSrc) {
+              setAudioActiveSrc(fallbackAudioSrc);
+              // não marca como erro ainda; deixa o player tentar renderizar de novo.
+              return;
+            }
+            setAudioError(true);
+          }}
         />
       );
     }
