@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Play, Pause, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AudioPlayerProps {
   src: string;
@@ -31,6 +32,11 @@ export function AudioPlayer({
   const [isLoaded, setIsLoaded] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(1);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Some browsers/providers will block direct media playback from cross-origin URLs.
+  // For our proxy endpoint, we can safely fetch and create a Blob URL to guarantee playback.
+  const shouldUseBlob = useMemo(() => src.includes('/functions/v1/media-proxy'), [src]);
+  const [blobSrc, setBlobSrc] = useState<string | null>(null);
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -79,6 +85,55 @@ export function AudioPlayer({
     setIsPlaying(false);
     onError?.();
   }, [onError, src]);
+
+  // Build a robust playable src. For proxy URLs we prefer a Blob URL.
+  const effectiveSrc = blobSrc ?? src;
+
+  // Fetch proxy media as Blob (no custom headers by default to avoid CORS preflight issues)
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    async function run() {
+      // Reset any previous blob when src changes
+      setBlobSrc(null);
+
+      if (!shouldUseBlob) return;
+      if (!src) return;
+
+      try {
+        // Try plain fetch first (no headers) to avoid preflight.
+        let resp = await fetch(src);
+
+        // If it fails (some environments), retry with auth headers.
+        if (!resp.ok) {
+          const { data } = await supabase.auth.getSession();
+          const accessToken = data.session?.access_token;
+          const headers: Record<string, string> = {
+            apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''),
+          };
+          if (accessToken) headers.authorization = `Bearer ${accessToken}`;
+          resp = await fetch(src, { headers });
+        }
+
+        if (!resp.ok) throw new Error(`proxy http ${resp.status}`);
+        const blob = await resp.blob();
+
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setBlobSrc(objectUrl);
+      } catch (e) {
+        // Keep direct src as fallback; the <audio> element might still succeed.
+        console.warn('[AudioPlayer] Failed to build blob src, falling back to direct src:', e);
+      }
+    }
+
+    run();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src, shouldUseBlob]);
 
   // Toggle play/pause
   const togglePlay = useCallback(() => {
@@ -163,7 +218,7 @@ export function AudioPlayer({
       {/* Hidden audio element - no crossOrigin to avoid CORS issues with proxy */}
       <audio
         ref={audioRef}
-        src={src}
+        src={effectiveSrc}
         onLoadedMetadata={handleLoadedMetadata}
         onCanPlay={handleCanPlay}
         onTimeUpdate={handleTimeUpdate}
