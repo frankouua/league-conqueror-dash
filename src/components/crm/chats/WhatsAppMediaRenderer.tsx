@@ -559,6 +559,12 @@ export function WhatsAppMediaRenderer({
     let audioUrl = resolvedMediaUrl;
     let audioDuration: number | undefined;
     let rawWhatsAppUrl: string | null = null;
+    let storageUrl: string | null = null;
+    
+    // Prioridade 1: URL do storage (sempre funciona, já salva e pública)
+    if (resolvedMediaUrl && resolvedMediaUrl.includes('.supabase.co/storage/')) {
+      storageUrl = resolvedMediaUrl;
+    }
     
     if (rawData) {
       const raw = rawData as any;
@@ -608,30 +614,32 @@ export function WhatsAppMediaRenderer({
         undefined;
     }
     
-    // Para áudio, não usamos preview base64 - passamos diretamente a URL
-    // URLs do Supabase Storage são públicas e podem ser usadas diretamente
-    // URLs do WhatsApp precisam passar pelo proxy
-    const primaryAudioSrc = audioUrl ? (
-      audioUrl.includes('.supabase.co/storage/') 
-        ? audioUrl  // URL do storage é pública
-        : getBestChatMediaSrc({ preview: null, url: audioUrl, kind: 'audio' })
-    ) : null;
+    // PRIORIDADE DE AUDIO:
+    // 1. URL do Supabase Storage (já salva, pública, sempre funciona)
+    // 2. URL do WhatsApp via proxy (pode falhar se expirou ou está criptografada)
     
-    const fallbackAudioSrc = rawWhatsAppUrl 
+    const primaryAudioSrc = storageUrl 
+      ? storageUrl  // Storage é público, usa direto
+      : (audioUrl 
+        ? getBestChatMediaSrc({ preview: null, url: audioUrl, kind: 'audio' }) 
+        : null);
+    
+    // Fallback: se não temos storage, tentamos WhatsApp via proxy
+    const fallbackAudioSrc = !storageUrl && rawWhatsAppUrl 
       ? getBestChatMediaSrc({ preview: null, url: rawWhatsAppUrl, kind: 'audio' }) 
       : null;
 
     const chosenAudioSrc = audioActiveSrc ?? primaryAudioSrc;
     
     // DEBUG: Log para verificar se a URL está chegando
-    if (!chosenAudioSrc) {
-      console.warn('[WhatsAppMediaRenderer] Audio without src:', { 
-        audioUrl, 
-        primaryAudioSrc, 
-        fallbackAudioSrc,
-        resolvedMediaUrl 
-      });
-    }
+    console.log('[WhatsAppMediaRenderer] Audio sources:', { 
+      storageUrl,
+      audioUrl, 
+      primaryAudioSrc, 
+      fallbackAudioSrc,
+      chosenAudioSrc,
+      resolvedMediaUrl 
+    });
     
     if (chosenAudioSrc && !audioError) {
       return (
