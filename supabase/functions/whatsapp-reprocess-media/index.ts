@@ -61,25 +61,28 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
     const authHeader = req.headers.get('authorization') || ''
-    const apikeyHeader = req.headers.get('apikey') || ''
     const jwt = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : ''
-    if (!jwt) return jsonResponse(401, { error: 'Unauthorized' })
+    if (!jwt) {
+      console.log('[whatsapp-reprocess-media] No JWT provided')
+      return jsonResponse(401, { error: 'Unauthorized' })
+    }
 
     // Client that enforces RLS for reads (must prove the caller can see the message).
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
           authorization: `Bearer ${jwt}`,
-          apikey: apikeyHeader,
         },
       },
     })
 
-    // Validate JWT
-    const { data: userData, error: userErr } = await userClient.auth.getUser(jwt)
-    if (userErr || !userData?.user?.id) {
+    // Validate JWT using getClaims (more reliable than getUser)
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(jwt)
+    if (claimsErr || !claimsData?.claims?.sub) {
+      console.log('[whatsapp-reprocess-media] JWT validation failed', claimsErr)
       return jsonResponse(401, { error: 'Unauthorized' })
     }
+    const userId = claimsData.claims.sub
 
     // Admin client for privileged operations (storage upload + reading instance api_key + updating message).
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
@@ -88,7 +91,7 @@ Deno.serve(async (req) => {
     const messageRowId = String(body?.messageRowId || '').trim()
     if (!messageRowId) return jsonResponse(400, { error: 'Missing messageRowId' })
 
-    console.log('[whatsapp-reprocess-media] start', { messageRowId, user: userData.user.id })
+    console.log('[whatsapp-reprocess-media] start', { messageRowId, user: userId })
 
     // 1) Load message row (RLS enforced)
     const { data: msg, error: msgErr } = await userClient
