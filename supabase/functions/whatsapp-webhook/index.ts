@@ -433,22 +433,26 @@ async function handleMessages(supabaseClient: any, payload: any) {
                          msgTypeNorm === 'ptt' ||
                          msgTypeNorm.includes('document');
 
-  if (isMediaMessage && !fromMe && messageIdForDownload) {
-    // Mensagem recebida com mídia - fazer download via UAZAPI e upload para Storage
-    console.log('[Webhook] 📥 Mensagem de mídia recebida, iniciando download/upload...');
-    
+  // Persistência de mídia:
+  // - RECEBIDAS: sempre tentamos salvar no storage (já existia)
+  // - ENVIADAS: para ÁUDIO/PTT também salvamos no storage, pois URLs do provedor (.enc) podem expirar e quebrar o player.
+  const shouldPersistMedia = isMediaMessage && !!messageIdForDownload && (!fromMe || msgTypeNorm.includes('audio') || msgTypeNorm === 'ptt');
+
+  if (shouldPersistMedia) {
+    console.log(`[Webhook] 📥 Persistindo mídia no storage (${fromMe ? 'enviada' : 'recebida'})...`);
+
     // Extrair BaseUrl do payload (UAZAPI envia isso no webhook)
     const uazapiBaseUrl = payload.BaseUrl || payload.baseUrl || payload.base_url || 'https://unique.uazapi.com';
-    
+
     const { publicUrl, mediaPreview: preview } = await downloadAndUploadMedia(
       supabaseClient,
-      messageIdForDownload,
+      messageIdForDownload as string,
       messageType,
       instance.api_key || '',
       uazapiBaseUrl,
       mimetype
     );
-    
+
     if (publicUrl) {
       finalMediaUrl = publicUrl;
       mediaPreview = preview;
@@ -458,10 +462,10 @@ async function handleMessages(supabaseClient: any, payload: any) {
       finalMediaUrl = originalMediaUrl;
       console.log('[Webhook] ⚠️ Fallback para URL original:', finalMediaUrl);
     }
-  } else if (isMediaMessage && fromMe) {
-    // Mensagem enviada - já temos a URL original
+  } else if (isMediaMessage) {
+    // Mídia enviada não-audio ou casos sem messageId: mantém URL original
     finalMediaUrl = originalMediaUrl;
-    console.log('[Webhook] 📤 Mensagem enviada, usando URL original:', finalMediaUrl);
+    console.log('[Webhook] 📎 Mídia sem persistência, usando URL original:', finalMediaUrl);
   }
 
   const { error: messageError } = await supabaseClient
