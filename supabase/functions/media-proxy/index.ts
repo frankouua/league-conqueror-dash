@@ -92,7 +92,9 @@ function corsHeaders(origin: string | null) {
   return {
     'Access-Control-Allow-Origin': origin ?? '*',
     'Access-Control-Allow-Methods': 'GET,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    // The frontend may call this via fetch() and include auth headers.
+    // If we don't allow them, the browser will block the request during preflight.
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info, Range',
     'Access-Control-Max-Age': '86400',
     'Cache-Control': 'public, max-age=3600',
   } as Record<string, string>;
