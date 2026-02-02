@@ -58,36 +58,40 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
     const authHeader = req.headers.get('authorization') || ''
     const apikeyHeader = req.headers.get('apikey') || ''
+    const jwt = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : ''
+    if (!jwt) return jsonResponse(401, { error: 'Unauthorized' })
 
-    // Client with user JWT for RLS-protected reads/updates.
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    // Client that enforces RLS for reads (must prove the caller can see the message).
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
-          authorization: authHeader,
+          authorization: `Bearer ${jwt}`,
           apikey: apikeyHeader,
         },
       },
     })
 
-    // Validate JWT in code (verify_jwt=false at the gateway).
-    const claimsRes: any = await (supabase as any).auth.getClaims?.()
-    const claimsError = claimsRes?.error
-    const claims = claimsRes?.data?.claims
-    if (claimsError || !claims?.sub) {
+    // Validate JWT
+    const { data: userData, error: userErr } = await userClient.auth.getUser(jwt)
+    if (userErr || !userData?.user?.id) {
       return jsonResponse(401, { error: 'Unauthorized' })
     }
+
+    // Admin client for privileged operations (storage upload + reading instance api_key + updating message).
+    const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
     const body = await req.json().catch(() => ({}))
     const messageRowId = String(body?.messageRowId || '').trim()
     if (!messageRowId) return jsonResponse(400, { error: 'Missing messageRowId' })
 
-    console.log('[whatsapp-reprocess-media] start', { messageRowId, user: claims.sub })
+    console.log('[whatsapp-reprocess-media] start', { messageRowId, user: userData.user.id })
 
     // 1) Load message row (RLS enforced)
-    const { data: msg, error: msgErr } = await supabase
+    const { data: msg, error: msgErr } = await userClient
       .from('whatsapp_messages')
       .select('id, message_id, message_type, media_url, raw_data, chat_id')
       .eq('id', messageRowId)
@@ -132,7 +136,7 @@ Deno.serve(async (req) => {
     }
 
     // 2) Find instance api_key
-    const { data: instance, error: instErr } = await supabase
+    const { data: instance, error: instErr } = await adminClient
       .from('whatsapp_instances')
       .select('api_key, instance_name')
       .eq('instance_name', instanceName)
@@ -191,7 +195,7 @@ Deno.serve(async (req) => {
     const ext = guessExtFromMime(effectiveMime)
     const filePath = `${folder}/${providerMessageId}.${ext}`
 
-    const { error: uploadErr } = await supabase.storage.from('whatsapp-media').upload(filePath, bytes.buffer, {
+    const { error: uploadErr } = await adminClient.storage.from('whatsapp-media').upload(filePath, bytes.buffer, {
       contentType: effectiveMime,
       upsert: true,
     })
@@ -201,12 +205,12 @@ Deno.serve(async (req) => {
       return jsonResponse(500, { error: 'Storage upload failed' })
     }
 
-    const { data: pub } = supabase.storage.from('whatsapp-media').getPublicUrl(filePath)
+    const { data: pub } = adminClient.storage.from('whatsapp-media').getPublicUrl(filePath)
     const publicUrl = pub?.publicUrl
     if (!publicUrl) return jsonResponse(500, { error: 'Could not build public URL' })
 
     // 4) Update message row -> triggers realtime UPDATE on the client
-    const { error: updErr } = await supabase
+    const { error: updErr } = await adminClient
       .from('whatsapp_messages')
       .update({ media_url: publicUrl })
       .eq('id', messageRowId)

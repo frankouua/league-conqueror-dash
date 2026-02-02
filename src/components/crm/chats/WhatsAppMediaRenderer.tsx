@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { getBestChatMediaSrc } from './mediaSrc';
 import { supabase } from '@/integrations/supabase/client';
 import { AudioPlayer } from './AudioPlayer';
+import { toast } from 'sonner';
 
 interface WhatsAppMediaRendererProps {
   messageType: string | null;
@@ -296,6 +297,7 @@ export function WhatsAppMediaRenderer({
   const [authedBlobSrc, setAuthedBlobSrc] = useState<string | null>(null);
   const [audioActiveSrc, setAudioActiveSrc] = useState<string | null>(null);
   const [reprocessingAudio, setReprocessingAudio] = useState(false);
+  const [autoReprocessAttempted, setAutoReprocessAttempted] = useState(false);
 
   const normalizedType = normalizeMessageType(messageType);
 
@@ -305,6 +307,56 @@ export function WhatsAppMediaRenderer({
   const resolvedMediaUrl = useMemo(() => {
     return mediaUrl ?? extractMediaUrlFromRawData(rawData);
   }, [mediaUrl, rawData]);
+
+  const isAudioMessage = useMemo(() => {
+    const mt = (messageType || '').toLowerCase();
+    const nt = normalizeMessageType(messageType);
+    return nt === 'audio' || mt.includes('audio') || mt === 'ptt' || nt === 'ptt' || nt === 'myaudio';
+  }, [messageType]);
+
+  const isStorageUrl = useMemo(() => {
+    return Boolean(resolvedMediaUrl && resolvedMediaUrl.includes('.supabase.co/storage/'));
+  }, [resolvedMediaUrl]);
+
+  // Se a mensagem aponta para WhatsApp CDN .enc, isso é criptografado e NÃO vai tocar no browser.
+  // Precisamos reprocessar (download via provedor e persistir em Storage) antes de renderizar o player.
+  const needsReprocessEncAudio = useMemo(() => {
+    if (!isAudioMessage) return false;
+    if (!resolvedMediaUrl) return false;
+    if (isStorageUrl) return false;
+    const u = resolvedMediaUrl.toLowerCase();
+    return u.includes('whatsapp.net') && u.includes('.enc');
+  }, [isAudioMessage, isStorageUrl, resolvedMediaUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      if (!needsReprocessEncAudio) return;
+      if (!messageId) return;
+      if (autoReprocessAttempted) return;
+      setAutoReprocessAttempted(true);
+      try {
+        if (!cancelled) setReprocessingAudio(true);
+        const { data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
+          body: { messageRowId: messageId },
+        });
+        if (error) throw error;
+        const newUrl = data?.mediaUrl as string | undefined;
+        if (newUrl && !cancelled) {
+          setAudioError(false);
+          setAudioActiveSrc(newUrl);
+        }
+      } catch (err) {
+        console.warn('[WhatsAppMediaRenderer] auto reprocess failed', err);
+      } finally {
+        if (!cancelled) setReprocessingAudio(false);
+      }
+    }
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [autoReprocessAttempted, messageId, needsReprocessEncAudio]);
 
   // Heurística: às vezes o backend salva message_type como Conversation/Text, mas a mídia chega via media_url.
   // Nesse caso, renderizamos pelo mediaUrl (experiência estilo Direct/Messenger).
@@ -615,9 +667,66 @@ export function WhatsAppMediaRenderer({
         undefined;
     }
     
+    // Se for .enc do WhatsApp, não tentamos tocar (não decodifica). Mostramos reprocessamento.
+    if (needsReprocessEncAudio) {
+      return (
+        <div className="flex items-center gap-2 py-2">
+          <div className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+            fromMe ? "bg-primary-foreground/20" : "bg-muted-foreground/10"
+          )}>
+            <Mic className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium">🎤 Áudio</p>
+            <p className="text-[10px] opacity-70 break-words">
+              {reprocessingAudio ? 'Preparando áudio…' : 'Áudio criptografado — preparando para reprodução.'}
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="h-7 px-2 text-[11px] shrink-0"
+            disabled={reprocessingAudio}
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!messageId) {
+                toast.error('Não foi possível identificar a mensagem para reprocessar.');
+                return;
+              }
+              try {
+                setReprocessingAudio(true);
+                const { data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
+                  body: { messageRowId: messageId },
+                });
+                if (error) throw error;
+                const newUrl = data?.mediaUrl as string | undefined;
+                if (newUrl) {
+                  setAudioError(false);
+                  setAudioActiveSrc(newUrl);
+                  toast.success('Áudio pronto para reprodução.');
+                } else {
+                  toast.error('Não foi possível preparar o áudio.');
+                }
+              } catch (err) {
+                console.warn('[WhatsAppMediaRenderer] reprocess failed', err);
+                toast.error('Falha ao preparar o áudio.');
+              } finally {
+                setReprocessingAudio(false);
+              }
+            }}
+          >
+            {reprocessingAudio ? 'Aguarde…' : 'Preparar'}
+          </Button>
+        </div>
+      );
+    }
+
     // PRIORIDADE DE AUDIO:
-    // 1. URL do Supabase Storage (já salva, pública, sempre funciona)
-    // 2. URL do WhatsApp via proxy (pode falhar se expirou ou está criptografada)
+    // 1. URL do Storage
+    // 2. URL externa via proxy (quando não é .enc)
     
     const primaryAudioSrc = storageUrl 
       ? storageUrl  // Storage é público, usa direto
@@ -633,14 +742,7 @@ export function WhatsAppMediaRenderer({
     const chosenAudioSrc = audioActiveSrc ?? primaryAudioSrc;
 
     // Se não temos URL do storage e a origem é WhatsApp CDN (.enc), o browser não consegue decodificar.
-    const needsReprocess = (() => {
-      const u = (rawWhatsAppUrl || audioUrl || '').toLowerCase();
-      if (storageUrl) return false;
-      if (!u) return false;
-      return u.includes('whatsapp.net') && u.includes('.enc');
-    })();
-
-    const canReprocess = Boolean(needsReprocess && messageId);
+    const canReprocess = false;
     
     // DEBUG: Log para verificar se a URL está chegando
     console.log('[WhatsAppMediaRenderer] Audio sources:', { 
@@ -673,43 +775,7 @@ export function WhatsAppMediaRenderer({
             }}
           />
 
-          {canReprocess && (
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] text-muted-foreground">
-                Áudio antigo detectado (link criptografado do WhatsApp). Clique para reprocessar e salvar.
-              </p>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="h-7 px-2 text-[11px]"
-                disabled={reprocessingAudio}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (!messageId) return;
-                  try {
-                    setReprocessingAudio(true);
-                    const { data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
-                      body: { messageRowId: messageId },
-                    });
-                    if (error) throw error;
-                    const newUrl = data?.mediaUrl as string | undefined;
-                    if (newUrl) {
-                      setAudioError(false);
-                      setAudioActiveSrc(newUrl);
-                    }
-                  } catch (err) {
-                    console.warn('[WhatsAppMediaRenderer] reprocess failed', err);
-                  } finally {
-                    setReprocessingAudio(false);
-                  }
-                }}
-              >
-                {reprocessingAudio ? 'Reprocessando…' : 'Reprocessar'}
-              </Button>
-            </div>
-          )}
+          {canReprocess && null}
         </div>
       );
     }
