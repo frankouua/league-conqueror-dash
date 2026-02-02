@@ -337,10 +337,29 @@ export function WhatsAppMediaRenderer({
       setAutoReprocessAttempted(true);
       try {
         if (!cancelled) setReprocessingAudio(true);
+
+        // Garante que a sessão está atualizada antes de invocar a função
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData?.session) {
+          toast.error('Faça login novamente para preparar este áudio');
+          return;
+        }
+
         const { data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
           body: { messageRowId: messageId },
         });
-        if (error) throw error;
+
+        if (error) {
+          // Detecta 401 para dar feedback claro ao usuário
+          const errMsg = String(error?.message || error || '').toLowerCase();
+          if (errMsg.includes('401') || errMsg.includes('unauthorized')) {
+            toast.error('Sessão expirada. Faça login novamente.');
+          } else {
+            console.warn('[WhatsAppMediaRenderer] reprocess error', error);
+          }
+          return;
+        }
+
         const newUrl = data?.mediaUrl as string | undefined;
         if (newUrl && !cancelled) {
           setAudioError(false);
