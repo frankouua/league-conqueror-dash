@@ -218,3 +218,6 @@ verify_jwt = false
 
 [functions.media-proxy]
 verify_jwt = false
+
+[functions.whatsapp-reprocess-media]
+verify_jwt = false
