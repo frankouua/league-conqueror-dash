@@ -295,6 +295,7 @@ export function WhatsAppMediaRenderer({
   const [audioError, setAudioError] = useState(false);
   const [authedBlobSrc, setAuthedBlobSrc] = useState<string | null>(null);
   const [audioActiveSrc, setAudioActiveSrc] = useState<string | null>(null);
+  const [reprocessingAudio, setReprocessingAudio] = useState(false);
 
   const normalizedType = normalizeMessageType(messageType);
 
@@ -630,6 +631,16 @@ export function WhatsAppMediaRenderer({
       : null;
 
     const chosenAudioSrc = audioActiveSrc ?? primaryAudioSrc;
+
+    // Se não temos URL do storage e a origem é WhatsApp CDN (.enc), o browser não consegue decodificar.
+    const needsReprocess = (() => {
+      const u = (rawWhatsAppUrl || audioUrl || '').toLowerCase();
+      if (storageUrl) return false;
+      if (!u) return false;
+      return u.includes('whatsapp.net') && u.includes('.enc');
+    })();
+
+    const canReprocess = Boolean(needsReprocess && messageId);
     
     // DEBUG: Log para verificar se a URL está chegando
     console.log('[WhatsAppMediaRenderer] Audio sources:', { 
@@ -643,24 +654,63 @@ export function WhatsAppMediaRenderer({
     
     if (chosenAudioSrc && !audioError) {
       return (
-        <AudioPlayer
-          src={chosenAudioSrc}
-          duration={audioDuration}
-          fromMe={fromMe}
-          compact
-          className="min-w-[200px] max-w-[280px]"
-          onError={() => {
-            console.warn('[WhatsAppMediaRenderer] Audio error, trying fallback:', { chosenAudioSrc, fallbackAudioSrc });
-            // 1) Se o src primário falhar (ex.: storage com mime/ext errado), tenta automaticamente
-            // o fallback via WhatsApp CDN + media-proxy.
-            if (fallbackAudioSrc && chosenAudioSrc !== fallbackAudioSrc) {
-              setAudioActiveSrc(fallbackAudioSrc);
-              // não marca como erro ainda; deixa o player tentar renderizar de novo.
-              return;
-            }
-            setAudioError(true);
-          }}
-        />
+        <div className="space-y-2">
+          <AudioPlayer
+            src={chosenAudioSrc}
+            duration={audioDuration}
+            fromMe={fromMe}
+            compact
+            className="min-w-[200px] max-w-[280px]"
+            onError={() => {
+              console.warn('[WhatsAppMediaRenderer] Audio error, trying fallback:', { chosenAudioSrc, fallbackAudioSrc });
+              // 1) Se o src primário falhar (ex.: storage com mime/ext errado), tenta automaticamente
+              // o fallback via WhatsApp CDN + media-proxy.
+              if (fallbackAudioSrc && chosenAudioSrc !== fallbackAudioSrc) {
+                setAudioActiveSrc(fallbackAudioSrc);
+                return;
+              }
+              setAudioError(true);
+            }}
+          />
+
+          {canReprocess && (
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] text-muted-foreground">
+                Áudio antigo detectado (link criptografado do WhatsApp). Clique para reprocessar e salvar.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-7 px-2 text-[11px]"
+                disabled={reprocessingAudio}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!messageId) return;
+                  try {
+                    setReprocessingAudio(true);
+                    const { data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
+                      body: { messageRowId: messageId },
+                    });
+                    if (error) throw error;
+                    const newUrl = data?.mediaUrl as string | undefined;
+                    if (newUrl) {
+                      setAudioError(false);
+                      setAudioActiveSrc(newUrl);
+                    }
+                  } catch (err) {
+                    console.warn('[WhatsAppMediaRenderer] reprocess failed', err);
+                  } finally {
+                    setReprocessingAudio(false);
+                  }
+                }}
+              >
+                {reprocessingAudio ? 'Reprocessando…' : 'Reprocessar'}
+              </Button>
+            </div>
+          )}
+        </div>
       );
     }
     
