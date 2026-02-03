@@ -296,8 +296,11 @@ export function WhatsAppMediaRenderer({
   const [audioError, setAudioError] = useState(false);
   const [authedBlobSrc, setAuthedBlobSrc] = useState<string | null>(null);
   const [audioActiveSrc, setAudioActiveSrc] = useState<string | null>(null);
+  const [videoActiveSrc, setVideoActiveSrc] = useState<string | null>(null);
   const [reprocessingAudio, setReprocessingAudio] = useState(false);
+  const [reprocessingVideo, setReprocessingVideo] = useState(false);
   const [autoReprocessAttempted, setAutoReprocessAttempted] = useState(false);
+  const [autoReprocessVideoAttempted, setAutoReprocessVideoAttempted] = useState(false);
 
   const normalizedType = normalizeMessageType(messageType);
 
@@ -314,6 +317,12 @@ export function WhatsAppMediaRenderer({
     return nt === 'audio' || mt.includes('audio') || mt === 'ptt' || nt === 'ptt' || nt === 'myaudio';
   }, [messageType]);
 
+  const isVideoMessage = useMemo(() => {
+    const mt = (messageType || '').toLowerCase();
+    const nt = normalizeMessageType(messageType);
+    return nt === 'video' || mt.includes('video');
+  }, [messageType]);
+
   const isStorageUrl = useMemo(() => {
     return Boolean(resolvedMediaUrl && resolvedMediaUrl.includes('.supabase.co/storage/'));
   }, [resolvedMediaUrl]);
@@ -327,6 +336,35 @@ export function WhatsAppMediaRenderer({
     const u = resolvedMediaUrl.toLowerCase();
     return u.includes('whatsapp.net') && u.includes('.enc');
   }, [isAudioMessage, isStorageUrl, resolvedMediaUrl]);
+
+  // Mesmo para vídeos - precisamos reprocessar se estiver criptografado
+  const needsReprocessEncVideo = useMemo(() => {
+    if (!isVideoMessage) return false;
+    if (!resolvedMediaUrl) return false;
+    if (isStorageUrl) return false;
+    const u = resolvedMediaUrl.toLowerCase();
+    return u.includes('whatsapp.net') && u.includes('.enc');
+  }, [isVideoMessage, isStorageUrl, resolvedMediaUrl]);
+
+  // Extrair thumbnail do raw_data para vídeos (usado enquanto reprocessa)
+  const videoThumbnailBase64 = useMemo(() => {
+    if (!rawData) return null;
+    const raw = rawData as any;
+    const thumb = pickFirstString(
+      raw?.uazapi_response?.content?.JPEGThumbnail,
+      raw?.uazapi_response?.content?.jpegThumbnail,
+      raw?.message?.content?.JPEGThumbnail,
+      raw?.message?.content?.jpegThumbnail,
+      raw?.message?.videoMessage?.jpegThumbnail,
+      raw?.message?.videoMessage?.JPEGThumbnail,
+    );
+    if (thumb && thumb.length > 100) {
+      // É base64, formata como data URI
+      if (thumb.startsWith('data:')) return thumb;
+      return `data:image/jpeg;base64,${thumb}`;
+    }
+    return null;
+  }, [rawData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -423,6 +461,72 @@ export function WhatsAppMediaRenderer({
       cancelled = true;
     };
   }, [autoReprocessAttempted, messageId, needsReprocessEncAudio]);
+
+  // Auto-reprocessamento de VÍDEOS criptografados (.enc)
+  useEffect(() => {
+    let cancelled = false;
+
+    async function ensureFreshSession(): Promise<string | null> {
+      const { data: s1 } = await supabase.auth.getSession();
+      let token = s1.session?.access_token ?? null;
+      if (token) return token;
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      return refreshed.session?.access_token ?? null;
+    }
+
+    async function run() {
+      if (!needsReprocessEncVideo) return;
+      if (!messageId) return;
+      if (autoReprocessVideoAttempted) return;
+      setAutoReprocessVideoAttempted(true);
+      try {
+        if (!cancelled) setReprocessingVideo(true);
+
+        const token = await ensureFreshSession();
+        if (!token) {
+          console.warn('[WhatsAppMediaRenderer] No token for video reprocess');
+          return;
+        }
+
+        let { data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
+          body: { messageRowId: messageId },
+        });
+
+        // Retry on 401
+        if (error) {
+          const errMsg = String(error?.message || error || '').toLowerCase();
+          if (errMsg.includes('401') || errMsg.includes('unauthorized')) {
+            const token2 = await ensureFreshSession();
+            if (token2) {
+              ;({ data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
+                body: { messageRowId: messageId },
+              }));
+            }
+          }
+        }
+
+        if (error) {
+          console.warn('[WhatsAppMediaRenderer] video reprocess error', error);
+          toast.error('Não foi possível preparar o vídeo agora.');
+          return;
+        }
+
+        const newUrl = data?.mediaUrl as string | undefined;
+        if (newUrl && !cancelled) {
+          setVideoError(false);
+          setVideoActiveSrc(newUrl);
+        }
+      } catch (err) {
+        console.warn('[WhatsAppMediaRenderer] video auto reprocess failed', err);
+      } finally {
+        if (!cancelled) setReprocessingVideo(false);
+      }
+    }
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [autoReprocessVideoAttempted, messageId, needsReprocessEncVideo]);
 
   // Heurística: às vezes o backend salva message_type como Conversation/Text, mas a mídia chega via media_url.
   // Nesse caso, renderizamos pelo mediaUrl (experiência estilo Direct/Messenger).
@@ -595,7 +699,32 @@ export function WhatsAppMediaRenderer({
 
   // Video messages
   if (effectiveType === 'video') {
-    const videoSrc = getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'video' });
+    // Prioridade: videoActiveSrc (reprocessado) > storage URL > proxy URL
+    const videoSrc = videoActiveSrc || (isStorageUrl ? resolvedMediaUrl : getBestChatMediaSrc({ preview: mediaPreview, url: resolvedMediaUrl, kind: 'video' }));
+    
+    // Se está reprocessando, mostra thumbnail com indicador de loading
+    if (reprocessingVideo || needsReprocessEncVideo) {
+      return (
+        <div className="relative w-[240px] max-w-full max-h-[320px] rounded-lg overflow-hidden bg-muted">
+          {videoThumbnailBase64 ? (
+            <img 
+              src={videoThumbnailBase64} 
+              alt="Vídeo" 
+              className="w-full h-full object-cover opacity-70"
+            />
+          ) : (
+            <div className="w-full h-[180px] flex items-center justify-center bg-muted">
+              <Video className="w-12 h-12 opacity-40" />
+            </div>
+          )}
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent mb-2" />
+            <span className="text-[11px] text-white/90">Preparando vídeo...</span>
+          </div>
+        </div>
+      );
+    }
+    
     if (videoSrc && !videoError) {
       return (
         <div 
@@ -626,6 +755,7 @@ export function WhatsAppMediaRenderer({
           {content && 
            content !== '[Vídeo]' && 
            content !== '[video]' && 
+           content !== '[Video]' &&
            !content.toLowerCase().includes('vídeo') && 
            !content.toLowerCase().match(/^\[?video\]?$/) && (
             <p className="text-[13px] mt-1.5 leading-relaxed break-words whitespace-pre-wrap">

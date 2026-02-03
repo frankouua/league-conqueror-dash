@@ -22,15 +22,20 @@ function jsonResponse(status: number, body: unknown) {
 
 function guessExtFromMime(mime: string): string {
   const m = (mime || '').toLowerCase()
+  // Audio
   if (m.includes('ogg') || m.includes('opus')) return 'ogg'
-  if (m.includes('mpeg') || m.includes('mp3')) return 'mp3'
+  if (m.includes('audio/mpeg') || m.includes('mp3')) return 'mp3'
   if (m.includes('wav')) return 'wav'
-  if (m.includes('mp4') || m.includes('m4a')) return 'm4a'
+  if (m.includes('m4a') || m.includes('audio/mp4')) return 'm4a'
+  // Video - must check before generic mp4
+  if (m.includes('video/mp4') || m.includes('video/mpeg')) return 'mp4'
+  if (m.includes('video/webm')) return 'webm'
+  if (m.includes('video/quicktime') || m.includes('mov')) return 'mov'
+  // Images
   if (m.includes('pdf')) return 'pdf'
   if (m.includes('jpeg') || m.includes('jpg')) return 'jpg'
   if (m.includes('png')) return 'png'
   if (m.includes('webp')) return 'webp'
-  if (m.includes('mp4')) return 'mp4'
   return 'bin'
 }
 
