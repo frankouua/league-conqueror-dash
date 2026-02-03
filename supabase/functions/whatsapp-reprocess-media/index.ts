@@ -60,7 +60,8 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    const authHeader = req.headers.get('authorization') || ''
+    // Be tolerant to header casing from different clients/proxies.
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
     const jwt = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : ''
     if (!jwt) {
       console.log('[whatsapp-reprocess-media] No JWT provided')
@@ -71,7 +72,8 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
-          authorization: `Bearer ${jwt}`,
+          // Supabase auth-js expects standard casing for Authorization in some runtimes.
+          Authorization: `Bearer ${jwt}`,
         },
       },
     })
