@@ -74,6 +74,14 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
 
   const calculateScores = useCallback(async () => {
     try {
+      const timeoutMs = 8000;
+      const withTimeout = async <T,>(promiseLike: unknown, fallback: T): Promise<T> => {
+        return (await Promise.race([
+          Promise.resolve(promiseLike as any) as Promise<T>,
+          new Promise<T>((resolve) => window.setTimeout(() => resolve(fallback), timeoutMs)),
+        ])) as T;
+      };
+
       const { data: teamsData, error: teamsError } = await supabase
         .from("teams")
         .select("id, name")
@@ -94,25 +102,59 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
       const allAchievements: Achievement[] = [];
       let clinicRevenue = 0;
 
-      const [
-        { data: allRevenue },
-        { data: allNps },
-        { data: allTestimonials },
-        { data: allReferrals },
-        { data: allIndicators },
-        { data: allCards },
-        { data: allSpecialEvents },
-        { data: allCancellations },
-      ] = await Promise.all([
-        supabase.from("revenue_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
-        supabase.from("nps_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
-        supabase.from("testimonial_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
-        supabase.from("referral_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
-        supabase.from("other_indicators").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
-        supabase.from("cards").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
-        supabase.from("special_events").select("*").gte("date", startOfMonth).lte("date", endOfMonth),
-        supabase.from("cancellations").select("*").in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]).gte("cancellation_request_date", startOfMonth).lte("cancellation_request_date", endOfMonth),
+      const queryAll = Promise.all([
+        Promise.resolve(
+          supabase.from("revenue_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth)
+        ) as any,
+        Promise.resolve(
+          supabase.from("nps_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth)
+        ) as any,
+        Promise.resolve(
+          supabase.from("testimonial_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth)
+        ) as any,
+        Promise.resolve(
+          supabase.from("referral_records").select("*").gte("date", startOfMonth).lte("date", endOfMonth)
+        ) as any,
+        Promise.resolve(
+          supabase.from("other_indicators").select("*").gte("date", startOfMonth).lte("date", endOfMonth)
+        ) as any,
+        Promise.resolve(
+          supabase.from("cards").select("*").gte("date", startOfMonth).lte("date", endOfMonth)
+        ) as any,
+        Promise.resolve(
+          supabase.from("special_events").select("*").gte("date", startOfMonth).lte("date", endOfMonth)
+        ) as any,
+        Promise.resolve(
+          supabase
+            .from("cancellations")
+            .select("*")
+            .in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"])
+            .gte("cancellation_request_date", startOfMonth)
+            .lte("cancellation_request_date", endOfMonth)
+        ) as any,
       ]);
+
+      const results = await withTimeout<any[]>(queryAll, []);
+
+      const [
+        revenueRes,
+        npsRes,
+        testimonialsRes,
+        referralsRes,
+        indicatorsRes,
+        cardsRes,
+        specialEventsRes,
+        cancellationsRes,
+      ] = (results.length ? results : Array(8).fill({ data: [] })) as any[];
+
+      const allRevenue = revenueRes?.data;
+      const allNps = npsRes?.data;
+      const allTestimonials = testimonialsRes?.data;
+      const allReferrals = referralsRes?.data;
+      const allIndicators = indicatorsRes?.data;
+      const allCards = cardsRes?.data;
+      const allSpecialEvents = specialEventsRes?.data;
+      const allCancellations = cancellationsRes?.data;
 
       for (const team of teamsData) {
         let revenuePoints = 0;

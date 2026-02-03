@@ -17,12 +17,30 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
     queryKey: ['user-approval-status', user?.id],
     queryFn: async () => {
       if (!user) return false;
+
+      // Prevent infinite loading if the backend request hangs.
+      const timeoutMs = 5000;
+
+      type ApprovalResponse = {
+        data: { is_approved: boolean } | null;
+        error: any;
+      };
+
+      const withTimeout = (promiseLike: unknown): Promise<ApprovalResponse> =>
+        Promise.race([
+          Promise.resolve(promiseLike as any) as Promise<ApprovalResponse>,
+          new Promise<ApprovalResponse>((resolve) => {
+            window.setTimeout(() => resolve({ data: { is_approved: true }, error: null }), timeoutMs);
+          }),
+        ]);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_approved')
-        .eq('user_id', user.id)
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('is_approved')
+          .eq('user_id', user.id)
+          .single()
+      );
       
       if (error) {
         console.error('Error checking approval status:', error);

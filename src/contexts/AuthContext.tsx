@@ -84,9 +84,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user?.id, fetchUserData]);
 
   useEffect(() => {
+    // Failsafe: never let the app stay stuck in a perpetual loading state.
+    // If the auth SDK hangs for any reason (network/browser storage issues),
+    // we still unblock the UI and let ProtectedRoute decide the next step.
+    const loadingFailsafeId = window.setTimeout(() => {
+      setIsLoading(false);
+    }, 6000);
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        window.clearTimeout(loadingFailsafeId);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -106,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      window.clearTimeout(loadingFailsafeId);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -116,7 +125,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      window.clearTimeout(loadingFailsafeId);
+      subscription.unsubscribe();
+    };
   }, [fetchUserData]);
 
   // Keep session alive while testing (prevents frequent re-logins when the tab stays open)
