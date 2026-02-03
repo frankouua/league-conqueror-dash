@@ -455,24 +455,79 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
     }
   };
 
+  const parseExcelInWorker = async (
+    fileToParse: File,
+    sheetOverride?: string,
+    timeoutMs = 30000
+  ): Promise<{ sheetNames: string[]; selectedSheet: string; jsonData: Record<string, any>[] }> => {
+    // Parsing XLSX can block the UI for large files; do it in a Worker so the app stays responsive.
+    // IMPORTANT: use relative URL for Vite Worker resolution (aliases can fail in new URL()).
+    const worker = new Worker(new URL("../../workers/parseSpreadsheet.worker.ts", import.meta.url), {
+      type: "module",
+    });
+
+    return await new Promise((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        worker.terminate();
+        reject(new Error("timeout"));
+      }, timeoutMs);
+
+      worker.onmessage = (ev: MessageEvent) => {
+        window.clearTimeout(timeoutId);
+        worker.terminate();
+        const payload = ev.data as
+          | { ok: true; sheetNames: string[]; selectedSheet: string; jsonData: Record<string, any>[] }
+          | { ok: false; error: string };
+
+        if (!payload || payload.ok !== true) {
+          reject(new Error((payload as any)?.error || "worker_error"));
+          return;
+        }
+        resolve({
+          sheetNames: payload.sheetNames,
+          selectedSheet: payload.selectedSheet,
+          jsonData: payload.jsonData,
+        });
+      };
+
+      worker.onerror = (err) => {
+        window.clearTimeout(timeoutId);
+        worker.terminate();
+        reject(new Error(err.message || "worker_error"));
+      };
+
+      // Send ArrayBuffer instead of File to avoid structured clone overhead.
+      fileToParse
+        .arrayBuffer()
+        .then((buf) => {
+          worker.postMessage(
+            {
+              arrayBuffer: buf,
+              sheetOverride,
+            },
+            // Transfer buffer ownership to worker for performance
+            [buf]
+          );
+        })
+        .catch((e) => {
+          window.clearTimeout(timeoutId);
+          worker.terminate();
+          reject(e);
+        });
+    });
+  };
+
   const parseExcelFile = async (file: File, sheetOverride?: string) => {
     setIsProcessing(true);
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      setSheetNames(workbook.SheetNames);
+      const { sheetNames: parsedSheetNames, selectedSheet: sheetName, jsonData } = await parseExcelInWorker(
+        file,
+        sheetOverride,
+        30000
+      );
 
-      const sheetName = sheetOverride && workbook.SheetNames.includes(sheetOverride)
-        ? sheetOverride
-        : workbook.SheetNames[0];
-
+      setSheetNames(parsedSheetNames);
       setSelectedSheet(sheetName);
-
-      const worksheet = workbook.Sheets[sheetName];
-      // Use defval to keep empty cells so columns don't disappear from the first row
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
-        defval: "",
-      });
 
       if (jsonData.length === 0) {
         toast({
@@ -633,6 +688,18 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       setPendingScrollToMapping(true);
     } catch (error) {
       console.error('Error parsing Excel:', error);
+
+      const msg = (error as any)?.message?.toLowerCase?.() || "";
+      if (msg.includes("timeout")) {
+        toast({
+          title: "Processamento demorou demais",
+          description:
+            "Essa planilha parece grande/pesada. Tente exportar com menos colunas/linhas ou dividir por mês e reenviar.",
+          variant: "destructive",
+          duration: 9000,
+        });
+        return;
+      }
       toast({
         title: "Erro ao processar arquivo",
         description: "Não foi possível ler o arquivo Excel.",
