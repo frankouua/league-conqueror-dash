@@ -113,15 +113,31 @@ Deno.serve(async (req) => {
     }
 
     const raw: any = msg.raw_data || {}
-    const instanceName = pickFirstString(raw?.instanceName, raw?.instance_name, raw?.InstanceName)
+
+    // For messages sent via CRM, we need to get instance info from the chat
+    let instanceName = pickFirstString(raw?.instanceName, raw?.instance_name, raw?.InstanceName)
+    
+    // If no instanceName in raw_data, try to get from the chat record
+    if (!instanceName && msg.chat_id) {
+      const { data: chat } = await userClient
+        .from('whatsapp_chats')
+        .select('instance_name')
+        .eq('id', msg.chat_id)
+        .maybeSingle()
+      instanceName = chat?.instance_name || null
+    }
+
     const baseUrl =
       pickFirstString(raw?.BaseUrl, raw?.baseUrl, raw?.base_url) ||
       'https://unique.uazapi.com'
 
     // The provider message id used by /message/download.
+    // For CRM-sent messages, check uazapi_response structure
     const providerMessageId =
       pickFirstString(
         msg.message_id,
+        raw?.uazapi_response?.messageid,
+        raw?.uazapi_response?.id?.split(':')[1], // Format: "owner:messageid"
         raw?.message?.messageid,
         raw?.message?.messageId,
         raw?.message?.message_id,
@@ -130,6 +146,7 @@ Deno.serve(async (req) => {
       ) || null
 
     const mimetypeHint = pickFirstString(
+      raw?.uazapi_response?.content?.mimetype,
       raw?.message?.content?.mimetype,
       raw?.message?.content?.mimeType,
       raw?.message?.mimetype,
@@ -137,6 +154,7 @@ Deno.serve(async (req) => {
     )
 
     if (!instanceName || !providerMessageId) {
+      console.log('[whatsapp-reprocess-media] missing required fields', { instanceName, providerMessageId, rawKeys: Object.keys(raw) })
       return jsonResponse(400, { error: 'Missing instanceName/providerMessageId in raw_data' })
     }
 
