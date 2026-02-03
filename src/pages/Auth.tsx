@@ -158,20 +158,42 @@ const Auth = () => {
     setIsLoading(true);
     setErrors({});
 
-    // Helper to retry login on transient errors
+    // Helper to retry login on transient errors.
+    // Also clears any possibly-corrupted local session that can break token refresh.
     const attemptSignIn = async (retries = 2): Promise<{ error: Error | null }> => {
+      // If the browser has a broken refresh token stored, Supabase can fail with 500 on /token.
+      // Clearing local session before a password login makes the flow recover.
+      if (retries === 2) {
+        try {
+          // scope: 'local' avoids a network call and just clears local persisted session.
+          await (supabase.auth as any).signOut({ scope: 'local' });
+        } catch {
+          // ignore
+        }
+      }
+
       const result = await signIn(formData.email, formData.password);
+
       if (result.error) {
+        // Minimal log for diagnostics (no credentials)
+        console.warn('[auth] signIn failed:', result.error.message);
+
         const msg = result.error.message?.toLowerCase() || '';
-        const isTransient = msg.includes('context canceled') || 
-                           msg.includes('network') || 
-                           msg.includes('timeout') ||
-                           msg.includes('fetch');
+        const isTransient =
+          msg.includes('context canceled') ||
+          msg.includes('network') ||
+          msg.includes('timeout') ||
+          msg.includes('fetch') ||
+          msg.includes('refresh token') ||
+          msg.includes('status 500') ||
+          msg.includes('500');
+
         if (isTransient && retries > 0) {
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise((r) => setTimeout(r, 1200));
           return attemptSignIn(retries - 1);
         }
       }
+
       return result;
     };
 
