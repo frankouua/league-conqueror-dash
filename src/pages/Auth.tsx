@@ -88,16 +88,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Prevent UI from getting stuck if a backend/auth request hangs.
-  const withTimeout = async <T,>(promise: Promise<T>, timeoutMs = 8000): Promise<T> => {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        window.setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
-      }),
-    ]);
-  };
-
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
@@ -134,12 +124,9 @@ const Auth = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await withTimeout(
-        supabase.auth.resetPasswordForEmail(resetEmail, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        }),
-        8000
-      );
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
       if (error) {
         toast({
@@ -156,12 +143,9 @@ const Auth = () => {
         setResetEmail("");
       }
     } catch (err) {
-      const message = err instanceof Error && err.message === "TIMEOUT"
-        ? "A solicitação demorou demais. Verifique sua conexão e tente novamente."
-        : "Algo deu errado. Tente novamente.";
       toast({
         title: "Erro",
-        description: message,
+        description: "Algo deu errado. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -194,10 +178,7 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await withTimeout(
-          signIn(formData.email, formData.password),
-          8000
-        );
+        const { error } = await signIn(formData.email, formData.password);
 
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
@@ -236,17 +217,14 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await withTimeout(
-          signUp(
-            formData.email,
-            formData.password,
-            formData.fullName,
-            formData.isAdmin ? "" : formData.teamId,
-            formData.isAdmin ? "admin" : "member",
-            formData.isAdmin ? null : (formData.department as any),
-            formData.isAdmin ? null : (formData.position as any)
-          ),
-          12000
+        const { error } = await signUp(
+          formData.email,
+          formData.password,
+          formData.fullName,
+          formData.isAdmin ? "" : formData.teamId,
+          formData.isAdmin ? "admin" : "member",
+          formData.isAdmin ? null : (formData.department as any),
+          formData.isAdmin ? null : (formData.position as any)
         );
 
         if (error) {
@@ -277,12 +255,9 @@ const Auth = () => {
         }
       }
     } catch (err) {
-      const message = err instanceof Error && err.message === "TIMEOUT"
-        ? "A solicitação demorou demais. Verifique sua conexão e tente novamente."
-        : "Algo deu errado. Tente novamente.";
       toast({
         title: "Erro",
-        description: message,
+        description: "Algo deu errado. Tente novamente.",
         variant: "destructive",
       });
     } finally {
