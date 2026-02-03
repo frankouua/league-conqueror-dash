@@ -698,6 +698,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           variant: "destructive",
           duration: 9000,
         });
+        // IMPORTANT: não dar return antes de resetar isProcessing (senão trava em "Processando...")
         return;
       }
       toast({
@@ -705,8 +706,9 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         description: "Não foi possível ler o arquivo Excel.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   // Normalize client name for unique identification
