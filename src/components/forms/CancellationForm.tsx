@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, XCircle, Loader2, Building2 } from "lucide-react";
+import { CalendarIcon, XCircle, Loader2, Building2, User, Scissors } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +34,9 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type CancellationReason = Database["public"]["Enums"]["cancellation_reason"];
 
 const SALES_DEPARTMENT_OPTIONS = [
   { value: "cirurgia_plastica", label: "Cirurgia Plástica" },
@@ -46,10 +49,24 @@ const SALES_DEPARTMENT_OPTIONS = [
   { value: "luxskin", label: "Luxskin" },
 ] as const;
 
+const CANCELLATION_REASONS: { value: CancellationReason; label: string }[] = [
+  { value: "financial", label: "Financeiro" },
+  { value: "health", label: "Saúde" },
+  { value: "dissatisfaction", label: "Insatisfação" },
+  { value: "changed_mind", label: "Mudou de ideia" },
+  { value: "competitor", label: "Concorrência" },
+  { value: "scheduling", label: "Agenda" },
+  { value: "personal", label: "Pessoal" },
+  { value: "other", label: "Outro" },
+];
+
 const cancellationSchema = z.object({
   amount: z.string().min(1, "Informe o valor do cancelamento"),
   date: z.date({ required_error: "Selecione uma data" }),
-  reason: z.string().min(3, "Informe o motivo do cancelamento"),
+  patientName: z.string().min(2, "Informe o nome do paciente"),
+  procedureName: z.string().min(2, "Informe o procedimento"),
+  reason: z.string().min(1, "Selecione o motivo"),
+  reasonDetails: z.string().optional(),
   department: z.string().optional(),
 });
 
@@ -64,7 +81,10 @@ const CancellationForm = () => {
     resolver: zodResolver(cancellationSchema),
     defaultValues: {
       amount: "",
+      patientName: "",
+      procedureName: "",
       reason: "",
+      reasonDetails: "",
       department: undefined,
     },
   });
@@ -98,16 +118,17 @@ const CancellationForm = () => {
         return;
       }
 
-      // Store as negative value to subtract from revenue
-      const negativeAmount = -Math.abs(amount);
-
-      const { error } = await supabase.from("revenue_records").insert({
+      // Insert into cancellations table with proper structure
+      const { error } = await supabase.from("cancellations").insert({
         team_id: profile.team_id,
         user_id: user.id,
-        amount: negativeAmount,
-        date: format(data.date, "yyyy-MM-dd"),
-        notes: `[CANCELAMENTO] ${data.reason}`,
-        department: data.department || null,
+        contract_value: amount,
+        cancellation_request_date: format(data.date, "yyyy-MM-dd"),
+        patient_name: data.patientName,
+        procedure_name: data.procedureName,
+        reason: data.reason as CancellationReason,
+        reason_details: data.reasonDetails || null,
+        status: "cancelled_no_fine",
       });
 
       if (error) throw error;
@@ -156,6 +177,50 @@ const CancellationForm = () => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="patientName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Nome do Paciente
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Maria Silva"
+                      {...field}
+                      className="bg-secondary border-border text-foreground"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="procedureName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground flex items-center gap-2">
+                    <Scissors className="w-4 h-4" />
+                    Procedimento
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Rinoplastia"
+                      {...field}
+                      className="bg-secondary border-border text-foreground"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           <FormField
             control={form.control}
             name="amount"
@@ -177,46 +242,73 @@ const CancellationForm = () => {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-foreground flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
-                  Departamento (opcional)
-                </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue placeholder="Selecione o departamento" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {SALES_DEPARTMENT_OPTIONS.map((dept) => (
-                      <SelectItem key={dept.value} value={dept.value}>
-                        {dept.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="reason"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground">Motivo</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="bg-secondary border-border">
+                        <SelectValue placeholder="Selecione o motivo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CANCELLATION_REASONS.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Departamento (opcional)
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="bg-secondary border-border">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SALES_DEPARTMENT_OPTIONS.map((dept) => (
+                        <SelectItem key={dept.value} value={dept.value}>
+                          {dept.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
-            name="reason"
+            name="reasonDetails"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-foreground">Motivo do Cancelamento</FormLabel>
+                <FormLabel className="text-foreground">Detalhes (opcional)</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Ex: Cancelamento de cirurgia da paciente Maria Silva"
+                    placeholder="Ex: Paciente relatou dificuldades financeiras..."
                     {...field}
                     className="bg-secondary border-border text-foreground resize-none"
-                    rows={3}
+                    rows={2}
                   />
                 </FormControl>
                 <FormMessage />
