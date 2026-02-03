@@ -88,6 +88,18 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Prevent UI deadlocks: auth/network calls can hang when backend is unstable.
+  // We race them with a timeout so the button never stays in “Entrando...” forever.
+  const withTimeout = async <T,>(
+    promiseLike: unknown,
+    fallback: T,
+    timeoutMs = 12000
+  ): Promise<T> =>
+    (await Promise.race([
+      Promise.resolve(promiseLike as any) as Promise<T>,
+      new Promise<T>((resolve) => window.setTimeout(() => resolve(fallback), timeoutMs)),
+    ])) as T;
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
@@ -98,10 +110,13 @@ const Auth = () => {
   // Fetch teams for signup
   useEffect(() => {
     const fetchTeams = async () => {
-      const { data } = await supabase.from("teams").select("id, name");
-      if (data) {
-        setTeams(data);
-      }
+      const result = await withTimeout<{ data: Team[] | null; error: any }>(
+        supabase.from("teams").select("id, name"),
+        { data: [], error: { message: "timeout" } },
+        8000
+      );
+
+      if (result?.data?.length) setTeams(result.data);
     };
     fetchTeams();
   }, []);
@@ -124,11 +139,24 @@ const Auth = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      const { error } = await withTimeout<{ error: any }>(
+        supabase.auth.resetPasswordForEmail(resetEmail, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }),
+        { error: { message: "timeout" } },
+        12000
+      );
 
       if (error) {
+        const msg = (error.message || "").toLowerCase();
+        if (msg.includes("timeout") || msg.includes("fetch") || msg.includes("network")) {
+          toast({
+            title: "Erro de conexão",
+            description: "Servidor instável. Tente novamente em alguns segundos.",
+            variant: "destructive",
+          });
+          return;
+        }
         toast({
           title: "Erro",
           description: error.message,
@@ -172,7 +200,11 @@ const Auth = () => {
         }
       }
 
-      const result = await signIn(formData.email, formData.password);
+      const result = await withTimeout<{ error: Error | null }>(
+        signIn(formData.email, formData.password),
+        { error: new Error("timeout") },
+        12000
+      );
 
       if (result.error) {
         // Minimal log for diagnostics (no credentials)
@@ -263,17 +295,30 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await signUp(
-          formData.email,
-          formData.password,
-          formData.fullName,
-          formData.isAdmin ? "" : formData.teamId,
-          formData.isAdmin ? "admin" : "member",
-          formData.isAdmin ? null : (formData.department as any),
-          formData.isAdmin ? null : (formData.position as any)
+        const { error } = await withTimeout<{ error: Error | null }>(
+          signUp(
+            formData.email,
+            formData.password,
+            formData.fullName,
+            formData.isAdmin ? "" : formData.teamId,
+            formData.isAdmin ? "admin" : "member",
+            formData.isAdmin ? null : (formData.department as any),
+            formData.isAdmin ? null : (formData.position as any)
+          ),
+          { error: new Error("timeout") },
+          15000
         );
 
         if (error) {
+          const msg = error.message?.toLowerCase() || "";
+          if (msg.includes("timeout") || msg.includes("fetch") || msg.includes("network")) {
+            toast({
+              title: "Erro de conexão",
+              description: "Servidor instável. Tente novamente em alguns segundos.",
+              variant: "destructive",
+            });
+            return;
+          }
           if (error.message.includes("already registered")) {
             toast({
               title: "Erro ao cadastrar",
