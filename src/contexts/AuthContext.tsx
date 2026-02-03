@@ -123,20 +123,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       setIsLoading(false);
-    }).catch(async (error) => {
-      console.warn("Erro ao recuperar sessão, limpando dados corrompidos:", error);
-      window.clearTimeout(loadingFailsafeId);
-      // Limpar sessão corrompida
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {
-        // Ignorar erro de signOut
-      }
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setRole(null);
-      setIsLoading(false);
     });
 
     return () => {
