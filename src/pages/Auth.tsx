@@ -158,6 +158,23 @@ const Auth = () => {
     setIsLoading(true);
     setErrors({});
 
+    // Helper to retry login on transient errors
+    const attemptSignIn = async (retries = 2): Promise<{ error: Error | null }> => {
+      const result = await signIn(formData.email, formData.password);
+      if (result.error) {
+        const msg = result.error.message?.toLowerCase() || '';
+        const isTransient = msg.includes('context canceled') || 
+                           msg.includes('network') || 
+                           msg.includes('timeout') ||
+                           msg.includes('fetch');
+        if (isTransient && retries > 0) {
+          await new Promise(r => setTimeout(r, 1000));
+          return attemptSignIn(retries - 1);
+        }
+      }
+      return result;
+    };
+
     try {
       if (isLogin) {
         // Validate login
@@ -178,13 +195,20 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await signIn(formData.email, formData.password);
+        const { error } = await attemptSignIn();
 
         if (error) {
-          if (error.message.includes("Invalid login credentials")) {
+          const msg = error.message?.toLowerCase() || '';
+          if (msg.includes("invalid login credentials")) {
             toast({
               title: "Erro ao entrar",
               description: "Email ou senha incorretos",
+              variant: "destructive",
+            });
+          } else if (msg.includes("context canceled") || msg.includes("network") || msg.includes("timeout") || msg.includes("fetch")) {
+            toast({
+              title: "Erro de conexão",
+              description: "Servidor instável. Tente novamente em alguns segundos.",
               variant: "destructive",
             });
           } else {
