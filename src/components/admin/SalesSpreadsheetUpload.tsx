@@ -981,16 +981,46 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
           }
 
           // Parse amounts - helper function for Brazilian format
+          // Handles negative values like "-97.962,00", "(97.962,00)", "R$ -97.962,00"
           const parseAmount = (raw: any): number => {
             if (typeof raw === 'number') return raw;
             if (typeof raw === 'string') {
-              let cleaned = raw.replace(/[R$\s]/g, '').trim();
-              if (cleaned.includes(',') && cleaned.indexOf(',') > cleaned.lastIndexOf('.')) {
+              let str = raw.trim();
+              
+              // Check if value is negative (parentheses format or minus sign)
+              const isNegative = str.startsWith('-') || str.startsWith('(') || str.includes('-');
+              
+              // Remove currency symbols, spaces, and parentheses
+              let cleaned = str.replace(/[R$\s()]/g, '').trim();
+              
+              // Remove the minus sign for now (we'll add it back after parsing)
+              cleaned = cleaned.replace(/-/g, '');
+              
+              // Handle Brazilian format (dots as thousands, comma as decimal)
+              const lastComma = cleaned.lastIndexOf(',');
+              const lastDot = cleaned.lastIndexOf('.');
+              
+              if (lastComma > lastDot) {
+                // Brazilian: 97.962,00 → comma is decimal separator
                 cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-              } else if (cleaned.includes(',') && !cleaned.includes('.')) {
+              } else if (lastComma !== -1 && lastDot === -1) {
+                // Only comma, likely decimal separator: 97962,00
                 cleaned = cleaned.replace(',', '.');
+              } else if (lastDot !== -1 && lastComma === -1) {
+                // Only dots - check if it's thousand separators or decimal
+                const parts = cleaned.split('.');
+                if (parts.length > 2) {
+                  // Multiple dots = thousand separators (e.g., 97.962.000)
+                  cleaned = cleaned.replace(/\./g, '');
+                }
+                // Otherwise, single dot is decimal separator
               }
-              return parseFloat(cleaned) || 0;
+              
+              const parsed = parseFloat(cleaned);
+              if (isNaN(parsed)) return 0;
+              
+              // Apply negative sign if detected
+              return isNegative ? -Math.abs(parsed) : parsed;
             }
             return 0;
           };
