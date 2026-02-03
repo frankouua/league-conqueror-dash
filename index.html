@@ -103,11 +103,16 @@
     
     <!-- Remove loader when app is ready -->
     <script>
+      // Fallback: hide loader after DOMContentLoaded
       window.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
           document.body.classList.add('app-ready');
         }, 100);
       });
+      // Additional fallback: hide loader after 3 seconds max to prevent infinite spinner
+      setTimeout(function() {
+        document.body.classList.add('app-ready');
+      }, 3000);
     </script>
   </body>
 </html>
