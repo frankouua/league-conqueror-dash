@@ -75,17 +75,21 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
   const calculateScores = useCallback(async () => {
     try {
       const timeoutMs = 8000;
-      const withTimeout = async <T,>(promiseLike: unknown, fallback: T): Promise<T> => {
-        return (await Promise.race([
+      const withTimeout = async <T,>(promiseLike: unknown, fallback: T): Promise<T> =>
+        (await Promise.race([
           Promise.resolve(promiseLike as any) as Promise<T>,
           new Promise<T>((resolve) => window.setTimeout(() => resolve(fallback), timeoutMs)),
         ])) as T;
-      };
 
-      const { data: teamsData, error: teamsError } = await supabase
-        .from("teams")
-        .select("id, name")
-        .order("name");
+      // IMPORTANT: the very first backend call (teams) must never hang, otherwise the whole
+      // dashboard can get stuck in an infinite spinner.
+      const teamsResult = await withTimeout<{ data: { id: string; name: string }[] | null; error: any }>(
+        supabase.from("teams").select("id, name").order("name"),
+        { data: null, error: { message: "timeout" } }
+      );
+
+      const teamsData = teamsResult.data;
+      const teamsError = teamsResult.error;
 
       if (teamsError) {
         console.error("Error fetching teams:", teamsError);
@@ -431,6 +435,12 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
   }, [startOfMonth, endOfMonth]);
 
   useEffect(() => {
+    // Absolute failsafe: never allow the hook to keep the page stuck in loading.
+    // This mirrors the app-wide resilience strategy.
+    const loadingFailsafeId = window.setTimeout(() => {
+      setIsLoading(false);
+    }, 12000);
+
     calculateScores();
 
     const channel = supabase
@@ -446,6 +456,7 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
       .subscribe();
 
     return () => {
+      window.clearTimeout(loadingFailsafeId);
       supabase.removeChannel(channel);
     };
   }, [calculateScores, month, year]);
