@@ -330,6 +330,35 @@ export function WhatsAppMediaRenderer({
 
   useEffect(() => {
     let cancelled = false;
+
+    async function ensureFreshSession(): Promise<string | null> {
+      // 1) Pega sessão atual
+      const { data: s1 } = await supabase.auth.getSession();
+      let token = s1.session?.access_token ?? null;
+      if (token) return token;
+
+      // 2) Tenta 1 refresh (muito comum após tab dormir / token expirar)
+      const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+      if (refreshErr) {
+        // Não logar token/infos sensíveis; apenas mensagem genérica.
+        console.warn('[WhatsAppMediaRenderer] refreshSession failed');
+      }
+      token = refreshed.session?.access_token ?? null;
+      return token;
+    }
+
+    async function forceReauth() {
+      // Garante estado consistente: se o token falhou, derruba a sessão local.
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+      toast.error('Sua sessão expirou. Faça login novamente.');
+      // Evita depender de hooks/roteamento aqui (efeito pode rodar em vários lugares)
+      window.location.href = '/auth';
+    }
+
     async function run() {
       if (!needsReprocessEncAudio) return;
       if (!messageId) return;
@@ -338,24 +367,42 @@ export function WhatsAppMediaRenderer({
       try {
         if (!cancelled) setReprocessingAudio(true);
 
-        // Garante que a sessão está atualizada antes de invocar a função
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData?.session) {
-          toast.error('Faça login novamente para preparar este áudio');
+        // Garante token válido antes de invocar a função
+        const token = await ensureFreshSession();
+        if (!token) {
+          await forceReauth();
           return;
         }
 
-        const { data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
+        // 1ª tentativa
+        let { data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
           body: { messageRowId: messageId },
         });
 
+        // Se retornou 401, tenta mais 1 refresh + retry
         if (error) {
-          // Detecta 401 para dar feedback claro ao usuário
+          const errMsg = String(error?.message || error || '').toLowerCase();
+          const looksUnauthorized = errMsg.includes('401') || errMsg.includes('unauthorized');
+          if (looksUnauthorized) {
+            const token2 = await ensureFreshSession();
+            if (!token2) {
+              await forceReauth();
+              return;
+            }
+
+            ;({ data, error } = await supabase.functions.invoke('whatsapp-reprocess-media', {
+              body: { messageRowId: messageId },
+            }));
+          }
+        }
+
+        if (error) {
           const errMsg = String(error?.message || error || '').toLowerCase();
           if (errMsg.includes('401') || errMsg.includes('unauthorized')) {
-            toast.error('Sessão expirada. Faça login novamente.');
+            await forceReauth();
           } else {
             console.warn('[WhatsAppMediaRenderer] reprocess error', error);
+            toast.error('Não foi possível preparar o áudio agora. Tente novamente.');
           }
           return;
         }

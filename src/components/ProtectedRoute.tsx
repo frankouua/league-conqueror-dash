@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, role, isLoading } = useAuth();
+  const { user, session, role, isLoading } = useAuth();
 
   // Check if user is approved
   const { data: isApproved, isLoading: isCheckingApproval } = useQuery({
@@ -47,6 +47,12 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
   }
 
   if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Se por algum motivo existe user mas não existe session válida, força re-login.
+  // (Isso evita chamadas autenticadas com token ausente/expirado.)
+  if (!session) {
     return <Navigate to="/auth" replace />;
   }
 
