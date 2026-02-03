@@ -51,6 +51,20 @@ function pickFirstString(...vals: unknown[]): string | null {
   return null
 }
 
+/**
+ * Normalize provider instance names to database key format.
+ * E.g., "Kamylle - Farmer" -> "KAMYLLE_FARMER"
+ * E.g., "Unique - API NÃO OFICIAL" -> "UNIQUE_API_NAO_OFICIAL"
+ */
+function normalizeInstanceKey(name: string): string {
+  return name
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // strip accents
+    .replace(/[^A-Z0-9]+/g, '_')     // non-alphanum -> underscore
+    .replace(/^_+|_+$/g, '')         // trim leading/trailing underscores
+}
+
 Deno.serve(async (req) => {
   try {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -170,13 +184,38 @@ Deno.serve(async (req) => {
     }
 
     // 2) Find instance api_key
-    const instQuery = adminClient.from('whatsapp_instances').select('api_key, instance_name')
-    const { data: instance, error: instErr } = instanceId
-      ? await instQuery.eq('id', instanceId).maybeSingle()
-      : await instQuery.eq('instance_name', instanceName!).maybeSingle()
+    // Normalize the provider instanceName to match DB format (e.g., "Kamylle - Farmer" -> "KAMYLLE_FARMER")
+    const normalizedInstanceName = instanceName ? normalizeInstanceKey(instanceName) : null
+
+    let instance: { api_key: string; instance_name: string } | null = null
+    let instErr: unknown = null
+
+    if (instanceId) {
+      // Lookup by ID
+      const res = await adminClient.from('whatsapp_instances').select('api_key, instance_name').eq('id', instanceId).maybeSingle()
+      instance = res.data
+      instErr = res.error
+    } else if (normalizedInstanceName) {
+      // Lookup by normalized name (exact match)
+      const res = await adminClient.from('whatsapp_instances').select('api_key, instance_name').eq('instance_name', normalizedInstanceName).maybeSingle()
+      instance = res.data
+      instErr = res.error
+
+      // Fallback: try original name if normalized didn't match
+      if (!instance && instanceName) {
+        const res2 = await adminClient.from('whatsapp_instances').select('api_key, instance_name').eq('instance_name', instanceName).maybeSingle()
+        instance = res2.data
+        instErr = res2.error
+      }
+    }
 
     if (instErr || !instance?.api_key) {
-      console.log('[whatsapp-reprocess-media] instance api_key missing', { instErr, instanceName, instanceId })
+      console.log('[whatsapp-reprocess-media] instance api_key missing', {
+        instErr,
+        instanceName,
+        normalizedInstanceName,
+        instanceId,
+      })
       return jsonResponse(400, { error: 'Instance API key not available' })
     }
 
