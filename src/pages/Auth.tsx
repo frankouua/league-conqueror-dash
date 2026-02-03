@@ -153,6 +153,29 @@ const Auth = () => {
     }
   };
 
+  // Função de timeout para prevenir travamentos
+  const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error("Tempo esgotado")), ms)
+      ),
+    ]);
+  };
+
+  // Limpar sessão corrompida e permitir nova tentativa
+  const handleClearSession = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Sessão limpa",
+        description: "Você pode tentar fazer login novamente.",
+      });
+    } catch (e) {
+      // Ignorar erro
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -178,7 +201,11 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await signIn(formData.email, formData.password);
+        // Usar timeout de 10 segundos para prevenir travamento
+        const { error } = await withTimeout(
+          signIn(formData.email, formData.password),
+          10000
+        );
 
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
@@ -254,12 +281,27 @@ const Auth = () => {
           }
         }
       }
-    } catch (err) {
-      toast({
-        title: "Erro",
-        description: "Algo deu errado. Tente novamente.",
-        variant: "destructive",
-      });
+    } catch (err: any) {
+      // Tratar erros de rede e timeout especificamente
+      if (err?.message?.includes("Failed to fetch") || err?.message === "Tempo esgotado") {
+        // Limpar sessão corrompida
+        try {
+          await supabase.auth.signOut();
+        } catch (e) {
+          // Ignorar
+        }
+        toast({
+          title: "Erro de conexão",
+          description: "Por favor, recarregue a página e tente novamente.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Algo deu errado. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -423,13 +465,22 @@ const Auth = () => {
                 <p className="text-destructive text-sm">{errors.password}</p>
               )}
               {isLogin && (
-                <button
-                  type="button"
-                  onClick={() => setIsForgotPassword(true)}
-                  className="text-sm text-primary hover:text-primary/80 transition-colors"
-                >
-                  Esqueceu a senha?
-                </button>
+                <div className="flex justify-between items-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPassword(true)}
+                    className="text-sm text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearSession}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Limpar sessão
+                  </button>
+                </div>
               )}
             </div>
 
