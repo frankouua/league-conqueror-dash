@@ -68,23 +68,35 @@ const PageLoader = () => (
   </div>
 );
 
-// Floating assistants component that checks role
+// Floating assistants component that checks role - with error boundary
 const FloatingAssistants = () => {
-  const { role, user } = useAuth();
-  const isAdmin = role === 'admin';
-  
-  return (
-    <>
-      {/* Feature Onboarding - shows once for new features */}
-      {user && <FeatureOnboardingDialog />}
-      
-      {/* Commercial Assistant - visible for all logged in users */}
-      {user && <CommercialAssistant />}
-      
-      {/* Analytics AI - visible only for admins/coordinators */}
-      {isAdmin && <AnalyticsAIFloating />}
-    </>
-  );
+  try {
+    const { role, user, isLoading } = useAuth();
+    
+    // Don't render anything while loading or if no user
+    if (isLoading || !user) {
+      return null;
+    }
+    
+    const isAdmin = role === 'admin';
+    
+    return (
+      <>
+        {/* Feature Onboarding - shows once for new features */}
+        <FeatureOnboardingDialog />
+        
+        {/* Commercial Assistant - visible for all logged in users */}
+        <CommercialAssistant />
+        
+        {/* Analytics AI - visible only for admins/coordinators */}
+        {isAdmin && <AnalyticsAIFloating />}
+      </>
+    );
+  } catch (error) {
+    // Silently fail - don't break the app for floating assistants
+    console.warn('FloatingAssistants error:', error);
+    return null;
+  }
 };
 
 const App = () => (
