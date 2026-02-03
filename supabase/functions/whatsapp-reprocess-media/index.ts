@@ -114,17 +114,23 @@ Deno.serve(async (req) => {
 
     const raw: any = msg.raw_data || {}
 
-    // For messages sent via CRM, we need to get instance info from the chat
+    // For messages sent via CRM, instanceName may not exist in raw_data.
+    // Prefer instance_id from the chat and fetch the instance by ID.
     let instanceName = pickFirstString(raw?.instanceName, raw?.instance_name, raw?.InstanceName)
-    
-    // If no instanceName in raw_data, try to get from the chat record
-    if (!instanceName && msg.chat_id) {
-      const { data: chat } = await userClient
+    let instanceId = pickFirstString(raw?.instanceId, raw?.instance_id, raw?.InstanceId)
+
+    // If we don't have instance identifiers in raw_data, try to get instance_id from the chat record.
+    if ((!instanceId && !instanceName) && msg.chat_id) {
+      const { data: chat, error: chatErr } = await userClient
         .from('whatsapp_chats')
-        .select('instance_name')
+        .select('instance_id')
         .eq('id', msg.chat_id)
         .maybeSingle()
-      instanceName = chat?.instance_name || null
+
+      if (chatErr) {
+        console.log('[whatsapp-reprocess-media] failed to load chat for instance_id', { chat_id: msg.chat_id, chatErr })
+      }
+      instanceId = (chat as any)?.instance_id || null
     }
 
     const baseUrl =
@@ -153,20 +159,24 @@ Deno.serve(async (req) => {
       raw?.mimetype,
     )
 
-    if (!instanceName || !providerMessageId) {
-      console.log('[whatsapp-reprocess-media] missing required fields', { instanceName, providerMessageId, rawKeys: Object.keys(raw) })
-      return jsonResponse(400, { error: 'Missing instanceName/providerMessageId in raw_data' })
+    if ((!instanceId && !instanceName) || !providerMessageId) {
+      console.log('[whatsapp-reprocess-media] missing required fields', {
+        instanceName,
+        instanceId,
+        providerMessageId,
+        rawKeys: Object.keys(raw),
+      })
+      return jsonResponse(400, { error: 'Missing instanceName/instanceId/providerMessageId in raw_data' })
     }
 
     // 2) Find instance api_key
-    const { data: instance, error: instErr } = await adminClient
-      .from('whatsapp_instances')
-      .select('api_key, instance_name')
-      .eq('instance_name', instanceName)
-      .maybeSingle()
+    const instQuery = adminClient.from('whatsapp_instances').select('api_key, instance_name')
+    const { data: instance, error: instErr } = instanceId
+      ? await instQuery.eq('id', instanceId).maybeSingle()
+      : await instQuery.eq('instance_name', instanceName!).maybeSingle()
 
     if (instErr || !instance?.api_key) {
-      console.log('[whatsapp-reprocess-media] instance api_key missing', { instErr, instanceName })
+      console.log('[whatsapp-reprocess-media] instance api_key missing', { instErr, instanceName, instanceId })
       return jsonResponse(400, { error: 'Instance API key not available' })
     }
 
