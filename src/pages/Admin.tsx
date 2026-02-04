@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell, History, Bot, Send } from "lucide-react";
+import { Shield, Award, Users, Zap, AlertCircle, FileEdit, Target, Trophy, Megaphone, Brain, Database, Lock, MessageSquare, Bell, History, Bot, Send, XCircle } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +28,7 @@ import { EmailConfig } from "@/components/admin/EmailConfig";
 import { SMSConfig } from "@/components/admin/SMSConfig";
 import { ClickSignConfig } from "@/components/admin/ClickSignConfig";
 import { ProposalUpload } from "@/components/proposals/ProposalUpload";
+import CancellationsManager from "@/components/admin/CancellationsManager";
 
 const Admin = () => {
   const { user, role, isLoading } = useAuth();
@@ -134,6 +135,13 @@ const Admin = () => {
               >
                 <FileEdit className="w-4 h-4" />
                 <span className="text-xs font-medium">Registros</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="cancellations"
+                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground rounded-lg whitespace-nowrap"
+              >
+                <XCircle className="w-4 h-4" />
+                <span className="text-xs font-medium">Cancelamentos</span>
               </TabsTrigger>
               <TabsTrigger
                 value="goals"
@@ -247,6 +255,10 @@ const Admin = () => {
 
           <TabsContent value="goals" className="animate-scale-in">
             <GoalNotifications />
+          </TabsContent>
+
+          <TabsContent value="cancellations" className="animate-scale-in">
+            <CancellationsManager />
           </TabsContent>
 
           <TabsContent value="contestations" className="animate-scale-in">
