@@ -1863,7 +1863,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   };
 
 
-  // Function to update RFV customers based on sales data
+  // Function to update RFV customers based on sales data - OPTIMIZED with batch operations
   const updateRFVCustomers = async (sales: ParsedSale[]) => {
     // Group sales by client - prioritize Prontuario, then CPF, then name
     const clientSales: Record<string, { 
@@ -1920,43 +1920,62 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       }
     }
 
+    const clientEntries = Object.entries(clientSales);
+    if (clientEntries.length === 0) return;
+
     const now = new Date();
 
-    for (const [clientKey, data] of Object.entries(clientSales)) {
-      try {
-        // Check if customer exists by Prontuario first, then CPF, then name
+    try {
+      // OPTIMIZATION: Fetch all existing customers in ONE query
+      const prontuarios = clientEntries
+        .filter(([_, data]) => data.prontuario)
+        .map(([_, data]) => data.prontuario.trim());
+      const cpfs = clientEntries
+        .filter(([_, data]) => data.cpf)
+        .map(([_, data]) => data.cpf.replace(/\D/g, ''));
+      const names = clientEntries
+        .filter(([_, data]) => data.name)
+        .map(([_, data]) => data.name.toLowerCase().trim());
+
+      // Build a single query to get all potentially matching customers
+      const { data: existingCustomers } = await supabase
+        .from('rfv_customers')
+        .select('*')
+        .or(
+          [
+            prontuarios.length > 0 ? `prontuario.in.(${prontuarios.map(p => `"${p}"`).join(',')})` : null,
+            cpfs.length > 0 ? `cpf.in.(${cpfs.map(c => `"${c}"`).join(',')})` : null,
+            names.length > 0 ? `name.in.(${names.map(n => `"${n}"`).join(',')})` : null,
+          ].filter(Boolean).join(',')
+        );
+
+      // Create lookup maps for O(1) access
+      const existingByProntuario = new Map<string, any>();
+      const existingByCpf = new Map<string, any>();
+      const existingByName = new Map<string, any>();
+
+      for (const cust of existingCustomers || []) {
+        if (cust.prontuario) existingByProntuario.set(cust.prontuario, cust);
+        if (cust.cpf) existingByCpf.set(cust.cpf, cust);
+        if (cust.name) existingByName.set(cust.name.toLowerCase().trim(), cust);
+      }
+
+      // Prepare batch arrays
+      const toInsert: any[] = [];
+      const toUpdate: { id: string; data: Record<string, any> }[] = [];
+
+      for (const [clientKey, data] of clientEntries) {
+        // Find existing customer using lookup maps
         let existing: any = null;
         
         if (data.prontuario) {
-          const { data: byPront } = await supabase
-            .from('rfv_customers')
-            .select('*')
-            .eq('prontuario', data.prontuario.trim())
-            .limit(1)
-            .maybeSingle();
-          existing = byPront;
+          existing = existingByProntuario.get(data.prontuario.trim());
         }
-        
         if (!existing && data.cpf) {
-          const cpfClean = data.cpf.replace(/\D/g, '');
-          const { data: byCpf } = await supabase
-            .from('rfv_customers')
-            .select('*')
-            .eq('cpf', cpfClean)
-            .limit(1)
-            .maybeSingle();
-          existing = byCpf;
+          existing = existingByCpf.get(data.cpf.replace(/\D/g, ''));
         }
-        
         if (!existing && data.name) {
-          const nameClean = data.name.toLowerCase().trim();
-          const { data: byName } = await supabase
-            .from('rfv_customers')
-            .select('*')
-            .eq('name', nameClean)
-            .limit(1)
-            .maybeSingle();
-          existing = byName;
+          existing = existingByName.get(data.name.toLowerCase().trim());
         }
 
         const sortedDates = data.dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
@@ -1966,7 +1985,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         const newPurchaseCount = data.dates.length;
 
         if (existing) {
-          // Update existing customer
+          // Prepare update
           const newLastPurchase = new Date(latestDate) > new Date(existing.last_purchase_date) 
             ? latestDate 
             : existing.last_purchase_date;
@@ -1987,7 +2006,6 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             days_since_last_purchase: daysSince,
           };
           
-          // Update CPF, email, phone, prontuario if we have new data and existing doesn't have it
           if (data.cpf && !existing.cpf) {
             updateData.cpf = data.cpf.replace(/\D/g, '');
           }
@@ -1995,52 +2013,71 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
             updateData.email = data.email.toLowerCase().trim();
           }
           if (data.phone && !existing.phone) {
-            updateData.phone = data.phone.replace(/\D/g, ''); // Store only digits
+            updateData.phone = data.phone.replace(/\D/g, '');
           }
           if (data.prontuario && !existing.prontuario) {
             updateData.prontuario = data.prontuario.trim();
           }
 
-          await supabase
-            .from('rfv_customers')
-            .update(updateData)
-            .eq('id', existing.id);
+          toUpdate.push({ id: existing.id, data: updateData });
         } else {
-          // Insert new customer
+          // Prepare insert
           const daysSince = Math.floor((now.getTime() - new Date(latestDate).getTime()) / (1000 * 60 * 60 * 24));
           const avgTicket = totalNewAmount / newPurchaseCount;
 
-          await supabase
-            .from('rfv_customers')
-            .insert({
-              name: data.name?.toLowerCase().trim() || clientKey,
-              cpf: data.cpf ? data.cpf.replace(/\D/g, '') : null,
-              email: data.email ? data.email.toLowerCase().trim() : null,
-              phone: data.phone ? data.phone.replace(/\D/g, '') : null,
-              prontuario: data.prontuario ? data.prontuario.trim() : null,
-              first_purchase_date: earliestDate,
-              last_purchase_date: latestDate,
-              total_purchases: newPurchaseCount,
-              total_value: totalNewAmount,
-              average_ticket: avgTicket,
-              recency_score: 3, // Will be recalculated
-              frequency_score: 1,
-              value_score: 1,
-              segment: 'potential',
-              days_since_last_purchase: daysSince,
-              created_by: user?.id,
-            });
+          toInsert.push({
+            name: data.name?.toLowerCase().trim() || clientKey,
+            cpf: data.cpf ? data.cpf.replace(/\D/g, '') : null,
+            email: data.email ? data.email.toLowerCase().trim() : null,
+            phone: data.phone ? data.phone.replace(/\D/g, '') : null,
+            prontuario: data.prontuario ? data.prontuario.trim() : null,
+            first_purchase_date: earliestDate,
+            last_purchase_date: latestDate,
+            total_purchases: newPurchaseCount,
+            total_value: totalNewAmount,
+            average_ticket: avgTicket,
+            recency_score: 3,
+            frequency_score: 1,
+            value_score: 1,
+            segment: 'potential',
+            days_since_last_purchase: daysSince,
+            created_by: user?.id,
+          });
         }
-      } catch (error) {
-        console.error('Error updating RFV for customer:', clientKey, error);
       }
+
+      // BATCH INSERT - all new customers at once
+      if (toInsert.length > 0) {
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+          const batch = toInsert.slice(i, i + BATCH_SIZE);
+          await supabase.from('rfv_customers').insert(batch);
+        }
+        console.log(`[RFV] Inserted ${toInsert.length} new customers`);
+      }
+
+      // BATCH UPDATE - use Promise.allSettled for parallel updates
+      if (toUpdate.length > 0) {
+        const PARALLEL_LIMIT = 20;
+        for (let i = 0; i < toUpdate.length; i += PARALLEL_LIMIT) {
+          const batch = toUpdate.slice(i, i + PARALLEL_LIMIT);
+          await Promise.allSettled(
+            batch.map(({ id, data }) =>
+              supabase.from('rfv_customers').update(data).eq('id', id)
+            )
+          );
+        }
+        console.log(`[RFV] Updated ${toUpdate.length} existing customers`);
+      }
+    } catch (error) {
+      console.error('Error updating RFV customers:', error);
     }
 
     // Recalculate all RFV scores after updates
     await recalculateAllRFVScores();
   };
 
-  // Function to recalculate RFV scores for all customers
+  // Function to recalculate RFV scores for all customers - OPTIMIZED with batch updates
   const recalculateAllRFVScores = async () => {
     try {
       const { data: allCustomers, error } = await supabase
@@ -2080,26 +2117,39 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         return 'lost';
       };
 
-      // Update each customer with new scores
+      // Prepare batch updates
+      const updates: { id: string; data: Record<string, any> }[] = [];
+
       for (const customer of customersWithDays) {
         const recencyScore = getQuintile(customer.days_since_last_purchase, recencyValues, true);
         const frequencyScore = getQuintile(customer.total_purchases, frequencyValues);
         const valueScore = getQuintile(Number(customer.total_value), valueValues);
         const segment = calculateSegment(recencyScore, frequencyScore, valueScore);
 
-        await supabase
-          .from('rfv_customers')
-          .update({
+        updates.push({
+          id: customer.id,
+          data: {
             days_since_last_purchase: customer.days_since_last_purchase,
             recency_score: recencyScore,
             frequency_score: frequencyScore,
             value_score: valueScore,
             segment: segment,
-          })
-          .eq('id', customer.id);
+          },
+        });
       }
 
-      console.log(`RFV scores recalculated for ${allCustomers.length} customers`);
+      // Execute updates in parallel batches
+      const PARALLEL_LIMIT = 30;
+      for (let i = 0; i < updates.length; i += PARALLEL_LIMIT) {
+        const batch = updates.slice(i, i + PARALLEL_LIMIT);
+        await Promise.allSettled(
+          batch.map(({ id, data }) =>
+            supabase.from('rfv_customers').update(data).eq('id', id)
+          )
+        );
+      }
+
+      console.log(`[RFV] Scores recalculated for ${allCustomers.length} customers`);
     } catch (error) {
       console.error('Error recalculating RFV scores:', error);
     }
