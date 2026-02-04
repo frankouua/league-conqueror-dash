@@ -30,6 +30,7 @@ interface PointEntry {
   rawValue?: string;
   createdAt: string;
   source: 'revenue' | 'nps' | 'testimonial' | 'referral' | 'other' | 'card' | 'cancellation';
+  patientName?: string;
 }
 
 const MONTHS = [
@@ -470,7 +471,7 @@ export function PointsStatementReport() {
         date: c.cancellation_request_date,
         category: "Cancelamento",
         type: "Cancelamento Confirmado",
-        description: `${c.patient_name} - ${c.procedure_name}`,
+        description: `${c.procedure_name}`,
         points,
         registeredBy: getProfileName(c.user_id),
         attributedTo: getTeamName(c.team_id),
@@ -479,6 +480,7 @@ export function PointsStatementReport() {
         rawValue: `R$ ${contractValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
         createdAt: c.created_at,
         source: 'cancellation',
+        patientName: c.patient_name,
       });
     });
 
@@ -538,6 +540,7 @@ export function PointsStatementReport() {
       "Data": format(new Date(entry.date), "dd/MM/yyyy", { locale: ptBR }),
       "Categoria": entry.category,
       "Tipo": entry.type,
+      "Paciente": entry.patientName || "—",
       "Descrição": entry.description,
       "Valor Original": entry.rawValue || "—",
       "Pontos": entry.points,
@@ -552,6 +555,7 @@ export function PointsStatementReport() {
       "Data": "",
       "Categoria": "TOTAL",
       "Tipo": "",
+      "Paciente": "",
       "Descrição": `Pontos Positivos: ${totals.positive} | Pontos Negativos: ${totals.negative}`,
       "Valor Original": "",
       "Pontos": totals.net,
@@ -565,7 +569,7 @@ export function PointsStatementReport() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Extrato de Pontuação");
     ws["!cols"] = [
-      { wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 45 }, { wch: 20 },
+      { wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 30 }, { wch: 35 }, { wch: 20 },
       { wch: 10 }, { wch: 25 }, { wch: 25 }, { wch: 18 }, { wch: 18 }
     ];
     XLSX.writeFile(wb, `extrato-pontuacao-${MONTHS[selectedMonth - 1].toLowerCase()}-${selectedYear}.xlsx`);
