@@ -37,19 +37,19 @@ const roleConfig = {
 
 // Mapeamento de nome da instância para informações de exibição
 const instanceDisplayConfig: Record<string, { name: string; badge: string; badgeColor: string }> = {
-  'INGRED_SOCIAL': { name: 'Ingred', badge: 'Social Selling', badgeColor: 'bg-pink-500/20 text-pink-700 dark:text-pink-400' },
-  'KETLEY_SDR': { name: 'Ketley', badge: 'SDR', badgeColor: 'bg-blue-500/20 text-blue-700 dark:text-blue-400' },
-  'ANA_PAULA_SDR': { name: 'Ana Paula', badge: 'SDR', badgeColor: 'bg-blue-500/20 text-blue-700 dark:text-blue-400' },
-  'VIVI_CS': { name: 'Vivi', badge: 'Customer Success', badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' },
-  'BIANCA_CLOSER': { name: 'Bianca', badge: 'Closer', badgeColor: 'bg-orange-500/20 text-orange-700 dark:text-orange-400' },
-  'KAMYLLE_FARMER': { name: 'Kamylle', badge: 'Farmer', badgeColor: 'bg-purple-500/20 text-purple-700 dark:text-purple-400' },
-  'LARISSA_CLOSER': { name: 'Larissa', badge: 'Closer', badgeColor: 'bg-orange-500/20 text-orange-700 dark:text-orange-400' },
-  'RODRIGO_SOCIAL': { name: 'Rodrigo', badge: 'Social Selling', badgeColor: 'bg-pink-500/20 text-pink-700 dark:text-pink-400' },
-  'PAULA_CS': { name: 'Paula', badge: 'Customer Success', badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' },
-  'LAYS_CLOSER': { name: 'Lays', badge: 'Closer', badgeColor: 'bg-orange-500/20 text-orange-700 dark:text-orange-400' },
-  'DIEGO_COORDENADOR': { name: 'Diego', badge: 'Coordenador', badgeColor: 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-400' },
-  'UNIQUE_API_OFICIAL': { name: 'Unique', badge: 'API Oficial', badgeColor: 'bg-green-500/20 text-green-700 dark:text-green-400' },
-  'UNIQUE_API_NAO_OFICIAL': { name: 'Unique', badge: 'API Não Oficial', badgeColor: 'bg-amber-500/20 text-amber-700 dark:text-amber-400' },
+  'INGRED_SOCIAL': { name: 'Ingred', badge: 'Social Selling', badgeColor: 'bg-pink-500 text-white' },
+  'KETLEY_SDR': { name: 'Ketley', badge: 'SDR', badgeColor: 'bg-blue-500 text-white' },
+  'ANA_PAULA_SDR': { name: 'Ana Paula', badge: 'SDR', badgeColor: 'bg-blue-500 text-white' },
+  'VIVI_CS': { name: 'Vivi', badge: 'Customer Success', badgeColor: 'bg-violet-500 text-white' },
+  'BIANCA_CLOSER': { name: 'Bianca', badge: 'Closer', badgeColor: 'bg-orange-500 text-white' },
+  'KAMYLLE_FARMER': { name: 'Kamylle', badge: 'Farmer', badgeColor: 'bg-purple-500 text-white' },
+  'LARISSA_CLOSER': { name: 'Larissa', badge: 'Closer', badgeColor: 'bg-orange-500 text-white' },
+  'RODRIGO_SOCIAL': { name: 'Rodrigo', badge: 'Social Selling', badgeColor: 'bg-pink-500 text-white' },
+  'PAULA_CS': { name: 'Paula', badge: 'Customer Success', badgeColor: 'bg-violet-500 text-white' },
+  'LAYS_CLOSER': { name: 'Lays', badge: 'Closer', badgeColor: 'bg-orange-500 text-white' },
+  'DIEGO_COORDENADOR': { name: 'Diego', badge: 'Coordenador', badgeColor: 'bg-indigo-500 text-white' },
+  'UNIQUE_API_OFICIAL': { name: 'Unique', badge: 'API Oficial', badgeColor: 'bg-green-500 text-white' },
+  'UNIQUE_API_NAO_OFICIAL': { name: 'Unique', badge: 'API Não Oficial', badgeColor: 'bg-amber-500 text-white' },
 };
 
 function getInstanceDisplayInfo(instanceName: string): { name: string; badge: string; badgeColor: string } {
