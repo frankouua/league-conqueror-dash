@@ -340,60 +340,6 @@ export function CRMChatsModule() {
 
         {/* Column 3 - Conversations List */}
         <div className="w-72 border-r bg-card flex flex-col shrink-0">
-          {/* Instance Header - Fixed when instance is selected */}
-          {selectedInstanceId && currentInstance && (() => {
-            const displayInfo = getInstanceDisplayInfo(currentInstance.instance_name);
-            const isConnected = currentInstance.status === 'connected';
-            return (
-              <div className="p-3 border-b shrink-0">
-                <div className="flex items-start gap-2.5">
-                  {/* Instance Icon with Status */}
-                  <div className="relative shrink-0">
-                    <div className="w-9 h-9 rounded-lg bg-green-500/20 flex items-center justify-center">
-                      <Smartphone className="w-4 h-4 text-green-500" />
-                    </div>
-                    {/* Connection Status Indicator */}
-                    <div className={cn(
-                      "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card",
-                      isConnected ? "bg-green-500" : "bg-amber-500"
-                    )} />
-                  </div>
-
-                  {/* Instance Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-foreground">
-                      {displayInfo.name}
-                    </p>
-                    
-                    {/* Function Badge */}
-                    <Badge 
-                      variant="secondary" 
-                      className={cn(
-                        "text-[9px] h-4 px-1.5 mt-0.5 font-medium",
-                        displayInfo.badgeColor
-                      )}
-                    >
-                      {displayInfo.badge}
-                    </Badge>
-                  </div>
-
-                  {/* Online Badge */}
-                  <Badge 
-                    variant={isConnected ? 'default' : 'secondary'}
-                    className={cn(
-                      "text-[10px] h-5 shrink-0",
-                      isConnected 
-                        ? "bg-green-500/20 text-green-700 hover:bg-green-500/30" 
-                        : ""
-                    )}
-                  >
-                    {isConnected ? 'Online' : 'Pendente'}
-                  </Badge>
-                </div>
-              </div>
-            );
-          })()}
-
           {/* Search Header */}
           <div className="p-3 border-b space-y-3">
             <div className="flex items-center justify-between">
