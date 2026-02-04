@@ -1,4 +1,4 @@
-import { Shield, Crown, Users, Smartphone } from 'lucide-react';
+import { Shield, Crown, Users, Smartphone, MessageCircle } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface Instance {
   instance_id: string;
@@ -16,6 +18,7 @@ interface Instance {
   status: string;
   phone_number: string | null;
   role: 'owner' | 'coordinator' | 'member' | 'viewer';
+  last_activity?: string | null;
 }
 
 interface InstancesListProps {
@@ -32,12 +35,47 @@ const roleConfig = {
   viewer: { icon: Users, label: 'Visualizador', color: 'text-muted-foreground' },
 };
 
-function formatInstanceName(name: string): string {
-  // Convert SNAKE_CASE to more readable format
-  return name
+// Mapeamento de nome da instância para informações de exibição
+const instanceDisplayConfig: Record<string, { name: string; badge: string; badgeColor: string }> = {
+  'INGRED_SOCIAL': { name: 'Ingred', badge: 'Social Selling', badgeColor: 'bg-pink-500/20 text-pink-700 dark:text-pink-400' },
+  'KETLEY_SDR': { name: 'Ketley', badge: 'SDR', badgeColor: 'bg-blue-500/20 text-blue-700 dark:text-blue-400' },
+  'ANA_PAULA_SDR': { name: 'Ana Paula', badge: 'SDR', badgeColor: 'bg-blue-500/20 text-blue-700 dark:text-blue-400' },
+  'VIVI_CS': { name: 'Vivi', badge: 'Customer Success', badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' },
+  'BIANCA_CLOSER': { name: 'Bianca', badge: 'Closer', badgeColor: 'bg-orange-500/20 text-orange-700 dark:text-orange-400' },
+  'KAMYLLE_FARMER': { name: 'Kamylle', badge: 'Farmer', badgeColor: 'bg-purple-500/20 text-purple-700 dark:text-purple-400' },
+  'LARISSA_CLOSER': { name: 'Larissa', badge: 'Closer', badgeColor: 'bg-orange-500/20 text-orange-700 dark:text-orange-400' },
+  'RODRIGO_SOCIAL': { name: 'Rodrigo', badge: 'Social Selling', badgeColor: 'bg-pink-500/20 text-pink-700 dark:text-pink-400' },
+  'PAULA_CS': { name: 'Paula', badge: 'Customer Success', badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' },
+  'LAYS_CLOSER': { name: 'Lays', badge: 'Closer', badgeColor: 'bg-orange-500/20 text-orange-700 dark:text-orange-400' },
+  'DIEGO_COORDENADOR': { name: 'Diego', badge: 'Coordenador', badgeColor: 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-400' },
+  'UNIQUE_API_OFICIAL': { name: 'Unique', badge: 'API Oficial', badgeColor: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+  'UNIQUE_API_NAO_OFICIAL': { name: 'Unique', badge: 'API Não Oficial', badgeColor: 'bg-amber-500/20 text-amber-700 dark:text-amber-400' },
+};
+
+function getInstanceDisplayInfo(instanceName: string): { name: string; badge: string; badgeColor: string } {
+  const config = instanceDisplayConfig[instanceName];
+  if (config) return config;
+  
+  // Fallback: format name and try to extract role from name
+  const formatted = instanceName
     .replace(/_/g, ' ')
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
+  
+  return {
+    name: formatted,
+    badge: 'Membro',
+    badgeColor: 'bg-muted text-muted-foreground'
+  };
+}
+
+function formatLastActivity(timestamp: string | null | undefined): string {
+  if (!timestamp) return '';
+  try {
+    return formatDistanceToNow(new Date(timestamp), { addSuffix: true, locale: ptBR });
+  } catch {
+    return '';
+  }
 }
 
 export function InstancesList({
@@ -105,6 +143,8 @@ export function InstancesList({
             const roleInfo = roleConfig[instance.role];
             const RoleIcon = roleInfo.icon;
             const isConnected = instance.status === 'connected';
+            const displayInfo = getInstanceDisplayInfo(instance.instance_name);
+            const lastActivity = formatLastActivity(instance.last_activity);
 
             return (
               <button
@@ -141,21 +181,29 @@ export function InstancesList({
                       "text-sm font-medium truncate",
                       isSelected ? "text-foreground" : "text-foreground/80"
                     )}>
-                      {formatInstanceName(instance.instance_name)}
+                      {displayInfo.name}
                     </p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <RoleIcon className={cn("w-3 h-3", roleInfo.color)} />
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="bg-popover border-border">
-                          <p className="text-xs">{roleInfo.label}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <span className="text-[10px] text-muted-foreground truncate">
-                        {instance.phone_number || 'Sem número'}
-                      </span>
-                    </div>
+                    
+                    {/* Function Badge */}
+                    <Badge 
+                      variant="secondary" 
+                      className={cn(
+                        "text-[9px] h-4 px-1.5 mt-0.5 font-medium",
+                        displayInfo.badgeColor
+                      )}
+                    >
+                      {displayInfo.badge}
+                    </Badge>
+                    
+                    {/* Last Activity */}
+                    {lastActivity && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <MessageCircle className="w-2.5 h-2.5 text-muted-foreground" />
+                        <span className="text-[9px] text-muted-foreground truncate">
+                          {lastActivity}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </button>
