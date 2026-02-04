@@ -37,15 +37,15 @@ const MONTHS = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
-// Official scoring from Copa Unique League 2026 playbook
+// Official scoring from Copa Unique League 2026 playbook - MUST MATCH useFilteredTeamScores.ts
 const POINTS_CONFIG = {
-  revenue: { perTenThousand: 1 }, // 1 pt per R$ 10.000
-  nps: { score9: 3, score10: 5, cited: 10 },
-  testimonial: { google: 10, video: 30, gold: 50 },
+  revenue: { perThousand: 1 }, // 1 pt per R$ 1.000 (not 10.000!)
+  nps: { score9: 3, score10: 5, citationBonus: 10 },
+  testimonial: { whatsapp: 5, google: 10, video: 30, gold: 50 },
   referral: { collected: 5, toConsultation: 20, toSurgery: 50 },
   other: { unilovers: 5, ambassadors: 50, instagramMentions: 2 },
-  cards: { blue: 30, white: 20, yellow: -10, red: -30 },
-  cancellation: { base: -15 } // Pontos descontados por cancelamento
+  // Cards use the points value from database, not fixed values
+  cancellation: { perThousand: -1 } // -1 pt per R$ 1.000 (same as revenue impact)
 };
 
 export function PointsStatementReport() {
@@ -169,14 +169,29 @@ export function PointsStatementReport() {
         .select("*, teams(name)")
         .gte("cancellation_request_date", monthStart)
         .lte("cancellation_request_date", monthEnd)
-        .in("status", ["cancelled_no_fine", "cancelled_with_fine"])
+        .in("status", ["cancelled_no_fine", "cancelled_with_fine", "credit_used"])
         .order("cancellation_request_date", { ascending: true });
       if (error) throw error;
       return data;
     },
   });
 
-  const isLoading = loadingRevenue || loadingNps || loadingTestimonials || loadingReferrals || loadingOther || loadingCards || loadingCancellations;
+  // Special Events (Boosters & Turning Points) - must match useFilteredTeamScores
+  const { data: specialEventsData, isLoading: loadingSpecialEvents } = useQuery({
+    queryKey: ["special_events_statement", monthStart, monthEnd],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("special_events")
+        .select("*, teams(name)")
+        .gte("date", monthStart)
+        .lte("date", monthEnd)
+        .order("date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isLoading = loadingRevenue || loadingNps || loadingTestimonials || loadingReferrals || loadingOther || loadingCards || loadingCancellations || loadingSpecialEvents;
 
   // Helper functions
   const getProfileName = (userId: string | null) => {
@@ -195,10 +210,10 @@ export function PointsStatementReport() {
   const pointsEntries = useMemo(() => {
     const entries: PointEntry[] = [];
 
-    // Revenue entries
+    // Revenue entries - 1 point per R$ 1.000
     revenueRecords?.forEach(r => {
       const amount = Number(r.amount);
-      const points = Math.floor(amount / 10000) * POINTS_CONFIG.revenue.perTenThousand;
+      const points = Math.floor(amount / 1000) * POINTS_CONFIG.revenue.perThousand;
       if (points > 0) {
         entries.push({
           id: `revenue-${r.id}`,
@@ -232,7 +247,7 @@ export function PointsStatementReport() {
       }
       
       if (r.cited_member) {
-        points += POINTS_CONFIG.nps.cited;
+        points += POINTS_CONFIG.nps.citationBonus;
         type += " + Citou membro";
       }
 
@@ -255,11 +270,17 @@ export function PointsStatementReport() {
       }
     });
 
-    // Testimonial entries
+    // Testimonial entries - including whatsapp
     testimonialRecords?.forEach(r => {
       let points = 0;
-      const typeLabels: Record<string, string> = { google: "Google Review", video: "Vídeo", gold: "Depoimento Gold" };
+      const typeLabels: Record<string, string> = { 
+        whatsapp: "Depoimento WhatsApp", 
+        google: "Google Review", 
+        video: "Vídeo", 
+        gold: "Depoimento Gold" 
+      };
       
+      if (r.type === "whatsapp") points = POINTS_CONFIG.testimonial.whatsapp;
       if (r.type === "google") points = POINTS_CONFIG.testimonial.google;
       if (r.type === "video") points = POINTS_CONFIG.testimonial.video;
       if (r.type === "gold") points = POINTS_CONFIG.testimonial.gold;
@@ -374,7 +395,7 @@ export function PointsStatementReport() {
       }
     });
 
-    // Cards (positive and negative)
+    // Cards - use points value from database (not fixed values)
     cardsData?.forEach(c => {
       const cardLabels: Record<string, { label: string; color: string }> = {
         blue: { label: "Cartão Azul", color: "blue" },
@@ -385,7 +406,8 @@ export function PointsStatementReport() {
       };
 
       const cardInfo = cardLabels[c.type] || { label: c.type, color: "gray" };
-      const points = POINTS_CONFIG.cards[c.type as keyof typeof POINTS_CONFIG.cards] || c.points || 0;
+      // Use the points value from the database, as done in useFilteredTeamScores
+      const points = c.points || 0;
 
       entries.push({
         id: `card-${c.id}`,
@@ -403,28 +425,49 @@ export function PointsStatementReport() {
       });
     });
 
-    // Cancellations (negative points)
+    // Cancellations - subtract from revenue: -1 point per R$ 1.000
     cancellationsData?.forEach(c => {
+      const contractValue = Number(c.contract_value);
+      const points = Math.floor(contractValue / 1000) * POINTS_CONFIG.cancellation.perThousand;
+      
       entries.push({
         id: `cancellation-${c.id}`,
         date: c.cancellation_request_date,
         category: "Cancelamento",
         type: "Cancelamento Confirmado",
         description: `${c.patient_name} - ${c.procedure_name}`,
-        points: POINTS_CONFIG.cancellation.base,
+        points,
         registeredBy: getProfileName(c.user_id),
         attributedTo: getTeamName(c.team_id),
         teamName: (c.teams as any)?.name || getTeamName(c.team_id),
         teamId: c.team_id,
-        rawValue: `R$ ${Number(c.contract_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+        rawValue: `R$ ${contractValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
         createdAt: c.created_at,
         source: 'cancellation',
       });
     });
 
+    // Special Events (Boosters & Turning Points)
+    specialEventsData?.forEach(e => {
+      entries.push({
+        id: `special-${e.id}`,
+        date: e.date,
+        category: "Evento Especial",
+        type: e.event_type || e.category || "Evento",
+        description: e.description || "Evento especial aplicado",
+        points: e.points || 0,
+        registeredBy: getProfileName(e.applied_by),
+        attributedTo: getTeamName(e.team_id),
+        teamName: (e.teams as any)?.name || getTeamName(e.team_id),
+        teamId: e.team_id,
+        createdAt: e.created_at,
+        source: 'card', // Treat as modifier
+      });
+    });
+
     // Sort by date
     return entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [revenueRecords, npsRecords, testimonialRecords, referralRecords, otherIndicators, cardsData, cancellationsData, profiles, teams]);
+  }, [revenueRecords, npsRecords, testimonialRecords, referralRecords, otherIndicators, cardsData, cancellationsData, specialEventsData, profiles, teams]);
 
   // Apply filters
   const filteredEntries = useMemo(() => {
