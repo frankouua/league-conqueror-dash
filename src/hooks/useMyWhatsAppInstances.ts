@@ -10,6 +10,7 @@ export interface MyWhatsAppInstance {
   status: string;
   phone_number: string | null;
   role: InstanceRole;
+  last_activity: string | null;
 }
 
 interface UseMyWhatsAppInstancesReturn {
@@ -62,6 +63,31 @@ export function useMyWhatsAppInstances(): UseMyWhatsAppInstancesReturn {
         return;
       }
 
+      // Get last activity for each instance (max last_message_timestamp from chats)
+      const instanceIds = (data || []).map((item: any) => item.whatsapp_instances.id);
+      
+      let activityMap: Record<string, string | null> = {};
+      
+      if (instanceIds.length > 0) {
+        // Fetch latest activity for each instance
+        const { data: activityData } = await supabase
+          .from('whatsapp_chats')
+          .select('instance_id, last_message_timestamp')
+          .in('instance_id', instanceIds)
+          .order('last_message_timestamp', { ascending: false });
+        
+        if (activityData) {
+          // Group by instance and get max timestamp
+          activityData.forEach((chat) => {
+            if (!activityMap[chat.instance_id] || 
+                (chat.last_message_timestamp && 
+                 new Date(chat.last_message_timestamp) > new Date(activityMap[chat.instance_id] || 0))) {
+              activityMap[chat.instance_id] = chat.last_message_timestamp;
+            }
+          });
+        }
+      }
+
       // Transform the data to a flat structure
       const transformedInstances: MyWhatsAppInstance[] = (data || []).map((item: any) => ({
         instance_id: item.whatsapp_instances.id,
@@ -69,7 +95,16 @@ export function useMyWhatsAppInstances(): UseMyWhatsAppInstancesReturn {
         status: item.whatsapp_instances.status,
         phone_number: item.whatsapp_instances.phone_number,
         role: item.role as InstanceRole,
+        last_activity: activityMap[item.whatsapp_instances.id] || null,
       }));
+
+      // Sort by last_activity (most recent first), null values at the end
+      transformedInstances.sort((a, b) => {
+        if (!a.last_activity && !b.last_activity) return 0;
+        if (!a.last_activity) return 1;
+        if (!b.last_activity) return -1;
+        return new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime();
+      });
 
       // Security log: instances loaded
       console.log('[WhatsApp Security] User instances loaded:', {
@@ -77,7 +112,8 @@ export function useMyWhatsAppInstances(): UseMyWhatsAppInstancesReturn {
         instance_count: transformedInstances.length,
         instances: transformedInstances.map(i => ({
           name: i.instance_name,
-          role: i.role
+          role: i.role,
+          last_activity: i.last_activity
         }))
       });
 
@@ -94,6 +130,50 @@ export function useMyWhatsAppInstances(): UseMyWhatsAppInstancesReturn {
   useEffect(() => {
     fetchInstances();
   }, [user?.id]);
+
+  // Subscribe to realtime updates for chat changes to reorder instances
+  useEffect(() => {
+    if (!user?.id || instances.length === 0) return;
+
+    const instanceIds = instances.map(i => i.instance_id);
+    
+    const channel = supabase
+      .channel('instances_activity_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'whatsapp_chats',
+        },
+        (payload) => {
+          const updatedChat = payload.new as any;
+          if (instanceIds.includes(updatedChat.instance_id)) {
+            // Update the instance's last_activity and re-sort
+            setInstances(prev => {
+              const updated = prev.map(inst => 
+                inst.instance_id === updatedChat.instance_id
+                  ? { ...inst, last_activity: updatedChat.last_message_timestamp }
+                  : inst
+              );
+              
+              // Re-sort by last_activity
+              return updated.sort((a, b) => {
+                if (!a.last_activity && !b.last_activity) return 0;
+                if (!a.last_activity) return 1;
+                if (!b.last_activity) return -1;
+                return new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime();
+              });
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, instances.length]);
 
   // Check if user has access to a specific instance
   const hasAccess = (instanceId: string): boolean => {

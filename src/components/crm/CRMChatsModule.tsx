@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -72,6 +72,12 @@ export function CRMChatsModule() {
   const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   
+  // Ref for auto-scrolling to bottom of messages
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Track unread count when entering conversation
+  const [initialUnreadCount, setInitialUnreadCount] = useState<number>(0);
+  
   // Load user's authorized instances
   const { 
     instances, 
@@ -138,6 +144,10 @@ export function CRMChatsModule() {
   const handleSelectConversation = useCallback(async (chatId: string) => {
     if (!selectedInstanceId) return;
     
+    // Store the unread count before marking as read for the divider
+    const chatToOpen = chats.find(c => c.id === chatId);
+    setInitialUnreadCount(chatToOpen?.unread_count ?? 0);
+    
     // Update UI immediately
     setSelectedConversation(chatId);
     
@@ -146,7 +156,24 @@ export function CRMChatsModule() {
       instanceId: selectedInstanceId,
       chatId
     });
-  }, [selectedInstanceId, markAsRead]);
+  }, [selectedInstanceId, markAsRead, chats]);
+
+  // Auto-scroll to bottom when messages load or change
+  useEffect(() => {
+    if (!messagesLoading && messages.length > 0 && messagesEndRef.current) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 100);
+    }
+  }, [messagesLoading, messages.length, selectedConversation]);
+
+  // Reset unread count when changing conversation
+  useEffect(() => {
+    if (!selectedConversation) {
+      setInitialUnreadCount(0);
+    }
+  }, [selectedConversation]);
 
   // Handle message sending with full validation
   const handleSendMessage = useCallback(async () => {
@@ -526,57 +553,83 @@ export function CRMChatsModule() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        "flex",
-                        msg.from_me ? "justify-end" : "justify-start"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "max-w-[75%] rounded-lg overflow-hidden",
-                          // Mídia visual: padding menor para a miniatura ocupar mais espaço, mas mantém o balão
-                          isWhatsAppVisualMediaMessage(msg.message_type, msg.media_url, msg.media_preview)
-                            ? "p-1"
-                            : "px-2.5 py-1.5",
-                          // Cor do balão para todas as mensagens (texto e mídia)
-                          msg.from_me
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
+                  {messages.map((msg, index) => {
+                    // Calculate if we should show "unread messages" divider
+                    // Show divider before the first unread message (from the end, going backwards)
+                    const showUnreadDivider = 
+                      initialUnreadCount > 0 && 
+                      !msg.from_me &&
+                      index === messages.length - initialUnreadCount;
+
+                    return (
+                      <div key={msg.id}>
+                        {/* Unread Messages Divider */}
+                        {showUnreadDivider && (
+                          <div className="flex items-center gap-3 my-3">
+                            <div className="flex-1 h-px bg-primary/30" />
+                            <Badge 
+                              variant="secondary" 
+                              className="bg-primary/10 text-primary text-[10px] px-2 py-0.5"
+                            >
+                              {initialUnreadCount} {initialUnreadCount === 1 ? 'mensagem não lida' : 'mensagens não lidas'}
+                            </Badge>
+                            <div className="flex-1 h-px bg-primary/30" />
+                          </div>
                         )}
-                      >
-                        {!msg.from_me && msg.sender_name && (
-                          <p className="text-[11px] font-medium mb-0.5 opacity-70">
-                            {msg.sender_name}
-                          </p>
-                        )}
-                        <WhatsAppMediaRenderer
-                          messageType={msg.message_type}
-                          content={msg.content}
-                          mediaUrl={msg.media_url}
-                          mediaPreview={msg.media_preview}
-                          rawData={msg.raw_data}
-                          fromMe={msg.from_me}
-                          messageId={msg.id}
-                          timestamp={msg.message_timestamp}
-                          contactName={selectedChat?.contact_name}
-                          onOpenMediaViewer={handleOpenMediaViewer}
-                        />
-                        <p
+                        
+                        <div
                           className={cn(
-                            "text-[10px] mt-0.5 text-right",
-                            msg.from_me
-                              ? "text-primary-foreground/60"
-                              : "text-muted-foreground"
+                            "flex",
+                            msg.from_me ? "justify-end" : "justify-start"
                           )}
                         >
-                          {formatTimestamp(msg.message_timestamp)}
-                        </p>
+                          <div
+                            className={cn(
+                              "max-w-[75%] rounded-lg overflow-hidden",
+                              // Mídia visual: padding menor para a miniatura ocupar mais espaço, mas mantém o balão
+                              isWhatsAppVisualMediaMessage(msg.message_type, msg.media_url, msg.media_preview)
+                                ? "p-1"
+                                : "px-2.5 py-1.5",
+                              // Cor do balão para todas as mensagens (texto e mídia)
+                              msg.from_me
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            )}
+                          >
+                            {!msg.from_me && msg.sender_name && (
+                              <p className="text-[11px] font-medium mb-0.5 opacity-70">
+                                {msg.sender_name}
+                              </p>
+                            )}
+                            <WhatsAppMediaRenderer
+                              messageType={msg.message_type}
+                              content={msg.content}
+                              mediaUrl={msg.media_url}
+                              mediaPreview={msg.media_preview}
+                              rawData={msg.raw_data}
+                              fromMe={msg.from_me}
+                              messageId={msg.id}
+                              timestamp={msg.message_timestamp}
+                              contactName={selectedChat?.contact_name}
+                              onOpenMediaViewer={handleOpenMediaViewer}
+                            />
+                            <p
+                              className={cn(
+                                "text-[10px] mt-0.5 text-right",
+                                msg.from_me
+                                  ? "text-primary-foreground/60"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {formatTimestamp(msg.message_timestamp)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  {/* Invisible element for auto-scroll to bottom */}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </ScrollArea>
