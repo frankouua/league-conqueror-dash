@@ -745,10 +745,15 @@ export function WhatsAppMediaRenderer({
               muted
               preload="metadata"
             />
-            {/* Play icon overlay */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                <Play className="w-6 h-6 text-foreground ml-1" fill="currentColor" />
+            {/* Play icon overlay - styled like audio player button */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg",
+                fromMe 
+                  ? "bg-primary-foreground/30 hover:bg-primary-foreground/50 text-primary-foreground" 
+                  : "bg-primary/90 hover:bg-primary text-primary-foreground"
+              )}>
+                <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
               </div>
             </div>
           </div>
