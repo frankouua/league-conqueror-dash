@@ -48,8 +48,8 @@ const instanceDisplayConfig: Record<string, { name: string; badge: string; badge
   'PAULA_CS': { name: 'Paula', badge: 'Customer Success', badgeColor: 'bg-teal-700 text-white' },
   'LAYS_CLOSER': { name: 'Lays', badge: 'Farmer', badgeColor: 'bg-purple-500 text-white' },
   'DIEGO_COORDENADOR': { name: 'Diego', badge: 'Coordenador', badgeColor: 'bg-red-500 text-white' },
-  'UNIQUE_API_OFICIAL': { name: 'Unique', badge: 'API Oficial', badgeColor: 'bg-green-600 text-white' },
-  'UNIQUE_API_NAO_OFICIAL': { name: 'Unique', badge: 'API Não Oficial', badgeColor: 'bg-green-600 text-white' },
+  'UNIQUE_API_OFICIAL': { name: 'Unique', badge: 'API Oficial', badgeColor: 'bg-green-700 text-white' },
+  'UNIQUE_API_NAO_OFICIAL': { name: 'Unique', badge: 'API Não Oficial', badgeColor: 'bg-green-700 text-white' },
 };
 
 function getInstanceDisplayInfo(instanceName: string): { name: string; badge: string; badgeColor: string } {
