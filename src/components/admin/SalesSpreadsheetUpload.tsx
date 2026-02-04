@@ -1684,22 +1684,26 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         const dateRangeEnd = dates[dates.length - 1];
         const userIds = [...new Set(salesToCheck.map(s => s.matchedUserId).filter(Boolean))];
         
-        // Fetch all existing records in one query
+        // Fetch all existing records in one query - INCLUI patient_name para evitar falsos positivos/negativos
         const { data: existingRecords } = await supabase
           .from(tableName)
-          .select('date, attributed_to_user_id, amount')
+          .select('date, attributed_to_user_id, amount, patient_name')
           .gte('date', dateRangeStart)
           .lte('date', dateRangeEnd)
           .in('attributed_to_user_id', userIds);
         
-        // Create a Set for O(1) duplicate lookup
+        // Create a Set for O(1) duplicate lookup - INCLUI patient_name normalizado
         const existingKeys = new Set(
-          (existingRecords || []).map(r => `${r.date}|${r.attributed_to_user_id}|${r.amount}`)
+          (existingRecords || []).map(r => {
+            const normalizedName = (r.patient_name || '').toLowerCase().trim();
+            return `${r.date}|${r.attributed_to_user_id}|${r.amount}|${normalizedName}`;
+          })
         );
         
         for (const sale of salesToCheck) {
           const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
-          const key = `${sale.date}|${sale.matchedUserId}|${primaryAmount}`;
+          const normalizedClientName = (sale.clientName || '').toLowerCase().trim();
+          const key = `${sale.date}|${sale.matchedUserId}|${primaryAmount}|${normalizedClientName}`;
           
           if (existingKeys.has(key)) {
             skipped++;
