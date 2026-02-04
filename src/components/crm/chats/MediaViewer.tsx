@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -18,7 +18,11 @@ import {
   ZoomOut,
   RotateCw,
   RotateCcw,
-  Maximize2
+  Maximize2,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,12 +54,23 @@ export function MediaViewer({
 }: MediaViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Reset zoom and rotation when switching to a different image
+  // Reset zoom and rotation when switching to a different media
   useEffect(() => {
     setZoom(1);
     setRotation(0);
+    setIsPlaying(false);
   }, [media?.id]);
+
+  // Auto-play video when opened
+  useEffect(() => {
+    if (open && media?.type === 'video' && videoRef.current) {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  }, [open, media?.id, media?.type]);
 
   if (!media) return null;
 
@@ -63,7 +78,10 @@ export function MediaViewer({
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < allMedia.length - 1 && currentIndex >= 0;
 
-  const imageSrc = media.preview || media.src;
+  const mediaSrc = media.preview || media.src;
+  const isVideo = media.type === 'video';
+  const isImage = media.type === 'image';
+  const showMediaControls = isImage || isVideo;
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.5, 4));
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.5, 0.5));
@@ -71,47 +89,79 @@ export function MediaViewer({
   const handleRotateCounterClockwise = () => setRotation(r => r - 90);
   
   const handleOpenInNewTab = () => {
-    // Para Base64 ou URLs, criar uma página HTML temporária com a imagem
+    const srcToOpen = media.src || mediaSrc;
     const newWindow = window.open('', '_blank');
     if (newWindow) {
-      newWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Imagem</title>
-            <style>
-              body {
-                margin: 0;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                min-height: 100vh;
-                background: #0a0a0a;
-              }
-              img {
-                max-width: 100%;
-                max-height: 100vh;
-                object-fit: contain;
-              }
-            </style>
-          </head>
-          <body>
-            <img src="${imageSrc}" alt="Imagem" />
-          </body>
-        </html>
-      `);
+      if (isVideo) {
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Vídeo</title>
+              <style>
+                body {
+                  margin: 0;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  min-height: 100vh;
+                  background: #0a0a0a;
+                }
+                video {
+                  max-width: 100%;
+                  max-height: 100vh;
+                }
+              </style>
+            </head>
+            <body>
+              <video src="${srcToOpen}" controls autoplay></video>
+            </body>
+          </html>
+        `);
+      } else {
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Imagem</title>
+              <style>
+                body {
+                  margin: 0;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  min-height: 100vh;
+                  background: #0a0a0a;
+                }
+                img {
+                  max-width: 100%;
+                  max-height: 100vh;
+                  object-fit: contain;
+                }
+              </style>
+            </head>
+            <body>
+              <img src="${srcToOpen}" alt="Imagem" />
+            </body>
+          </html>
+        `);
+      }
       newWindow.document.close();
     }
   };
 
   const handleDownload = async () => {
+    const srcToDownload = media.src || mediaSrc;
+    const extension = isVideo ? 'mp4' : 'jpg';
+    const prefix = isVideo ? 'video' : 'imagem';
+    
     try {
-      const response = await fetch(imageSrc);
+      const response = await fetch(srcToDownload);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `imagem-${media.id || Date.now()}.jpg`;
+      link.download = `${prefix}-${media.id || Date.now()}.${extension}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -119,11 +169,28 @@ export function MediaViewer({
     } catch {
       // Fallback se fetch falhar (CORS)
       const link = document.createElement('a');
-      link.href = imageSrc;
-      link.download = `imagem-${media.id || Date.now()}.jpg`;
+      link.href = srcToDownload;
+      link.download = `${prefix}-${media.id || Date.now()}.${extension}`;
       link.target = '_blank';
       link.click();
     }
+  };
+
+  const handlePlayPause = () => {
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const handleToggleMute = () => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = !isMuted;
+    setIsMuted(!isMuted);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -133,6 +200,9 @@ export function MediaViewer({
       onNavigate('next');
     } else if (e.key === 'Escape') {
       onOpenChange(false);
+    } else if (e.key === ' ' && isVideo) {
+      e.preventDefault();
+      handlePlayPause();
     }
   };
 
@@ -165,8 +235,34 @@ export function MediaViewer({
           </div>
           
           <div className="flex items-center gap-1">
-            {media.type === 'image' && (
+            {showMediaControls && (
               <>
+                {/* Video-specific controls */}
+                {isVideo && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white/80 hover:text-white hover:bg-white/10"
+                      onClick={handlePlayPause}
+                      title={isPlaying ? "Pausar" : "Reproduzir"}
+                    >
+                      {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white/80 hover:text-white hover:bg-white/10"
+                      onClick={handleToggleMute}
+                      title={isMuted ? "Ativar som" : "Silenciar"}
+                    >
+                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </Button>
+                    <div className="w-px h-6 bg-white/20 mx-1" />
+                  </>
+                )}
+                
+                {/* Zoom & rotation controls */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -220,7 +316,7 @@ export function MediaViewer({
               size="icon"
               className="text-white/80 hover:text-white hover:bg-white/10"
               onClick={handleDownload}
-              title="Baixar imagem"
+              title={isVideo ? "Baixar vídeo" : "Baixar imagem"}
             >
               <Download className="w-4 h-4" />
             </Button>
@@ -268,9 +364,9 @@ export function MediaViewer({
 
         {/* Media Content */}
         <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
-          {media.type === 'image' && (
+          {isImage && (
             <img
-              src={imageSrc}
+              src={mediaSrc}
               alt={media.caption || 'Imagem'}
               className="max-w-full max-h-full object-contain transition-transform duration-200"
               style={{
@@ -281,12 +377,18 @@ export function MediaViewer({
             />
           )}
           
-          {media.type === 'video' && (
+          {isVideo && (
             <video
+              ref={videoRef}
               src={media.src}
               controls
               autoPlay
-              className="max-w-full max-h-full rounded-lg"
+              className="max-w-full max-h-full rounded-lg transition-transform duration-200"
+              style={{
+                transform: `scale(${zoom}) rotate(${rotation}deg)`,
+              }}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
             >
               Seu navegador não suporta vídeos
             </video>
@@ -306,6 +408,8 @@ export function MediaViewer({
         {media.caption && 
          !media.caption.toLowerCase().match(/^\[?image\]?$/) && 
          !media.caption.toLowerCase().match(/^\[?imagem\]?$/) && 
+         !media.caption.toLowerCase().match(/^\[?video\]?$/) && 
+         !media.caption.toLowerCase().match(/^\[?vídeo\]?$/) && 
          !media.caption.toLowerCase().includes('📷 imagem') && (
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
             <p className="text-white/90 text-center max-w-2xl mx-auto">
