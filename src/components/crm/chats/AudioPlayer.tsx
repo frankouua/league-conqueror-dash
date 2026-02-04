@@ -292,17 +292,6 @@ export function AudioPlayer({
       >
         {playbackSpeed}x
       </Button>
-
-      {/* Mic icon indicator */}
-      <div className={cn(
-        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-        fromMe ? "bg-primary-foreground/15" : "bg-muted-foreground/10"
-      )}>
-        <Mic className={cn(
-          "w-4 h-4",
-          fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
-        )} />
-      </div>
     </div>
   );
 }
