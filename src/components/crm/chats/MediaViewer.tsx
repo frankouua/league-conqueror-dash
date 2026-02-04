@@ -18,11 +18,7 @@ import {
   ZoomOut,
   RotateCw,
   RotateCcw,
-  Maximize2,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX
+  Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -237,31 +233,6 @@ export function MediaViewer({
           <div className="flex items-center gap-1">
             {showMediaControls && (
               <>
-                {/* Video-specific controls */}
-                {isVideo && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-white/80 hover:text-white hover:bg-white/10"
-                      onClick={handlePlayPause}
-                      title={isPlaying ? "Pausar" : "Reproduzir"}
-                    >
-                      {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-white/80 hover:text-white hover:bg-white/10"
-                      onClick={handleToggleMute}
-                      title={isMuted ? "Ativar som" : "Silenciar"}
-                    >
-                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                    </Button>
-                    <div className="w-px h-6 bg-white/20 mx-1" />
-                  </>
-                )}
-                
                 {/* Zoom & rotation controls */}
                 <Button
                   variant="ghost"
@@ -308,18 +279,17 @@ export function MediaViewer({
                 >
                   <Maximize2 className="w-4 h-4" />
                 </Button>
-                <div className="w-px h-6 bg-white/20 mx-1" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/80 hover:text-white hover:bg-white/10"
+                  onClick={handleDownload}
+                  title={isVideo ? "Baixar vídeo" : "Baixar imagem"}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
               </>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white/80 hover:text-white hover:bg-white/10"
-              onClick={handleDownload}
-              title={isVideo ? "Baixar vídeo" : "Baixar imagem"}
-            >
-              <Download className="w-4 h-4" />
-            </Button>
             <Button
               variant="ghost"
               size="icon"
