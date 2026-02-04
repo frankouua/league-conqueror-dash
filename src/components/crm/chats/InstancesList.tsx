@@ -188,7 +188,7 @@ export function InstancesList({
                     <Badge 
                       variant="secondary" 
                       className={cn(
-                        "text-[9px] h-4 px-1.5 mt-0.5 font-medium",
+                        "text-[9px] h-4 px-1.5 mt-0.5 font-medium flex items-center justify-center",
                         displayInfo.badgeColor
                       )}
                     >
