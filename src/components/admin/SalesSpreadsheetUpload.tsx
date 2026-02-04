@@ -1701,7 +1701,14 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
         );
         
         for (const sale of salesToCheck) {
-          const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
+          // IMPORTANT:
+          // - Para upload de *vendas*, o dashboard/planilha considera "Valor Vendido".
+          //   Linhas que tenham apenas "Valor Pago/Recebido" (e vendido=0) NÃO devem inflar o Total Vendido.
+          // - Para upload de *executado*, faz sentido priorizar o valor pago/recebido.
+          const primaryAmount =
+            uploadType === 'executado'
+              ? (sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold)
+              : sale.amountSold;
           const normalizedClientName = (sale.clientName || '').toLowerCase().trim();
           const key = `${sale.date}|${sale.matchedUserId}|${primaryAmount}|${normalizedClientName}`;
           
@@ -1741,7 +1748,10 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
       } else {
         // Replace mode - insert all without checking duplicates (already deleted)
         for (const sale of salesToCheck) {
-          const primaryAmount = sale.amountSold > 0 ? sale.amountSold : sale.amountPaid;
+          const primaryAmount =
+            uploadType === 'executado'
+              ? (sale.amountPaid > 0 ? sale.amountPaid : sale.amountSold)
+              : sale.amountSold;
           
           const noteParts: string[] = [];
           if (sale.clientName) noteParts.push(`Cliente: ${sale.clientName}`);
