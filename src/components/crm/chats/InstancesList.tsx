@@ -46,7 +46,7 @@ const instanceDisplayConfig: Record<string, { name: string; badge: string; badge
   'LARISSA_CLOSER': { name: 'Larissa', badge: 'Closer', badgeColor: 'bg-orange-500 text-white' },
   'RODRIGO_SOCIAL': { name: 'Rodrigo', badge: 'Social Selling', badgeColor: 'bg-pink-500 text-white' },
   'PAULA_CS': { name: 'Paula', badge: 'Customer Success', badgeColor: 'bg-violet-500 text-white' },
-  'LAYS_CLOSER': { name: 'Lays', badge: 'Closer', badgeColor: 'bg-orange-500 text-white' },
+  'LAYS_FARMER': { name: 'Lays', badge: 'Farmer', badgeColor: 'bg-purple-500 text-white' },
   'DIEGO_COORDENADOR': { name: 'Diego', badge: 'Coordenador', badgeColor: 'bg-indigo-500 text-white' },
   'UNIQUE_API_OFICIAL': { name: 'Unique', badge: 'API Oficial', badgeColor: 'bg-green-500 text-white' },
   'UNIQUE_API_NAO_OFICIAL': { name: 'Unique', badge: 'API Não Oficial', badgeColor: 'bg-amber-500 text-white' },
