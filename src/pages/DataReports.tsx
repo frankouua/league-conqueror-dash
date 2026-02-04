@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Download, Filter, Calendar, Users, FileSpreadsheet, History, BarChart3, 
   FileText, TrendingUp, DollarSign, Star, MessageSquare, Award, Loader2,
-  Trophy, User
+  Trophy, User, Receipt
 } from "lucide-react";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -23,6 +23,7 @@ import {
 } from "recharts";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { PointsStatementReport } from "@/components/reports/PointsStatementReport";
 
 type RecordType = "revenue" | "nps" | "testimonial" | "referral" | "other" | "all";
 
@@ -611,10 +612,14 @@ const DataReports = () => {
         </div>
 
         <Tabs defaultValue="history" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3 gap-2">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4 gap-2">
             <TabsTrigger value="history" className="gap-2">
               <History className="w-4 h-4" />
               Histórico
+            </TabsTrigger>
+            <TabsTrigger value="statement" className="gap-2">
+              <Receipt className="w-4 h-4" />
+              Extrato Pontos
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -849,6 +854,11 @@ const DataReports = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* EXTRATO DE PONTUAÇÃO */}
+          <TabsContent value="statement" className="space-y-6">
+            <PointsStatementReport />
           </TabsContent>
 
           {/* ANÁLISES */}
