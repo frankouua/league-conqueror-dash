@@ -101,23 +101,15 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
 
         // Revenue
         const teamRevenueRecords = allRevenue?.filter(r => r.team_id === team.id) || [];
-        // Gross revenue = apenas valores positivos (para exibição)
-        const grossRevenue = teamRevenueRecords
-          .filter(r => Number(r.amount) > 0)
-          .reduce((sum, r) => sum + Number(r.amount), 0);
+        const grossRevenue = teamRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
         
-        // Net revenue = soma de todos os valores (para pontuação)
-        const netRevenue = teamRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
-        
-        // Subtract confirmed cancellations from net revenue (para pontuação)
+        // Subtract confirmed cancellations from revenue
         const teamCancellations = allCancellations?.filter(c => c.team_id === team.id) || [];
         const cancelledAmount = teamCancellations.reduce((sum, c) => sum + Number(c.contract_value), 0);
         
-        // totalRevenue = valor bruto (para exibição na UI)
-        teamRevenue = grossRevenue;
-        // pontuação usa net revenue - cancelamentos
-        const revenueForPoints = netRevenue - cancelledAmount;
-        revenuePoints = Math.floor(Math.max(0, revenueForPoints) / 1000) * SCORING.revenue.perThousand;
+        // Total Vendido = líquido (vendas - cancelamentos)
+        teamRevenue = grossRevenue - cancelledAmount;
+        revenuePoints = Math.floor(Math.max(0, teamRevenue) / 1000) * SCORING.revenue.perThousand;
 
         // NPS - Updated scoring: NPS 9=3pts, NPS 10=5pts, +10 bonus for citation
         const teamNps = allNps?.filter(r => r.team_id === team.id) || [];
