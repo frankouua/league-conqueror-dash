@@ -8577,6 +8577,74 @@ export type Database = {
         }
         Relationships: []
       }
+      upload_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          deleted_rows: number | null
+          error_message: string | null
+          failed_rows: number | null
+          file_name: string | null
+          id: string
+          import_mode: string
+          imported_rows: number | null
+          progress: number | null
+          skipped_rows: number | null
+          status: string
+          total_rows: number | null
+          updated_at: string
+          upload_id: string | null
+          upload_type: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          deleted_rows?: number | null
+          error_message?: string | null
+          failed_rows?: number | null
+          file_name?: string | null
+          id?: string
+          import_mode?: string
+          imported_rows?: number | null
+          progress?: number | null
+          skipped_rows?: number | null
+          status?: string
+          total_rows?: number | null
+          updated_at?: string
+          upload_id?: string | null
+          upload_type: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          deleted_rows?: number | null
+          error_message?: string | null
+          failed_rows?: number | null
+          file_name?: string | null
+          id?: string
+          import_mode?: string
+          imported_rows?: number | null
+          progress?: number | null
+          skipped_rows?: number | null
+          status?: string
+          total_rows?: number | null
+          updated_at?: string
+          upload_id?: string | null
+          upload_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_jobs_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "sales_upload_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_achievements: {
         Row: {
           achievement_name: string

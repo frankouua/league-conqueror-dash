@@ -9,10 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History, RefreshCw, LayoutDashboard, CheckCircle2, Trash2, CheckSquare, AlertTriangle } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2, UserPlus, TrendingUp, Users, DollarSign, Award, Calendar, Clock, History, RefreshCw, LayoutDashboard, CheckCircle2, Trash2, CheckSquare, AlertTriangle, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUploadJobs } from "@/hooks/useUploadJobs";
+import UploadJobsMonitor from "@/components/admin/UploadJobsMonitor";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -110,6 +112,7 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { activeJob, startBackgroundUpload } = useUploadJobs();
   
   // Session storage keys
   const STORAGE_KEY = 'sales_upload_session';
@@ -180,7 +183,9 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isResettingSystem, setIsResettingSystem] = useState(false);
   const [orphanStats, setOrphanStats] = useState<{ revenue: number; executed: number } | null>(null);
+  const [useBackgroundJob, setUseBackgroundJob] = useState(true); // Default to background for large files
   const LARGE_REPLACE_THRESHOLD = 50;
+  const BACKGROUND_THRESHOLD = 200; // Use background for 200+ records
   
   // Ref para scroll automático ao mapeamento de colunas
   const columnMappingRef = useRef<HTMLDivElement>(null);
@@ -3539,28 +3544,104 @@ const SalesSpreadsheetUpload = ({ defaultUploadType = 'vendas' }: SalesSpreadshe
               </Alert>
             )}
 
+            {/* Background Job Monitor */}
+            <UploadJobsMonitor onJobComplete={() => {
+              fetchUploadHistory();
+              refreshAllDashboards();
+              setImportSuccess(true);
+            }} />
+
+            {/* Background processing option for large files */}
+            {parsedSales.length >= BACKGROUND_THRESHOLD && (
+              <Alert className="border-primary/50 bg-primary/5">
+                <Zap className="w-4 h-4 text-primary" />
+                <AlertDescription className="flex items-center justify-between">
+                  <div>
+                    <strong>Planilha grande detectada ({parsedSales.length} registros).</strong>
+                    <br />
+                    <span className="text-sm text-muted-foreground">
+                      Processamento em background recomendado - você pode fechar a página e acompanhar o progresso.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <Button
+                      variant={useBackgroundJob ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setUseBackgroundJob(true)}
+                      className={useBackgroundJob ? "bg-primary" : ""}
+                    >
+                      <Zap className="w-4 h-4 mr-1" />
+                      Background
+                    </Button>
+                    <Button
+                      variant={!useBackgroundJob ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setUseBackgroundJob(false)}
+                    >
+                      Na tela
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex gap-4">
               <Button 
-                onClick={() => {
-                  // Show confirmation dialog if replacing many records
-                  if (importMode === 'replace' && existingRecordsCount >= LARGE_REPLACE_THRESHOLD) {
-                    setShowConfirmDialog(true);
+                onClick={async () => {
+                  // Use background job for large files
+                  if (useBackgroundJob && parsedSales.length >= BACKGROUND_THRESHOLD) {
+                    try {
+                      setIsImporting(true);
+                      await startBackgroundUpload({
+                        uploadType,
+                        importMode,
+                        sales: parsedSales.filter(s => s.date),
+                        fileName: file?.name || 'Planilha',
+                        sheetName: selectedSheet,
+                        uploadedByName: profile?.full_name || user?.email || 'Desconhecido',
+                      });
+                      // Clear the form since it's processing in background
+                      setParsedSales([]);
+                      setFile(null);
+                      setMetrics(null);
+                      setRawData([]);
+                      sessionStorage.removeItem(STORAGE_KEY);
+                    } catch {
+                      // Error already shown by hook
+                    } finally {
+                      setIsImporting(false);
+                    }
                   } else {
-                    importSales();
+                    // Show confirmation dialog if replacing many records
+                    if (importMode === 'replace' && existingRecordsCount >= LARGE_REPLACE_THRESHOLD) {
+                      setShowConfirmDialog(true);
+                    } else {
+                      importSales();
+                    }
                   }
                 }} 
-                disabled={isImporting || matchedCount === 0 || isCheckingExisting}
+                disabled={isImporting || matchedCount === 0 || isCheckingExisting || activeJob !== null}
                 className={uploadType === 'vendas' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}
               >
                 {isImporting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Importando...
+                    {useBackgroundJob ? 'Enviando...' : 'Importando...'}
                   </>
                 ) : isCheckingExisting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Verificando...
+                  </>
+                ) : activeJob !== null ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Job em andamento...
+                  </>
+                ) : useBackgroundJob && parsedSales.length >= BACKGROUND_THRESHOLD ? (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Processar em Background ({matchedCount})
                   </>
                 ) : (
                   <>
