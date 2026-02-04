@@ -216,31 +216,48 @@ export function CRMChatsModule() {
     return name.includes(query) || number.includes(query);
   });
 
-  // Compute all media items from messages for navigation
+  // Compute all media items from messages for navigation (images and videos)
   const allChatMedia = useMemo<MediaViewerItem[]>(() => {
     return messages
       .filter(msg => {
-        const type = (msg.message_type?.toLowerCase() || '').replace('message', '');
+        const type = (msg.message_type?.toLowerCase() || '').replace('message', '').trim();
         const hasMedia = msg.media_url || msg.media_preview;
-        // Captura imagens de várias formas que podem vir do WhatsApp
-        const isImage = type.includes('image') || 
-                       type === 'image' || 
-                       type === 'sticker' ||
-                       (hasMedia && (type === 'text' || type === 'conversation' || type === 'extendedtext' || type === ''));
-        return hasMedia && isImage;
+        
+        // Include images, stickers and videos
+        const isImage = type.includes('image') || type === 'image' || type === 'sticker';
+        const isVideo = type.includes('video') || type === 'video';
+        
+        // Also include messages that have media but came as text/conversation
+        const hasMediaAsText = hasMedia && (type === 'text' || type === 'conversation' || type === 'extendedtext' || type === '');
+        
+        return hasMedia && (isImage || isVideo || hasMediaAsText);
       })
-      .map(msg => ({
-        id: msg.id,
-        type: 'image' as const,
-        src: msg.media_url || msg.media_preview || '',
-        preview: msg.media_preview,
-        caption: msg.content && msg.content !== '[Imagem]' && !msg.content.toLowerCase().includes('imagem') 
-          ? msg.content 
-          : undefined,
-        timestamp: msg.message_timestamp,
-        fromMe: msg.from_me,
-        contactName: selectedChat?.contact_name,
-      }));
+      .map(msg => {
+        const type = (msg.message_type?.toLowerCase() || '').replace('message', '').trim();
+        const isVideo = type.includes('video') || type === 'video';
+        const isVideoPlaceholder = msg.content?.toLowerCase().includes('video') || msg.content?.toLowerCase().includes('vídeo');
+        
+        // Determine media type
+        const mediaType: 'image' | 'video' = isVideo || isVideoPlaceholder ? 'video' : 'image';
+        
+        // Filter out placeholder captions
+        const caption = msg.content && 
+          !msg.content.toLowerCase().match(/^\[?(imagem|image|video|vídeo)\]?$/i) &&
+          !msg.content.toLowerCase().includes('📷 imagem')
+            ? msg.content 
+            : undefined;
+        
+        return {
+          id: msg.id,
+          type: mediaType,
+          src: msg.media_url || msg.media_preview || '',
+          preview: msg.media_preview,
+          caption,
+          timestamp: msg.message_timestamp,
+          fromMe: msg.from_me,
+          contactName: selectedChat?.contact_name,
+        };
+      });
   }, [messages, selectedChat?.contact_name]);
 
   // Get current media for viewer
