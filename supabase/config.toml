@@ -221,3 +221,6 @@ verify_jwt = false
 
 [functions.whatsapp-reprocess-media]
 verify_jwt = false
+
+[functions.process-sales-upload]
+verify_jwt = false
