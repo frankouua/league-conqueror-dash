@@ -210,11 +210,46 @@ export function PointsStatementReport() {
   const pointsEntries = useMemo(() => {
     const entries: PointEntry[] = [];
 
-    // Revenue entries - 1 point per R$ 1.000
+    // Revenue entries - Calculate points per team first (matching dashboard logic)
+    // Dashboard calculates: floor(totalTeamRevenue / 1000), not sum of floor(eachRecord / 1000)
+    // To match dashboard AND show individual entries, we:
+    // 1. Calculate total revenue per team
+    // 2. Calculate total points per team (floor of total / 1000)
+    // 3. Distribute points proportionally to each record
+    
+    const teamRevenueMap = new Map<string, { total: number; records: typeof revenueRecords }>();
+    
     revenueRecords?.forEach(r => {
-      const amount = Number(r.amount);
-      const points = Math.floor(amount / 1000) * POINTS_CONFIG.revenue.perThousand;
-      if (points > 0) {
+      const teamId = r.team_id;
+      const existing = teamRevenueMap.get(teamId) || { total: 0, records: [] as any[] };
+      existing.total += Number(r.amount);
+      existing.records.push(r);
+      teamRevenueMap.set(teamId, existing);
+    });
+    
+    // For each team, calculate total points and distribute
+    teamRevenueMap.forEach((teamData, teamId) => {
+      const totalTeamPoints = Math.floor(teamData.total / 1000) * POINTS_CONFIG.revenue.perThousand;
+      const totalTeamRevenue = teamData.total;
+      
+      // Track distributed points to handle rounding
+      let distributedPoints = 0;
+      const recordCount = teamData.records.length;
+      
+      teamData.records.forEach((r: any, index: number) => {
+        const amount = Number(r.amount);
+        
+        // Calculate proportional points for this record
+        // For the last record, assign remaining points to avoid rounding errors
+        let points: number;
+        if (index === recordCount - 1) {
+          points = totalTeamPoints - distributedPoints;
+        } else {
+          // Proportional distribution
+          points = Math.round((amount / totalTeamRevenue) * totalTeamPoints);
+          distributedPoints += points;
+        }
+        
         entries.push({
           id: `revenue-${r.id}`,
           date: r.date,
@@ -230,7 +265,7 @@ export function PointsStatementReport() {
           createdAt: r.created_at,
           source: 'revenue',
         });
-      }
+      });
     });
 
     // NPS entries
