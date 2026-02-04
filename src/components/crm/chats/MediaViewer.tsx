@@ -54,12 +54,14 @@ export function MediaViewer({
   const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Reset zoom and rotation when switching to a different media
+  // Reset zoom and rotation when dialog opens or switching to a different media
   useEffect(() => {
-    setZoom(1);
-    setRotation(0);
-    setIsPlaying(false);
-  }, [media?.id]);
+    if (open) {
+      setZoom(1);
+      setRotation(0);
+      setIsPlaying(false);
+    }
+  }, [open, media?.id]);
 
   // Auto-play video when opened
   useEffect(() => {
