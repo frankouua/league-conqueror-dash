@@ -5,12 +5,15 @@
 // - only https
 // - size limits
 
+// Explicit allowlist of known WhatsApp CDN subdomains.
+// Do NOT use wildcard patterns - only allow verified CDN hosts.
 const ALLOWED_HOSTS = new Set([
-  'mmg.whatsapp.net',
-  'pps.whatsapp.net',
-  'static.whatsapp.net',
-  'web.whatsapp.com',
-  'whatsapp.net',
+  'mmg.whatsapp.net',       // Main media CDN
+  'pps.whatsapp.net',       // Profile pictures
+  'static.whatsapp.net',    // Static assets
+  'web.whatsapp.com',       // Web client assets
+  'mmg-fna.whatsapp.net',   // Media CDN (regional)
+  'media.fmex1-1.fna.whatsapp.net', // Media CDN (regional)
 ]);
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25MB
@@ -112,11 +115,32 @@ function isAllowedUrl(raw: string): { ok: true; url: URL } | { ok: false; reason
 
   if (url.protocol !== 'https:') return { ok: false, reason: 'https_only' };
 
-  const host = url.hostname.toLowerCase();
-  const allowed = ALLOWED_HOSTS.has(host) || host.endsWith('.whatsapp.net');
-  if (!allowed) return { ok: false, reason: 'host_not_allowed' };
+  // Reject URLs without a path (just base domain)
+  if (!url.pathname || url.pathname === '/') {
+    return { ok: false, reason: 'missing_path' };
+  }
 
-  return { ok: true, url };
+  const host = url.hostname.toLowerCase();
+  
+  // Check exact match first
+  if (ALLOWED_HOSTS.has(host)) {
+    return { ok: true, url };
+  }
+  
+  // Allow *.whatsapp.net subdomains that match known CDN patterns
+  // These typically contain 'mmg', 'media', 'pps', or 'fna' in the subdomain
+  if (host.endsWith('.whatsapp.net')) {
+    const subdomain = host.replace('.whatsapp.net', '');
+    const isCdnPattern = /^(mmg|media|pps|static|fna|cdn)/.test(subdomain) ||
+                         subdomain.includes('fna') ||
+                         subdomain.includes('cdn') ||
+                         subdomain.includes('mmg');
+    if (isCdnPattern) {
+      return { ok: true, url };
+    }
+  }
+
+  return { ok: false, reason: 'host_not_allowed' };
 }
 
 async function readUpToLimit(resp: Response) {
