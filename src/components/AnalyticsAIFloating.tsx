@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-
+import DOMPurify from 'dompurify';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -72,7 +72,15 @@ const formatMarkdown = (text: string): string => {
   formatted = formatted.replace(/\n\n/g, '</p><p class="mb-2 text-xs">');
   formatted = formatted.replace(/\n/g, '<br/>');
   
-  return `<div class="prose prose-invert max-w-none text-xs"><p class="mb-2 text-xs">${formatted}</p></div>`;
+  const htmlContent = `<div class="prose prose-invert max-w-none text-xs"><p class="mb-2 text-xs">${formatted}</p></div>`;
+  
+  // Sanitize HTML to prevent XSS attacks
+  return DOMPurify.sanitize(htmlContent, {
+    ALLOWED_TAGS: ['div', 'p', 'h2', 'h3', 'h4', 'strong', 'ul', 'li', 'ol', 'table', 'tr', 'th', 'td', 'br', 'hr', 'span'],
+    ALLOWED_ATTR: ['class'],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
+  });
 };
 
 const AnalyticsAIFloatingComponent = memo(function AnalyticsAIFloatingInner() {
