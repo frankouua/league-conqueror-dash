@@ -166,26 +166,25 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
         let modifierPoints = 0;
         let teamRevenue = 0;
 
-        // Revenue - SOMA APENAS VALORES POSITIVOS para "Total Vendido"
-        // Valores negativos (estornos) já estão registrados como negativos no banco
+        // Revenue - Calcula valores brutos e cancelamentos
         const teamRevenueRecords = allRevenue?.filter(r => r.team_id === team.id) || [];
         
-        // Para exibição: apenas valores positivos (vendas brutas)
+        // Soma bruta (apenas valores positivos)
         const grossRevenue = teamRevenueRecords
           .filter(r => Number(r.amount) > 0)
           .reduce((sum, r) => sum + Number(r.amount), 0);
         
-        // Para pontuação: soma líquida (inclui estornos/negativos)
+        // Soma líquida (inclui estornos/negativos)
         const netRevenue = teamRevenueRecords.reduce((sum, r) => sum + Number(r.amount), 0);
         
-        // Subtract confirmed cancellations from revenue for points calculation
+        // Cancelamentos confirmados
         const teamCancellations = allCancellations?.filter(c => c.team_id === team.id) || [];
         const cancelledAmount = teamCancellations.reduce((sum, c) => sum + Number(c.contract_value), 0);
         
-        // Para exibição: Total Vendido (bruto positivo)
-        teamRevenue = grossRevenue;
+        // Para exibição: Total Vendido = Bruto - Cancelamentos (valor líquido)
+        teamRevenue = Math.max(0, grossRevenue - cancelledAmount);
         
-        // Para pontuação: usa valor líquido menos cancelamentos
+        // Para pontuação: usa valor líquido (com estornos) menos cancelamentos
         const revenueForPoints = netRevenue - cancelledAmount;
         revenuePoints = Math.floor(Math.max(0, revenueForPoints) / 1000) * SCORING.revenue.perThousand;
 
