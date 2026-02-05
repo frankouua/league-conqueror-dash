@@ -14,6 +14,8 @@ interface TeamScore {
   qualityPoints: number;
   modifierPoints: number;
   totalRevenue: number;
+  grossRevenue: number;
+  cancelledAmount: number;
 }
 
 interface GoalsState {
@@ -316,6 +318,8 @@ export const useTeamScores = (userTeamId?: string | null, selectedMonth?: number
           modifierPoints,
           totalPoints: revenuePoints + qualityPoints + modifierPoints,
           totalRevenue: teamRevenue,
+          grossRevenue,
+          cancelledAmount,
         });
       }
 
