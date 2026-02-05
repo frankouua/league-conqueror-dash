@@ -6,6 +6,8 @@ interface TeamData {
   name: string;
   totalPoints: number;
   totalRevenue: number;
+  grossRevenue?: number;
+  cancelledAmount?: number;
 }
 
 interface TeamBadgesDisplayProps {
@@ -55,6 +57,8 @@ const TeamBadgesDisplay = ({
   
   const pointsDifference = team1 && team2 ? Math.abs(team1.totalPoints - team2.totalPoints) : 0;
   const totalRevenue = (lionessData?.totalRevenue || 0) + (troiaData?.totalRevenue || 0);
+  const totalGrossRevenue = (lionessData?.grossRevenue || 0) + (troiaData?.grossRevenue || 0);
+  const totalCancelled = (lionessData?.cancelledAmount || 0) + (troiaData?.cancelledAmount || 0);
 
   // TV-optimized layout for large screens
   if (layout === "tv") {
@@ -144,10 +148,34 @@ const TeamBadgesDisplay = ({
             VS
           </span>
           
-          {/* Total Revenue Display */}
+          {/* Revenue Display with Breakdown */}
           <div className="flex flex-col items-center bg-gradient-to-b from-primary/20 to-transparent rounded-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 border border-primary/30">
-            <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground font-medium uppercase tracking-wider mb-1">
-              Total Vendido
+            {/* Gross Revenue */}
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              Bruto
+            </p>
+            <p className="text-sm sm:text-lg md:text-xl font-bold text-foreground">
+              R$ {totalGrossRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </p>
+            
+            {/* Cancellations */}
+            {totalCancelled > 0 && (
+              <div className="mt-1">
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Cancelamentos
+                </p>
+                <p className="text-sm sm:text-base font-semibold text-destructive">
+                  - R$ {totalCancelled.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            )}
+            
+            {/* Divider */}
+            <div className="w-full h-px bg-primary/30 my-2" />
+            
+            {/* Net Revenue (Líquido) */}
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              Total Líquido
             </p>
             <p className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-gradient-gold">
               R$ {totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}

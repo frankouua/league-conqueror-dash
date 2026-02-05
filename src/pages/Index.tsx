@@ -410,12 +410,16 @@ const Index = () => {
                   team1={team1 ? {
                     name: team1.name,
                     totalPoints: team1.totalPoints,
-                    totalRevenue: team1.totalRevenue
+                    totalRevenue: team1.totalRevenue,
+                    grossRevenue: team1.grossRevenue,
+                    cancelledAmount: team1.cancelledAmount
                   } : null}
                   team2={team2 ? {
                     name: team2.name,
                     totalPoints: team2.totalPoints,
-                    totalRevenue: team2.totalRevenue
+                    totalRevenue: team2.totalRevenue,
+                    grossRevenue: team2.grossRevenue,
+                    cancelledAmount: team2.cancelledAmount
                   } : null}
                 />
               </Suspense>
