@@ -860,6 +860,21 @@ const ReferralLeads = () => {
     setIsSaving(true);
     
     try {
+      // 1. REMOVER PONTOS: Deletar card de pontos associado à indicação
+      const { data: deletedCards, error: cardError } = await supabase
+        .from('cards')
+        .delete()
+        .eq('referral_lead_id', leadToReject.id)
+        .select();
+      
+      if (cardError) {
+        console.error("Erro ao remover pontos:", cardError);
+      } else if (deletedCards && deletedCards.length > 0) {
+        const totalPointsRemoved = deletedCards.reduce((sum, card) => sum + Math.abs(card.points), 0);
+        console.log(`✅ Removidos ${totalPointsRemoved} pontos do time (${deletedCards.length} cards)`);
+      }
+      
+      // 2. Atualizar status da indicação
       const { error: updateError } = await supabase
         .from("referral_leads")
         .update({
@@ -880,12 +895,15 @@ const ReferralLeads = () => {
         
         if (teamMembers && teamMembers.length > 0) {
           const reasonText = rejectionReason || "Indicação não validada";
+          const pointsNote = deletedCards && deletedCards.length > 0 
+            ? ` Os pontos associados foram removidos.` 
+            : '';
           const notifications = teamMembers.map(member => ({
             user_id: member.user_id,
             team_id: leadToReject.team_id,
             type: "referral_rejected",
             title: "❌ Indicação Rejeitada",
-            message: `A indicação de ${leadToReject.referred_name} (via ${leadToReject.referrer_name}) foi rejeitada. Motivo: ${reasonText}`,
+            message: `A indicação de ${leadToReject.referred_name} (via ${leadToReject.referrer_name}) foi rejeitada. Motivo: ${reasonText}${pointsNote}`,
             read: false,
           }));
           
@@ -895,9 +913,13 @@ const ReferralLeads = () => {
         console.error("Erro ao enviar notificações:", notifError);
       }
       
+      const pointsMsg = deletedCards && deletedCards.length > 0 
+        ? " Pontos removidos do time." 
+        : "";
+      
       toast({ 
         title: "❌ Indicação rejeitada", 
-        description: rejectionReason || "Indicação não validada",
+        description: (rejectionReason || "Indicação não validada") + pointsMsg,
         variant: "destructive",
       });
       
