@@ -17,6 +17,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
+import DOMPurify from 'dompurify';
 
 interface Message {
   role: "user" | "assistant";
@@ -85,7 +86,15 @@ const formatMarkdown = (text: string): string => {
   formatted = formatted.replace(/\n\n/g, '</p><p class="mb-3">');
   formatted = formatted.replace(/\n/g, '<br/>');
   
-  return `<div class="prose prose-invert max-w-none"><p class="mb-3">${formatted}</p></div>`;
+  const htmlContent = `<div class="prose prose-invert max-w-none"><p class="mb-3">${formatted}</p></div>`;
+  
+  // Sanitize HTML to prevent XSS attacks
+  return DOMPurify.sanitize(htmlContent, {
+    ALLOWED_TAGS: ['div', 'p', 'h2', 'h3', 'h4', 'strong', 'ul', 'li', 'ol', 'table', 'tr', 'th', 'td', 'br', 'hr', 'span'],
+    ALLOWED_ATTR: ['class'],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
+  });
 };
 
 export function AnalyticsAI() {
