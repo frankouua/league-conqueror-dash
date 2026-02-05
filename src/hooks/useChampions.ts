@@ -65,6 +65,14 @@ export const useChampions = () => {
         return;
       }
 
+      // Buscar IDs de indicações rejeitadas para filtrar cards
+      const { data: rejectedLeadIds } = await supabase
+        .from("referral_leads")
+        .select("id")
+        .eq("approved", false);
+      
+      const rejectedIds = new Set((rejectedLeadIds || []).map(r => r.id));
+
       const [
         { data: allRevenue },
         { data: allNps },
@@ -80,6 +88,11 @@ export const useChampions = () => {
         supabase.from("other_indicators").select("*"),
         supabase.from("cards").select("*"),
       ]);
+      
+      // Filtrar cards excluindo os de indicações rejeitadas
+      const validCards = (allCards || []).filter(card => 
+        !card.referral_lead_id || !rejectedIds.has(card.referral_lead_id)
+      );
 
       const now = new Date();
       const currentMonth = now.getMonth() + 1;
@@ -152,11 +165,11 @@ export const useChampions = () => {
             ind.instagram_mentions * SCORING.quality.instagramMention;
         }
 
-        // Cards
-        const teamCards = allCards?.filter((r) => {
+        // Cards (filtrados para excluir indicações rejeitadas)
+        const teamCards = validCards.filter((r) => {
           const date = new Date(r.date);
           return r.team_id === teamId && date >= startDate && date <= endDate;
-        }) || [];
+        });
         for (const card of teamCards) {
           modifierPoints += card.points;
         }
