@@ -63,6 +63,14 @@ export const useUserTeamStats = () => {
       const monthStart = new Date(currentYear, currentMonth - 1, 1);
       const monthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
+      // Buscar IDs de indicações rejeitadas para filtrar cards
+      const { data: rejectedLeadIds } = await supabase
+        .from("referral_leads")
+        .select("id")
+        .eq("approved", false);
+      
+      const rejectedIds = new Set((rejectedLeadIds || []).map(r => r.id));
+
       // Fetch all data
       const [
         { data: allRevenue },
@@ -79,6 +87,11 @@ export const useUserTeamStats = () => {
         supabase.from("other_indicators").select("*"),
         supabase.from("cards").select("*"),
       ]);
+      
+      // Filtrar cards excluindo os de indicações rejeitadas
+      const validCards = (allCards || []).filter(card => 
+        !card.referral_lead_id || !rejectedIds.has(card.referral_lead_id)
+      );
 
       // Calculate points for each team
       const calculateTeamPoints = (teamId: string, startDate?: Date, endDate?: Date) => {
@@ -161,15 +174,15 @@ export const useUserTeamStats = () => {
             ind.instagram_mentions * SCORING.quality.instagramMention;
         }
 
-        // Cards
-        const teamCards = allCards?.filter((r) => {
+        // Cards (filtrados para excluir indicações rejeitadas)
+        const teamCards = validCards.filter((r) => {
           if (r.team_id !== teamId) return false;
           if (startDate && endDate) {
             const date = new Date(r.date);
             return date >= startDate && date <= endDate;
           }
           return true;
-        }) || [];
+        });
         for (const card of teamCards) {
           points += card.points;
         }

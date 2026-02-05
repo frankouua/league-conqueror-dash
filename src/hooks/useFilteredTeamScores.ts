@@ -71,6 +71,14 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         return;
       }
 
+      // Buscar IDs de indicações rejeitadas para filtrar cards
+      const { data: rejectedLeadIds } = await supabase
+        .from("referral_leads")
+        .select("id")
+        .eq("approved", false);
+      
+      const rejectedIds = new Set((rejectedLeadIds || []).map(r => r.id));
+
       const [
         { data: allRevenue },
         { data: allNps },
@@ -90,6 +98,11 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
         supabase.from("special_events").select("*").gte("date", startStr).lte("date", endStr),
         supabase.from("cancellations").select("*").gte("cancellation_request_date", startStr).lte("cancellation_request_date", endStr).in("status", ["cancelled_with_fine", "cancelled_no_fine", "credit_used"]),
       ]);
+      
+      // Filtrar cards excluindo os de indicações rejeitadas
+      const validCards = (allCards || []).filter(card => 
+        !card.referral_lead_id || !rejectedIds.has(card.referral_lead_id)
+      );
 
       const teamScores: FilteredTeamScore[] = [];
 
@@ -148,8 +161,8 @@ export const useFilteredTeamScores = (period: PeriodFilter = "all") => {
             ind.instagram_mentions * SCORING.quality.instagramMention;
         }
 
-        // Cards
-        const teamCards = allCards?.filter(r => r.team_id === team.id) || [];
+        // Cards (já filtrados para excluir indicações rejeitadas)
+        const teamCards = validCards.filter(r => r.team_id === team.id);
         for (const card of teamCards) {
           modifierPoints += card.points;
         }
