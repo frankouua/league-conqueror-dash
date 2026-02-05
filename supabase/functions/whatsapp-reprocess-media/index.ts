@@ -196,21 +196,58 @@ Deno.serve(async (req) => {
     let instErr: unknown = null
 
     if (instanceId) {
-      // Lookup by ID
+      // Lookup by ID (instance row primary key)
       const res = await adminClient.from('whatsapp_instances').select('api_key, instance_name').eq('id', instanceId).maybeSingle()
       instance = res.data
       instErr = res.error
-    } else if (normalizedInstanceName) {
-      // Lookup by normalized name (exact match)
+
+      // Fallback: maybe instanceId is the whatsapp instance_id column
+      if (!instance) {
+        const res2 = await adminClient.from('whatsapp_instances').select('api_key, instance_name').eq('instance_id', instanceId).maybeSingle()
+        instance = res2.data
+        instErr = res2.error
+      }
+    }
+
+    if (!instance && normalizedInstanceName) {
+      // Strategy 1: Exact match on normalized name
       const res = await adminClient.from('whatsapp_instances').select('api_key, instance_name').eq('instance_name', normalizedInstanceName).maybeSingle()
       instance = res.data
       instErr = res.error
 
-      // Fallback: try original name if normalized didn't match
+      // Strategy 2: Try original name as-is
       if (!instance && instanceName) {
         const res2 = await adminClient.from('whatsapp_instances').select('api_key, instance_name').eq('instance_name', instanceName).maybeSingle()
         instance = res2.data
         instErr = res2.error
+      }
+
+      // Strategy 3: Partial match — DB name starts with a prefix of the normalized name or vice-versa
+      // Covers cases like provider "Rodrigo - Social Selling" (RODRIGO_SOCIAL_SELLING) vs DB "RODRIGO_SOCIAL"
+      if (!instance && normalizedInstanceName) {
+        const { data: allInstances } = await adminClient.from('whatsapp_instances').select('api_key, instance_name')
+        if (allInstances && allInstances.length > 0) {
+          const match = allInstances.find((inst: any) => {
+            const dbName = inst.instance_name || ''
+            // Either DB name is a prefix of the provider name, or provider name is a prefix of DB name
+            return normalizedInstanceName.startsWith(dbName) || dbName.startsWith(normalizedInstanceName)
+          })
+          if (match) {
+            instance = match
+            instErr = null
+            console.log('[whatsapp-reprocess-media] matched via partial prefix', { normalizedInstanceName, matched: match.instance_name })
+          }
+        }
+      }
+    }
+
+    // Last resort: try global UAZAPI_API_KEY secret
+    if (!instance?.api_key) {
+      const globalKey = Deno.env.get('UAZAPI_API_KEY')
+      if (globalKey) {
+        console.log('[whatsapp-reprocess-media] using global UAZAPI_API_KEY fallback')
+        instance = { api_key: globalKey, instance_name: instanceName || normalizedInstanceName || 'GLOBAL' }
+        instErr = null
       }
     }
 
